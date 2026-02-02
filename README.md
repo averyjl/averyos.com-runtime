@@ -20,6 +20,8 @@ manifests and dynamic routes.
 - `pages/api/licensehook.ts` → license webhook stub
 - `pages/api/registry.ts` → registry API for capsule listings + metadata
 - `styles/globals.css` → sovereign runtime UI styling
+- `styles/globals.css` → sovereign runtime UI styling
+- `pages/api/licensehook.ts` → license webhook stub
 
 ### Build manifests
 
