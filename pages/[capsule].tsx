@@ -1,5 +1,6 @@
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import Head from "next/head";
+import CapsuleBody from "../components/CapsuleBody";
 import CapsuleBlock from "../components/CapsuleBlock";
 import RetroclaimEmbed from "../components/RetroclaimEmbed";
 import StripeConnectCard from "../components/StripeConnectCard";
@@ -25,6 +26,9 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
           driftLock={capsule.driftLock}
           vaultChainUrl={capsule.vaultChainUrl}
           licenseStatus={capsule.licenseStatus}
+          compiledAt={capsule.compiledAt}
+        />
+        <CapsuleBody body={capsule.body} />
         />
         <section>
           <p className="section-title">Capsule Runtime Modules</p>

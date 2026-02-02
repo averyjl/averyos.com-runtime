@@ -8,6 +8,7 @@ export type CapsuleBlockProps = {
   vaultChainUrl?: string;
   capsuleId: string;
   licenseStatus: string;
+  compiledAt?: string;
   vaultChainUrl?: string;
   capsuleId: string;
 };
@@ -20,6 +21,7 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
   vaultChainUrl,
   capsuleId,
   licenseStatus,
+  compiledAt,
   vaultChainUrl,
   capsuleId,
 }) => {
@@ -55,6 +57,12 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
           <dt>License Status</dt>
           <dd>{licenseStatus}</dd>
         </div>
+        {compiledAt ? (
+          <div>
+            <dt>Compiled At</dt>
+            <dd>{new Date(compiledAt).toLocaleString()}</dd>
+          </div>
+        ) : null}
       </dl>
     </section>
   );

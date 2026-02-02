@@ -5,6 +5,10 @@ export type CapsuleManifest = {
   capsuleId: string;
   title: string;
   summary: string;
+  body: string[];
+  sha: string;
+  driftLock: string;
+  compiledAt: string;
   sha: string;
   driftLock: string;
   vaultChainUrl?: string;

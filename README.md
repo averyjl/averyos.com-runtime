@@ -13,6 +13,7 @@ manifests and dynamic routes.
 - `public/manifest/capsules/` → compiled capsule manifests with SHA + VaultChain metadata
 - `pages/[capsule].tsx` → dynamic capsule route renderer
 - `components/CapsuleBlock.tsx` → capsule presentation block
+- `components/CapsuleBody.tsx` → capsule body content renderer
 - `components/RetroclaimEmbed.tsx` → retroclaim status module
 - `components/StripeConnectCard.tsx` → stripe license status module
 - `components/ViewerEmbed.tsx` → viewer+ module placeholder

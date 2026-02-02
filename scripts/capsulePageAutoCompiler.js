@@ -38,11 +38,21 @@ const compileCapsule = ({ id, filePath }) => {
 
   const sha = computeSha(raw);
   const driftLock = computeSha(`${sha}:${id}`);
+  const compiledAt = new Date().toISOString();
+  const body = Array.isArray(payload.body)
+    ? payload.body.map((item) => String(item))
+    : payload.body
+      ? [String(payload.body)]
+      : [];
 
   const manifest = {
     capsuleId: id,
     title: payload.title ?? id,
     summary: payload.summary ?? "",
+    body,
+    sha,
+    driftLock,
+    compiledAt,
     sha,
     driftLock,
     vaultChainUrl: payload.vaultChainUrl ?? null,
