@@ -33,3 +33,9 @@ npm run capsule:build
 npm install
 npm run dev
 ```
+
+### Public repo hygiene
+
+- Keep secrets out of the repo. Store API keys in `.env` files (ignored by git) or your deployment
+  platform’s secret manager.
+- Use placeholder domains in sample capsules unless you intend to publish the endpoint publicly.
