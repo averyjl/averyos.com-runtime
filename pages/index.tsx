@@ -41,11 +41,16 @@ const Home: NextPage = () => {
           </div>
         </section>
         <section>
+            publish instantly.
+          </p>
+        </section>
+        <section>
           <h2>Available Capsules</h2>
           {capsules.length === 0 ? (
             <p>No capsules built yet. Run the capsule compiler to generate manifests.</p>
           ) : (
             <ul className="capsule-list">
+            <ul>
               {capsules.map((capsule) => (
                 <li key={capsule}>
                   <Link href={`/${capsule}`}>{capsule}</Link>

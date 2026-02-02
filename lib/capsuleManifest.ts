@@ -9,10 +9,13 @@ export type CapsuleManifest = {
   sha: string;
   driftLock: string;
   compiledAt: string;
+  sha: string;
+  driftLock: string;
   vaultChainUrl?: string;
   licenseStatus: string;
   viewerUrl?: string | null;
   stripeUrl?: string | null;
+  vaultChainUrl?: string;
 };
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
@@ -43,6 +46,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
   }
   const raw = fs.readFileSync(manifestPath, "utf-8");
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
+  return JSON.parse(raw) as CapsuleManifest;
 };
 
 export const listCapsuleIds = (): string[] => {
