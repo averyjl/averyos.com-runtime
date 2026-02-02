@@ -11,6 +11,24 @@ type HomeProps = {
   capsules: CapsuleIndexItem[];
 };
 
+const formatCompiledAt = (value?: string): string | null => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  });
+};
+
+const Home: NextPage<HomeProps> = ({ capsules }) => {
+  const siteUrl = getSiteUrl();
 const Home: NextPage<HomeProps> = ({ capsules }) => {
   const siteUrl = getSiteUrl();
 import type { NextPage } from "next";
@@ -82,6 +100,11 @@ const Home: NextPage = () => {
                     <Link href={`/${capsule.capsuleId}`}>{capsule.title ?? capsule.capsuleId}</Link>
                     {capsule.summary ? <p>{capsule.summary}</p> : null}
                     {capsule.compiledAt ? (
+                      <span className="capsule-meta">
+                        Compiled {formatCompiledAt(capsule.compiledAt)}
+                      </span>
+                    ) : null}
+                  </div>
                       <span className="capsule-meta">Compiled {capsule.compiledAt}</span>
                     ) : null}
                   </div>
