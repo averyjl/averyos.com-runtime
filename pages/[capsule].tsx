@@ -32,6 +32,7 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
           compiledAt={capsule.compiledAt}
         />
         <CapsuleBody body={capsule.body} />
+        />
         <section>
           <p className="section-title">Capsule Runtime Modules</p>
           <div className="badge-grid">
@@ -47,6 +48,8 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
         <p className="footer-note">
           Missing a capsule? Add its .aoscap source and re-run the compiler to publish.
         </p>
+          vaultChainUrl={capsule.vaultChainUrl}
+        />
       </main>
     </>
   );
