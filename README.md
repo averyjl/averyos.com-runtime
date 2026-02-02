@@ -39,3 +39,15 @@ npm run dev
 - Keep secrets out of the repo. Store API keys in `.env` files (ignored by git) or your deployment
   platform’s secret manager.
 - Use placeholder domains in sample capsules unless you intend to publish the endpoint publicly.
+
+### Stripe monetization (connect + webhooks)
+
+1. Add Stripe secrets in your hosting provider (or copy `.env.example` locally):
+   - `STRIPE_SECRET_KEY`
+   - `STRIPE_WEBHOOK_SECRET`
+2. Configure a webhook endpoint in Stripe that targets `/api/stripe-webhook`.
+3. Capture Stripe Connect onboarding URLs (or dashboard links) in capsule manifests via `stripeUrl`
+   so capsule routes can surface monetization state.
+
+> Note: The webhook handler is intentionally minimal and must be extended to verify signatures
+> before processing live events.
