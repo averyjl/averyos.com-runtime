@@ -17,6 +17,10 @@ manifests and dynamic routes.
 - `components/RetroclaimEmbed.tsx` → retroclaim status module
 - `components/StripeConnectCard.tsx` → stripe license status module
 - `components/ViewerEmbed.tsx` → viewer+ module placeholder
+- `pages/api/capsules.ts` → compiled capsule manifest API
+- `pages/api/licensehook.ts` → license webhook stub
+- `pages/api/registry.ts` → registry API for capsule listings + metadata
+- `styles/globals.css` → sovereign runtime UI styling
 - `pages/api/licensehook.ts` → license webhook stub
 - `pages/api/registry.ts` → registry API for capsule listings + metadata
 - `styles/globals.css` → sovereign runtime UI styling
