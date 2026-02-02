@@ -29,6 +29,7 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
           compiledAt={capsule.compiledAt}
         />
         <CapsuleBody body={capsule.body} />
+        />
         <section>
           <p className="section-title">Capsule Runtime Modules</p>
           <div className="badge-grid">
@@ -41,6 +42,8 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
           Capsule manifests update automatically when a new .aoscap file is compiled. DriftLock
           hashes assert the live runtime signature.
         </p>
+          vaultChainUrl={capsule.vaultChainUrl}
+        />
       </main>
     </>
   );

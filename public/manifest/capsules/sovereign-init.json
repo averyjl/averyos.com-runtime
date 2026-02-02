@@ -14,4 +14,16 @@
   "licenseStatus": "Ready for retroclaim validation",
   "viewerUrl": "https://viewer.example/sovereign-init",
   "stripeUrl": "https://stripe.example/connect/sovereign-init"
+  "sha": "8aa3bd38b731eb0bb4139a72d65bba83bc88d48ccc6b844b25b346d941558c12",
+  "driftLock": "512fd35a76e09d15fe46fb5661a317dd775eff5b12ece0cd856533a19fa31ce4",
+  "compiledAt": "2026-02-02T03:50:29.518Z",
+  "compiledAt": "2026-02-02T03:42:36.621Z",
+  "sha": "20ead736bd36485a9359cbdd0b7ef0fb528c97ca067fd4766dd59567e80d8429",
+  "driftLock": "0b09924eccbf568cfc4e1377eaed22364e22a2d054173397a370d9f882238ca4",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init",
+  "licenseStatus": "Ready for retroclaim validation",
+  "viewerUrl": "https://viewer.averyos.com/sovereign-init",
+  "stripeUrl": "https://stripe.example/connect/sovereign-init"
+  "sha": "c4a2e2577f7f28e6376f053359b2738d431d6510c01cb797e3521fb1400dbdcf",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init"
 }
