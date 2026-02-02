@@ -53,10 +53,13 @@ const compileCapsule = ({ id, filePath }) => {
     sha,
     driftLock,
     compiledAt,
+    sha,
+    driftLock,
     vaultChainUrl: payload.vaultChainUrl ?? null,
     licenseStatus: payload.licenseStatus ?? "Awaiting license",
     viewerUrl: payload.viewerUrl ?? null,
     stripeUrl: payload.stripeUrl ?? null,
+    vaultChainUrl: payload.vaultChainUrl ?? null,
   };
 
   const manifestPath = path.join(manifestDir, `${id}.json`);

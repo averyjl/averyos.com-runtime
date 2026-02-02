@@ -9,6 +9,8 @@ export type CapsuleBlockProps = {
   capsuleId: string;
   licenseStatus: string;
   compiledAt?: string;
+  vaultChainUrl?: string;
+  capsuleId: string;
 };
 
 const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
@@ -20,6 +22,8 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
   capsuleId,
   licenseStatus,
   compiledAt,
+  vaultChainUrl,
+  capsuleId,
 }) => {
   return (
     <section className="capsule-block">

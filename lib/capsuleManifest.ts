@@ -9,10 +9,13 @@ export type CapsuleManifest = {
   sha: string;
   driftLock: string;
   compiledAt: string;
+  sha: string;
+  driftLock: string;
   vaultChainUrl?: string;
   licenseStatus: string;
   viewerUrl?: string | null;
   stripeUrl?: string | null;
+  vaultChainUrl?: string;
 };
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
