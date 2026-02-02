@@ -1,3 +1,29 @@
 # averyos.com-runtime
 
 Capsule-powered runtime source for averyos.com.
+
+## Capsule WebBuilder overview
+
+This repository provides a capsule-driven runtime layout that maps `.aoscap` files into JSON
+manifests and dynamic routes.
+
+### Key structure
+
+- `capsules/` → source `.aoscap` files (JSON payloads)
+- `public/manifest/capsules/` → compiled capsule manifests with SHA + VaultChain metadata
+- `pages/[capsule].tsx` → dynamic capsule route renderer
+- `components/CapsuleBlock.tsx` → capsule presentation block
+- `pages/api/licensehook.ts` → license webhook stub
+
+### Build manifests
+
+```bash
+npm run capsule:build
+```
+
+### Run locally
+
+```bash
+npm install
+npm run dev
+```
