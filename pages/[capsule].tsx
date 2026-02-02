@@ -16,6 +16,9 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
     <>
       <Head>
         <title>{capsule.title} • averyos.com</title>
+        <meta name="description" content={capsule.summary} />
+        <meta property="og:title" content={`${capsule.title} • averyos.com`} />
+        <meta property="og:description" content={capsule.summary} />
       </Head>
       <main className="page">
         <CapsuleBlock

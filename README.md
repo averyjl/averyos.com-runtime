@@ -33,6 +33,14 @@ npm run capsule:build
 npm run capsule:index
 ```
 
+### Build sitemap + robots.txt
+
+```bash
+npm run capsule:sitemap
+```
+
+Set `SITE_URL` (see `.env.example`) to control the base URL for generated sitemap entries.
+
 ### Run locally
 
 ```bash
@@ -57,3 +65,9 @@ npm run dev
 
 > Note: The webhook handler is intentionally minimal and must be extended to verify signatures
 > before processing live events.
+
+### Publish + SEO recommendations
+
+- Run `npm run capsule:index` and `npm run capsule:sitemap` after adding capsules so the
+  registry and sitemap stay in sync.
+- Verify `SITE_URL` points at the production domain so search engines receive the correct URLs.

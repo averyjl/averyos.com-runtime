@@ -29,6 +29,7 @@ const buildRegistry = () => {
       summary: manifest.summary,
       sha: manifest.sha,
       driftLock: manifest.driftLock,
+      compiledAt: manifest.compiledAt,
     })),
   };
 

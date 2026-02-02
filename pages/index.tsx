@@ -10,6 +10,15 @@ const Home: NextPage = () => {
     <>
       <Head>
         <title>averyos.com • Capsule Runtime</title>
+        <meta
+          name="description"
+          content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules."
+        />
+        <meta property="og:title" content="averyos.com • Capsule Runtime" />
+        <meta
+          property="og:description"
+          content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules."
+        />
       </Head>
       <main className="page">
         <section className="hero">

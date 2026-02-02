@@ -66,6 +66,9 @@ export const listCapsuleIds = (): string[] => {
   }
   return fs
     .readdirSync(manifestDir)
+    .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
+    .map((fileName) => fileName.replace(/\.json$/, ""))
+    .sort((a, b) => a.localeCompare(b));
     .filter((fileName) => fileName.endsWith(".json"))
     .map((fileName) => fileName.replace(/\.json$/, ""));
 };
