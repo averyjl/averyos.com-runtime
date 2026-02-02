@@ -22,6 +22,13 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
   capsuleId,
   licenseStatus,
   compiledAt,
+}) => {
+  const compiledAtLabel = compiledAt
+    ? Number.isNaN(Date.parse(compiledAt))
+      ? compiledAt
+      : new Date(compiledAt).toLocaleString()
+    : null;
+
   vaultChainUrl,
   capsuleId,
 }) => {
@@ -57,6 +64,10 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
           <dt>License Status</dt>
           <dd>{licenseStatus}</dd>
         </div>
+        {compiledAtLabel ? (
+          <div>
+            <dt>Compiled At</dt>
+            <dd>{compiledAtLabel}</dd>
         {compiledAt ? (
           <div>
             <dt>Compiled At</dt>
