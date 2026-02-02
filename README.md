@@ -27,6 +27,12 @@ manifests and dynamic routes.
 npm run capsule:build
 ```
 
+### Build capsule registry
+
+```bash
+npm run capsule:index
+```
+
 ### Run locally
 
 ```bash

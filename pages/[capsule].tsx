@@ -42,6 +42,9 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
           Capsule manifests update automatically when a new .aoscap file is compiled. DriftLock
           hashes assert the live runtime signature.
         </p>
+        <p className="footer-note">
+          Missing a capsule? Add its .aoscap source and re-run the compiler to publish.
+        </p>
           vaultChainUrl={capsule.vaultChainUrl}
         />
       </main>

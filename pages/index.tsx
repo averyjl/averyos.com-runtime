@@ -59,6 +59,10 @@ const Home: NextPage = () => {
             </ul>
           )}
         </section>
+        <p className="footer-note">
+          Need to add more pages? Drop new .aoscap files into /capsules and run the capsule build
+          script to publish them instantly.
+        </p>
       </main>
     </>
   );

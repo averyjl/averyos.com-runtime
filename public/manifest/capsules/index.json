@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-02-02T04:03:57.733Z",
+  "count": 2,
+  "capsules": [
+    {
+      "capsuleId": "sovereign-index",
+      "title": "Sovereign Capsule Index",
+      "summary": "Reference index for active capsules, deployment signals, and monetization checkpoints.",
+      "sha": "3a28fa7f608eb20ce9ad898a4c8b86db2e9910722edfcef66d29c5cf6bbe599a",
+      "driftLock": "ae310c7b587edbc11e23841b1167de6ef463a80cc910dc2451b64a44b05ddd3c"
+    },
+    {
+      "capsuleId": "sovereign-init",
+      "title": "Sovereign Capsule WebBuilder",
+      "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
+      "sha": "4e2cb40def8cf117f6ad274cb5f1c45f6b842f76181a3cf0eae3048b4b2749f0",
+      "driftLock": "4fef2be70b669cb1a382d879cd271811025c10bcd2820e726742ee1240dd69e3"
+    }
+  ]
+}
