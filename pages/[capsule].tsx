@@ -23,6 +23,7 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
         <meta name="description" content={capsule.summary} />
         <meta property="og:title" content={`${capsule.title} • averyos.com`} />
         <meta property="og:description" content={capsule.summary} />
+        <meta property="og:type" content="article" />
         <meta property="og:url" content={capsuleUrl} />
         <link rel="canonical" href={capsuleUrl} />
       </Head>

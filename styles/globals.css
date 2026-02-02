@@ -200,6 +200,10 @@ a {
   color: rgba(148, 163, 184, 0.85);
 }
 
+.capsule-meta + .capsule-list {
+  margin-top: 0.6rem;
+}
+
 .footer-note {
   font-size: 0.85rem;
   color: rgba(238, 244, 255, 0.6);

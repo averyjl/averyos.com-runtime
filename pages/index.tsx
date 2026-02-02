@@ -29,6 +29,7 @@ const formatCompiledAt = (value?: string): string | null => {
 
 const Home: NextPage<HomeProps> = ({ capsules }) => {
   const siteUrl = getSiteUrl();
+  const capsuleCount = capsules.length;
 const Home: NextPage<HomeProps> = ({ capsules }) => {
   const siteUrl = getSiteUrl();
 import type { NextPage } from "next";
@@ -52,6 +53,7 @@ const Home: NextPage = () => {
           property="og:description"
           content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules."
         />
+        <meta property="og:type" content="website" />
         <meta property="og:url" content={siteUrl} />
         <link rel="canonical" href={siteUrl} />
       </Head>
@@ -85,6 +87,8 @@ const Home: NextPage = () => {
           </div>
         </section>
         <section>
+          <h2>Available Capsules</h2>
+          <p className="capsule-meta">{capsuleCount} capsule(s) available.</p>
             publish instantly.
           </p>
         </section>
