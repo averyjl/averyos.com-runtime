@@ -1,0 +1,11 @@
+{
+  "capsuleId": "sovereign-init",
+  "title": "Sovereign Capsule WebBuilder",
+  "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
+  "sha": "20ead736bd36485a9359cbdd0b7ef0fb528c97ca067fd4766dd59567e80d8429",
+  "driftLock": "0b09924eccbf568cfc4e1377eaed22364e22a2d054173397a370d9f882238ca4",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init",
+  "licenseStatus": "Ready for retroclaim validation",
+  "viewerUrl": "https://viewer.averyos.com/sovereign-init",
+  "stripeUrl": "https://stripe.example/connect/sovereign-init"
+}
