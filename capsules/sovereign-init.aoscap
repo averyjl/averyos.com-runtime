@@ -1,0 +1,13 @@
+{
+  "title": "Sovereign Capsule WebBuilder",
+  "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
+  "body": [
+    "The Sovereign Capsule WebBuilder turns each .aoscap file into a live, license-aware runtime page.",
+    "Every capsule compiles with DriftLock + VaultChain metadata so deployment hooks can verify state in real time.",
+    "Expand this capsule body to include launch notes, Viewer+ embeds, and licensing protocol checkpoints."
+  ],
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init",
+  "licenseStatus": "Ready for retroclaim validation",
+  "viewerUrl": "https://viewer.averyos.com/sovereign-init",
+  "stripeUrl": "https://stripe.example/connect/sovereign-init"
+}
