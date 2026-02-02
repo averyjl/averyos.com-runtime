@@ -11,6 +11,7 @@ export type CapsuleManifest = {
   licenseStatus: string;
   viewerUrl?: string | null;
   stripeUrl?: string | null;
+  vaultChainUrl?: string;
 };
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");

@@ -8,4 +8,6 @@
   "licenseStatus": "Ready for retroclaim validation",
   "viewerUrl": "https://viewer.averyos.com/sovereign-init",
   "stripeUrl": "https://stripe.example/connect/sovereign-init"
+  "sha": "c4a2e2577f7f28e6376f053359b2738d431d6510c01cb797e3521fb1400dbdcf",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init"
 }

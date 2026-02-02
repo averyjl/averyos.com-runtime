@@ -18,6 +18,7 @@ manifests and dynamic routes.
 - `components/ViewerEmbed.tsx` → viewer+ module placeholder
 - `pages/api/licensehook.ts` → license webhook stub
 - `styles/globals.css` → sovereign runtime UI styling
+- `pages/api/licensehook.ts` → license webhook stub
 
 ### Build manifests
 
