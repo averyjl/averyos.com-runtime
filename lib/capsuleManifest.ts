@@ -33,6 +33,17 @@ const normalizeBody = (value: unknown): string[] => {
 const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
   return {
     ...raw,
+    capsuleId: raw.capsuleId ?? "unknown",
+    title: raw.title ?? raw.capsuleId ?? "Untitled capsule",
+    summary: raw.summary ?? "",
+    sha: raw.sha ?? "",
+    driftLock: raw.driftLock ?? "",
+    body: normalizeBody(raw.body),
+    compiledAt: raw.compiledAt ?? new Date(0).toISOString(),
+    vaultChainUrl: raw.vaultChainUrl ?? null,
+    licenseStatus: raw.licenseStatus ?? "Awaiting license",
+    viewerUrl: raw.viewerUrl ?? null,
+    stripeUrl: raw.stripeUrl ?? null,
     body: normalizeBody(raw.body),
     compiledAt: raw.compiledAt ?? new Date(0).toISOString(),
     licenseStatus: raw.licenseStatus ?? "Awaiting license",
