@@ -1,0 +1,5 @@
+{
+  "title": "Sovereign Capsule WebBuilder",
+  "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init"
+}
