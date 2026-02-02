@@ -6,6 +6,11 @@ export type CapsuleManifest = {
   title: string;
   summary: string;
   sha: string;
+  driftLock: string;
+  vaultChainUrl?: string;
+  licenseStatus: string;
+  viewerUrl?: string | null;
+  stripeUrl?: string | null;
   vaultChainUrl?: string;
 };
 

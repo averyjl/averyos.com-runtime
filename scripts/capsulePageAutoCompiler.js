@@ -37,12 +37,18 @@ const compileCapsule = ({ id, filePath }) => {
   }
 
   const sha = computeSha(raw);
+  const driftLock = computeSha(`${sha}:${id}`);
 
   const manifest = {
     capsuleId: id,
     title: payload.title ?? id,
     summary: payload.summary ?? "",
     sha,
+    driftLock,
+    vaultChainUrl: payload.vaultChainUrl ?? null,
+    licenseStatus: payload.licenseStatus ?? "Awaiting license",
+    viewerUrl: payload.viewerUrl ?? null,
+    stripeUrl: payload.stripeUrl ?? null,
     vaultChainUrl: payload.vaultChainUrl ?? null,
   };
 

@@ -16,6 +16,31 @@ const Home: NextPage = () => {
           <h1>Sovereign Capsule WebBuilder</h1>
           <p>
             Capsule manifests drive each live route. Build manifests from .aoscap inputs and
+            publish instantly with DriftLock + VaultChain metadata.
+          </p>
+        </section>
+        <section>
+          <p className="section-title">Runtime Modules</p>
+          <div className="badge-grid">
+            <div className="badge">
+              <h3>CapsulePage Auto-Compiler</h3>
+              <p>Transforms .aoscap JSON into manifest-ready capsules with SHA + DriftLock.</p>
+            </div>
+            <div className="badge">
+              <h3>Retroclaim Embed</h3>
+              <p>Anchors capsule licensing data and readiness signals.</p>
+            </div>
+            <div className="badge">
+              <h3>Stripe License Connect</h3>
+              <p>Shows revenue connection status and link targets.</p>
+            </div>
+            <div className="badge">
+              <h3>Viewer+</h3>
+              <p>Indicates the live viewer endpoint when attached.</p>
+            </div>
+          </div>
+        </section>
+        <section>
             publish instantly.
           </p>
         </section>
@@ -24,6 +49,7 @@ const Home: NextPage = () => {
           {capsules.length === 0 ? (
             <p>No capsules built yet. Run the capsule compiler to generate manifests.</p>
           ) : (
+            <ul className="capsule-list">
             <ul>
               {capsules.map((capsule) => (
                 <li key={capsule}>

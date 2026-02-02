@@ -4,6 +4,10 @@ export type CapsuleBlockProps = {
   title: string;
   summary: string;
   sha: string;
+  driftLock: string;
+  vaultChainUrl?: string;
+  capsuleId: string;
+  licenseStatus: string;
   vaultChainUrl?: string;
   capsuleId: string;
 };
@@ -12,6 +16,10 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
   title,
   summary,
   sha,
+  driftLock,
+  vaultChainUrl,
+  capsuleId,
+  licenseStatus,
   vaultChainUrl,
   capsuleId,
 }) => {
@@ -28,6 +36,10 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
           <dd>{sha}</dd>
         </div>
         <div>
+          <dt>DriftLock</dt>
+          <dd>{driftLock}</dd>
+        </div>
+        <div>
           <dt>VaultChain</dt>
           <dd>
             {vaultChainUrl ? (
@@ -38,6 +50,10 @@ const CapsuleBlock: React.FC<CapsuleBlockProps> = ({
               "Pending"
             )}
           </dd>
+        </div>
+        <div>
+          <dt>License Status</dt>
+          <dd>{licenseStatus}</dd>
         </div>
       </dl>
     </section>

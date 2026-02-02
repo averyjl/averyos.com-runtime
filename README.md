@@ -13,6 +13,11 @@ manifests and dynamic routes.
 - `public/manifest/capsules/` → compiled capsule manifests with SHA + VaultChain metadata
 - `pages/[capsule].tsx` → dynamic capsule route renderer
 - `components/CapsuleBlock.tsx` → capsule presentation block
+- `components/RetroclaimEmbed.tsx` → retroclaim status module
+- `components/StripeConnectCard.tsx` → stripe license status module
+- `components/ViewerEmbed.tsx` → viewer+ module placeholder
+- `pages/api/licensehook.ts` → license webhook stub
+- `styles/globals.css` → sovereign runtime UI styling
 - `pages/api/licensehook.ts` → license webhook stub
 
 ### Build manifests
