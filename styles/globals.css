@@ -188,6 +188,18 @@ a {
   align-items: center;
 }
 
+.capsule-list-item p {
+  margin: 0.35rem 0 0;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.capsule-meta {
+  margin-top: 0.4rem;
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
 .footer-note {
   font-size: 0.85rem;
   color: rgba(238, 244, 255, 0.6);

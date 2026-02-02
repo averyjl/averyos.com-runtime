@@ -40,6 +40,7 @@ npm run capsule:sitemap
 ```
 
 Set `SITE_URL` (see `.env.example`) to control the base URL for generated sitemap entries.
+Set `NEXT_PUBLIC_SITE_URL` to ensure runtime meta tags emit the correct canonical URL.
 
 ### Run locally
 

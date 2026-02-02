@@ -1,3 +1,18 @@
+import type { GetStaticProps, NextPage } from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { listRegistryCapsules } from "../lib/capsuleRegistry";
+import { listCapsuleIds } from "../lib/capsuleManifest";
+import { getSiteUrl } from "../lib/siteConfig";
+
+type CapsuleIndexItem = ReturnType<typeof listRegistryCapsules>[number];
+
+type HomeProps = {
+  capsules: CapsuleIndexItem[];
+};
+
+const Home: NextPage<HomeProps> = ({ capsules }) => {
+  const siteUrl = getSiteUrl();
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -19,6 +34,8 @@ const Home: NextPage = () => {
           property="og:description"
           content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules."
         />
+        <meta property="og:url" content={siteUrl} />
+        <link rel="canonical" href={siteUrl} />
       </Head>
       <main className="page">
         <section className="hero">
@@ -59,6 +76,15 @@ const Home: NextPage = () => {
             <p>No capsules built yet. Run the capsule compiler to generate manifests.</p>
           ) : (
             <ul className="capsule-list">
+              {capsules.map((capsule) => (
+                <li key={capsule.capsuleId}>
+                  <div className="capsule-list-item">
+                    <Link href={`/${capsule.capsuleId}`}>{capsule.title ?? capsule.capsuleId}</Link>
+                    {capsule.summary ? <p>{capsule.summary}</p> : null}
+                    {capsule.compiledAt ? (
+                      <span className="capsule-meta">Compiled {capsule.compiledAt}</span>
+                    ) : null}
+                  </div>
             <ul>
               {capsules.map((capsule) => (
                 <li key={capsule}>
@@ -75,6 +101,20 @@ const Home: NextPage = () => {
       </main>
     </>
   );
+};
+
+export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  const registryCapsules = listRegistryCapsules();
+  const capsules =
+    registryCapsules.length > 0
+      ? registryCapsules
+      : listCapsuleIds().map((capsuleId) => ({ capsuleId }));
+  return {
+    props: {
+      capsules,
+    },
+    revalidate: 60,
+  };
 };
 
 export default Home;

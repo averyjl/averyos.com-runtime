@@ -6,12 +6,16 @@ import RetroclaimEmbed from "../components/RetroclaimEmbed";
 import StripeConnectCard from "../components/StripeConnectCard";
 import ViewerEmbed from "../components/ViewerEmbed";
 import { CapsuleManifest, listCapsuleIds, loadCapsuleManifest } from "../lib/capsuleManifest";
+import { getSiteUrl } from "../lib/siteConfig";
 
 type CapsulePageProps = {
   capsule: CapsuleManifest;
 };
 
 const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
+  const siteUrl = getSiteUrl();
+  const capsuleUrl = `${siteUrl}/${capsule.capsuleId}`;
+
   return (
     <>
       <Head>
@@ -19,6 +23,8 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
         <meta name="description" content={capsule.summary} />
         <meta property="og:title" content={`${capsule.title} • averyos.com`} />
         <meta property="og:description" content={capsule.summary} />
+        <meta property="og:url" content={capsuleUrl} />
+        <link rel="canonical" href={capsuleUrl} />
       </Head>
       <main className="page">
         <CapsuleBlock
