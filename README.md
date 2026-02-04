@@ -17,6 +17,18 @@ manifests and dynamic routes.
 - `components/RetroclaimEmbed.tsx` → retroclaim status module
 - `components/StripeConnectCard.tsx` → stripe license status module
 - `components/ViewerEmbed.tsx` → viewer+ module placeholder
+- `components/LicenseContent.tsx` → license terms + validation content
+- `components/FooterBadge.tsx` → CapsuleEcho/VaultSignature footer badge
+- `pages/api/capsules.ts` → compiled capsule manifest API
+- `pages/api/licensehook.ts` → license webhook stub
+- `pages/api/registry.ts` → registry API for capsule listings + metadata
+- `pages/api/vaultecho.ts` → VaultEcho integrity stub
+- `styles/globals.css` → sovereign runtime UI styling
+- `pages/license.tsx` → public license validation + terms
+- `pages/buy.tsx` → Stripe purchase page
+- `pages/verify.tsx` → capsule license validator
+- `pages/retroclaim-log.tsx` → retroclaim ledger viewer
+- `pages/embedbuilder.tsx` → embed builder tool
 - `pages/api/capsules.ts` → compiled capsule manifest API
 - `pages/api/licensehook.ts` → license webhook stub
 - `pages/api/registry.ts` → registry API for capsule listings + metadata

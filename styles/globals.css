@@ -208,3 +208,128 @@ a {
   font-size: 0.85rem;
   color: rgba(238, 244, 255, 0.6);
 }
+
+.footer-badge {
+  padding: 1rem 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.8);
+  background: rgba(8, 14, 30, 0.85);
+  border-top: 1px solid rgba(120, 148, 255, 0.2);
+}
+
+.card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(120, 148, 255, 0.15);
+  background: rgba(8, 14, 30, 0.7);
+  margin-bottom: 1.5rem;
+}
+
+.cta-row {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.primary-link,
+.secondary-link {
+  display: inline-flex;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.primary-link {
+  background: rgba(120, 148, 255, 0.9);
+  color: #020617;
+}
+
+.secondary-link {
+  border: 1px solid rgba(120, 148, 255, 0.6);
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.form-grid input {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 148, 255, 0.25);
+  background: rgba(2, 6, 23, 0.8);
+  color: inherit;
+}
+
+.primary-button,
+.secondary-button {
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-button {
+  background: rgba(120, 148, 255, 0.9);
+  color: #020617;
+}
+
+.secondary-button {
+  background: rgba(15, 23, 42, 0.9);
+  color: rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(120, 148, 255, 0.5);
+}
+
+.status-pill {
+  margin-top: 1rem;
+  display: inline-flex;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 148, 255, 0.35);
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(120, 148, 255, 0.15);
+}
+
+.data-table th {
+  text-align: left;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.embed-frame {
+  border: 1px solid rgba(120, 148, 255, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.9);
+  min-height: 420px;
+}
+
+.embed-frame iframe {
+  width: 100%;
+  min-height: 420px;
+  border: none;
+}
