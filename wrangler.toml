@@ -3,3 +3,5 @@ compatibility_date = "2026-02-05"
 
 [site]
 bucket = ".next"
+[build]
+upload = { format = "directory", dir = ".next" }
