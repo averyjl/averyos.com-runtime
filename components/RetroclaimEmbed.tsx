@@ -11,6 +11,7 @@ const RetroclaimEmbed: React.FC<RetroclaimEmbedProps> = ({ capsuleId, licenseSta
       <h3>Retroclaim Embed</h3>
       <p>Capsule: {capsuleId}</p>
       <p className="badge-status">Status: {licenseStatus}</p>
+      <p>Status: {licenseStatus}</p>
     </div>
   );
 };
