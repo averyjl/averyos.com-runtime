@@ -29,6 +29,15 @@ manifests and dynamic routes.
 - `pages/verify.tsx` → capsule license validator
 - `pages/retroclaim-log.tsx` → retroclaim ledger viewer
 - `pages/embedbuilder.tsx` → embed builder tool
+- `pages/api/capsules.ts` → compiled capsule manifest API
+- `pages/api/licensehook.ts` → license webhook stub
+- `pages/api/registry.ts` → registry API for capsule listings + metadata
+- `styles/globals.css` → sovereign runtime UI styling
+- `pages/api/licensehook.ts` → license webhook stub
+- `pages/api/registry.ts` → registry API for capsule listings + metadata
+- `styles/globals.css` → sovereign runtime UI styling
+- `styles/globals.css` → sovereign runtime UI styling
+- `pages/api/licensehook.ts` → license webhook stub
 
 ### Build manifests
 
