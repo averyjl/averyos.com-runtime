@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 
+const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
+
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const outputDir = path.join(process.cwd(), "public");
 const normalizeSiteUrl = (value) => {
@@ -14,7 +16,6 @@ const normalizeSiteUrl = (value) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
-const fs = require("fs");
 const path = require("path");
 
 const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
