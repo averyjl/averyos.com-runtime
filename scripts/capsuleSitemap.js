@@ -16,10 +16,6 @@ const normalizeSiteUrl = (value) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
-const path = require("path");
-
-const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
-
 const loadRegistry = () => {
   const registryPath = path.join(manifestDir, "index.json");
   if (!fs.existsSync(registryPath)) {
