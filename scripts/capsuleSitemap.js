@@ -14,10 +14,9 @@ const normalizeSiteUrl = (value) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
-const siteUrl =
-  normalizeSiteUrl(process.env.SITE_URL) ||
-  normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
-  "https://averyos.com";
+const fs = require("fs");
+const path = require("path");
+
 const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
 
 const loadRegistry = () => {
