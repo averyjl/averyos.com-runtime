@@ -1,16 +1,11 @@
 {
-  "title": "Sovereign Capsule WebBuilder",
-  "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
-  "body": [
-    "The Sovereign Capsule WebBuilder turns each .aoscap file into a live, license-aware runtime page.",
-    "Every capsule compiles with DriftLock + VaultChain metadata so deployment hooks can verify state in real time.",
-    "Expand this capsule body to include launch notes, Viewer+ embeds, and licensing protocol checkpoints."
-  ],
-  "vaultChainUrl": "https://vaultchain.example/sovereign-init",
-  "licenseStatus": "Ready for retroclaim validation",
-  "viewerUrl": "https://viewer.example/sovereign-init",
-  "stripeUrl": "https://stripe.example/connect/sovereign-init"
-  "viewerUrl": "https://viewer.averyos.com/sovereign-init",
-  "stripeUrl": "https://stripe.example/connect/sovereign-init"
-  "vaultChainUrl": "https://vaultchain.example/sovereign-init"
+  "capsule_type": "sovereign_init",
+  "title": "SOVEREIGN CAPSULE : INIT",
+  "creator": "Jason Lee Avery",
+  "license": "AveryOS Sovereign Integrity License",
+  "vault_signature": "ENFORCED",
+  "runtime_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "status": "active",
+  "release_epoch": "2026-Q1",
+  "notes": "Initial sovereign capsule boot declaration"
 }
