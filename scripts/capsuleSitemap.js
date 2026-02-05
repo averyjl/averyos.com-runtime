@@ -18,6 +18,8 @@ const siteUrl =
   normalizeSiteUrl(process.env.SITE_URL) ||
   normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
   "https://averyos.com";
+const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
+const siteUrl = process.env.SITE_URL || "https://averyos.com";
 
 const loadRegistry = () => {
   const registryPath = path.join(manifestDir, "index.json");
