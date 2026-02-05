@@ -3,19 +3,6 @@ const path = require("path");
 
 const siteUrl = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://averyos.com";
 
-const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
-const outputDir = path.join(process.cwd(), "public");
-const normalizeSiteUrl = (value) => {
-  if (!value) {
-    return null;
-  }
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
-};
-
 const loadRegistry = () => {
   const registryPath = path.join(manifestDir, "index.json");
   if (!fs.existsSync(registryPath)) {
