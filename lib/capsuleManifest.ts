@@ -9,13 +9,10 @@ export type CapsuleManifest = {
   sha: string;
   driftLock: string;
   compiledAt: string;
-  sha: string;
-  driftLock: string;
   vaultChainUrl?: string;
   licenseStatus: string;
   viewerUrl?: string | null;
   stripeUrl?: string | null;
-  vaultChainUrl?: string;
 };
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
@@ -44,9 +41,6 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
     licenseStatus: raw.licenseStatus ?? "Awaiting license",
     viewerUrl: raw.viewerUrl ?? null,
     stripeUrl: raw.stripeUrl ?? null,
-    body: normalizeBody(raw.body),
-    compiledAt: raw.compiledAt ?? new Date(0).toISOString(),
-    licenseStatus: raw.licenseStatus ?? "Awaiting license",
   };
 };
 
@@ -57,7 +51,6 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
   }
   const raw = fs.readFileSync(manifestPath, "utf-8");
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
-  return JSON.parse(raw) as CapsuleManifest;
 };
 
 export const listCapsuleIds = (): string[] => {
@@ -69,6 +62,4 @@ export const listCapsuleIds = (): string[] => {
     .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
     .map((fileName) => fileName.replace(/\.json$/, ""))
     .sort((a, b) => a.localeCompare(b));
-    .filter((fileName) => fileName.endsWith(".json"))
-    .map((fileName) => fileName.replace(/\.json$/, ""));
 };
