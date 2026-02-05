@@ -1,19 +1,5 @@
-# Wrangler configuration for deploying the Next.js build output.
-# Use `wrangler pages deploy` for Pages deployments or `wrangler deploy` for Workers.
-
-name = "averyos-next-runtime"
+name = "averyos"
 compatibility_date = "2026-02-05"
 
-# Cloudflare Pages build output directory.
-# This should point at the Next.js build output folder produced by `next build`.
-pages_build_output_dir = ".next"
-
-# Optional: Workers Sites-style static assets (use when deploying as a Worker).
-[site]
-bucket = ".next"
-
-# Optional: add routes if you want a Worker to handle SSR endpoints while serving static assets.
-# Example:
-# [[routes]]
-# pattern = "https://averyos.com/*"
-# zone_name = "averyos.com"
+[build]
+upload = { format = "directory", dir = ".next" }
