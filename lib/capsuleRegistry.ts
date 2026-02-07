@@ -1,6 +1,11 @@
 import fs from "fs";
 import path from "path";
 
+// Runtime compatibility check: Node.js fs won't work in Cloudflare Workers.
+// If deploying to Workers, consider using fetch() to load from public URLs
+// or bundle the registry at build time.
+const isNodeFsAvailable =
+  typeof process !== "undefined" && typeof fs?.existsSync === "function";
 // NOTE: This module uses Node fs to read the registry from the filesystem.
 // If deploying to Cloudflare Workers (or other edge runtimes without fs), consider:
 // 1. Fetching the registry from the public URL (/manifest/capsules/index.json)
@@ -48,6 +53,7 @@ const registryPath = path.join(
  * 3. Storing the registry in KV/D1/R2 storage
  */
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+  if (!isNodeFsAvailable || !fs.existsSync(registryPath)) {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
     console.warn("File system not available. Use fetch() or bundle registry at build time for edge runtimes.");

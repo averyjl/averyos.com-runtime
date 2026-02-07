@@ -4,6 +4,14 @@ const path = require("path");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const outputDir = path.join(process.cwd(), "public");
 
+/**
+ * Escape XML entities to prevent invalid XML output.
+ * @param {string} str - The string to escape.
+ * @returns {string} - The escaped string safe for XML.
+ */
+const escapeXml = (str) => {
+  if (!str) return "";
+  return String(str)
 const escapeXml = (value) => {
   if (!value) return "";
   return String(value)
@@ -109,6 +117,8 @@ const buildSitemapXml = (entries) => {
   const urlTags = urls
     .map((entry) => {
       const escapedLoc = escapeXml(entry.loc);
+      const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
+      return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;
       const escapedLastmod = entry.lastmod ? escapeXml(entry.lastmod) : "";
       const lastmodTag = escapedLastmod ? `<lastmod>${escapedLastmod}</lastmod>` : "";
       return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;

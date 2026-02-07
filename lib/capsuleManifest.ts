@@ -1,6 +1,11 @@
 import fs from "fs";
 import path from "path";
 
+// Runtime compatibility check: Node.js fs won't work in Cloudflare Workers.
+// If deploying to Workers, consider using fetch() to load from public URLs
+// or bundle manifests at build time.
+const isNodeFsAvailable =
+  typeof process !== "undefined" && typeof fs?.existsSync === "function";
 // NOTE: This module uses Node fs to read manifests from the filesystem.
 // If deploying to Cloudflare Workers (or other edge runtimes without fs), consider:
 // 1. Serving manifests as static assets and fetching from public URLs
@@ -64,6 +69,9 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+  if (!isNodeFsAvailable) {
+    return null;
+  }
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
     console.warn("File system not available. Use fetch() or bundle manifests at build time for edge runtimes.");
@@ -84,6 +92,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 };
 
 export const listCapsuleIds = (): string[] => {
+  if (!isNodeFsAvailable || !fs.existsSync(manifestDir)) {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
     console.warn("File system not available. Use fetch() or bundle capsule list at build time for edge runtimes.");

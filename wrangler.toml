@@ -1,3 +1,13 @@
+# WARNING: This configuration expects a Cloudflare Worker entrypoint at dist/worker.js.
+# The current build process (next build) does NOT generate this file.
+#
+# To deploy to Cloudflare Workers, you must:
+# 1. Create a Worker entrypoint (e.g., src/worker.ts)
+# 2. Add a build step that bundles it to dist/worker.js (e.g., using esbuild)
+# 3. Or switch to Cloudflare Pages for Next.js apps instead of Workers
+#
+# Alternative: Deploy this Next.js app to Vercel, Netlify, or Cloudflare Pages
+# which natively support Node.js APIs (fs, path) used throughout this codebase.
 # ⚠️  WARNING: This Wrangler configuration expects dist/worker.js, but the current
 # project uses Next.js which outputs a different structure. This configuration will
 # not work without significant changes. Consider deploying to Vercel, Netlify, or

@@ -23,6 +23,11 @@ import { timingSafeEqual } from "crypto";
 // - Cloudflare KV, D1, or R2 for persistent storage
 // - Or serve deploy status from a build artifact
 
+// Runtime compatibility check: Node.js fs won't work in Cloudflare Workers.
+// If deploying to Workers, consider using KV/D1/R2 or serving from a build artifact.
+const isNodeFsAvailable =
+  typeof process !== "undefined" && typeof fs?.existsSync === "function";
+
 type DeployLog = {
   latest_deploy_sha: string;
   deploy_status: "success" | "failed" | "pending";
@@ -46,6 +51,7 @@ const timingSafeEqual = (a: string, b: string): boolean => {
 };
 
 const getDeployLog = (): DeployLog => {
+  if (!isNodeFsAvailable || !fs.existsSync(deployLogPath)) {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
     console.warn("Filesystem not available - consider using KV/D1/R2 for Cloudflare Workers");
@@ -73,6 +79,12 @@ const getDeployLog = (): DeployLog => {
   return JSON.parse(fs.readFileSync(deployLogPath, "utf8")) as DeployLog;
 };
 
+/**
+ * Constant-time comparison helper to prevent timing attacks.
+ * Both strings must be valid SHA-512 hashes (128 hex chars).
+ */
+const timingSafeCompare = (a: string, b: string): boolean => {
+  if (a.length !== 128 || b.length !== 128) {
 // Constant-time string comparison to prevent timing attacks
 const timingSafeEqual = (a: string, b: string): boolean => {
   if (a.length !== b.length) {
@@ -109,6 +121,10 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
   const expectedVaultsig = process.env.VAULTSIG_SECRET;
 
+  // If no expected secret is configured, return format validation only
+  const vaultsigMatch = !expectedVaultsig
+    ? vaultsigFormatValid
+    : vaultsigFormatValid && timingSafeCompare(vaultsig, expectedVaultsig);
   // If no expected secret is configured, just check format validity
   // Otherwise, validate against the expected secret using constant-time comparison
   const vaultsigMatch =
