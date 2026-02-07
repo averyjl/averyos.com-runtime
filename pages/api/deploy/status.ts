@@ -47,7 +47,7 @@ const getDeployLog = (): DeployLog => {
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const log = getDeployLog();
-  
+
   const vaultsig = log.vaultsig || "";
   const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
   const expectedVaultsig = process.env.VAULTSIG_SECRET;

@@ -55,7 +55,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
   if (typeof process === "undefined" || !fs.existsSync) {
     return null;
   }
-  
+
   const manifestPath = path.join(manifestDir, `${capsuleId}.json`);
   if (!fs.existsSync(manifestPath)) {
     return null;
@@ -69,7 +69,7 @@ export const listCapsuleIds = (): string[] => {
   if (typeof process === "undefined" || !fs.existsSync) {
     return [];
   }
-  
+
   if (!fs.existsSync(manifestDir)) {
     return [];
   }

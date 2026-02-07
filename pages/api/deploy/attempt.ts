@@ -23,7 +23,7 @@ const readAccessLog = (): AccessLog[] => {
   if (typeof process === "undefined" || !fs.existsSync) {
     return [];
   }
-  
+
   if (!fs.existsSync(accessLogPath)) {
     return [];
   }
@@ -54,7 +54,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const providedToken = verifyCapsuleHash(vaultToken) ? vaultToken : licenseKey;
-  
+
   // Constant-time comparison to prevent timing attacks
   let isValid = false;
   if (providedToken && providedToken.length === expectedSecret.length) {
