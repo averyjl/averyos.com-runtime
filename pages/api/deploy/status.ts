@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
@@ -27,6 +28,16 @@ const getDeployLog = (): DeployLog => {
   return JSON.parse(fs.readFileSync(deployLogPath, "utf8")) as DeployLog;
 };
 
+// Constant-time string comparison to prevent timing attacks
+const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  return crypto.timingSafeEqual(bufA, bufB);
+};
+
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
@@ -45,7 +56,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const vaultsigMatch =
     !expectedVaultsig
       ? vaultsigFormatValid
-      : vaultsigFormatValid && vaultsig === expectedVaultsig;
+      : vaultsigFormatValid && timingSafeEqual(vaultsig, expectedVaultsig);
 
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,

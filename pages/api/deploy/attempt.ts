@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
@@ -16,6 +17,16 @@ const readAccessLog = (): AccessLog[] => {
     return [];
   }
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
+};
+
+// Constant-time string comparison to prevent timing attacks
+const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  return crypto.timingSafeEqual(bufA, bufB);
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -38,7 +49,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (expectedSecret) {
     const providedToken = vaultToken || licenseKey;
     // Use constant-time comparison to prevent timing attacks
-    if (!providedToken || providedToken !== expectedSecret) {
+    if (!providedToken || !timingSafeEqual(providedToken, expectedSecret)) {
       return res.status(403).json({
         error: "Invalid VaultToken or license key.",
       });
