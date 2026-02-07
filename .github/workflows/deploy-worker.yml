@@ -24,10 +24,17 @@ jobs:
       - name: Build project
         run: bun run build
 
+      # NOTE: The current build produces a Next.js app, not a Worker bundle.
+      # The configured Worker entrypoint (dist/worker.js) does not exist.
+      # Add a Worker bundle build step here or use a Next.js Cloudflare adapter.
+      # Example Worker bundle build:
+      # - name: Build Worker bundle
+      #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VAULTSIG_SECRET: ${{ secrets.VAULTSIG_SECRET }}
-          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}

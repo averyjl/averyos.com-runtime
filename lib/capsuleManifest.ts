@@ -15,6 +15,11 @@ export type CapsuleManifest = {
   stripeUrl?: string | null;
 };
 
+// NOTE: This module uses Node `fs` to read manifests from public/manifest/capsules.
+// It will NOT work on Cloudflare Workers or edge runtimes. For Workers deployment:
+// 1. Fetch manifests from public asset URLs (e.g., fetch('/manifest/capsules/id.json'))
+// 2. Bundle manifests at build time as module exports
+// 3. Store manifests in KV/D1/R2 storage
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 
 const normalizeBody = (value: unknown): string[] => {
