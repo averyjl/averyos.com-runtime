@@ -9,6 +9,8 @@
     "lint": "next lint",
     "capsule:build": "node scripts/capsulePageAutoCompiler.js",
     "capsule:index": "node scripts/capsuleRegistry.js",
+    "capsule:sitemap": "node scripts/capsuleSitemap.js",
+    "capsule:sha512": "node scripts/genSha512.js"
     "capsule:sitemap": "node scripts/capsuleSitemap.js"
   },
   "dependencies": {

@@ -446,3 +446,9 @@ a {
   color: #f8f6f2;
   padding: 0.7rem;
 }
+
+.hash-valid {
+  margin: 0;
+  color: #44d17d;
+  font-weight: 600;
+}

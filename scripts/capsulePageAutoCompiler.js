@@ -11,6 +11,9 @@ const ensureDir = (dirPath) => {
   }
 };
 
+const { HASH_TYPE, compileCapsuleSignature } = require("./capsuleSignatureCompiler");
+
+const computeSha = (content) => compileCapsuleSignature(content);
 const computeSha = (content) =>
   crypto.createHash("sha256").update(content, "utf8").digest("hex");
 
@@ -37,6 +40,7 @@ const compileCapsule = ({ id, filePath }) => {
   }
 
   const sha = computeSha(raw);
+  const driftLock = computeSha(`${HASH_TYPE}:${sha}:${id}`);
   const driftLock = computeSha(`${sha}:${id}`);
   const compiledAt = new Date().toISOString();
   const body = Array.isArray(payload.body)
