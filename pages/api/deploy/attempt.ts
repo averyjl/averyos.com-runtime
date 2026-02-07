@@ -49,6 +49,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   // Validate against server-side secret using constant-time comparison
+  // NOTE: If VAULTSIG_SECRET is not configured, this endpoint will only validate format.
+  // For production use, VAULTSIG_SECRET should always be set to properly gate access.
   const expectedSecret = process.env.VAULTSIG_SECRET;
   if (expectedSecret) {
     const tokenValid = typeof vaultToken === "string" && 
