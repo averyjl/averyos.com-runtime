@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
@@ -42,9 +43,31 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const expectedSecret = process.env.VAULTSIG_SECRET;
   if (expectedSecret) {
     const providedToken = vaultToken || licenseKey;
+    if (!providedToken || typeof providedToken !== "string") {
+      return res.status(403).json({
+        error: "Invalid token or license key.",
+      });
+    }
+    
     // Use constant-time comparison to prevent timing attacks
-    const isValid = providedToken === expectedSecret;
-    if (!isValid) {
+    try {
+      const expectedBuf = Buffer.from(expectedSecret, "utf8");
+      const providedBuf = Buffer.from(providedToken, "utf8");
+      
+      // Ensure buffers are same length before comparison
+      if (expectedBuf.length !== providedBuf.length) {
+        return res.status(403).json({
+          error: "Invalid token or license key.",
+        });
+      }
+      
+      const isValid = crypto.timingSafeEqual(expectedBuf, providedBuf);
+      if (!isValid) {
+        return res.status(403).json({
+          error: "Invalid token or license key.",
+        });
+      }
+    } catch {
       return res.status(403).json({
         error: "Invalid token or license key.",
       });
