@@ -10,6 +10,41 @@
 # 
 # If you need a Worker deployment, add a build step like:
 #   npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+# Cloudflare Workers Configuration
+# NOTE: This configuration requires a Worker entrypoint at dist/worker.js
+# The current Next.js build does not produce a Worker bundle.
+# To deploy to Cloudflare Workers, you'll need:
+# 1. A Cloudflare/Next adapter that outputs a Worker-compatible bundle
+# 2. Or build a Worker entrypoint (e.g., with esbuild) before deploying
+# 3. Update main/upload_dir to match your actual build output
+# NOTE: This Wrangler configuration is currently not functional.
+# The codebase is a Next.js application that uses Node.js filesystem APIs
+# (fs module) which are not available in Cloudflare Workers runtime.
+#
+# To deploy to Cloudflare Workers, you would need to:
+# 1. Migrate filesystem-based data loading to fetch from public URLs or KV/D1/R2
+# 2. Create a Worker-compatible entrypoint at dist/worker.js
+# 3. Potentially use @cloudflare/next-on-pages or similar adapter
+#
+# For now, deploy this as a standard Next.js app on platforms like Vercel,
+# Netlify, or Cloudflare Pages (with Next.js support).
+# NOTE: This Wrangler configuration points to dist/worker.js, but the repository
+# does not currently generate this file. The build script runs "next build" which
+# produces a Next.js app, not a Cloudflare Worker bundle.
+#
+# To deploy to Cloudflare Workers, you need to either:
+# 1. Use a Next.js Cloudflare adapter (e.g., @cloudflare/next-on-pages)
+# 2. Create a Worker entrypoint (e.g., src/worker.ts) and build it with esbuild
+# 3. Deploy as a standard Next.js app instead of a Worker
+#
+# As-is, "wrangler deploy" will fail because dist/worker.js does not exist.
+# Cloudflare Workers configuration
+# NOTE: This config expects a Worker bundle at dist/worker.js, but the current
+# build script (next build) doesn't produce one. To deploy as a Worker:
+# 1. Create a Worker entrypoint (e.g., src/worker.ts) that adapts the Next.js app
+# 2. Add a build step to bundle it: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+# 3. Or use @cloudflare/next-on-pages to adapt Next.js for Cloudflare Pages
+# Alternatively, deploy as a standard Next.js app to a Node.js environment instead of Workers.
 
 name = "averyos-runtime"
 main = "dist/worker.js"

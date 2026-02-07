@@ -33,6 +33,8 @@ const compileCapsule = ({ id, filePath }) => {
   try {
     payload = JSON.parse(raw);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid JSON in ${filePath}: ${errorMessage}`);
     throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
   }
 
