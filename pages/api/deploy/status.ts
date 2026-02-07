@@ -3,6 +3,11 @@ import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
+// NOTE: This API route uses Node fs to read deploy logs, which won't work on Cloudflare Workers.
+// If deploying to Workers, replace with a durable backend:
+// - Cloudflare KV, D1, or R2 for persistent storage
+// - Or serve deploy status from a build artifact
+
 type DeployLog = {
   latest_deploy_sha: string;
   deploy_status: "success" | "failed" | "pending";
@@ -30,12 +35,24 @@ const getDeployLog = (): DeployLog => {
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const log = getDeployLog();
 
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  // If an expected secret is configured, check if it matches
+  // Otherwise, just report format validity
+  const vaultsigMatch =
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && vaultsig === expectedVaultsig;
+
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,
     deploy_status: log.deploy_status,
     deployed_at: log.deployed_at,
     source_repo: log.source_repo,
-    vaultsig_match: verifyCapsuleHash(log.vaultsig || ""),
+    vaultsig_match: vaultsigMatch,
+    vaultsig_format_valid: vaultsigFormatValid,
   });
 };
 

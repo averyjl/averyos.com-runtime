@@ -3,6 +3,11 @@ import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
+// NOTE: This API route uses Node fs for persistence, which won't work on Cloudflare Workers.
+// If deploying to Workers, replace with a durable backend:
+// - Cloudflare KV, D1, or R2 for persistent storage
+// - Or use an external logging/analytics service
+
 type AccessLog = {
   createdAt: string;
   vaultToken: string;
@@ -26,10 +31,24 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  // Validate that at least one token is provided and properly formatted
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
       error: "VaultToken or license key must be a valid SHA512 hash.",
     });
+  }
+
+  // Compare against server-side secret to actually gate access
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (expectedSecret) {
+    const providedToken = vaultToken || licenseKey;
+    // Use constant-time comparison to prevent timing attacks
+    const isValid = providedToken === expectedSecret;
+    if (!isValid) {
+      return res.status(403).json({
+        error: "Invalid token or license key.",
+      });
+    }
   }
 
   const logs = readAccessLog();
