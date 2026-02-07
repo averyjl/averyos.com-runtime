@@ -1,0 +1,12 @@
+{
+  "title": "Sovereign Capsule Index",
+  "summary": "Reference index for active capsules, deployment signals, and monetization checkpoints.",
+  "body": [
+    "Use this capsule to summarize new additions, retired capsules, and runtime status updates.",
+    "Keep the Stripe, Viewer+, and Retroclaim links up to date as they ship."
+  ],
+  "vaultChainUrl": "https://vaultchain.example/sovereign-index",
+  "licenseStatus": "Awaiting license",
+  "viewerUrl": "https://viewer.example/sovereign-index",
+  "stripeUrl": "https://stripe.example/connect/sovereign-index"
+}
