@@ -37,7 +37,7 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
     driftLock: raw.driftLock ?? "",
     body: normalizeBody(raw.body),
     compiledAt: raw.compiledAt ?? new Date(0).toISOString(),
-    vaultChainUrl: raw.vaultChainUrl ?? null,
+    vaultChainUrl: raw.vaultChainUrl ?? undefined,
     licenseStatus: raw.licenseStatus ?? "Awaiting license",
     viewerUrl: raw.viewerUrl ?? null,
     stripeUrl: raw.stripeUrl ?? null,

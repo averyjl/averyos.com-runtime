@@ -11,3 +11,9 @@ pnpm-debug.log*
 capsule_logs/*.json
 !capsule_logs/.gitkeep
 bun.lockb
+node_modules/
+.next/
+dist/
+out/
+package-lock.json
+tsconfig.tsbuildinfo
