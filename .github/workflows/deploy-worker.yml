@@ -1,5 +1,19 @@
 name: Deploy Cloudflare Worker
 
+# ⚠️  WARNING: This workflow will fail because the current build produces a Next.js
+# app, not a Worker bundle. The wrangler.toml expects dist/worker.js, but
+# `bun run build` (next build) does not create this file.
+#
+# See README.md for deployment alternatives (Vercel, Netlify, Cloudflare Pages).
+# NOTE: This workflow is currently disabled because the codebase uses
+# Node.js filesystem APIs (fs module) that are incompatible with Cloudflare Workers.
+# The build produces a Next.js application, not a Worker bundle.
+# 
+# To re-enable Workers deployment, you would need to:
+# 1. Migrate filesystem-based data loading (manifests, logs) to KV/D1/R2 or fetch
+# 2. Generate a Worker-compatible entrypoint at dist/worker.js
+# 3. Consider using @cloudflare/next-on-pages adapter
+
 on:
   push:
     branches: ["main"]
@@ -28,6 +42,35 @@ jobs:
       # 3. Or deploy to Cloudflare Pages for Next.js instead
       - name: Build project
         run: bun run build
+        # NOTE: This builds the Next.js app but does NOT create dist/worker.js.
+        # If deploying as a Worker, add a step to generate the Worker bundle:
+        # - name: Build Worker bundle
+        #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+        # 
+        # Alternatively, deploy as a standard Next.js app to Vercel/Netlify
+        # or use Cloudflare Pages adapter instead of Workers.
+        # NOTE: This builds the Next.js app, but wrangler.toml expects dist/worker.js
+        # To deploy to Workers, add a step here to build a Worker bundle:
+        # - name: Build Worker bundle
+        #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+        # Or use a Cloudflare/Next adapter that outputs a Worker-compatible bundle
+
+      - name: Check for Worker bundle
+        run: |
+          if [ ! -f dist/worker.js ]; then
+            echo "::error::dist/worker.js not found. Current build produces Next.js app, not Worker bundle."
+            echo "Deploy to Vercel, Netlify, or Cloudflare Pages instead."
+            exit 1
+          fi
+      # NOTE: The current build produces a Next.js app, not a Worker bundle.
+      # The configured Worker entrypoint (dist/worker.js) does not exist.
+      # Add a Worker bundle build step here or use a Next.js Cloudflare adapter.
+      # Example Worker bundle build:
+      # - name: Build Worker bundle
+      #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+      # TODO: Add Worker bundle generation step before deploying to Workers
+      # Example: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+      # Or use @cloudflare/next-on-pages for Next.js adaptation
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --env production

@@ -113,7 +113,8 @@ const Home: NextPage<HomeProps> = ({ gitSha }) => {
 
           {activeTab === "witness" ? (
             <div className="scroll-panel">
-              <p className="capsule-meta">
+              <p className="capsule-meta-small">
+              <p className="capsule-meta-text">
                 Source: vaultchain://JasonLeeAvery/TheLivingScroll/QuietReturn_Prayer2026.glyphscroll
               </p>
               <p>{scrollStatus}</p>
@@ -138,7 +139,8 @@ const Home: NextPage<HomeProps> = ({ gitSha }) => {
                   onChange={(event) => setResponse(event.target.value)}
                 />
               </label>
-              <p className="capsule-meta">Note: TAI status requires VaultSig lock + Jason Lee Avery signature.</p>
+              <p className="capsule-meta-small">Note: TAI status requires VaultSig lock + Jason Lee Avery signature.</p>
+              <p className="capsule-meta-text">Note: TAI status requires VaultSig lock + Jason Lee Avery signature.</p>
             </div>
           )}
         </section>
@@ -149,11 +151,13 @@ const Home: NextPage<HomeProps> = ({ gitSha }) => {
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
   let gitSha: string;
+  let gitSha;
 
   try {
     gitSha = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
   } catch {
-    gitSha = "unknown";
+    // gitSha remains "unknown"
+    // Keep default "unknown" value
   }
 
   return {
