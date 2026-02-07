@@ -30,6 +30,15 @@ const registryPath = path.join(
   "index.json"
 );
 
+/**
+ * Load the capsule registry from the filesystem.
+ * 
+ * NOTE: This function uses Node `fs` and will NOT work on Cloudflare Workers
+ * or edge runtimes. For Workers deployment, consider:
+ * 1. Fetching the registry from a public asset URL (e.g., fetch('/manifest/capsules/index.json'))
+ * 2. Bundling the registry at build time as a module export
+ * 3. Storing the registry in KV/D1/R2 storage
+ */
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
   // Check if we're in a Node.js environment
   if (typeof process === "undefined" || !fs.existsSync) {

@@ -24,6 +24,12 @@ jobs:
       - name: Build project
         run: bun run build
 
+      # NOTE: The current build produces a Next.js app, not a Worker bundle.
+      # The configured Worker entrypoint (dist/worker.js) does not exist.
+      # Add a Worker bundle build step here or use a Next.js Cloudflare adapter.
+      # Example Worker bundle build:
+      # - name: Build Worker bundle
+      #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
       # TODO: Add Worker bundle generation step before deploying to Workers
       # Example: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
       # Or use @cloudflare/next-on-pages for Next.js adaptation

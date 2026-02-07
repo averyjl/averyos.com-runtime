@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
@@ -18,6 +19,9 @@ type DeployLog = {
   vaultsig?: string;
 };
 
+// NOTE: This handler uses Node `fs` to read capsule_logs/deploy.json.
+// It will NOT work on Cloudflare Workers or edge runtimes. If deploying to Workers,
+// replace filesystem operations with KV/D1/R2 or serve deploy status from a build artifact.
 const deployLogPath = path.join(process.cwd(), "capsule_logs", "deploy.json");
 
 const getDeployLog = (): DeployLog => {
@@ -45,8 +49,33 @@ const getDeployLog = (): DeployLog => {
   return JSON.parse(fs.readFileSync(deployLogPath, "utf8")) as DeployLog;
 };
 
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+const safeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+  } catch {
+    return false;
+  }
+};
+
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const log = getDeployLog();
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  // Determine vaultsig_match:
+  // - If no expected secret is configured, only check format validity
+  // - If expected secret is configured, check both format and actual match
+  const vaultsigMatch =
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && safeCompare(vaultsig, expectedVaultsig);
 
   const vaultsig = log.vaultsig || "";
   const vaultsigFormatValid = verifyCapsuleHash(vaultsig);

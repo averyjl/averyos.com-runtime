@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
@@ -16,6 +17,9 @@ type AccessLog = {
   licenseKey: string;
 };
 
+// NOTE: This handler uses Node `fs` to read/write capsule_logs/license_access.json.
+// It will NOT work on Cloudflare Workers or edge runtimes. If deploying to Workers,
+// replace filesystem operations with KV/D1/R2 or an external logging service.
 const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.json");
 
 const readAccessLog = (): AccessLog[] => {
@@ -28,6 +32,20 @@ const readAccessLog = (): AccessLog[] => {
     return [];
   }
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
+};
+
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+const safeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+  } catch {
+    return false;
+  }
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -45,6 +63,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   }
 
+  // Validate against server-side secret using constant-time comparison
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (expectedSecret) {
+    const tokenValid = vaultToken && verifyCapsuleHash(vaultToken) && safeCompare(vaultToken, expectedSecret);
+    const keyValid = licenseKey && verifyCapsuleHash(licenseKey) && safeCompare(licenseKey, expectedSecret);
+    
+    if (!tokenValid && !keyValid) {
+      return res.status(403).json({
+        error: "Invalid VaultToken or license key.",
+      });
+    }
   // Check against server-side secret using constant-time comparison
   const expectedSecret = process.env.VAULTSIG_SECRET;
   if (!expectedSecret) {
