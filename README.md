@@ -116,7 +116,7 @@ Use Wrangler secrets instead of hardcoding values in `wrangler.toml`:
 
 ```bash
 wrangler secret put VAULTSIG_SECRET --env production
-wrangler secret put STRIPE_KEY --env production
+wrangler secret put STRIPE_SECRET_KEY --env production
 ```
 
-For CI, store secrets in GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VAULTSIG_SECRET`, `STRIPE_KEY`).
+For CI, store secrets in GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VAULTSIG_SECRET`, `STRIPE_SECRET_KEY`).
