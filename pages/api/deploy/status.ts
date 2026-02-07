@@ -17,6 +17,11 @@ import { timingSafeEqual } from "crypto";
 // - Cloudflare R2 for object storage
 // - External API/database service
 
+// NOTE: This API route uses Node fs to read deploy logs, which won't work on Cloudflare Workers.
+// If deploying to Workers, replace with a durable backend:
+// - Cloudflare KV, D1, or R2 for persistent storage
+// - Or serve deploy status from a build artifact
+
 type DeployLog = {
   latest_deploy_sha: string;
   deploy_status: "success" | "failed" | "pending";
@@ -107,6 +112,17 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
 
   const vaultsigMatch =
     // Preserve previous behavior when no expected secret is configured:
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && vaultsig === expectedVaultsig;
+
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  // If an expected secret is configured, check if it matches
+  // Otherwise, just report format validity
+  const vaultsigMatch =
     !expectedVaultsig
       ? vaultsigFormatValid
       : vaultsigFormatValid && vaultsig === expectedVaultsig;

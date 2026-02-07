@@ -30,6 +30,9 @@ const normalizeSiteUrl = (value) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
+const escapeXml = (str) => {
+  if (!str) return "";
+  return String(str)
 const escapeXml = (unsafe) => {
   if (typeof unsafe !== "string") {
     return String(unsafe);

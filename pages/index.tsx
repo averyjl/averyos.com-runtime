@@ -156,6 +156,7 @@ export const getStaticProps: GetStaticProps<HomeProps> = async () => {
   try {
     gitSha = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
   } catch {
+    // gitSha remains "unknown"
     // Keep default "unknown" value
   }
 

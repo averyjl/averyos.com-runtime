@@ -1,3 +1,10 @@
+# Cloudflare Workers Configuration
+# NOTE: This configuration requires a Worker entrypoint at dist/worker.js
+# The current Next.js build does not produce a Worker bundle.
+# To deploy to Cloudflare Workers, you'll need:
+# 1. A Cloudflare/Next adapter that outputs a Worker-compatible bundle
+# 2. Or build a Worker entrypoint (e.g., with esbuild) before deploying
+# 3. Update main/upload_dir to match your actual build output
 # NOTE: This Wrangler configuration is currently not functional.
 # The codebase is a Next.js application that uses Node.js filesystem APIs
 # (fs module) which are not available in Cloudflare Workers runtime.

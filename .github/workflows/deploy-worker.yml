@@ -32,6 +32,11 @@ jobs:
 
       - name: Build project
         run: bun run build
+        # NOTE: This builds the Next.js app, but wrangler.toml expects dist/worker.js
+        # To deploy to Workers, add a step here to build a Worker bundle:
+        # - name: Build Worker bundle
+        #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+        # Or use a Cloudflare/Next adapter that outputs a Worker-compatible bundle
 
       - name: Check for Worker bundle
         run: |

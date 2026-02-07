@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 
+// NOTE: This module uses Node fs to read manifests from the filesystem.
+// If deploying to Cloudflare Workers (or other edge runtimes without fs), consider:
+// 1. Serving manifests as static assets and fetching from public URLs
+// 2. Bundling manifests at build time into the Worker bundle
 // NOTE: This module uses Node.js filesystem APIs and is incompatible with
 // Cloudflare Workers. For Workers deployment, migrate to:
 // 1. Fetch manifests from public URLs (e.g., fetch('/manifest/capsules/{id}.json'))
