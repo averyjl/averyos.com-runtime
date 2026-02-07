@@ -20,6 +20,7 @@ const LicensePage = () => {
   const handleLicenseSubmit = () => {
     const normalized = vaultSig.trim();
     if (!verifyCapsuleHash(normalized)) {
+    if (!verifyCapsuleHash(vaultSig)) {
       setStatus("❌ Invalid VaultSig: Must be a 128-character SHA512 hex string.");
       return;
     }
@@ -57,6 +58,7 @@ const LicensePage = () => {
         <section className="card">
           <h2>VaultSig Challenge</h2>
           <p className="capsule-meta-small">Expected: SHA-512 (128 hex characters).</p>
+          <p className="capsule-meta-text">Expected: SHA-512 (128 hex characters).</p>
           <div className="form-grid">
             <label>
               Enter your VaultSig (SHA512)
@@ -71,6 +73,7 @@ const LicensePage = () => {
               Verify License
             </button>
             <p className={status.startsWith("✅") ? "hash-valid" : "capsule-meta-small"}>{status}</p>
+            <p className={status.startsWith("✅") ? "hash-valid" : "capsule-meta-text"}>{status}</p>
           </div>
         </section>
 
