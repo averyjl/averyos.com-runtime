@@ -14,6 +14,18 @@ const normalizeSiteUrl = (value) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
+const escapeXml = (unsafe) => {
+  if (typeof unsafe !== "string") {
+    return String(unsafe);
+  }
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
 const siteUrl =
   normalizeSiteUrl(process.env.SITE_URL) ||
   normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
@@ -63,8 +75,8 @@ const buildSitemapXml = (entries) => {
 
   const urlTags = urls
     .map((entry) => {
-      const lastmodTag = entry.lastmod ? `<lastmod>${entry.lastmod}</lastmod>` : "";
-      return `<url><loc>${entry.loc}</loc>${lastmodTag}</url>`;
+      const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
+      return `<url><loc>${escapeXml(entry.loc)}</loc>${lastmodTag}</url>`;
     })
     .join("");
 
