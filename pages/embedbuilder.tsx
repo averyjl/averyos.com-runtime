@@ -35,7 +35,8 @@ const EmbedBuilderPage = () => {
               loading="lazy"
             />
           </div>
-          <p className="capsule-meta">
+          <p className="capsule-meta-small">
+          <p className="capsule-meta-text">
             If the embed tool is unavailable, check back later or contact{" "}
             <a href="mailto:truth@averyworld.com">truth@averyworld.com</a>.
           </p>

@@ -3,6 +3,22 @@ const path = require("path");
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const outputDir = path.join(process.cwd(), "public");
+
+const escapeXml = (value) => {
+  if (!value) return "";
+  return String(value)
+/**
+ * Escape XML entities to ensure valid XML output.
+ */
+const escapeXml = (str) => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
 const normalizeSiteUrl = (value) => {
   if (!value) {
     return null;
@@ -17,6 +33,11 @@ const normalizeSiteUrl = (value) => {
 const escapeXml = (str) => {
   if (!str) return "";
   return String(str)
+const escapeXml = (unsafe) => {
+  if (typeof unsafe !== "string") {
+    return String(unsafe);
+  }
+  return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -73,6 +94,9 @@ const buildSitemapXml = (entries) => {
 
   const urlTags = urls
     .map((entry) => {
+      const escapedLoc = escapeXml(entry.loc);
+      const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
+      return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;
       const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
       return `<url><loc>${escapeXml(entry.loc)}</loc>${lastmodTag}</url>`;
     })

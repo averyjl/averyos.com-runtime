@@ -1,8 +1,23 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
+import { timingSafeEqual } from "crypto";
+
+// NOTE: This API route uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Cloudflare D1 (SQL database) for persistent logs
+// 2. Cloudflare KV for simple key-value storage
+// 3. Or an external logging service
+
+// NOTE: This API uses Node.js fs and will NOT work in Cloudflare Workers.
+// For Workers/Edge deployment, replace file-based storage with:
+// - Cloudflare KV for simple key-value storage
+// - Cloudflare D1 for relational data
+// - Cloudflare R2 for object storage
+// - External API/database service (e.g., Supabase, PlanetScale)
 
 // NOTE: This API route uses Node fs for persistence, which won't work on Cloudflare Workers.
 // If deploying to Workers, replace with a durable backend:
@@ -15,13 +30,57 @@ type AccessLog = {
   licenseKey: string;
 };
 
+// NOTE: This handler uses Node `fs` to read/write capsule_logs/license_access.json.
+// It will NOT work on Cloudflare Workers or edge runtimes. If deploying to Workers,
+// replace filesystem operations with KV/D1/R2 or an external logging service.
 const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.json");
 
 const readAccessLog = (): AccessLog[] => {
+  // Check if we're in a Node.js environment
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return [];
+  }
+
   if (!fs.existsSync(accessLogPath)) {
     return [];
   }
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
+};
+
+const isTokenValid = (token: string | undefined): boolean => {
+  if (!token || !verifyCapsuleHash(token)) {
+    return false;
+  }
+  
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    // If no secret is configured, reject access
+    return false;
+  }
+  
+  if (!verifyCapsuleHash(expectedSecret)) {
+    // Expected secret must also be a valid SHA-512 hash
+    return false;
+  }
+  
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(token, "utf8"),
+      Buffer.from(expectedSecret, "utf8")
+    );
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+const safeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+  } catch {
+    return false;
+  }
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -33,9 +92,48 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { vaultToken, licenseKey } = req.body ?? {};
 
   // Validate that at least one token is provided and properly formatted
+  if (!isTokenValid(vaultToken) && !isTokenValid(licenseKey)) {
+  // Validate format
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
-      error: "VaultToken or license key must be a valid SHA512 hash.",
+      error: "Valid VaultToken or license key required.",
+    });
+  }
+
+  // Validate against server-side secret using constant-time comparison
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (expectedSecret) {
+    const tokenValid = vaultToken && verifyCapsuleHash(vaultToken) && safeCompare(vaultToken, expectedSecret);
+    const keyValid = licenseKey && verifyCapsuleHash(licenseKey) && safeCompare(licenseKey, expectedSecret);
+    
+    if (!tokenValid && !keyValid) {
+      return res.status(403).json({
+        error: "Invalid VaultToken or license key.",
+      });
+    }
+  // Check against server-side secret using constant-time comparison
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    return res.status(500).json({
+      error: "Server configuration error: VAULTSIG_SECRET not set.",
+    });
+  }
+
+  const providedToken = verifyCapsuleHash(vaultToken) ? vaultToken : licenseKey;
+
+  // Constant-time comparison to prevent timing attacks
+  let isValid = false;
+  if (providedToken && providedToken.length === expectedSecret.length) {
+    let mismatch = 0;
+    for (let i = 0; i < expectedSecret.length; i++) {
+      mismatch |= expectedSecret.charCodeAt(i) ^ providedToken.charCodeAt(i);
+    }
+    isValid = mismatch === 0;
+  }
+
+  if (!isValid) {
+    return res.status(403).json({
+      error: "Invalid VaultToken or license key.",
     });
   }
 
@@ -81,8 +179,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     licenseKey: typeof licenseKey === "string" ? licenseKey : "",
   });
 
-  fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
-  fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
+  // Only write if fs is available (Node.js environment)
+  if (typeof process !== "undefined" && fs.mkdirSync) {
+    fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
+    fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
+  }
 
   return res.status(200).json({ ok: true });
 };

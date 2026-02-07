@@ -91,28 +91,44 @@ npm run dev
   registry and sitemap stay in sync.
 - Verify `SITE_URL` points at the production domain so search engines receive the correct URLs.
 
-## Cloudflare Workers deploy (Bun)
+## Deployment
 
+### Current deployment target: Next.js hosting platforms
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`
    - `STRIPE_SECRET_KEY`
 2. Ensure Wrangler is authenticated.
 3. Run local deploy helper:
 
-```bash
-./deploy-worker.sh
-```
+This application is currently built as a standard Next.js app and can be deployed to:
+- **Vercel** (recommended for Next.js)
+- **Netlify**
+- **Cloudflare Pages** (with Next.js support)
 
-Or deploy directly:
+Set the following environment variables in your hosting platform:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `VAULTSIG_SECRET`
+- `SITE_URL`
+- `NEXT_PUBLIC_SITE_URL`
 
-```bash
-npx wrangler deploy --env production
-```
+### Cloudflare Workers deployment (not currently functional)
 
+The included `wrangler.toml` and `deploy-worker.sh` are **not functional** because:
+1. The codebase uses Node.js filesystem APIs (`fs` module) incompatible with Workers
+2. API routes in `pages/api/` read from `capsule_logs/` and `public/manifest/` using `fs`
+3. Library modules in `lib/` use `fs` to load manifests and registry data
 
-### Cloudflare secret setup (required for public repo safety)
+To enable Cloudflare Workers deployment, you would need to:
+1. Migrate all filesystem-based data loading to:
+   - Fetch from public URLs (for static manifests)
+   - Cloudflare KV/D1/R2 (for logs and dynamic data)
+2. Create a Worker-compatible entrypoint that doesn't rely on Next.js API routes
+3. Consider using `@cloudflare/next-on-pages` adapter
 
-Use Wrangler secrets instead of hardcoding values in `wrangler.toml`:
+#### Cloudflare secret setup (for future Workers deployment)
+
+If/when Workers deployment is enabled, use Wrangler secrets:
 
 ```bash
 wrangler secret put VAULTSIG_SECRET --env production
