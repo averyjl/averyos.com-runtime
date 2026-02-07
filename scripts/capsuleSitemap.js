@@ -4,6 +4,9 @@ const path = require("path");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const outputDir = path.join(process.cwd(), "public");
 
+const escapeXml = (value) => {
+  if (!value) return "";
+  return String(value)
 /**
  * Escape XML entities to ensure valid XML output.
  */

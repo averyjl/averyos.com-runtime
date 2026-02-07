@@ -3,6 +3,13 @@ import path from "path";
 import { timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
+import { timingSafeEqual } from "crypto";
+
+// NOTE: This API route uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Cloudflare D1 (SQL database) for persistent logs
+// 2. Cloudflare KV for simple key-value storage
+// 3. Or an external logging service
 
 // NOTE: This API uses Node.js fs and will NOT work in Cloudflare Workers.
 // For Workers/Edge deployment, replace file-based storage with:
@@ -34,6 +41,28 @@ const readAccessLog = (): AccessLog[] => {
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
 };
 
+const isTokenValid = (token: string | undefined): boolean => {
+  if (!token || !verifyCapsuleHash(token)) {
+    return false;
+  }
+  
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    // If no secret is configured, reject access
+    return false;
+  }
+  
+  if (!verifyCapsuleHash(expectedSecret)) {
+    // Expected secret must also be a valid SHA-512 hash
+    return false;
+  }
+  
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(token, "utf8"),
+      Buffer.from(expectedSecret, "utf8")
+    );
 /**
  * Constant-time string comparison to prevent timing attacks.
  */
@@ -56,10 +85,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  if (!isTokenValid(vaultToken) && !isTokenValid(licenseKey)) {
   // Validate format
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
-      error: "VaultToken or license key must be a valid SHA512 hash.",
+      error: "Valid VaultToken or license key required.",
     });
   }
 

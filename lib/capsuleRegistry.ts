@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 
+// NOTE: This module uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Fetch manifests from public URLs (e.g., fetch('/manifest/capsules/index.json'))
+// 2. Or bundle registry data at build time
 // NOTE: This module uses Node.js fs and will NOT work in Cloudflare Workers.
 // For Workers/Edge deployment, consider:
 // - Loading the registry via fetch() from the public asset URL (/manifest/capsules/index.json)

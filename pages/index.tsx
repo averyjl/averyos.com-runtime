@@ -150,6 +150,7 @@ const Home: NextPage<HomeProps> = ({ gitSha }) => {
 };
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  let gitSha: string;
   let gitSha;
 
   try {

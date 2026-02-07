@@ -1,3 +1,14 @@
+# NOTE: This Wrangler configuration is currently not functional.
+# The codebase is a Next.js application that uses Node.js filesystem APIs
+# (fs module) which are not available in Cloudflare Workers runtime.
+#
+# To deploy to Cloudflare Workers, you would need to:
+# 1. Migrate filesystem-based data loading to fetch from public URLs or KV/D1/R2
+# 2. Create a Worker-compatible entrypoint at dist/worker.js
+# 3. Potentially use @cloudflare/next-on-pages or similar adapter
+#
+# For now, deploy this as a standard Next.js app on platforms like Vercel,
+# Netlify, or Cloudflare Pages (with Next.js support).
 # NOTE: This Wrangler configuration points to dist/worker.js, but the repository
 # does not currently generate this file. The build script runs "next build" which
 # produces a Next.js app, not a Cloudflare Worker bundle.
