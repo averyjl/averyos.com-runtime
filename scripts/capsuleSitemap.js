@@ -11,6 +11,12 @@ const normalizeSiteUrl = (value) => {
   if (!trimmed) {
     return null;
   }
+const registryPath = path.join(process.cwd(), "public", "capsule-registry");
+const outputDir = path.join(process.cwd(), "public");
+
+const normalizeSiteUrl = (value) => {
+  if (!value) return null;
+  const trimmed = value.trim();
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
@@ -65,6 +71,39 @@ const buildSitemapXml = (entries) => {
     .map((entry) => {
       const lastmodTag = entry.lastmod ? `<lastmod>${entry.lastmod}</lastmod>` : "";
       return `<url><loc>${entry.loc}</loc>${lastmodTag}</url>`;
+// Load manifest-based capsules (optional legacy support)
+const loadManifestCapsules = () => {
+  if (!fs.existsSync(manifestDir)) return [];
+  return fs
+    .readdirSync(manifestDir)
+    .filter((f) => f.endsWith(".json") && f !== "index.json")
+    .map((f) => JSON.parse(fs.readFileSync(path.join(manifestDir, f), "utf8")))
+    .map((capsule) => ({
+      loc: `${siteUrl}/${capsule.capsuleId}`,
+      lastmod: capsule.compiledAt || null,
+    }));
+};
+
+// Load registry-based capsules
+const loadRegistryCapsules = () => {
+  if (!fs.existsSync(registryPath)) return [];
+  return fs
+    .readdirSync(registryPath)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => {
+      const slug = f.replace(".json", "");
+      return {
+        loc: `${siteUrl}/capsule/${slug}`,
+        lastmod: null,
+      };
+    });
+};
+
+const buildSitemapXml = (entries) => {
+  const urlTags = entries
+    .map(({ loc, lastmod }) => {
+      const lastmodTag = lastmod ? `<lastmod>${lastmod}</lastmod>` : "";
+      return `<url><loc>${loc}</loc>${lastmodTag}</url>`;
     })
     .join("");
 
@@ -80,6 +119,7 @@ const writeOutputs = (sitemapXml, robotsTxt) => {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(path.join(outputDir, "sitemap.xml"), sitemapXml);
   fs.writeFileSync(path.join(outputDir, "robots.txt"), robotsTxt);
 };
@@ -90,6 +130,27 @@ const main = () => {
   const robotsTxt = buildRobotsTxt();
   writeOutputs(sitemapXml, robotsTxt);
   console.log(`Wrote sitemap with ${entries.length + 1} URL(s).`);
+  const staticUrls = [
+    { loc: `${siteUrl}/license`, lastmod: null },
+    { loc: `${siteUrl}/buy`, lastmod: null },
+    { loc: `${siteUrl}/retroclaim-log`, lastmod: null },
+  ];
+
+  const registry = loadRegistryCapsules();
+  const manifest = loadManifestCapsules();
+
+  const entries = [
+    { loc: siteUrl, lastmod: new Date().toISOString() },
+    ...registry,
+    ...manifest,
+    ...staticUrls,
+  ];
+
+  const sitemapXml = buildSitemapXml(entries);
+  const robotsTxt = buildRobotsTxt();
+
+  writeOutputs(sitemapXml, robotsTxt);
+  console.log(`✅ Wrote sitemap with ${entries.length} URL(s)`);
 };
 
 main();

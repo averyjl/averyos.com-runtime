@@ -17,6 +17,7 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ status, stripeUrl
       ) : (
         <p>Awaiting Stripe connection.</p>
       )}
+      <p>{stripeUrl ? `Portal: ${stripeUrl}` : "Awaiting Stripe connection."}</p>
     </div>
   );
 };
