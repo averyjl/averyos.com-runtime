@@ -11,7 +11,6 @@
     "capsule:index": "node scripts/capsuleRegistry.js",
     "capsule:sitemap": "node scripts/capsuleSitemap.js",
     "capsule:sha512": "node scripts/genSha512.js"
-    "capsule:sitemap": "node scripts/capsuleSitemap.js"
   },
   "dependencies": {
     "next": "15.5.12",
@@ -22,6 +21,8 @@
     "@types/node": "20.14.9",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.1.6",
     "typescript": "5.5.3"
   }
 }

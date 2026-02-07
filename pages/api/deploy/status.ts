@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import crypto from "crypto";
+import { timingSafeEqual } from "crypto";
 
 type DeployStatus = {
   status: "active" | "pending" | "failed";
@@ -27,7 +27,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       
       // Only compare if lengths match (prevents timing attacks on length)
       if (expectedBuffer.length === providedBuffer.length) {
-        isAdmin = crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+        isAdmin = timingSafeEqual(expectedBuffer, providedBuffer);
       }
     } catch (err) {
       // Comparison failed, isAdmin remains false
