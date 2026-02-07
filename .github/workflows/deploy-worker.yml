@@ -21,6 +21,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      # WARNING: The current build (next build) does NOT produce dist/worker.js
+      # required by wrangler.toml. To deploy to Workers, you must:
+      # 1. Create a Worker entrypoint (e.g., src/worker.ts)
+      # 2. Add a step here to bundle it: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+      # 3. Or deploy to Cloudflare Pages for Next.js instead
       - name: Build project
         run: bun run build
 
@@ -30,4 +35,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VAULTSIG_SECRET: ${{ secrets.VAULTSIG_SECRET }}
-          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}

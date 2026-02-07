@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+// Runtime compatibility check: Node.js fs won't work in Cloudflare Workers.
+// If deploying to Workers, consider using fetch() to load from public URLs
+// or bundle manifests at build time.
+const isNodeFsAvailable =
+  typeof process !== "undefined" && typeof fs?.existsSync === "function";
+
 export type CapsuleManifest = {
   capsuleId: string;
   title: string;
@@ -45,6 +51,9 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+  if (!isNodeFsAvailable) {
+    return null;
+  }
   const manifestPath = path.join(manifestDir, `${capsuleId}.json`);
   if (!fs.existsSync(manifestPath)) {
     return null;
@@ -54,7 +63,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 };
 
 export const listCapsuleIds = (): string[] => {
-  if (!fs.existsSync(manifestDir)) {
+  if (!isNodeFsAvailable || !fs.existsSync(manifestDir)) {
     return [];
   }
   return fs

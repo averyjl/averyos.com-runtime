@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+// Runtime compatibility check: Node.js fs won't work in Cloudflare Workers.
+// If deploying to Workers, consider using fetch() to load from public URLs
+// or bundle the registry at build time.
+const isNodeFsAvailable =
+  typeof process !== "undefined" && typeof fs?.existsSync === "function";
+
 export type CapsuleRegistryItem = {
   capsuleId: string;
   title?: string;
@@ -25,7 +31,7 @@ const registryPath = path.join(
 );
 
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
-  if (!fs.existsSync(registryPath)) {
+  if (!isNodeFsAvailable || !fs.existsSync(registryPath)) {
     return null;
   }
   const raw = fs.readFileSync(registryPath, "utf-8");
