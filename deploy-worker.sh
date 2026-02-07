@@ -19,6 +19,11 @@ if [ ! -f dist/worker.js ]; then
   echo "Error: dist/worker.js not found."
   echo "The current build produces a Next.js app, not a Cloudflare Worker."
   echo "Deploy to Vercel, Netlify, or Cloudflare Pages instead."
+# Ensure the expected Worker bundle exists before deploying.
+if [ ! -f dist/worker.js ]; then
+  echo "Error: dist/worker.js not found. Ensure your build produces dist/worker.js before deploying."
+  echo "The current build runs 'next build' which produces a Next.js app, not a Worker bundle."
+  echo "Consider adding a Worker entrypoint or using a Next.js Cloudflare adapter."
   exit 1
 fi
 

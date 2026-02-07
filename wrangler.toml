@@ -9,6 +9,23 @@
 #
 # For now, deploy this as a standard Next.js app on platforms like Vercel,
 # Netlify, or Cloudflare Pages (with Next.js support).
+# NOTE: This Wrangler configuration points to dist/worker.js, but the repository
+# does not currently generate this file. The build script runs "next build" which
+# produces a Next.js app, not a Cloudflare Worker bundle.
+#
+# To deploy to Cloudflare Workers, you need to either:
+# 1. Use a Next.js Cloudflare adapter (e.g., @cloudflare/next-on-pages)
+# 2. Create a Worker entrypoint (e.g., src/worker.ts) and build it with esbuild
+# 3. Deploy as a standard Next.js app instead of a Worker
+#
+# As-is, "wrangler deploy" will fail because dist/worker.js does not exist.
+# Cloudflare Workers configuration
+# NOTE: This config expects a Worker bundle at dist/worker.js, but the current
+# build script (next build) doesn't produce one. To deploy as a Worker:
+# 1. Create a Worker entrypoint (e.g., src/worker.ts) that adapts the Next.js app
+# 2. Add a build step to bundle it: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+# 3. Or use @cloudflare/next-on-pages to adapt Next.js for Cloudflare Pages
+# Alternatively, deploy as a standard Next.js app to a Node.js environment instead of Workers.
 
 name = "averyos-runtime"
 main = "dist/worker.js"

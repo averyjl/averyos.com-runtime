@@ -94,6 +94,11 @@ npm run dev
 ## Deployment
 
 ### Current deployment target: Next.js hosting platforms
+1. Set Worker secrets in Cloudflare and GitHub Actions:
+   - `VAULTSIG_SECRET`
+   - `STRIPE_SECRET_KEY`
+2. Ensure Wrangler is authenticated.
+3. Run local deploy helper:
 
 This application is currently built as a standard Next.js app and can be deployed to:
 - **Vercel** (recommended for Next.js)
