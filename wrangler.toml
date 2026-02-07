@@ -1,3 +1,16 @@
+# AveryOS Runtime Cloudflare Workers Configuration
+# 
+# IMPORTANT: This configuration expects a Worker bundle at `dist/worker.js`.
+# The current build (Next.js) does NOT produce this bundle automatically.
+# 
+# Deployment options:
+# 1. Use Cloudflare Pages adapter for Next.js instead of Workers
+# 2. Deploy to Vercel/Netlify as a standard Next.js app
+# 3. Create a custom Worker entrypoint and build pipeline (e.g., with esbuild)
+# 
+# If you need a Worker deployment, add a build step like:
+#   npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+
 name = "averyos-runtime"
 main = "dist/worker.js"
 compatibility_date = "2026-02-05"

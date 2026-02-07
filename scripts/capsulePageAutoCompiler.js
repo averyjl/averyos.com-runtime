@@ -33,7 +33,7 @@ const compileCapsule = ({ id, filePath }) => {
   try {
     payload = JSON.parse(raw);
   } catch (error) {
-    throw new Error(`Invalid JSON in ${filePath}`);
+    throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
   }
 
   const sha = computeSha(raw);

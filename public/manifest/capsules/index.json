@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-07T07:16:50.579Z",
+  "generatedAt": "2026-02-07T07:43:04.570Z",
   "count": 2,
   "capsules": [
     {
@@ -8,7 +8,7 @@
       "summary": "Reference index for active capsules, deployment signals, and monetization checkpoints.",
       "sha": "2152600cfd437d619cb6663e978e9329d8fea2e1c8ac7d8ee67919cc62408e571e6517d7c22b325b366c5ea85f6436e28502e9ea7c2f886a6a125a7170689444",
       "driftLock": "c5200b663debc2174b3061690b960ca395684bd055258035976afc82eaa731fdf4a860f495ba4de22ee05a9cb8697b8e6334e1f636af6eb3cb557fc928a531f8",
-      "compiledAt": "2026-02-07T07:16:50.099Z"
+      "compiledAt": "2026-02-07T07:43:00.393Z"
     },
     {
       "capsuleId": "sovereign-init",
@@ -16,7 +16,7 @@
       "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
       "sha": "d4a27d575fb6f2acdaf2e358618da4857074a53f5156437e0b5a2bda0e626f0682f6a872c46931538cbd6c6a03b3472e9f1ad91b267807e94d4c3dacce0f220d",
       "driftLock": "62589df27ea04747d55275c85f114a338cc61e0471609799375391ab08f760d7a06075a8fb0270785776169fac94b28e75270626089af8baa6c047d9c6e99d19",
-      "compiledAt": "2026-02-07T07:16:50.101Z"
+      "compiledAt": "2026-02-07T07:43:00.393Z"
     }
   ]
 }
