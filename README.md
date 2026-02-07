@@ -95,3 +95,21 @@ npm run dev
 - Run `npm run capsule:index` and `npm run capsule:sitemap` after adding capsules so the
   registry and sitemap stay in sync.
 - Verify `SITE_URL` points at the production domain so search engines receive the correct URLs.
+
+## Cloudflare Workers deploy (Bun)
+
+1. Set Worker secrets in Cloudflare and GitHub Actions:
+   - `VAULTSIG_SECRET`
+   - `STRIPE_KEY`
+2. Ensure Wrangler is authenticated.
+3. Run local deploy helper:
+
+```bash
+./deploy-worker.sh
+```
+
+Or deploy directly:
+
+```bash
+npx wrangler deploy --env production
+```
