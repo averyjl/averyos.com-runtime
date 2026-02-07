@@ -148,12 +148,12 @@ const Home: NextPage<HomeProps> = ({ gitSha }) => {
 };
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  let gitSha: string;
+  let gitSha = "unknown";
 
   try {
     gitSha = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
   } catch {
-    gitSha = "unknown";
+    // gitSha remains "unknown"
   }
 
   return {
