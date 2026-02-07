@@ -1,6 +1,11 @@
 import fs from "fs";
 import path from "path";
 
+// NOTE: This module uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Fetch manifests from public URLs (e.g., fetch('/manifest/capsules/{id}.json'))
+// 2. Or use Cloudflare KV/R2 to store and retrieve manifests
+
 export type CapsuleManifest = {
   capsuleId: string;
   title: string;

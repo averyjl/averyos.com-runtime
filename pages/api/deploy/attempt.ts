@@ -4,6 +4,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 import { timingSafeEqual } from "crypto";
 
+// NOTE: This API route uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Cloudflare D1 (SQL database) for persistent logs
+// 2. Cloudflare KV for simple key-value storage
+// 3. Or an external logging service
+
 type AccessLog = {
   createdAt: string;
   vaultToken: string;

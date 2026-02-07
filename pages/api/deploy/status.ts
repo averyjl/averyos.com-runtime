@@ -4,6 +4,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 import { timingSafeEqual } from "crypto";
 
+// NOTE: This API route uses Node.js filesystem APIs and is incompatible with
+// Cloudflare Workers. For Workers deployment, migrate to:
+// 1. Cloudflare D1 (SQL database) or KV for deploy status storage
+// 2. Or fetch from a build artifact served as a static asset
+
 type DeployLog = {
   latest_deploy_sha: string;
   deploy_status: "success" | "failed" | "pending";
