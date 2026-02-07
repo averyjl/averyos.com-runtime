@@ -22,7 +22,27 @@ jobs:
         run: bun run build
 
       - name: Deploy to Cloudflare Workers
-        run: npx wrangler deploy --env production
+        run: |
+          # Auto-retry on 403 errors (authentication issues)
+          MAX_RETRIES=3
+          RETRY_DELAY=5
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Deploy attempt $i of $MAX_RETRIES..."
+            if npx wrangler deploy --env production; then
+              echo "✅ Deploy succeeded"
+              exit 0
+            else
+              EXIT_CODE=$?
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "⚠️ Deploy failed with exit code $EXIT_CODE. Retrying in ${RETRY_DELAY}s..."
+                sleep $RETRY_DELAY
+              else
+                echo "❌ Deploy failed after $MAX_RETRIES attempts"
+                exit $EXIT_CODE
+              fi
+            fi
+          done
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
