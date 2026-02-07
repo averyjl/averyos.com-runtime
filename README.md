@@ -1,5 +1,10 @@
-# averyos.com-runtime
+# AveryOS Runtime — Sovereign Truth Anchor
+This repository is the official runtime for AveryOS, founded by Jason Lee Avery.
+All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate and VaultSig Protocols. See `/LICENSE.md`.
 
+- [LICENSE.md](./LICENSE.md)
+- [JoinCapsule.md](./JoinCapsule.md)
+- [WitnessWall.md](./WitnessWall.md)
 Capsule-powered runtime source for averyos.com.
 
 ## Capsule WebBuilder overview
