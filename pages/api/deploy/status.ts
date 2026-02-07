@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
+import { timingSafeEqual } from "crypto";
 
 type DeployLog = {
   latest_deploy_sha: string;
@@ -29,13 +30,35 @@ const getDeployLog = (): DeployLog => {
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const log = getDeployLog();
+  
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  let vaultsigMatch = false;
+  
+  if (!expectedVaultsig) {
+    // Preserve previous behavior when no expected secret is configured:
+    vaultsigMatch = vaultsigFormatValid;
+  } else if (vaultsigFormatValid && verifyCapsuleHash(expectedVaultsig)) {
+    // Use constant-time comparison to prevent timing attacks
+    try {
+      vaultsigMatch = timingSafeEqual(
+        Buffer.from(vaultsig, "utf8"),
+        Buffer.from(expectedVaultsig, "utf8")
+      );
+    } catch {
+      vaultsigMatch = false;
+    }
+  }
 
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,
     deploy_status: log.deploy_status,
     deployed_at: log.deployed_at,
     source_repo: log.source_repo,
-    vaultsig_match: verifyCapsuleHash(log.vaultsig || ""),
+    vaultsig_match: vaultsigMatch,
+    vaultsig_format_valid: vaultsigFormatValid,
   });
 };
 

@@ -3,6 +3,17 @@ const path = require("path");
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const outputDir = path.join(process.cwd(), "public");
+
+const escapeXml = (value) => {
+  if (!value) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
 const normalizeSiteUrl = (value) => {
   if (!value) {
     return null;
@@ -63,8 +74,9 @@ const buildSitemapXml = (entries) => {
 
   const urlTags = urls
     .map((entry) => {
-      const lastmodTag = entry.lastmod ? `<lastmod>${entry.lastmod}</lastmod>` : "";
-      return `<url><loc>${entry.loc}</loc>${lastmodTag}</url>`;
+      const escapedLoc = escapeXml(entry.loc);
+      const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
+      return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;
     })
     .join("");
 

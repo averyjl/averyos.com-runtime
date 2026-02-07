@@ -28,7 +28,7 @@ const LicenseContent = () => {
           <li>Retroclaim entries are append-only and considered authoritative.</li>
           <li>Violations trigger automatic vault invalidation and public notice.</li>
         </ul>
-        <p className="capsule-meta">
+        <p className="capsule-meta-small">
           Contact: <a href="mailto:truth@averyworld.com">truth@averyworld.com</a>
         </p>
       </section>

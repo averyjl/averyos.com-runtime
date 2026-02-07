@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
+import { timingSafeEqual } from "crypto";
 
 type AccessLog = {
   createdAt: string;
@@ -18,6 +19,33 @@ const readAccessLog = (): AccessLog[] => {
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
 };
 
+const isTokenValid = (token: string | undefined): boolean => {
+  if (!token || !verifyCapsuleHash(token)) {
+    return false;
+  }
+  
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    // If no secret is configured, reject access
+    return false;
+  }
+  
+  if (!verifyCapsuleHash(expectedSecret)) {
+    // Expected secret must also be a valid SHA-512 hash
+    return false;
+  }
+  
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(token, "utf8"),
+      Buffer.from(expectedSecret, "utf8")
+    );
+  } catch {
+    return false;
+  }
+};
+
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -26,9 +54,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
-  if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
+  if (!isTokenValid(vaultToken) && !isTokenValid(licenseKey)) {
     return res.status(403).json({
-      error: "VaultToken or license key must be a valid SHA512 hash.",
+      error: "Valid VaultToken or license key required.",
     });
   }
 
