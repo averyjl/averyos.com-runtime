@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const capsulesDir = path.join(process.cwd(), "capsules");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
@@ -13,6 +14,8 @@ const ensureDir = (dirPath) => {
 const { HASH_TYPE, compileCapsuleSignature } = require("./capsuleSignatureCompiler");
 
 const computeSha = (content) => compileCapsuleSignature(content);
+const computeSha = (content) =>
+  crypto.createHash("sha256").update(content, "utf8").digest("hex");
 
 const readCapsules = () => {
   if (!fs.existsSync(capsulesDir)) {
@@ -38,6 +41,7 @@ const compileCapsule = ({ id, filePath }) => {
 
   const sha = computeSha(raw);
   const driftLock = computeSha(`${HASH_TYPE}:${sha}:${id}`);
+  const driftLock = computeSha(`${sha}:${id}`);
   const compiledAt = new Date().toISOString();
   const body = Array.isArray(payload.body)
     ? payload.body.map((item) => String(item))
@@ -53,10 +57,13 @@ const compileCapsule = ({ id, filePath }) => {
     sha,
     driftLock,
     compiledAt,
+    sha,
+    driftLock,
     vaultChainUrl: payload.vaultChainUrl ?? null,
     licenseStatus: payload.licenseStatus ?? "Awaiting license",
     viewerUrl: payload.viewerUrl ?? null,
     stripeUrl: payload.stripeUrl ?? null,
+    vaultChainUrl: payload.vaultChainUrl ?? null,
   };
 
   const manifestPath = path.join(manifestDir, `${id}.json`);

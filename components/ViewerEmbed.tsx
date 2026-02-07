@@ -15,6 +15,7 @@ const ViewerEmbed: React.FC<ViewerEmbedProps> = ({ viewerUrl }) => {
       ) : (
         <p>Awaiting Viewer+ endpoint.</p>
       )}
+      <p>{viewerUrl ? `Connected: ${viewerUrl}` : "Awaiting Viewer+ endpoint."}</p>
     </div>
   );
 };

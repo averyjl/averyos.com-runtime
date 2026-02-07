@@ -5,6 +5,8 @@ import { getSiteUrl } from "../../lib/siteConfig";
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const registry = loadCapsuleRegistry();
+
+const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const ids = listCapsuleIds();
   const capsules = ids
     .map((capsuleId) => loadCapsuleManifest(capsuleId))
@@ -15,6 +17,8 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     generatedAt: registry?.generatedAt ?? null,
     count: capsules.length,
     siteUrl: getSiteUrl(),
+  return res.status(200).json({
+    count: capsules.length,
     capsules,
   });
 };
