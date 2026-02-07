@@ -23,6 +23,7 @@ const LicenseContent = () => {
         <h2>License Terms</h2>
         <ul>
           <li>All capsule content is bound to its <strong>SHA512</strong> integrity fingerprint.</li>
+          <li>All capsule content is bound to its SHA512 integrity fingerprint.</li>
           <li>Licenses grant non-transferable access to the named capsule holder.</li>
           <li>Redistribution, resale, or modification requires written consent.</li>
           <li>Retroclaim entries are append-only and considered authoritative.</li>

@@ -11,6 +11,7 @@
     "capsule:index": "node scripts/capsuleRegistry.js",
     "capsule:sitemap": "node scripts/capsuleSitemap.js",
     "capsule:sha512": "node scripts/genSha512.js"
+    "capsule:sitemap": "node scripts/capsuleSitemap.js"
   },
   "dependencies": {
     "next": "15.5.12",
