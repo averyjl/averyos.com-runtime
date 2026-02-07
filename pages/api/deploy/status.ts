@@ -43,7 +43,8 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   let vaultsigMatch = false;
   
   if (!expectedVaultsig) {
-    // Preserve previous behavior when no expected secret is configured:
+    // For development/testing: when no secret is configured, fallback to format-only validation.
+    // SECURITY WARNING: This does NOT provide authentication. In production, always set VAULTSIG_SECRET.
     vaultsigMatch = vaultsigFormatValid;
   } else if (vaultsigFormatValid && verifyCapsuleHash(expectedVaultsig)) {
     // Use constant-time comparison to prevent timing attacks
