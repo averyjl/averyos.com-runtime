@@ -1,10 +1,9 @@
 import Head from "next/head";
 import { useState } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
+import { verifyCapsuleHash } from "../scripts/verifyCapsuleHash";
 
 const STRIPE_LINK = "https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01";
-const HASH_LENGTH = 128;
-const HASH_REGEX = /^[a-fA-F0-9]{128}$/;
 
 const statusFeed = [
   "[feed] Viewer license challenge initialized",
@@ -20,7 +19,7 @@ const LicensePage = () => {
 
   const handleLicenseSubmit = () => {
     const normalized = vaultSig.trim();
-    if (normalized.length < HASH_LENGTH || !HASH_REGEX.test(normalized)) {
+    if (!verifyCapsuleHash(normalized)) {
       setStatus("❌ Invalid VaultSig: Must be a 128-character SHA512 hex string.");
       return;
     }
