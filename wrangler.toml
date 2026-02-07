@@ -1,0 +1,18 @@
+name = "averyos-runtime"
+main = "dist/worker.js"
+compatibility_date = "2026-02-05"
+workers_dev = false
+
+[build]
+command = "bun run build"
+upload_format = "modules"
+upload_dir = "dist"
+
+[env.production]
+name = "averyos-runtime"
+workers_dev = false
+routes = ["https://averyos.com/*"]
+
+[env.production.vars]
+VAULTSIG_SECRET = "REPLACE_WITH_VAULTSIG_SECRET"
+STRIPE_KEY = "REPLACE_WITH_STRIPE_KEY"
