@@ -1,0 +1,16 @@
+{
+  "capsuleId": "sovereign-index",
+  "title": "Sovereign Capsule Index",
+  "summary": "Reference index for active capsules, deployment signals, and monetization checkpoints.",
+  "body": [
+    "Use this capsule to summarize new additions, retired capsules, and runtime status updates.",
+    "Keep the Stripe, Viewer+, and Retroclaim links up to date as they ship."
+  ],
+  "sha": "2152600cfd437d619cb6663e978e9329d8fea2e1c8ac7d8ee67919cc62408e571e6517d7c22b325b366c5ea85f6436e28502e9ea7c2f886a6a125a7170689444",
+  "driftLock": "c5200b663debc2174b3061690b960ca395684bd055258035976afc82eaa731fdf4a860f495ba4de22ee05a9cb8697b8e6334e1f636af6eb3cb557fc928a531f8",
+  "compiledAt": "2026-02-07T07:16:50.099Z",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-index",
+  "licenseStatus": "Awaiting license",
+  "viewerUrl": "https://viewer.example/sovereign-index",
+  "stripeUrl": "https://stripe.example/connect/sovereign-index"
+}
