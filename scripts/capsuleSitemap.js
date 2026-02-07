@@ -31,6 +31,10 @@ const normalizeSiteUrl = (value) => {
 };
 
 const escapeXml = (str) => {
+  if (!str) {
+    return "";
+  }
+  return String(str)
   if (!str) return "";
   return String(str)
 const escapeXml = (unsafe) => {

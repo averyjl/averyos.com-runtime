@@ -14,6 +14,10 @@ set -euo pipefail
 bun install
 bun run build
 
+# Ensure the expected Worker bundle exists before deploying.
+if [ ! -f dist/worker.js ]; then
+  echo "Error: dist/worker.js not found. Ensure your build produces dist/worker.js before deploying."
+  echo "Consider deploying to Vercel/Netlify or using Cloudflare Pages adapter for Next.js instead."
 # NOTE: wrangler.toml expects dist/worker.js but the Next.js build doesn't produce it.
 # Ensure the expected Worker bundle exists before deploying.
 if [ ! -f dist/worker.js ]; then

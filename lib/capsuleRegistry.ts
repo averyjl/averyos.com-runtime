@@ -48,6 +48,11 @@ const registryPath = path.join(
  * 3. Storing the registry in KV/D1/R2 storage
  */
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("Filesystem not available - consider fetching registry from /manifest/capsules/index.json or using KV/D1/R2");
+    return null;
+  }
   // Check if we're in a Node.js environment
   if (typeof process === "undefined" || !fs.existsSync) {
     return null;

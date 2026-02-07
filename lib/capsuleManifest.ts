@@ -64,6 +64,11 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("Filesystem not available - consider fetching manifest from /manifest/capsules/*.json or using KV/D1/R2");
+    return null;
+  }
   // Check if we're in a Node.js environment
   if (typeof process === "undefined" || !fs.existsSync) {
     return null;
@@ -78,6 +83,11 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 };
 
 export const listCapsuleIds = (): string[] => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("Filesystem not available - consider fetching capsule list from registry or using KV/D1/R2");
+    return [];
+  }
   // Check if we're in a Node.js environment
   if (typeof process === "undefined" || !fs.existsSync) {
     return [];
