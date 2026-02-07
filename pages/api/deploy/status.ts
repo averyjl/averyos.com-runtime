@@ -73,6 +73,14 @@ const getDeployLog = (): DeployLog => {
   return JSON.parse(fs.readFileSync(deployLogPath, "utf8")) as DeployLog;
 };
 
+// Constant-time string comparison to prevent timing attacks
+const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  return crypto.timingSafeEqual(bufA, bufB);
 /**
  * Constant-time string comparison to prevent timing attacks.
  */
@@ -88,6 +96,13 @@ const safeCompare = (a: string, b: string): boolean => {
 };
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return res.status(501).json({
+      error: "File system not available in this runtime. Use KV/D1/R2 for persistent storage.",
+    });
+  }
+
   const log = getDeployLog();
   
   const vaultsig = log.vaultsig || "";
@@ -145,6 +160,16 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     !expectedVaultsig
       ? vaultsigFormatValid
       : vaultsigFormatValid && vaultsig === expectedVaultsig;
+
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  // If expected secret is configured, compare against it; otherwise just check format
+  const vaultsigMatch =
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && timingSafeEqual(vaultsig, expectedVaultsig);
 
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,

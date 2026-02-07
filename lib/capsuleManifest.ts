@@ -56,7 +56,7 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
     driftLock: raw.driftLock ?? "",
     body: normalizeBody(raw.body),
     compiledAt: raw.compiledAt ?? new Date(0).toISOString(),
-    vaultChainUrl: raw.vaultChainUrl ?? null,
+    vaultChainUrl: raw.vaultChainUrl ?? undefined,
     licenseStatus: raw.licenseStatus ?? "Awaiting license",
     viewerUrl: raw.viewerUrl ?? null,
     stripeUrl: raw.stripeUrl ?? null,
@@ -66,6 +66,7 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("File system not available. Use fetch() or bundle manifests at build time for edge runtimes.");
     console.warn("Filesystem not available - consider fetching manifest from /manifest/capsules/*.json or using KV/D1/R2");
     return null;
   }
@@ -85,6 +86,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 export const listCapsuleIds = (): string[] => {
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("File system not available. Use fetch() or bundle capsule list at build time for edge runtimes.");
     console.warn("Filesystem not available - consider fetching capsule list from registry or using KV/D1/R2");
     return [];
   }

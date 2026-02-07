@@ -3,6 +3,12 @@ set -euo pipefail
 
 # Build and deploy AveryOS runtime to Cloudflare Workers (production env).
 # Requires Bun + Wrangler auth to already be configured.
+#
+# ⚠️  WARNING: This script will fail because the current build produces a Next.js
+# app, not a Worker bundle. The wrangler.toml expects dist/worker.js, but
+# `bun run build` (next build) does not create this file.
+#
+# See README.md for deployment alternatives (Vercel, Netlify, Cloudflare Pages).
 
 # NOTE: This script is currently not functional because:
 # 1. The codebase uses Node.js filesystem APIs (fs module) incompatible with Workers

@@ -93,6 +93,15 @@ npm run dev
 
 ## Deployment
 
+> ⚠️ **Important Compatibility Note**: This is a Next.js application that uses Node.js filesystem APIs (`fs.readFileSync`, etc.) which are **not compatible** with Cloudflare Workers. The current `wrangler.toml` configuration expects `dist/worker.js`, but `next build` does not produce this file.
+>
+> **Recommended deployment targets**: Vercel, Netlify, or Cloudflare Pages (which supports Next.js natively).
+>
+> If you need to deploy to Cloudflare Workers specifically, you'll need to:
+> 1. Create a custom Worker entrypoint at `src/worker.ts`
+> 2. Build it with `esbuild` to `dist/worker.js`
+> 3. Replace all filesystem-based data loading with KV/D1/R2 storage or fetch-based static asset loading
+
 ### Current deployment target: Next.js hosting platforms
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`

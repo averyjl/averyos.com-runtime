@@ -1,3 +1,12 @@
+# ⚠️  WARNING: This Wrangler configuration expects dist/worker.js, but the current
+# project uses Next.js which outputs a different structure. This configuration will
+# not work without significant changes. Consider deploying to Vercel, Netlify, or
+# Cloudflare Pages instead, which natively support Next.js.
+#
+# If you need Workers specifically, you must:
+# 1. Create src/worker.ts as a custom Worker entrypoint
+# 2. Build it with esbuild to dist/worker.js
+# 3. Replace fs-based data loading with KV/D1/R2 or fetch-based loading
 # AveryOS Runtime Cloudflare Workers Configuration
 # 
 # IMPORTANT: This configuration expects a Worker bundle at `dist/worker.js`.

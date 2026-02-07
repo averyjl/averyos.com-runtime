@@ -52,6 +52,7 @@ const readAccessLog = (): AccessLog[] => {
   return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
 };
 
+// Constant-time string comparison to prevent timing attacks
 const timingSafeEqual = (a: string, b: string): boolean => {
   if (a.length !== b.length) {
     return false;
@@ -103,6 +104,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  // Validate format first
   // Validate that at least one token is provided and properly formatted
   if (!isTokenValid(vaultToken) && !isTokenValid(licenseKey)) {
   // Validate format
@@ -112,6 +114,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   }
 
+  // Validate against server-side secret if configured
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (expectedSecret) {
+    const providedToken = vaultToken || licenseKey;
+    // Use constant-time comparison to prevent timing attacks
+    if (!providedToken || !timingSafeEqual(providedToken, expectedSecret)) {
   // Validate against server-side secret using constant-time comparison
   // NOTE: If VAULTSIG_SECRET is not configured, this endpoint will only validate format.
   // For production use, VAULTSIG_SECRET should always be set to properly gate access.
@@ -139,6 +147,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   // Check if fs is available (won't work in Cloudflare Workers)
   if (typeof process === "undefined" || !fs.existsSync) {
+    return res.status(501).json({
+      error: "File system not available in this runtime. Use KV/D1/R2 for persistent storage.",
+    });
+  }
+
     console.warn("Filesystem not available - consider using KV/D1/R2 for Cloudflare Workers");
     return res.status(200).json({ ok: true });
   // Check against server-side secret using constant-time comparison

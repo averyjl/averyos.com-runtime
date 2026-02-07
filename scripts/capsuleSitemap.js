@@ -87,6 +87,16 @@ const buildSitemapEntries = () => {
   }));
 };
 
+const escapeXml = (str) => {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
 const buildSitemapXml = (entries) => {
   const urls = [
     {
@@ -99,6 +109,9 @@ const buildSitemapXml = (entries) => {
   const urlTags = urls
     .map((entry) => {
       const escapedLoc = escapeXml(entry.loc);
+      const escapedLastmod = entry.lastmod ? escapeXml(entry.lastmod) : "";
+      const lastmodTag = escapedLastmod ? `<lastmod>${escapedLastmod}</lastmod>` : "";
+      return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;
       const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
       return `<url><loc>${escapedLoc}</loc>${lastmodTag}</url>`;
       const lastmodTag = entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";

@@ -1,5 +1,10 @@
 name: Deploy Cloudflare Worker
 
+# ⚠️  WARNING: This workflow will fail because the current build produces a Next.js
+# app, not a Worker bundle. The wrangler.toml expects dist/worker.js, but
+# `bun run build` (next build) does not create this file.
+#
+# See README.md for deployment alternatives (Vercel, Netlify, Cloudflare Pages).
 # NOTE: This workflow is currently disabled because the codebase uses
 # Node.js filesystem APIs (fs module) that are incompatible with Cloudflare Workers.
 # The build produces a Next.js application, not a Worker bundle.
