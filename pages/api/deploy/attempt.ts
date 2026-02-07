@@ -4,6 +4,13 @@ import { timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
+// NOTE: This API uses Node.js fs and will NOT work in Cloudflare Workers.
+// For Workers/Edge deployment, replace file-based storage with:
+// - Cloudflare KV for simple key-value storage
+// - Cloudflare D1 for relational data
+// - Cloudflare R2 for object storage
+// - External API/database service (e.g., Supabase, PlanetScale)
+
 type AccessLog = {
   createdAt: string;
   vaultToken: string;
@@ -16,6 +23,11 @@ type AccessLog = {
 const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.json");
 
 const readAccessLog = (): AccessLog[] => {
+  // Check if we're in a Node.js environment
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return [];
+  }
+
   if (!fs.existsSync(accessLogPath)) {
     return [];
   }
@@ -62,6 +74,30 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         error: "Invalid VaultToken or license key.",
       });
     }
+  // Check against server-side secret using constant-time comparison
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    return res.status(500).json({
+      error: "Server configuration error: VAULTSIG_SECRET not set.",
+    });
+  }
+
+  const providedToken = verifyCapsuleHash(vaultToken) ? vaultToken : licenseKey;
+
+  // Constant-time comparison to prevent timing attacks
+  let isValid = false;
+  if (providedToken && providedToken.length === expectedSecret.length) {
+    let mismatch = 0;
+    for (let i = 0; i < expectedSecret.length; i++) {
+      mismatch |= expectedSecret.charCodeAt(i) ^ providedToken.charCodeAt(i);
+    }
+    isValid = mismatch === 0;
+  }
+
+  if (!isValid) {
+    return res.status(403).json({
+      error: "Invalid VaultToken or license key.",
+    });
   }
 
   const logs = readAccessLog();
@@ -71,8 +107,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     licenseKey: typeof licenseKey === "string" ? licenseKey : "",
   });
 
-  fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
-  fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
+  // Only write if fs is available (Node.js environment)
+  if (typeof process !== "undefined" && fs.mkdirSync) {
+    fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
+    fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
+  }
 
   return res.status(200).json({ ok: true });
 };

@@ -30,6 +30,9 @@ jobs:
       # Example Worker bundle build:
       # - name: Build Worker bundle
       #   run: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+      # TODO: Add Worker bundle generation step before deploying to Workers
+      # Example: npx esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist/worker.js
+      # Or use @cloudflare/next-on-pages for Next.js adaptation
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --env production

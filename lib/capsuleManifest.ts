@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+// NOTE: This module uses Node.js fs and will NOT work in Cloudflare Workers.
+// For Workers/Edge deployment, consider:
+// - Loading manifests via fetch() from public asset URLs (/manifest/capsules/*.json)
+// - Bundling manifests at build time as JavaScript modules
+// - Using Cloudflare KV to store and retrieve manifests
+
 export type CapsuleManifest = {
   capsuleId: string;
   title: string;
@@ -50,6 +56,11 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+  // Check if we're in a Node.js environment
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return null;
+  }
+
   const manifestPath = path.join(manifestDir, `${capsuleId}.json`);
   if (!fs.existsSync(manifestPath)) {
     return null;
@@ -59,6 +70,11 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 };
 
 export const listCapsuleIds = (): string[] => {
+  // Check if we're in a Node.js environment
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return [];
+  }
+
   if (!fs.existsSync(manifestDir)) {
     return [];
   }
