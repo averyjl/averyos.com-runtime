@@ -16,8 +16,6 @@ routes = ["https://averyos.com/*"]
 [env.production.vars]
 VAULTSIG_SECRET = "REPLACE_WITH_VAULTSIG_SECRET"
 STRIPE_KEY = "REPLACE_WITH_STRIPE_KEY"
-name = "averyos"
-compatibility_date = "2026-02-05"
 
 [site]
 bucket = ".next"
