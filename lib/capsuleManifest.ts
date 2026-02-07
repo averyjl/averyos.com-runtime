@@ -45,6 +45,12 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("File system not available. Use fetch() or bundle manifests at build time for edge runtimes.");
+    return null;
+  }
+
   const manifestPath = path.join(manifestDir, `${capsuleId}.json`);
   if (!fs.existsSync(manifestPath)) {
     return null;
@@ -54,6 +60,12 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 };
 
 export const listCapsuleIds = (): string[] => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("File system not available. Use fetch() or bundle capsule list at build time for edge runtimes.");
+    return [];
+  }
+
   if (!fs.existsSync(manifestDir)) {
     return [];
   }

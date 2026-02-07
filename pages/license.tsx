@@ -1,10 +1,9 @@
 import Head from "next/head";
 import { useState } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
+import { verifyCapsuleHash } from "../scripts/verifyCapsuleHash";
 
 const STRIPE_LINK = "https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01";
-const HASH_LENGTH = 128;
-const HASH_REGEX = /^[a-fA-F0-9]{128}$/;
 
 const statusFeed = [
   "[feed] Viewer license challenge initialized",
@@ -20,7 +19,7 @@ const LicensePage = () => {
 
   const handleLicenseSubmit = () => {
     const normalized = vaultSig.trim();
-    if (normalized.length < HASH_LENGTH || !HASH_REGEX.test(normalized)) {
+    if (!verifyCapsuleHash(normalized)) {
       setStatus("❌ Invalid VaultSig: Must be a 128-character SHA512 hex string.");
       return;
     }
@@ -57,7 +56,7 @@ const LicensePage = () => {
 
         <section className="card">
           <h2>VaultSig Challenge</h2>
-          <p className="capsule-meta">Expected: SHA-512 (128 hex characters).</p>
+          <p className="capsule-meta-small">Expected: SHA-512 (128 hex characters).</p>
           <div className="form-grid">
             <label>
               Enter your VaultSig (SHA512)
@@ -71,7 +70,7 @@ const LicensePage = () => {
             <button type="button" className="primary-button" onClick={handleLicenseSubmit}>
               Verify License
             </button>
-            <p className={status.startsWith("✅") ? "hash-valid" : "capsule-meta"}>{status}</p>
+            <p className={status.startsWith("✅") ? "hash-valid" : "capsule-meta-small"}>{status}</p>
           </div>
         </section>
 

@@ -26,9 +26,29 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  // Validate format first
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
       error: "VaultToken or license key must be a valid SHA512 hash.",
+    });
+  }
+
+  // Validate against server-side secret if configured
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (expectedSecret) {
+    const providedToken = vaultToken || licenseKey;
+    // Use constant-time comparison to prevent timing attacks
+    if (!providedToken || providedToken !== expectedSecret) {
+      return res.status(403).json({
+        error: "Invalid VaultToken or license key.",
+      });
+    }
+  }
+
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return res.status(501).json({
+      error: "File system not available in this runtime. Use KV/D1/R2 for persistent storage.",
     });
   }
 

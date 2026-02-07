@@ -25,6 +25,12 @@ const registryPath = path.join(
 );
 
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    console.warn("File system not available. Use fetch() or bundle registry at build time for edge runtimes.");
+    return null;
+  }
+  
   if (!fs.existsSync(registryPath)) {
     return null;
   }

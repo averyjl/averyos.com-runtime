@@ -28,14 +28,32 @@ const getDeployLog = (): DeployLog => {
 };
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
+  // Check if fs is available (won't work in Cloudflare Workers)
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return res.status(501).json({
+      error: "File system not available in this runtime. Use KV/D1/R2 for persistent storage.",
+    });
+  }
+
   const log = getDeployLog();
+
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  // If expected secret is configured, compare against it; otherwise just check format
+  const vaultsigMatch =
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && vaultsig === expectedVaultsig;
 
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,
     deploy_status: log.deploy_status,
     deployed_at: log.deployed_at,
     source_repo: log.source_repo,
-    vaultsig_match: verifyCapsuleHash(log.vaultsig || ""),
+    vaultsig_match: vaultsigMatch,
+    vaultsig_format_valid: vaultsigFormatValid,
   });
 };
 

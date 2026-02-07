@@ -93,9 +93,18 @@ npm run dev
 
 ## Cloudflare Workers deploy (Bun)
 
+> ⚠️ **Important Compatibility Note**: This is a Next.js application that uses Node.js filesystem APIs (`fs.readFileSync`, etc.) which are **not compatible** with Cloudflare Workers. The current `wrangler.toml` configuration expects `dist/worker.js`, but `next build` does not produce this file.
+>
+> **Recommended deployment targets**: Vercel, Netlify, or Cloudflare Pages (which supports Next.js natively).
+>
+> If you need to deploy to Cloudflare Workers specifically, you'll need to:
+> 1. Create a custom Worker entrypoint at `src/worker.ts`
+> 2. Build it with `esbuild` to `dist/worker.js`
+> 3. Replace all filesystem-based data loading with KV/D1/R2 storage or fetch-based static asset loading
+
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`
-   - `STRIPE_KEY`
+   - `STRIPE_SECRET_KEY`
 2. Ensure Wrangler is authenticated.
 3. Run local deploy helper:
 
@@ -116,7 +125,7 @@ Use Wrangler secrets instead of hardcoding values in `wrangler.toml`:
 
 ```bash
 wrangler secret put VAULTSIG_SECRET --env production
-wrangler secret put STRIPE_KEY --env production
+wrangler secret put STRIPE_SECRET_KEY --env production
 ```
 
 For CI, store secrets in GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VAULTSIG_SECRET`, `STRIPE_KEY`).
