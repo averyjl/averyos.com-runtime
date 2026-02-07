@@ -10,8 +10,27 @@
   "sha": "d4a27d575fb6f2acdaf2e358618da4857074a53f5156437e0b5a2bda0e626f0682f6a872c46931538cbd6c6a03b3472e9f1ad91b267807e94d4c3dacce0f220d",
   "driftLock": "62589df27ea04747d55275c85f114a338cc61e0471609799375391ab08f760d7a06075a8fb0270785776169fac94b28e75270626089af8baa6c047d9c6e99d19",
   "compiledAt": "2026-02-07T05:02:38.252Z",
+  "compiledAt": "2026-02-07T02:15:37.901Z",
+  "sha": "4e2cb40def8cf117f6ad274cb5f1c45f6b842f76181a3cf0eae3048b4b2749f0",
+  "driftLock": "4fef2be70b669cb1a382d879cd271811025c10bcd2820e726742ee1240dd69e3",
+  "compiledAt": "2026-02-07T01:35:32.497Z",
+  "compiledAt": "2026-02-05T00:54:55.537Z",
+  "compiledAt": "2026-02-02T04:03:55.439Z",
+  "compiledAt": "2026-02-02T03:54:52.673Z",
   "vaultChainUrl": "https://vaultchain.example/sovereign-init",
   "licenseStatus": "Ready for retroclaim validation",
   "viewerUrl": "https://viewer.example/sovereign-init",
   "stripeUrl": "https://stripe.example/connect/sovereign-init"
+  "sha": "8aa3bd38b731eb0bb4139a72d65bba83bc88d48ccc6b844b25b346d941558c12",
+  "driftLock": "512fd35a76e09d15fe46fb5661a317dd775eff5b12ece0cd856533a19fa31ce4",
+  "compiledAt": "2026-02-02T03:50:29.518Z",
+  "compiledAt": "2026-02-02T03:42:36.621Z",
+  "sha": "20ead736bd36485a9359cbdd0b7ef0fb528c97ca067fd4766dd59567e80d8429",
+  "driftLock": "0b09924eccbf568cfc4e1377eaed22364e22a2d054173397a370d9f882238ca4",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init",
+  "licenseStatus": "Ready for retroclaim validation",
+  "viewerUrl": "https://viewer.averyos.com/sovereign-init",
+  "stripeUrl": "https://stripe.example/connect/sovereign-init"
+  "sha": "c4a2e2577f7f28e6376f053359b2738d431d6510c01cb797e3521fb1400dbdcf",
+  "vaultChainUrl": "https://vaultchain.example/sovereign-init"
 }
