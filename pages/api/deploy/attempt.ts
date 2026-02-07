@@ -26,9 +26,36 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  // Validate format
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
       error: "VaultToken or license key must be a valid SHA512 hash.",
+    });
+  }
+
+  // Check against server-side secret using constant-time comparison
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  if (!expectedSecret) {
+    return res.status(500).json({
+      error: "Server configuration error: VAULTSIG_SECRET not set.",
+    });
+  }
+
+  const providedToken = verifyCapsuleHash(vaultToken) ? vaultToken : licenseKey;
+  
+  // Constant-time comparison to prevent timing attacks
+  let isValid = false;
+  if (providedToken && providedToken.length === expectedSecret.length) {
+    let mismatch = 0;
+    for (let i = 0; i < expectedSecret.length; i++) {
+      mismatch |= expectedSecret.charCodeAt(i) ^ providedToken.charCodeAt(i);
+    }
+    isValid = mismatch === 0;
+  }
+
+  if (!isValid) {
+    return res.status(403).json({
+      error: "Invalid VaultToken or license key.",
     });
   }
 

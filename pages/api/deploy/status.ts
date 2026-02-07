@@ -29,13 +29,24 @@ const getDeployLog = (): DeployLog => {
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const log = getDeployLog();
+  
+  const vaultsig = log.vaultsig || "";
+  const vaultsigFormatValid = verifyCapsuleHash(vaultsig);
+  const expectedVaultsig = process.env.VAULTSIG_SECRET;
+
+  const vaultsigMatch =
+    // Preserve previous behavior when no expected secret is configured:
+    !expectedVaultsig
+      ? vaultsigFormatValid
+      : vaultsigFormatValid && vaultsig === expectedVaultsig;
 
   return res.status(200).json({
     latest_deploy_sha: log.latest_deploy_sha,
     deploy_status: log.deploy_status,
     deployed_at: log.deployed_at,
     source_repo: log.source_repo,
-    vaultsig_match: verifyCapsuleHash(log.vaultsig || ""),
+    vaultsig_match: vaultsigMatch,
+    vaultsig_format_valid: vaultsigFormatValid,
   });
 };
 
