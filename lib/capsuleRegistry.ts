@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+// NOTE: This module uses Node.js fs and will NOT work in Cloudflare Workers.
+// For Workers/Edge deployment, consider:
+// - Loading the registry via fetch() from the public asset URL (/manifest/capsules/index.json)
+// - Bundling the registry at build time as a JavaScript module
+// - Using Cloudflare KV to store and retrieve the registry
+
 export type CapsuleRegistryItem = {
   capsuleId: string;
   title?: string;
@@ -25,6 +31,11 @@ const registryPath = path.join(
 );
 
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+  // Check if we're in a Node.js environment
+  if (typeof process === "undefined" || !fs.existsSync) {
+    return null;
+  }
+  
   if (!fs.existsSync(registryPath)) {
     return null;
   }
