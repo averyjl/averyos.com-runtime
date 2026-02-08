@@ -18,15 +18,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
-  if (typeof vaultToken !== "string" && typeof licenseKey !== "string") {
-    return res.status(400).json({
-      error: "vaultToken or licenseKey must be provided as a string.",
-    });
-  }
+  const hasValidToken = typeof vaultToken === "string" && verifyCapsuleHash(vaultToken);
+  const hasValidKey = typeof licenseKey === "string" && verifyCapsuleHash(licenseKey);
 
-  if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
+  if (!hasValidToken && !hasValidKey) {
     return res.status(403).json({
-      error: "VaultToken or license key must be a valid SHA512 hash.",
+      error: "vaultToken or licenseKey must be a valid SHA512 hash string.",
     });
   }
 
