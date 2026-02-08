@@ -34,15 +34,10 @@ manifests and dynamic routes.
 - `pages/verify.tsx` → capsule license validator
 - `pages/retroclaim-log.tsx` → retroclaim ledger viewer
 - `pages/embedbuilder.tsx` → embed builder tool
-- `pages/api/capsules.ts` → compiled capsule manifest API
-- `pages/api/licensehook.ts` → license webhook stub
-- `pages/api/registry.ts` → registry API for capsule listings + metadata
-- `styles/globals.css` → sovereign runtime UI styling
-- `pages/api/licensehook.ts` → license webhook stub
-- `pages/api/registry.ts` → registry API for capsule listings + metadata
-- `styles/globals.css` → sovereign runtime UI styling
-- `styles/globals.css` → sovereign runtime UI styling
-- `pages/api/licensehook.ts` → license webhook stub
+- `pages/license-enforcement.tsx` → public license enforcement log
+- `pages/api/enforcement-log.ts` → enforcement log API endpoint
+- `public/license-enforcement/` → SHA-verified evidence bundles and notices
+- `scripts/generateEvidenceBundle.js` → evidence bundle generator
 
 ### Build manifests
 
@@ -95,6 +90,44 @@ npm run dev
 - Run `npm run capsule:index` and `npm run capsule:sitemap` after adding capsules so the
   registry and sitemap stay in sync.
 - Verify `SITE_URL` points at the production domain so search engines receive the correct URLs.
+
+## License Enforcement System
+
+The AveryOS License Enforcement System provides transparent, SHA-verified tracking of capsule usage and licensing compliance.
+
+### Key Features
+
+- **Public Transparency**: All enforcement logs are publicly viewable
+- **SHA-512 Verification**: Cryptographic verification of all events
+- **Voluntary Compliance**: Focus on offering licensing options via Stripe
+- **No Legal Automation**: No automated lawsuits, takedowns, or legal threats
+- **Creator Protection**: Helps creators track and protect their intellectual property
+
+### Generate Evidence Bundle
+
+```bash
+npm run enforcement:generate <capsule-id> <sha512-hash> [options]
+```
+
+Example:
+```bash
+npm run enforcement:generate sovereign-index cf83e135... --source="https://example.com"
+```
+
+This generates:
+- SHA-verified evidence bundle in `public/license-enforcement/evidence/`
+- Compliance notice in `public/license-enforcement/notices/`
+- Event log entry in `public/license-enforcement/logs/`
+
+### View Enforcement Log
+
+Visit `/license-enforcement` to view the public enforcement log with:
+- Timestamped events
+- SHA-512 verification
+- Licensing options via Stripe
+- Transparent compliance tracking
+
+All enforcement is informational only and focused on offering voluntary licensing options.
 
 ## Cloudflare Workers deploy (Bun)
 

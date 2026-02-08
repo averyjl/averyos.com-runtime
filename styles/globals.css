@@ -482,3 +482,87 @@ a {
   color: #44d17d;
   font-weight: 600;
 }
+
+/* License Enforcement Page Styles */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.info-box {
+  background: rgba(8, 14, 30, 0.7);
+  border: 1px solid rgba(120, 148, 255, 0.25);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.info-box h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: rgba(238, 244, 255, 0.95);
+}
+
+.info-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.8);
+  line-height: 1.5;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(120, 148, 255, 0.2);
+  border: 1px solid rgba(120, 148, 255, 0.35);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.hash-preview {
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.action-link-small {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid rgba(120, 148, 255, 0.3);
+  background: rgba(8, 14, 30, 0.8);
+  text-decoration: none;
+  color: rgba(238, 244, 255, 0.9);
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.action-link-small:hover {
+  border-color: rgba(120, 148, 255, 0.6);
+  background: rgba(12, 20, 41, 0.9);
+}
+
+.secondary-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 148, 255, 0.3);
+  background: rgba(8, 14, 30, 0.8);
+  color: rgba(238, 244, 255, 0.9);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+}
+
+.secondary-button:hover {
+  border-color: rgba(120, 148, 255, 0.6);
+  background: rgba(12, 20, 41, 0.9);
+}
