@@ -70,7 +70,7 @@ const StartPage = () => {
 
         <section className="card">
           <h2>Live Metrics</h2>
-          <p className="capsule-meta">Source: vaultchain://metrics/mesh_activity_live.json</p>
+          <p className="capsule-meta-small">Source: vaultchain://metrics/mesh_activity_live.json</p>
           <ul>
             {metrics.map((metric) => (
               <li key={metric}>{metric}</li>

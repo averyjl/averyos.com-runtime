@@ -65,12 +65,12 @@ const VerifyPage = () => {
                 value={hashInput}
                 onChange={(event) => setHashInput(event.target.value)}
               />
-              <span className="capsule-meta">Expected: SHA-512 (128 hex characters)</span>
+              <span className="capsule-meta-small">Expected: SHA-512 (128 hex characters)</span>
             </label>
             {isValidSha512 ? (
               <p className="hash-valid">🔐 SHA512 format valid</p>
             ) : (
-              <p className="capsule-meta">Awaiting valid SHA512 input.</p>
+              <p className="capsule-meta-small">Awaiting valid SHA512 input.</p>
             )}
             <label>
               Upload .aoscap

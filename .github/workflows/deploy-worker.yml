@@ -23,6 +23,10 @@ jobs:
 
       - name: Build project
         run: bun run build
+        # NOTE: `bun run build` maps to `next build`, which produces a Next.js build
+        # but does NOT generate the Worker bundle expected by wrangler.toml (dist/worker.js).
+        # To deploy successfully, add a Worker bundling step here or use a Next.js adapter
+        # that generates the Worker entrypoint automatically.
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --env production
@@ -30,4 +34,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VAULTSIG_SECRET: ${{ secrets.VAULTSIG_SECRET }}
-          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}

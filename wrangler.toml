@@ -3,6 +3,12 @@ main = "dist/worker.js"
 compatibility_date = "2026-02-05"
 workers_dev = false
 
+# NOTE: This config expects a Worker bundle at `dist/worker.js`.
+# The build command `bun run build` maps to `next build`, which produces
+# a Next.js build but does NOT generate the Worker entrypoint.
+# To deploy successfully, you must:
+# 1. Add a Worker bundling step that outputs `dist/worker.js`, OR
+# 2. Use a Next.js-to-Workers adapter that generates the Worker entrypoint.
 [build]
 command = "bun run build"
 upload_format = "modules"
