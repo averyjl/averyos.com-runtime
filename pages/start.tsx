@@ -13,7 +13,7 @@ type StartPortalManifest = {
   sections: {
     intro_video: {
       type: string;
-      url: string;
+      url: string; // Expected format: Valid video URL (e.g., .mp4 file)
       caption: string;
     };
     quick_actions: Array<{
