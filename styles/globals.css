@@ -334,6 +334,36 @@ a {
   border: none;
 }
 
+.action-link {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 148, 255, 0.25);
+  background: rgba(8, 14, 30, 0.8);
+  text-decoration: none;
+  color: rgba(238, 244, 255, 0.9);
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.action-link:hover {
+  border-color: rgba(120, 148, 255, 0.6);
+  background: rgba(12, 20, 41, 0.9);
+  transform: translateX(4px);
+}
+
+.call-to-action-section {
+  background: linear-gradient(135deg, rgba(36, 58, 140, 0.25), rgba(8, 13, 30, 0.8));
+  border-color: rgba(120, 148, 255, 0.3);
+}
+
+.capsule-meta-small {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
 .truthnest-page {
   color: #f8f6f2;
   font-family: "Georgia", "Times New Roman", serif;
