@@ -37,6 +37,8 @@ manifests and dynamic routes.
 - `pages/verify.tsx` → capsule license validator
 - `pages/retroclaim-log.tsx` → retroclaim ledger viewer
 - `pages/embedbuilder.tsx` → embed builder tool
+- `pages/start.tsx` → public start portal
+- `public/manifest/AveryOS_PublicStartPortal_v1.json` → public activation manifest
 
 ### Build manifests
 
