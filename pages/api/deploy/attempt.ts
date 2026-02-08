@@ -1,21 +1,13 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
 
-type AccessLog = {
-  createdAt: string;
-  vaultToken: string;
-  licenseKey: string;
-};
+const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.jsonl");
 
-const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.json");
-
-const readAccessLog = (): AccessLog[] => {
-  if (!fs.existsSync(accessLogPath)) {
-    return [];
-  }
-  return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
+const hashPrefix = (value: string): string => {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 16);
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -26,21 +18,27 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { vaultToken, licenseKey } = req.body ?? {};
 
+  if (typeof vaultToken !== "string" && typeof licenseKey !== "string") {
+    return res.status(400).json({
+      error: "vaultToken or licenseKey must be provided as a string.",
+    });
+  }
+
   if (!verifyCapsuleHash(vaultToken) && !verifyCapsuleHash(licenseKey)) {
     return res.status(403).json({
       error: "VaultToken or license key must be a valid SHA512 hash.",
     });
   }
 
-  const logs = readAccessLog();
-  logs.push({
+  // Log only hash prefixes for observability without storing sensitive tokens
+  const logEntry = JSON.stringify({
     createdAt: new Date().toISOString(),
-    vaultToken: typeof vaultToken === "string" ? vaultToken : "",
-    licenseKey: typeof licenseKey === "string" ? licenseKey : "",
-  });
+    vaultTokenPrefix: typeof vaultToken === "string" ? hashPrefix(vaultToken) : null,
+    licenseKeyPrefix: typeof licenseKey === "string" ? hashPrefix(licenseKey) : null,
+  }) + "\n";
 
   fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
-  fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
+  fs.appendFileSync(accessLogPath, logEntry);
 
   return res.status(200).json({ ok: true });
 };
