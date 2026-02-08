@@ -97,7 +97,7 @@ npm run dev
 
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`
-   - `STRIPE_KEY`
+   - `STRIPE_SECRET_KEY`
 2. Ensure Wrangler is authenticated.
 3. Run local deploy helper:
 

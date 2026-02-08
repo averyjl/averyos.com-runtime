@@ -193,14 +193,14 @@ a {
   color: rgba(226, 232, 240, 0.85);
 }
 
-.capsule-meta {
+.capsule-meta-small {
   margin-top: 0.4rem;
   display: block;
   font-size: 0.8rem;
   color: rgba(148, 163, 184, 0.85);
 }
 
-.capsule-meta + .capsule-list {
+.capsule-meta-small + .capsule-list {
   margin-top: 0.6rem;
 }
 
