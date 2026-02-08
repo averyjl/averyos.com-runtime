@@ -20,11 +20,6 @@ const VerifyPage = () => {
     }
     alert("SHA512 hash format verified.");
   };
-import { getSiteUrl } from "../lib/siteConfig";
-
-const VerifyPage = () => {
-  const siteUrl = getSiteUrl();
-  const pageUrl = `${siteUrl}/verify`;
 
   return (
     <>
@@ -77,14 +72,11 @@ const VerifyPage = () => {
             ) : (
               <p className="capsule-meta">Awaiting valid SHA512 input.</p>
             )}
-              <input type="text" placeholder="Paste SHA512 hash" />
-            </label>
             <label>
               Upload .aoscap
               <input type="file" accept=".aoscap,application/json" />
             </label>
             <button type="button" className="primary-button" onClick={validateHash}>
-            <button type="button" className="primary-button">
               Validate License (Stub)
             </button>
           </div>
