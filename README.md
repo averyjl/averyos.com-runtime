@@ -14,6 +14,7 @@ manifests and dynamic routes.
 
 ### Key structure
 
+#### Core components
 - `capsules/` → source `.aoscap` files (JSON payloads)
 - `public/manifest/capsules/` → compiled capsule manifests with SHA + VaultChain metadata
 - `pages/[capsule].tsx` → dynamic capsule route renderer
@@ -24,20 +25,29 @@ manifests and dynamic routes.
 - `components/ViewerEmbed.tsx` → viewer+ module placeholder
 - `components/LicenseContent.tsx` → license terms + validation content
 - `components/FooterBadge.tsx` → CapsuleEcho/VaultSignature footer badge
+
+#### API endpoints
 - `pages/api/capsules.ts` → compiled capsule manifest API
 - `pages/api/licensehook.ts` → license webhook stub
 - `pages/api/registry.ts` → registry API for capsule listings + metadata
 - `pages/api/vaultecho.ts` → VaultEcho integrity stub
-- `styles/globals.css` → sovereign runtime UI styling
+- `pages/api/enforcement-log.ts` → enforcement log API endpoint
+
+#### Public pages
 - `pages/license.tsx` → public license validation + terms
 - `pages/buy.tsx` → Stripe purchase page
 - `pages/verify.tsx` → capsule license validator
 - `pages/retroclaim-log.tsx` → retroclaim ledger viewer
 - `pages/embedbuilder.tsx` → embed builder tool
 - `pages/license-enforcement.tsx` → public license enforcement log
-- `pages/api/enforcement-log.ts` → enforcement log API endpoint
+
+#### License enforcement system
 - `public/license-enforcement/` → SHA-verified evidence bundles and notices
 - `scripts/generateEvidenceBundle.js` → evidence bundle generator
+- `lib/enforcementTypes.ts` → TypeScript types for enforcement tracking
+
+#### Styling
+- `styles/globals.css` → sovereign runtime UI styling
 
 ### Build manifests
 
