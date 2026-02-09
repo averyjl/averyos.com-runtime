@@ -1,0 +1,20 @@
+name: Deploy Cloudflare Redirects
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-redirects:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy redirects to Cloudflare
+        run: |
+          curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary "@cloudflare_redirects_config.json"
