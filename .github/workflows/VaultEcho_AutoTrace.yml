@@ -1,0 +1,35 @@
+name: 🔐 VaultEcho AutoTrace
+
+on:
+  push:
+    paths:
+      - 'VaultEcho/**'
+      - 'cloudflare_redirects_config.json'
+  schedule:
+    - cron: '30 2 * * *'  # Every day at 2:30 AM UTC
+  workflow_dispatch:
+
+jobs:
+  vault-trace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🔐 Generate VaultEcho SHA Trace
+        run: |
+          mkdir -p VaultEcho
+          timestamp=$(date +"%Y-%m-%d--%H-%M-%S")
+          sha=$(sha512sum cloudflare_redirects_config.json | cut -d ' ' -f1)
+          echo "SHA512: $sha" > vaulttrace-$timestamp.md
+          echo "Timestamp: $timestamp" >> vaulttrace-$timestamp.md
+          echo "Capsule: VaultEcho AutoTrace Cloudflare" >> vaulttrace-$timestamp.md
+          mv vaulttrace-$timestamp.md ./VaultEcho/
+
+      - name: 📝 Commit VaultEcho Trace
+        run: |
+          git config user.name "VaultEcho Bot"
+          git config user.email "bot@averyos.com"
+          git add VaultEcho/
+          git commit -m "🔐 VaultEcho AutoTrace snapshot @ $(date)"
+          git push
