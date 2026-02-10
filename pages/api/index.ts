@@ -1,11 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const file = req.query.file || 'manifest.json';
   const baseDir = path.resolve('./public/VaultBridge');
 
-  const fullPath = path.join(baseDir, file);
+  const fullPath = path.join(baseDir, String(file));
 
   if (!fs.existsSync(fullPath)) {
     res.status(404).json({ error: 'File not found' });
