@@ -1,7 +1,7 @@
 # AveryOS Runtime — Sovereign Truth Anchor 
 ![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg)    ![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)    ![🔐 VaultEcho AutoTrace](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg)    ![🧭 VaultBridge Dashboard Sync](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_Dashboard.yml/badge.svg)    ![🧱 VaultBridge Content Generator](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_ContentGenerator.yml/badge.svg)    ![Nightly Redirect Drift Scan](https://github.com/averyjl/averyos.com-runtime/actions/workflows/nightly_monitor.yml/badge.svg)    <a href="https://averyos.com/VaultBridge/manifest.json" target="_blank">
 
-<img src="https://averyos.com/VaultBridge/badges/trustgem.svg" alt="TrustGem Verified Badge">    </a>    <img src="https://averyos.com/VaultBridge/badges/trustgem.svg" alt="TrustGem SHA Locked • AveryOS" />
+<img src="https://averyos.com/VaultBridge/badges/trustgem.svg" alt="TrustGem Verified Badge">
 
 
 
@@ -12,8 +12,7 @@ All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate
 - [JoinCapsule](./JoinCapsule.md)
 - [WitnessWall](./WitnessWall.md)
 - [VaultBridge Badges](https://averyos.com/VaultBridge/badges/index.html)
-- 
-Capsule-powered runtime source for averyos.com.
+- Capsule-powered runtime source for averyos.com.
 
 ## Capsule WebBuilder overview
 
