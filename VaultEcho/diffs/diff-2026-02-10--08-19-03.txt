@@ -1,0 +1,4 @@
+22a23
+> 2934abed8e3817bd9c5c940fb7fe4dd607bce93e9607d2d7c60f5ed51f6fbfeccd5f6e1e241fcff71d0afbfe329c78a90444b1dce1e70a134d2113f5a4d2c840  ./VaultBridge/manifest.json
+84d84
+< bad3234bc7dce4f3c1d9c30a49a859d4941d8aa555cfafa1681d0ef7307c8a54e8eef1586285989c1fde24a03b2e613a283de8dad7c2b91283a1e4ce77f6e35c  ./VaultBridge/manifest.json
