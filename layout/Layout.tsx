@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const navItems = [
   { title: 'Home', href: '/' },
   { title: 'Discover', href: '/discover' },
@@ -16,7 +18,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <label htmlFor="nav-drawer" className="drawer-overlay"></label>
         <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
           {navItems.map((item) => (
-            <li key={item.href}><a href={item.href}>{item.title}</a></li>
+            <li key={item.href}>
+              <Link href={item.href}>{item.title}</Link>
+            </li>
           ))}
         </ul>
       </div>

@@ -6,6 +6,7 @@ export default function CapsuleDiff() {
       <iframe
         src="/VaultBridge/sha_snapshot.log"
         className="w-full h-[80vh] border mt-4 font-mono bg-black text-white"
+        title="SHA Snapshot Log Viewer"
       />
     </div>
   );

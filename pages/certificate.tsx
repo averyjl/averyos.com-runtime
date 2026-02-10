@@ -5,6 +5,7 @@ export default function CertificateViewer() {
       <iframe
         src="/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf"
         className="w-full h-[80vh] border mt-4"
+        title="VaultProof Certificate PDF Viewer"
       />
     </div>
   );
