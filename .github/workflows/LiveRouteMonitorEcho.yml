@@ -3,7 +3,7 @@ name: ✨ LiveRouteMonitorEcho
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 6 * * *' # 6am UTC daily
 
 permissions:
   contents: write
@@ -15,6 +15,7 @@ jobs:
     env:
       CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
       CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
     steps:
       - name: 💾 Checkout repo
         uses: actions/checkout@v3
@@ -59,8 +60,12 @@ jobs:
           git push
 
       - name: 🛠️ Wrangler Fallback Deploy (Optional)
+        if: always() && env.CF_API_TOKEN != ''
         run: |
           npm install -g wrangler
-          wrangler login --api-token $CF_API_TOKEN
-          wrangler publish || echo "Wrangler fallback skipped"
+          echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" > .env
+          wrangler whoami || echo "Wrangler ready"
+          wrangler publish || echo "Wrangler fallback skipped (optional)"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         continue-on-error: true
