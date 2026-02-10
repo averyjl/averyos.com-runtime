@@ -1,44 +1,12 @@
-import Head from "next/head";
-import { getSiteUrl } from "../lib/siteConfig";
-
-const DiffPage = () => {
-  const siteUrl = getSiteUrl();
-  const pageUrl = `${siteUrl}/diff`;
-
+export default function CapsuleDiff() {
   return (
-    <>
-      <Head>
-        <title>Capsule Diff Viewer • AveryOS Runtime</title>
-        <meta
-          name="description"
-          content="Compare and visualize differences between capsule versions"
-        />
-        <meta property="og:title" content="Capsule Diff Viewer • AveryOS Runtime" />
-        <meta
-          property="og:description"
-          content="Compare and visualize differences between capsule versions"
-        />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={pageUrl} />
-        <link rel="canonical" href={pageUrl} />
-      </Head>
-
-      <main className="page">
-        <section className="hero">
-          <h1>📊 Capsule Diff Viewer</h1>
-          <p>Compare capsule versions and visualize changes in manifests and metadata.</p>
-        </section>
-
-        <section>
-          <h2>Coming Soon</h2>
-          <p>
-            The Capsule Diff Viewer will allow you to compare two capsule versions side-by-side,
-            highlighting changes in content, metadata, and DriftLock hashes.
-          </p>
-        </section>
-      </main>
-    </>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">🔁 Capsule Diff Visualizer</h1>
+      <p className="mt-2">View and compare historical capsule SHA snapshots here.</p>
+      <iframe
+        src="/VaultBridge/sha_snapshot.log"
+        className="w-full h-[80vh] border mt-4 font-mono bg-black text-white"
+      />
+    </div>
   );
-};
-
-export default DiffPage;
+}

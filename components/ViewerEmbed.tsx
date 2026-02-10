@@ -1,23 +1,20 @@
-import React from "react";
-
-type ViewerEmbedProps = {
-  viewerUrl?: string | null;
-};
-
-const ViewerEmbed: React.FC<ViewerEmbedProps> = ({ viewerUrl }) => {
-  return (
-    <div className="badge">
-      <h3>Viewer+</h3>
-      {viewerUrl ? (
-        <a className="badge-link" href={viewerUrl} target="_blank" rel="noreferrer">
-          Open Viewer+
-        </a>
-      ) : (
+export default function ViewerEmbed({ src, viewerUrl }: { src?: string; viewerUrl?: string | null }) {
+  const url = src || viewerUrl;
+  
+  if (!url) {
+    return (
+      <div className="badge">
+        <h3>Viewer+</h3>
         <p>Awaiting Viewer+ endpoint.</p>
-      )}
-      <p>{viewerUrl ? `Connected: ${viewerUrl}` : "Awaiting Viewer+ endpoint."}</p>
-    </div>
+      </div>
+    );
+  }
+  
+  return (
+    <iframe
+      src={url}
+      className="w-full h-[80vh] border rounded shadow-xl"
+      title="VaultViewer"
+    />
   );
-};
-
-export default ViewerEmbed;
+}
