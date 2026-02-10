@@ -2,46 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VaultBridge Badges</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TrustGem Badges • VaultBridge</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0d0d0d;
-      color: #e0ffe0;
-      text-align: center;
+      font-family: system-ui, sans-serif;
+      background: #fdfdfd;
+      color: #111;
       padding: 2rem;
     }
     h1 {
       font-size: 2rem;
-      color: #00ff99;
+      margin-bottom: 1rem;
     }
     .badge-container {
-      background: #111;
-      border: 2px solid #00ff99;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-top: 2rem;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      border-radius: 8px;
       display: inline-block;
     }
-    .caption {
-      margin-top: 1rem;
-      color: #ccc;
-      font-size: 0.9rem;
+    .badge-container img {
+      height: 60px;
     }
-    a {
-      color: #00e0ff;
-      text-decoration: none;
+    code {
+      background: #eee;
+      padding: 0.25rem 0.5rem;
+      display: inline-block;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h1>🔐 VaultBridge TrustGem Badge</h1>
+  <h1>🔐 VaultBridge Badge Explorer</h1>
   <div class="badge-container">
-    <img src="trustgem.svg" alt="TrustGem Badge" width="300" />
-    <div class="caption">
-      SHA-locked badge issued by VaultSig • Verified by AveryOS<br/>
-      <a href="/VaultBridge/manifest.json" target="_blank">View Public Manifest</a>
-    </div>
+    <img src="/VaultBridge/badges/trustgem.svg" alt="TrustGem Badge" />
+    <p>Embed code:</p>
+    <code>
+      &lt;img src="https://averyos.com/VaultBridge/badges/trustgem.svg" alt="TrustGem Badge" /&gt;
+    </code>
   </div>
 </body>
 </html>
