@@ -1,0 +1,14 @@
+{
+  "root_capsule": "JasonAvery_MACDADDY_DriftShield_v4.1",
+  "tiers": [
+    "VaultEcho Viewer",
+    "VaultBridge Dashboard Sync",
+    "RetroclaimEmbed.tsx",
+    "StripeConnectCard.tsx",
+    "LicenseGate Enforcement Capsule"
+  ],
+  "sha_anchor": "cf83e1357eef...327af927da3e",
+  "glyph_lock": "🤛🏻",
+  "timestamp": "2026-02-09T19:44Z",
+  "vaultchain_index": "vaultchain://index/AveryOS_CapsuleTierTree_2026.json"
+}
