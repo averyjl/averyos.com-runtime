@@ -11,6 +11,10 @@
     "VaultBridge_Dashboard",
     "TrustGem_GlobalSHA_Snapshot"
   ],
+  "mirrors": [
+  "https://averyos.com/runtime/manifest.json",
+  "https://averyjl.github.io/averyos.com-runtime/manifest.json"
+],
   "badge": "/VaultBridge/badges/trustgem.svg",
   "sha_log": "/VaultBridge/sha_snapshot.log",
   "pdf_certificate": "/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf",
