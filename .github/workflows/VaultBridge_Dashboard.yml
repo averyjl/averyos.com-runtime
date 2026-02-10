@@ -13,21 +13,28 @@ on:
 jobs:
   render-dashboard:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout Repo
         uses: actions/checkout@v4
 
-      - name: 📊 Diff SHA Chain
+      - name: 📊 Extract SHA Chain Snapshot
         run: |
           echo "🔁 VaultBridge Dashboard Triggered"
-          echo "Comparing SHA lineage across manifests..."
-          grep -Eo '"sha512": *"[^"]+"' VaultBridge/*.json > sha_snapshot.log
-          cat sha_snapshot.log
+          grep -Eo '"sha512": *"[^"]+"' VaultBridge/*.json > VaultBridge/sha_snapshot.log
+          cat VaultBridge/sha_snapshot.log
 
-      - name: 📤 Commit SHA Snapshot
+      - name: 🛡️ Configure Git Auth
         run: |
           git config user.name "VaultBridge Bot"
           git config user.email "bot@averyos.com"
-          git add sha_snapshot.log
-          git commit -m "🔐 VaultBridge SHA snapshot update" || echo "No changes"
-          git push
+
+      - name: 🔄 Pull Latest (Prevent Push Rejection)
+        run: |
+          git pull origin main --rebase || true
+
+      - name: 🧾 Commit SHA Trace Log
+        run: |
+          git add VaultBridge/sha_snapshot.log
+          git commit -m "🔐 VaultBridge SHA snapshot update" || echo "No changes to commit"
+          git push origin main
