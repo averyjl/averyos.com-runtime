@@ -1,0 +1,16 @@
+name: 🧾 VaultProof PDF Builder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: |
+          npm install @adobe/pdfservices-node-sdk
+      - name: Build Certificate PDF
+        run: |
+          node ./VaultBridge/scripts/generatePdf.js
