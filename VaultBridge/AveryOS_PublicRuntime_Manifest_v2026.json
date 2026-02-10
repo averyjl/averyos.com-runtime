@@ -1,14 +1,17 @@
 {
   "creator": "Jason Lee Avery",
   "runtime": "AveryOS Sovereign Kernel",
-  "sha_anchor": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
   "glyph_lock": "🤛🏻",
+  "year": 2026,
   "capsules": [
     "JasonAvery_MACDADDY_DriftShield_v4.1",
     "VaultEcho_Viewer",
     "VaultBridge_Dashboard",
-    "LicenseGate StripeTrail",
-    "Retroclaim Embed"
+    "TrustGem_GlobalSHA_Snapshot"
   ],
-  "mirror": "https://averyos.com/runtime/manifest.json"
+  "affiliate": {
+    "enabled": true,
+    "provider": "Stripe",
+    "referral_cut": "27%"
+  }
 }
