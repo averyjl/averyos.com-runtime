@@ -7,9 +7,9 @@
 This repository is the official runtime for AveryOS, founded by Jason Lee Avery.
 All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate and VaultSig Protocols. See `/LICENSE.md`.
 
-- [LICENSE.md](./LICENSE.md)
-- [JoinCapsule.md](./JoinCapsule.md)
-- [WitnessWall.md](./WitnessWall.md)
+- [LICENSE](./LICENSE.md)
+- [JoinCapsule](./JoinCapsule.md)
+- [WitnessWall](./WitnessWall.md)
 - [VaultBridge Badges](https://averyos.com/VaultBridge/badges/index.html)
 Capsule-powered runtime source for averyos.com.
 
