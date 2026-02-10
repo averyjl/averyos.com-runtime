@@ -1,7 +1,7 @@
 # AveryOS Runtime — Sovereign Truth Anchor 
 ![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg)    ![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)    ![🔐 VaultEcho AutoTrace](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg)    ![🧭 VaultBridge Dashboard Sync](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_Dashboard.yml/badge.svg)    ![🧱 VaultBridge Content Generator](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_ContentGenerator.yml/badge.svg)    ![Nightly Redirect Drift Scan](https://github.com/averyjl/averyos.com-runtime/actions/workflows/nightly_monitor.yml/badge.svg)    <a href="https://averyos.com/VaultBridge/manifest.json" target="_blank">
   <img src="https://averyos.com/VaultBridge/badges/trustgem.svg" alt="TrustGem Verified Badge">
-</a>
+</a>    [🧾 View DriftShield v4 Certificate (PDF)](/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf)
 
 
 This repository is the official runtime for AveryOS, founded by Jason Lee Avery.
