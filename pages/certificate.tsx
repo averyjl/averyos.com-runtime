@@ -1,44 +1,12 @@
-import Head from "next/head";
-import { getSiteUrl } from "../lib/siteConfig";
-
-const CertificatePage = () => {
-  const siteUrl = getSiteUrl();
-  const pageUrl = `${siteUrl}/certificate`;
-
+export default function CertificateViewer() {
   return (
-    <>
-      <Head>
-        <title>PDF Certificate Viewer • AveryOS Runtime</title>
-        <meta
-          name="description"
-          content="View and verify capsule certificates and attestations"
-        />
-        <meta property="og:title" content="PDF Certificate Viewer • AveryOS Runtime" />
-        <meta
-          property="og:description"
-          content="View and verify capsule certificates and attestations"
-        />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={pageUrl} />
-        <link rel="canonical" href={pageUrl} />
-      </Head>
-
-      <main className="page">
-        <section className="hero">
-          <h1>📄 PDF Certificate Viewer</h1>
-          <p>View, download, and verify capsule certificates and attestation documents.</p>
-        </section>
-
-        <section>
-          <h2>Coming Soon</h2>
-          <p>
-            The PDF Certificate Viewer will display verified capsule certificates,
-            showing authenticity proofs, signatures, and verification chains.
-          </p>
-        </section>
-      </main>
-    </>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">🧾 Certificate Viewer</h1>
+      <iframe
+        src="/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf"
+        className="w-full h-[80vh] border mt-4"
+        title="VaultProof Certificate PDF Viewer"
+      />
+    </div>
   );
-};
-
-export default CertificatePage;
+}
