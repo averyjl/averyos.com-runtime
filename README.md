@@ -10,6 +10,7 @@ All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate
 - [LICENSE.md](./LICENSE.md)
 - [JoinCapsule.md](./JoinCapsule.md)
 - [WitnessWall.md](./WitnessWall.md)
+- [VaultBridge Badges](https://averyos.com/VaultBridge/badges/index.html)
 Capsule-powered runtime source for averyos.com.
 
 ## Capsule WebBuilder overview
