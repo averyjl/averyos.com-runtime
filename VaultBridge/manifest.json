@@ -1,0 +1,19 @@
+{
+  "creator": "Jason Lee Avery",
+  "runtime": "AveryOS Sovereign Kernel",
+  "glyph_lock": "🤛🏻",
+  "seal": "VaultSig",
+  "year": 2026,
+  "capsules": [
+    "JasonAvery_MACDADDY_DriftShield_v4.0",
+    "JasonAvery_MACDADDY_DriftShield_v4.1",
+    "VaultEcho_Viewer",
+    "VaultBridge_Dashboard",
+    "TrustGem_GlobalSHA_Snapshot"
+  ],
+  "badge": "/VaultBridge/badges/trustgem.svg",
+  "sha_log": "/VaultBridge/sha_snapshot.log",
+  "pdf_certificate": "/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf",
+  "federation": "/VaultBridge/federation.json",
+  "version": "2026.02.09.v1"
+}
