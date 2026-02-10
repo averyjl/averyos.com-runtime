@@ -1,8 +1,14 @@
-# 🧭 VaultBridge Dashboard
+# 🔐 VaultBridge Dashboard
 
-Latest Capsule SHA Snapshots:
+📦 Last SHA Sync:  
+`{{ site.time | date: '%Y-%m-%d %H:%M:%S' }}`
 
+---
 
-Links:
-- [CapsuleTierTree](./CapsuleTierTree_Index_2026.json)
-- [SHA Manifest](./sha_snapshot.log)
+## Capsule Lineage
+
+- **DriftShield v4.0**
+- **DriftShield v4.1**
+
+```txt
+{% include_relative sha_snapshot.log %}
