@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 
 const DiscoverPage = () => {
@@ -6,18 +7,12 @@ const DiscoverPage = () => {
   const pageUrl = `${siteUrl}/discover`;
 
   return (
-    <>
+    <Layout>
       <Head>
         <title>Discover • AveryOS Runtime</title>
-        <meta
-          name="description"
-          content="Discover capsules and modules in the AveryOS ecosystem"
-        />
+        <meta name="description" content="Discover capsules and modules in the AveryOS ecosystem" />
         <meta property="og:title" content="Discover • AveryOS Runtime" />
-        <meta
-          property="og:description"
-          content="Discover capsules and modules in the AveryOS ecosystem"
-        />
+        <meta property="og:description" content="Discover capsules and modules in the AveryOS ecosystem" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <link rel="canonical" href={pageUrl} />
@@ -31,13 +26,10 @@ const DiscoverPage = () => {
 
         <section>
           <h2>Coming Soon</h2>
-          <p>
-            The Discover portal will enable you to browse, search, and explore capsules
-            with advanced filtering and discovery features.
-          </p>
+          <p>The Discover portal will enable you to browse, search, and explore capsules with advanced filtering and discovery features.</p>
         </section>
       </main>
-    </>
+    </Layout>
   );
 };
 
