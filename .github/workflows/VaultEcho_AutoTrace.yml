@@ -1,35 +1,64 @@
 name: 🔐 VaultEcho AutoTrace
 
 on:
-  push:
-    paths:
-      - 'VaultEcho/**'
-      - 'cloudflare_redirects_config.json'
-  schedule:
-    - cron: '30 2 * * *'  # Every day at 2:30 AM UTC
   workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 3 * * *' # daily 03:00 UTC
+
+permissions:
+  contents: write
+  issues: write
 
 jobs:
   vault-trace:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: 🔐 Generate VaultEcho SHA Trace
+      - name: 📦 Prepare VaultEcho directories
         run: |
-          mkdir -p VaultEcho
-          timestamp=$(date +"%Y-%m-%d--%H-%M-%S")
-          sha=$(sha512sum cloudflare_redirects_config.json | cut -d ' ' -f1)
-          echo "SHA512: $sha" > vaulttrace-$timestamp.md
-          echo "Timestamp: $timestamp" >> vaulttrace-$timestamp.md
-          echo "Capsule: VaultEcho AutoTrace Cloudflare" >> vaulttrace-$timestamp.md
-          mv vaulttrace-$timestamp.md ./VaultEcho/
+          mkdir -p VaultEcho/snapshots
+          mkdir -p VaultEcho/diffs
 
-      - name: 📝 Commit VaultEcho Trace
+      - name: 🔐 Generate universal SHA512 manifest
+        run: |
+          timestamp=$(date +"%Y-%m-%d--%H-%M-%S")
+          find . -type f \
+            ! -path "./.git/*" \
+            ! -path "./VaultEcho/*" \
+            -exec sha512sum {} \; \
+            | sort > VaultEcho/snapshots/sha-manifest-$timestamp.txt
+
+          echo "Timestamp: $timestamp" > VaultEcho/snapshots/manifest-meta-$timestamp.md
+          echo "Algorithm: SHA-512" >> VaultEcho/snapshots/manifest-meta-$timestamp.md
+          echo "Scope: Universal repository file set" >> VaultEcho/snapshots/manifest-meta-$timestamp.md
+
+      - name: 🔍 Diff against previous snapshot (if exists)
+        run: |
+          ls VaultEcho/snapshots | grep sha-manifest | sort || true
+
+          prev=$(ls VaultEcho/snapshots/sha-manifest-* 2>/dev/null | sort | tail -n 2 | head -n 1 || true)
+          curr=$(ls VaultEcho/snapshots/sha-manifest-* | sort | tail -n 1)
+
+          if [ -n "$prev" ]; then
+            diff "$prev" "$curr" > VaultEcho/diffs/diff-$(date +"%Y-%m-%d--%H-%M-%S").txt || true
+          fi
+
+      - name: 📋 Commit VaultEcho artifacts (only if changed)
         run: |
           git config user.name "VaultEcho Bot"
           git config user.email "bot@averyos.com"
-          git add VaultEcho/
-          git commit -m "🔐 VaultEcho AutoTrace snapshot @ $(date)"
-          git push
+
+          git status --porcelain
+          if [ -n "$(git status --porcelain)" ]; then
+            git add VaultEcho/
+            git commit -m "🔐 VaultEcho SHA snapshot $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            git push
+          else
+            echo "No changes detected — skipping commit."
+          fi
