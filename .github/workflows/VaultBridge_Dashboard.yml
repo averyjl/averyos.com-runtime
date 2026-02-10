@@ -7,7 +7,6 @@ on:
       - 'capsules/**'
       - '**/*.aoscap'
       - '**/*.json'
-      - '.github/workflows/VaultBridge_Dashboard.yml'
     branches: [ main ]
 
 jobs:
@@ -20,7 +19,6 @@ jobs:
 
       - name: 📊 Extract SHA Chain Snapshot
         run: |
-          echo "🔁 VaultBridge Dashboard Triggered"
           grep -Eo '"sha512": *"[^"]+"' VaultBridge/*.json > VaultBridge/sha_snapshot.log
           cat VaultBridge/sha_snapshot.log
 
@@ -29,12 +27,9 @@ jobs:
           git config user.name "VaultBridge Bot"
           git config user.email "bot@averyos.com"
 
-      - name: 🔄 Pull Latest (Prevent Push Rejection)
+      - name: 🔄 Pull + Force Push If Needed
         run: |
           git pull origin main --rebase || true
-
-      - name: 🧾 Commit SHA Trace Log
-        run: |
           git add VaultBridge/sha_snapshot.log
-          git commit -m "🔐 VaultBridge SHA snapshot update" || echo "No changes to commit"
-          git push origin main
+          git commit -m "🔐 SHA Sync Auto Snapshot" || echo "No changes"
+          git push origin main || git push origin main --force
