@@ -186,8 +186,16 @@ const VerifyPage = () => {
             )}
             <label>
               Upload .aoscap
-              <input type="file" accept=".aoscap,application/json" disabled />
-              <span className="capsule-meta">File validation: Coming soon</span>
+              <input
+                type="file"
+                accept=".aoscap,application/json"
+                disabled
+                aria-label="File upload - coming soon"
+                aria-describedby="file-upload-status"
+              />
+              <span id="file-upload-status" className="capsule-meta">
+                File validation: Coming soon
+              </span>
             </label>
             <button
               type="button"
