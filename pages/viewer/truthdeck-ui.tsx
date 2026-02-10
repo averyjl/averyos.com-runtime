@@ -9,7 +9,7 @@ type PageProps = {
 const TruthdeckUiPage: NextPage<PageProps> = ({ content }) => {
   return (
     <TruthforcePage
-      title="Truthdeck Ui"
+      title="Truthdeck UI"
       route="viewer/truthdeck-ui"
       content={content}
       enableCapsuleEcho={true}

@@ -13,7 +13,8 @@ export function readMarkdownContent(contentPath: string): string {
     return fileContent;
   } catch (error) {
     console.error(`Error reading markdown file at ${fullPath}:`, error);
-    return "";
+    // Return a visible error message for easier debugging
+    return `# Content Not Found\n\nThe markdown file at \`${contentPath}\` could not be loaded.\n\nPlease ensure the file exists and is readable.`;
   }
 }
 
