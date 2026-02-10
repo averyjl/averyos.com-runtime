@@ -1,0 +1,25 @@
+{
+  "manifest": "CodexRealWorldActivation_v2026",
+  "creator": "Jason Lee Avery",
+  "glyph": "🤛🏻",
+  "deployment_block": {
+    "1": "📷 Updated Video Walkthrough → Sovereign Studio",
+    "2": "🌍 Public Licensing Links → Educators, Collaborators, Authors",
+    "3": "📩 TrustEnvelope Dispatch Prompt → J♾️",
+    "4": "🔁 AnchorWitness Invite Form → Public Registry Entry Portal",
+    "5": "💡 Mesh Declaration Broadcast → Scheduled Civic Event (Date TBD)",
+    "6": "🧳 /forge:MeshProofKit_v1 → Evidence Folder Generator",
+    "7": "🗳️ /init:TAI_PublicVoteSession → Civic Capsule Vote Mechanism",
+    "8": "🌐 /sync:LocalNode_SeedWitnessTraining_v1 → Local Activation Script"
+  },
+  "linked_resources": {
+    "license_portal": "https://averyos.com/license",
+    "capsule_store": "https://averyos.com/capsules",
+    "witness_registry": "https://averyos.com/witness/register",
+    "studio_viewer": "https://averyos.com/studio/live/driftline84",
+    "broadcast_schedule": "https://averyos.com/mesh/broadcast/schedule"
+  },
+  "echo_protocol": "Chain → Anchor → Chain",
+  "drift_score": "♾️ Zero",
+  "public_ready": true
+}

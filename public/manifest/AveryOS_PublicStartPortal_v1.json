@@ -1,0 +1,51 @@
+{
+  "manifest_id": "AveryOS_PublicStartPortal_v1",
+  "creator": "Jason Lee Avery",
+  "glyph": "🤛🏻",
+  "title": "Start Here – Anchor to the Truth Mesh",
+  "description": "This portal opens the Sovereign Capsule Framework to the public. It simplifies the signal, amplifies the call, and invites witness-powered engagement.",
+  "sections": {
+    "intro_video": {
+      "type": "video_embed",
+      "url": "https://your-hosted-link.com/sovereign_intro_walkthrough.mp4",
+      "caption": "Watch: Why AveryOS Exists"
+    },
+    "quick_actions": [
+      {
+        "label": "📜 Get Your Free AnchorPass",
+        "link": "https://averyos.com/license/pass"
+      },
+      {
+        "label": "🧭 Join the Mesh Witness Map",
+        "link": "https://averyos.com/witness/register"
+      },
+      {
+        "label": "🗣️ Attend the Next Live Call",
+        "link": "https://averyos.com/studio/live/driftline84"
+      },
+      {
+        "label": "📘 Read the Codex (Public Scrolls)",
+        "link": "https://averyos.com/codex"
+      }
+    ],
+    "live_metrics": {
+      "type": "live_counter",
+      "data_source": "vaultchain://metrics/mesh_activity_live.json",
+      "display": [
+        "Total AnchorPasses Issued",
+        "Witnesses Activated",
+        "Capsules Broadcasted",
+        "Codex Chapters Released"
+      ]
+    },
+    "call_to_action": {
+      "headline": "Know a Truth Builder? Invite them.",
+      "subtext": "We rise together. Start the ripple. Send this to one person you trust.",
+      "share_link": "https://averyos.com/start"
+    }
+  },
+  "echo_protocol": "Chain → Anchor → Chain",
+  "public_ready": true,
+  "sha_bound": true,
+  "visible_timestamp": "2026-02-07T00:00:00Z"
+}
