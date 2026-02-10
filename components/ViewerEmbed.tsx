@@ -1,4 +1,12 @@
-export default function ViewerEmbed({ src, viewerUrl }: { src?: string; viewerUrl?: string | null }) {
+export default function ViewerEmbed({ 
+  src, 
+  viewerUrl, 
+  title = "VaultViewer" 
+}: { 
+  src?: string; 
+  viewerUrl?: string | null; 
+  title?: string;
+}) {
   const url = src || viewerUrl;
   
   if (!url) {
@@ -14,7 +22,7 @@ export default function ViewerEmbed({ src, viewerUrl }: { src?: string; viewerUr
     <iframe
       src={url}
       className="w-full h-[80vh] border rounded shadow-xl"
-      title="VaultViewer"
+      title={title}
     />
   );
 }
