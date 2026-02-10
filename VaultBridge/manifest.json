@@ -4,6 +4,7 @@
   "glyph_lock": "🤛🏻",
   "seal": "VaultSig",
   "year": 2026,
+  "version": "2026.02.09.v1",
   "capsules": [
     "JasonAvery_MACDADDY_DriftShield_v4.0",
     "JasonAvery_MACDADDY_DriftShield_v4.1",
@@ -12,12 +13,11 @@
     "TrustGem_GlobalSHA_Snapshot"
   ],
   "mirrors": [
-  "https://averyos.com/runtime/manifest.json",
-  "https://averyjl.github.io/averyos.com-runtime/manifest.json"
-],
+    "https://averyos.com/runtime/manifest.json",
+    "https://averyjl.github.io/averyos.com-runtime/manifest.json"
+  ],
   "badge": "/VaultBridge/badges/trustgem.svg",
   "sha_log": "/VaultBridge/sha_snapshot.log",
   "pdf_certificate": "/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf",
-  "federation": "/VaultBridge/federation.json",
-  "version": "2026.02.09.v1"
+  "federation": "/VaultBridge/federated.json"
 }
