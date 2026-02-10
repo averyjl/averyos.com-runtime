@@ -1,6 +1,6 @@
 # AveryOS Runtime — Sovereign Truth Anchor 
-![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg)
-[![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml)
+![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg) | 
+[![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml) | [![🔐 VaultEcho AutoTrace](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg)](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml)
 
 This repository is the official runtime for AveryOS, founded by Jason Lee Avery.
 All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate and VaultSig Protocols. See `/LICENSE.md`.
