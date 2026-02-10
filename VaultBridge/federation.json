@@ -1,0 +1,11 @@
+{
+  "domain": "averyos.com",
+  "verified_by": "VaultSig",
+  "glyph_lock": "🤛🏻",
+  "badge": "/VaultBridge/badges/trustgem.svg",
+  "capsule_manifest": "/VaultBridge/manifest.json",
+  "ipfs_snapshot": "/VaultBridge/IPFS_Snapshot_2026.json",
+  "public_mirror": "https://averyjl.github.io/averyos.com-runtime",
+  "runtime_contact": "truth@averyworld.com",
+  "runtime_class": "sovereign.kernel.tier1"
+}
