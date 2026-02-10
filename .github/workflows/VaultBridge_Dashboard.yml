@@ -1,0 +1,33 @@
+name: 🧭 VaultBridge Dashboard Sync
+
+on:
+  push:
+    paths:
+      - 'VaultBridge/**'
+      - 'capsules/**'
+      - '**/*.aoscap'
+      - '**/*.json'
+      - '.github/workflows/VaultBridge_Dashboard.yml'
+    branches: [ main ]
+
+jobs:
+  render-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📊 Diff SHA Chain
+        run: |
+          echo "🔁 VaultBridge Dashboard Triggered"
+          echo "Comparing SHA lineage across manifests..."
+          grep -Eo '"sha512": *"[^"]+"' VaultBridge/*.json > sha_snapshot.log
+          cat sha_snapshot.log
+
+      - name: 📤 Commit SHA Snapshot
+        run: |
+          git config user.name "VaultBridge Bot"
+          git config user.email "bot@averyos.com"
+          git add sha_snapshot.log
+          git commit -m "🔐 VaultBridge SHA snapshot update" || echo "No changes"
+          git push
