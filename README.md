@@ -42,6 +42,7 @@ manifests and dynamic routes.
 - `pages/retroclaim-log.tsx` → retroclaim ledger viewer
 - `pages/embedbuilder.tsx` → embed builder tool
 - `pages/license-enforcement.tsx` → public license enforcement log
+- `pages/start.tsx` → public start portal
 
 #### License enforcement system
 - `public/license-enforcement/` → SHA-verified evidence bundles and notices
