@@ -5,8 +5,10 @@
   "badge": "/VaultBridge/badges/trustgem.svg",
   "capsule_manifest": "/VaultBridge/manifest.json",
   "ipfs_snapshot": "/VaultBridge/IPFS_Snapshot_2026.json",
-  "public_mirror": "https://averyjl.github.io/averyos.com-runtime/manifest.json",
-  "public_mirror": "https://averyjl.github.io/averyos.com-runtime/manifest.json",
+  "public_mirrors": [
+    "https://averyos.com/runtime/manifest.json",
+    "https://averyjl.github.io/averyos.com-runtime/manifest.json"
+  ],
   "runtime_contact": "truth@averyworld.com",
   "runtime_class": "sovereign.kernel.tier1"
 }
