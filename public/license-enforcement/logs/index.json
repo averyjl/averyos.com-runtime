@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "id": "sovereign-index-2026-02-10T07-21-52-098Z",
+      "capsuleId": "sovereign-index",
+      "sha512": "2152600cfd437d619cb6663e978e9329d8fea2e1c8ac7d8ee67919cc62408e571e6517d7c22b325b366c5ea85f6436e28502e9ea7c2f886a6a125a7170689444",
+      "timestamp": "2026-02-10T07:21:52.098Z",
+      "source": null,
+      "status": "notice_issued",
+      "message": "Public notice issued. Voluntary licensing encouraged."
+    }
+  ]
+}
