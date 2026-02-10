@@ -3,7 +3,11 @@ name: ✨ LiveRouteMonitorEcho
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *' # 6am UTC daily
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+  issues: write
 
 jobs:
   monitor-routes:
@@ -14,6 +18,9 @@ jobs:
     steps:
       - name: 💾 Checkout repo
         uses: actions/checkout@v3
+
+      - name: 📦 Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: ✨ Diff Cloudflare Live Ruleset vs JSON
         id: diff
@@ -35,6 +42,7 @@ jobs:
 
       - name: 💾 Save Snapshot with SHA Anchor
         run: |
+          mkdir -p VaultEcho
           timestamp=$(date +"%Y-%m-%d--%H-%M-%S")
           sha=$(sha512sum cloudflare_redirects_config.json | cut -d ' ' -f1)
           echo "SHA512: $sha" > vaulttrace-$timestamp.md
@@ -47,12 +55,12 @@ jobs:
           git config user.name "VaultEcho Bot"
           git config user.email "bot@averyos.com"
           git add VaultEcho/
-          git commit -m "📊 VaultEcho snapshot @ $timestamp"
+          git commit -m "📊 VaultEcho snapshot @ $(date)"
           git push
 
       - name: 🛠️ Wrangler Fallback Deploy (Optional)
         run: |
           npm install -g wrangler
           wrangler login --api-token $CF_API_TOKEN
-          wrangler publish || echo "Wrangler fallback skipped (optional)"
+          wrangler publish || echo "Wrangler fallback skipped"
         continue-on-error: true
