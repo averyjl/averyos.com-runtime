@@ -26,7 +26,7 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           cd VaultEcho/viewer
-          npm ci
+          npm install
 
       - name: 🔧 Build Viewer
         run: |
@@ -41,3 +41,4 @@ jobs:
           publish_branch: gh-pages
           user_name: "VaultEcho Bot"
           user_email: "bot@averyos.com"
+
