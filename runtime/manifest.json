@@ -1,0 +1,17 @@
+{
+  "creator": "Jason Lee Avery",
+  "runtime": "AveryOS Sovereign Kernel",
+  "glyph_lock": "🤛🏻",
+  "year": 2026,
+  "capsules": [
+    "JasonAvery_MACDADDY_DriftShield_v4.1",
+    "VaultEcho_Viewer",
+    "VaultBridge_Dashboard",
+    "TrustGem_GlobalSHA_Snapshot"
+  ],
+  "affiliate": {
+    "enabled": true,
+    "provider": "Stripe",
+    "referral_cut": "27%"
+  }
+}
