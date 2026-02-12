@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 type VaultChainPushRequest = {
@@ -36,7 +37,8 @@ const readPushLog = (): PushLog[] => {
   }
   try {
     return JSON.parse(fs.readFileSync(pushLogPath, "utf8")) as PushLog[];
-  } catch {
+  } catch (error) {
+    console.error("Error reading push log file:", error);
     return [];
   }
 };
@@ -49,7 +51,28 @@ const writePushLog = (logs: PushLog[]): void => {
 const validateGlyphToday = (glyph: string): boolean => {
   // Glyph format: 🤛🏻YYYYMMDD (e.g., 🤛🏻20260211)
   const glyphPattern = new RegExp(`^${GLYPH_LOCK}\\d{8}$`);
-  return glyphPattern.test(glyph);
+  if (!glyphPattern.test(glyph)) {
+    return false;
+  }
+
+  // Extract and validate the date portion
+  const dateStr = glyph.substring(GLYPH_LOCK.length);
+  const year = parseInt(dateStr.substring(0, 4), 10);
+  const month = parseInt(dateStr.substring(4, 6), 10);
+  const day = parseInt(dateStr.substring(6, 8), 10);
+
+  // Basic date validation
+  if (year < 2020 || year > 2100) return false;
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+
+  // More precise validation using Date object
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
 };
 
 const validateCapsuleName = (capsule: string): boolean => {
@@ -57,10 +80,7 @@ const validateCapsuleName = (capsule: string): boolean => {
   return typeof capsule === "string" && capsule.endsWith(".aoscap") && capsule.length > 7;
 };
 
-const handler = async (
-  req: NextApiRequest,
-  res: NextApiResponse<VaultChainPushResponse>
-) => {
+const handler = (req: NextApiRequest, res: NextApiResponse<VaultChainPushResponse>) => {
   // Only allow POST requests
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -138,9 +158,10 @@ const handler = async (
     });
   }
 
-  // Generate push ID
+  // Generate push ID using crypto for security
   const timestamp = new Date().toISOString();
-  const pushId = `push_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const randomId = crypto.randomBytes(6).toString("hex");
+  const pushId = `push_${Date.now()}_${randomId}`;
 
   // Create push log entry
   const pushEntry: PushLog = {
