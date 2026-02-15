@@ -18,5 +18,5 @@ STRIPE_KEY = "REPLACE_WITH_STRIPE_KEY"
 
 # R2 bucket for incremental cache (optional but recommended)
 # [[r2_buckets]]
-# binding = "NEXT_CACHE_WORKERS_KV"
+# binding = "NEXT_CACHE_R2"
 # bucket_name = "averyos-next-cache"
