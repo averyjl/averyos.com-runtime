@@ -55,8 +55,8 @@ This runs `npx @opennextjs/cloudflare deploy` which deploys to your configured C
 ### Automated Deployment
 
 The project includes a GitHub Actions workflow (`.github/workflows/deploy-worker.yml`) that automatically:
-1. Builds the project with `bun run build:worker`
-2. Deploys to Cloudflare Workers with `bun run deploy --env production`
+1. Builds the project with `npm run build:worker`
+2. Deploys to Cloudflare Workers with `npm run deploy --env production`
 3. Includes retry logic for authentication issues
 
 ## Configuration Files

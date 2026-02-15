@@ -20,8 +20,9 @@ This command generates the capsule pages and sitemap but **does not run the Open
 
 ### 1. Update Build Command in Cloudflare Dashboard
 
-Navigate to your Cloudflare Pages or Workers dashboard and update the build command to:
+Navigate to your Cloudflare Pages or Workers dashboard and configure the build settings:
 
+**Build command:**
 ```bash
 npm run build:cloudflare
 ```
@@ -31,6 +32,13 @@ npm run build:cloudflare
 ```bash
 npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build
 ```
+
+**Build output directory:**
+```
+.open-next
+```
+
+> **Note:** After the build completes successfully, your deployment will use the new Cloudflare Workers runtime (indicated by the navy blue terminal in the Cloudflare UI), replacing any previous static site configuration.
 
 ### 2. Verify wrangler.toml Configuration
 
@@ -47,7 +55,29 @@ binding = "ASSETS"
 directory = ".open-next/assets"         # ← Assets directory
 ```
 
-### 3. Build Process Explanation
+### 3. Cloudflare Pages Configuration
+
+If you're deploying via **Cloudflare Pages** (instead of Cloudflare Workers), configure the following in your Cloudflare Pages dashboard:
+
+**Framework preset:** None or Next.js
+
+**Build command:**
+```bash
+npm run build:cloudflare
+```
+
+**Build output directory:**
+```
+.open-next
+```
+
+**Environment variables:**
+- `NODE_VERSION`: `20` (or higher)
+- Add any required secrets (VAULTSIG_SECRET, STRIPE_KEY, etc.)
+
+> **Important:** The build output directory MUST be set to `.open-next` (not `out` or `.next`). This directory contains the Cloudflare Worker entry point (`worker.js`) and static assets.
+
+### 4. Build Process Explanation
 
 The `npm run build:cloudflare` command executes three steps in order:
 
@@ -70,7 +100,7 @@ The `npm run build:cloudflare` command executes three steps in order:
      - `middleware/` - Edge middleware bundle
      - `cache/` - ISR cache configuration
 
-### 4. Verification
+### 5. Verification
 
 After running `npm run build:cloudflare`, verify the following files exist:
 

@@ -172,20 +172,55 @@ curl -v -H "User-Agent: GPTBot/1.0" -H "X-VaultChain-Pulse: token" https://avery
 
 See [GABRIELOS_FIREWALL.md](./GABRIELOS_FIREWALL.md) for complete documentation.
 
-## Cloudflare Workers deploy (Bun)
+## Cloudflare Deployment
+
+### Build for Cloudflare
+
+To build the complete project for Cloudflare deployment (including capsules, sitemap, and worker):
+
+```bash
+npm run build:cloudflare
+```
+
+This command:
+1. Generates capsule manifests
+2. Creates sitemap.xml
+3. Builds the Cloudflare Worker bundle in `.open-next/`
+
+### Cloudflare Pages Configuration
+
+If deploying via Cloudflare Pages dashboard, configure:
+
+**Build command:**
+```bash
+npm run build:cloudflare
+```
+
+**Build output directory:**
+```
+.open-next
+```
+
+See [CLOUDFLARE_BUILD_FIX.md](./CLOUDFLARE_BUILD_FIX.md) for detailed setup instructions.
+
+### Manual Worker Deployment
 
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`
    - `STRIPE_KEY`
 2. Ensure Wrangler is authenticated.
-3. Run local deploy helper:
+3. Deploy:
 
 ```bash
-./deploy-worker.sh
+npm run deploy
 ```
 
-Or deploy directly:
+Or deploy directly with Wrangler:
 
 ```bash
 npx wrangler deploy --env production
 ```
+
+### Automated Deployment
+
+GitHub Actions automatically deploys to Cloudflare Workers on push to `main` branch. See `.github/workflows/deploy-worker.yml` for configuration.
