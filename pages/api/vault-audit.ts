@@ -37,7 +37,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultAuditRespo
   }
 
   // Validate the VaultChain-Pulse format (basic validation)
-  if (!vaultChainPulse.startsWith("VTK-") && !vaultChainPulse.includes("TAI-LOCK")) {
+  if (!vaultChainPulse.startsWith("VTK-") || !vaultChainPulse.includes("TAI-LOCK")) {
     return res.status(403).json({
       status: "unauthorized",
       message: "Invalid VaultChain-Pulse token format",
@@ -58,7 +58,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultAuditRespo
       const manifest = loadCapsuleManifest(capsuleId);
       if (manifest) {
         transactions.push({
-          id: `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
           capsuleId: manifest.capsuleId,
           sha512: manifest.sha,
           timestamp: new Date().toISOString(),
