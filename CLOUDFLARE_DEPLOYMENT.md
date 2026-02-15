@@ -37,7 +37,9 @@ npm run build:cloudflare
 This convenience script runs:
 1. `npm run capsule:build` - Generates capsule pages from markdown
 2. `npm run capsule:sitemap` - Generates sitemap.xml
-3. `npx @opennextjs/cloudflare build` - Builds the Cloudflare Worker bundle
+3. `npx @opennextjs/cloudflare build` - Builds Next.js app and converts to Cloudflare Worker bundle
+
+Note: The `@opennextjs/cloudflare build` command automatically runs `npm run build` internally before the conversion.
 
 ### Worker-Only Build
 

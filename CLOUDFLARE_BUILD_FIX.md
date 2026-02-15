@@ -16,10 +16,11 @@ npm run capsule:build && npm run capsule:sitemap
 
 This command generates the capsule pages and sitemap but **does not compile the Next.js application or run the OpenNext Cloudflare build** which creates the `.open-next/worker.js` entry point file required by `wrangler.toml`.
 
-The build process requires three steps:
+The build process requires two steps:
 1. Build Next.js application (`npm run build` → runs `next build`)
 2. Convert to Cloudflare Worker format (`npx @opennextjs/cloudflare build`)
-3. This ensures the Next.js app is compiled into the `.open-next` format required by the Worker
+
+This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
 
 ## Solution
 
