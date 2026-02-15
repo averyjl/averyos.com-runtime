@@ -20,7 +20,7 @@
     "enforcement:generate": "node scripts/generateEvidenceBundle.js"
   },
   "dependencies": {
-    "next": "15.5.12",
+    "next": "^15.5.12",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -33,6 +33,7 @@
     "eslint": "9.39.2",
     "eslint-config-next": "16.1.6",
     "marked": "^17.0.1",
-    "typescript": "5.5.3"
+    "typescript": "5.5.3",
+    "wrangler": "^4.65.0"
   }
 }

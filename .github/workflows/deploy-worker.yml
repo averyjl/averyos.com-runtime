@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build project with OpenNext
+      - name: Build project with OpenNext Cloudflare adapter
         run: bun run build:worker
 
       - name: Deploy to Cloudflare Workers
