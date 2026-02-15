@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:worker": "npx @opennextjs/cloudflare",
+    "preview": "npx @opennextjs/cloudflare preview",
+    "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
     "lint": "next lint",
     "capsule:build": "node scripts/capsulePageAutoCompiler.js",
@@ -22,6 +25,7 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.16.5",
     "@types/marked": "^5.0.2",
     "@types/node": "20.14.9",
     "@types/react": "18.3.3",

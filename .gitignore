@@ -22,3 +22,6 @@ dist
 # Runtime logs
 capsule_logs/vaultchain_push.json
 capsule_logs/license_access.json
+
+# OpenNext Cloudflare build output
+.open-next/
