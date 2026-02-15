@@ -13,9 +13,24 @@ While the initial requirement mentioned `@cloudflare/next-on-pages`, we use `@op
 3. **Architecture compatibility** - This codebase uses Node.js filesystem APIs extensively (for capsule management, markdown processing, etc.) which are not compatible with Edge runtime. OpenNext supports mixed runtime environments.
 4. **Better performance** - OpenNext is actively maintained and provides better compatibility with Next.js features like ISR (Incremental Static Regeneration)
 
-## Build Command
+## Build Commands
 
-To build the project for Cloudflare Workers:
+### Full Build (Recommended for Cloudflare Dashboard)
+
+To build the complete project including capsules, sitemap, and Cloudflare Worker:
+
+```bash
+npm run build:cloudflare
+```
+
+This command runs:
+1. `npm run capsule:build` - Generates capsule pages from markdown
+2. `npm run capsule:sitemap` - Generates sitemap.xml
+3. `npx @opennextjs/cloudflare build` - Builds the Cloudflare Worker bundle
+
+### Worker-Only Build
+
+If capsules and sitemap are already built:
 
 ```bash
 npm run build:worker
