@@ -143,8 +143,9 @@ npm run dev
 
 ✅ **Build logs show:**
 ```
-ƒ Middleware                              34.6 kB
+ƒ Middleware                              ~35 kB
 ```
+(Size may vary as middleware evolves)
 
 ✅ **Worker includes firewall strings:**
 ```bash
