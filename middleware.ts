@@ -7,11 +7,12 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
-const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|scraper|curl|wget|python-requests|java\/|go-http|okhttp|axios|fetch|headless|phantom|selenium|puppeteer|playwright|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
+// Excludes generic terms that browsers might use (removed 'fetch')
+const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|scraper|curl|wget|python-requests|java\/|go-http|okhttp|axios|node-fetch|headless|phantom|selenium|puppeteer|playwright|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
 
-// Standard browser patterns - use word boundaries to avoid matching bot names
-// Matches: "Mozilla/5.0 (Windows...) Chrome/..." but not "chromecrawler"
-const BROWSER_PATTERNS = /\b(chrome|safari|firefox|edge|opera|msie|trident)\b/i;
+// Standard browser patterns - includes desktop and mobile browsers
+// Matches: Chrome, Safari, Firefox, Edge, Opera, Mobile Safari, iOS Chrome/Firefox, Brave, Vivaldi, Arc
+const BROWSER_PATTERNS = /\b(chrome|safari|firefox|edge|opera|msie|trident|crios|fxios|mobile\s+safari|brave|vivaldi|arc)\b/i;
 
 // Additional browser-specific headers that are harder to spoof
 const BROWSER_HEADERS = [
@@ -46,9 +47,9 @@ export function middleware(request: NextRequest) {
   ).length;
   
   // Consider it a browser if:
-  // - User-Agent has browser pattern AND no AI/bot pattern, OR
-  // - Has 3+ browser-specific headers (even without browser UA pattern)
-  const isBrowser = (hasBrowserPattern && !hasAIPattern) || browserHeaderCount >= 3;
+  // - Has browser pattern in UA (even if also has AI pattern, browser wins), OR
+  // - Has 3+ browser-specific headers (fallback for missing UA or mobile browsers)
+  const isBrowser = hasBrowserPattern || browserHeaderCount >= 3;
   
   // 3. ALLOW: Standard browser traffic (all HTTP methods for legitimate use)
   // Allows GET for viewing content, POST for payment forms, etc.
