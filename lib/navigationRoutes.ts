@@ -11,7 +11,7 @@ export type NavigationRoute = {
 
 export const navigationRoutes: NavigationRoute[] = [
   { path: "/start", label: "Start", icon: "🚀" },
-  { path: "/pay", label: "Licensing", icon: "🔐" },
+  { path: "/pay", label: "Pay License", icon: "🔐" },
   { path: "/buy", label: "Buy", icon: "💳" },
   { path: "/license", label: "License", icon: "📜" },
   { path: "/verify", label: "Verify", icon: "✅" },
