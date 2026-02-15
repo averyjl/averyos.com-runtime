@@ -61,6 +61,7 @@ Configures the OpenNext adapter with R2 incremental cache support for ISR featur
 ### next.config.js
 
 - Disabled linting during builds to work around ESLint circular reference issues
+- Linting can still be run manually with `npm run lint` for development
 - Configured for trailing slashes and proper image domains
 - No `output: 'export'` to preserve ISR functionality (revalidate)
 
