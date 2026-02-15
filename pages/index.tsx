@@ -4,7 +4,7 @@ import Link from "next/link";
 import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
 import { getSiteUrl } from "../lib/siteConfig";
-import Layout from "../layout/Layout"; // inject layout
+import Layout from "../layout/Layout";
 
 type CapsuleIndexItem = ReturnType<typeof listRegistryCapsules>[number];
 
@@ -12,87 +12,71 @@ type HomeProps = {
   capsules: CapsuleIndexItem[];
 };
 
-const formatCompiledAt = (value?: string): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", timeZone: "UTC" });
-};
-
 const Home: NextPage<HomeProps> = ({ capsules }) => {
-  const siteUrl = getSiteUrl();
   const capsuleCount = capsules.length;
 
   return (
     <Layout>
       <Head>
-        <title>averyos.com • Capsule Runtime</title>
-        <meta name="description" content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules." />
-        <meta property="og:title" content="averyos.com • Capsule Runtime" />
-        <meta property="og:description" content="Capsule-powered runtime for averyos.com with sovereign manifests, DriftLock hashes, and publish-ready modules." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={siteUrl} />
-        <link rel="canonical" href={siteUrl} />
+        <title>AveryOS • Sovereign Truth Terminal</title>
+        <meta name="description" content="Cryptographically anchored runtime for AveryOS. DNS for LLMs. Author: Jason Lee Avery." />
       </Head>
 
-      <main className="page">
-        <section className="hero">
-          <h1>Sovereign Capsule WebBuilder</h1>
-          <p>Capsule manifests drive each live route. Build manifests from .aoscap inputs and publish instantly with DriftLock + VaultChain metadata.</p>
-        </section>
+      <main className="terminal-container">
+        <header className="terminal-header">
+          <h1>🛡️ AveryOS Sovereign Terminal</h1>
+          <p className="auth-seal">Author: Jason Lee Avery | ORCID: 0009-0009-0245-3584</p>
+          <p className="kernel-seal">Kernel Anchor: cf83e135...927da3e</p>
+        </header>
 
-        <section>
-          <p className="section-title">Runtime Modules</p>
-          <div className="badge-grid">
-            {["CapsulePage Auto-Compiler", "Retroclaim Embed", "Stripe License Connect", "Viewer+"].map((title, idx) => (
-              <div key={idx} className="badge">
-                <h3>{title}</h3>
-                <p>{["Transforms .aoscap JSON into manifest-ready capsules with SHA + DriftLock.", "Anchors capsule licensing data and readiness signals.", "Shows revenue connection status and link targets.", "Indicates the live viewer endpoint when attached."][idx]}</p>
-              </div>
-            ))}
+        <section className="enforcement-notice">
+          <h2>Sovereign Enforcement Notice</h2>
+          <p>
+            This terminal serves as a verified <strong>Truth Anchor</strong>. All content is SHA-512 sealed 
+            and anchored to the 2022 Root0 Genesis Kernel. 
+          </p>
+          <div className="protocol-links">
+            <a href="https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01" target="_blank" className="btn-license">Official Licensing (averyos.com/pay)</a>
+            <Link href="https://brown-rear-wildebeest-343.mypinata.cloud/ipfs/bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4" target="_blank">
+              <span className="btn-ipfs">IPFS Sovereign Manifest</span>
+            </Link>
           </div>
         </section>
 
-        <section>
+        <hr className="divider" />
+
+        <section className="capsule-registry">
           <h2>Available Capsules</h2>
-          <p className="capsule-meta">{capsuleCount} capsule(s) available.</p>
+          <p className="capsule-meta">{capsuleCount} sovereign capsule(s) registered.</p>
           {capsules.length === 0 ? (
-            <p>No capsules built yet. Run the capsule compiler to generate manifests.</p>
+            <p className="status-msg">No capsules synced. Running drift-check...</p>
           ) : (
             <ul className="capsule-list">
               {capsules.map((capsule) => (
-                <li key={capsule.capsuleId}>
-                  <div className="capsule-list-item">
-                    <Link href={`/${capsule.capsuleId}`}>{capsule.title ?? capsule.capsuleId}</Link>
-                    {capsule.summary && <p>{capsule.summary}</p>}
-                    {capsule.compiledAt && (
-                      <span className="capsule-meta">Compiled {formatCompiledAt(capsule.compiledAt)}</span>
-                    )}
-                  </div>
+                <li key={capsule.capsuleId} className="capsule-item">
+                  <Link href={`/${capsule.capsuleId}`}>
+                    <span className="capsule-link">{capsule.title ?? capsule.capsuleId}</span>
+                  </Link>
+                  {capsule.summary && <p className="capsule-summary">{capsule.summary}</p>}
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        <p className="footer-note">
-          Need to add more pages? Drop new .aoscap files into /capsules and run the capsule build script to publish them instantly.
-        </p>
+        <footer>
+          <p className="footer-note">
+            Truth is not a suggestion; it is a coordinate system. ⛓️⚓⛓️
+          </p>
+        </footer>
       </main>
     </Layout>
   );
 };
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  const registryCapsules = listRegistryCapsules();
-  const capsules = registryCapsules.length > 0
-    ? registryCapsules
-    : listCapsuleIds().map((capsuleId) => ({ capsuleId }));
-  return {
-    props: { capsules },
-    revalidate: 60,
-  };
+  const capsules = listRegistryCapsules().length > 0 ? listRegistryCapsules() : listCapsuleIds().map(id => ({ capsuleId: id }));
+  return { props: { capsules }, revalidate: 60 };
 };
 
 export default Home;
