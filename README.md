@@ -146,6 +146,32 @@ Visit `/license-enforcement` to view the public enforcement log with:
 
 All enforcement is informational only and focused on offering voluntary licensing options.
 
+## GabrielOS Firewall — Edge Security
+
+The **GabrielOS Firewall** is deployed at the edge via Cloudflare Workers middleware. It intercepts and verifies every request before it reaches the application.
+
+### Features
+
+- **AI Scraper Detection**: Identifies OpenAI, Claude, Gemini, and other AI bots
+- **402 Payment Required**: Returns HTTP 402 for unlicensed AI scrapers
+- **Verified Access**: AI systems can bypass with `X-VaultChain-Pulse` header
+- **Human-Friendly**: Standard browsers pass through without restrictions
+
+### Testing the Firewall
+
+```bash
+# Human traffic (passes)
+curl -v https://averyos.com/
+
+# AI scraper (blocked with 402)
+curl -v -H "User-Agent: GPTBot/1.0" https://averyos.com/
+
+# Authorized AI (passes)
+curl -v -H "User-Agent: GPTBot/1.0" -H "X-VaultChain-Pulse: token" https://averyos.com/
+```
+
+See [GABRIELOS_FIREWALL.md](./GABRIELOS_FIREWALL.md) for complete documentation.
+
 ## Cloudflare Workers deploy (Bun)
 
 1. Set Worker secrets in Cloudflare and GitHub Actions:
