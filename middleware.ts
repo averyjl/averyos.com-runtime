@@ -8,11 +8,12 @@ import type { NextRequest } from 'next/server';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
-const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|scraper|curl|wget|python-requests|java\/|go-http|okhttp|axios|node-fetch|headless|phantom|selenium|puppeteer|playwright|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
+// Uses specific patterns to avoid false positives (e.g., \bjava\/ not java\/)
+const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|scraper|curl|wget|python-requests|\bjava\/|go-http|okhttp|axios|node-fetch|headless|phantom|selenium|puppeteer|playwright|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
 
 // Standard browser patterns - includes desktop and mobile browsers
 // Matches: Chrome, Safari, Firefox, Edge, Opera, Mobile Safari, iOS Chrome/Firefox, Brave, Vivaldi, Arc
-const BROWSER_PATTERNS = /\b(chrome|safari|firefox|edge|opera|msie|trident|crios|fxios|mobile\s+safari|brave|vivaldi|arc)\b/i;
+const BROWSER_PATTERNS = /(chrome|safari|firefox|edge|opera|msie|trident|crios|fxios|mobile\s+safari|brave|vivaldi|arc)/i;
 
 // Additional browser-specific headers that are harder to spoof
 const BROWSER_HEADERS = [
@@ -23,6 +24,11 @@ const BROWSER_HEADERS = [
   'accept-language',     // Browsers typically send this
   'accept-encoding'      // Browsers typically send this
 ];
+
+// Minimum number of browser-specific headers required for fallback detection
+// Set to 3 to ensure legitimate browsers without standard UA (edge cases)
+// while making spoofing significantly harder (must fake multiple headers)
+const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 
 // Full kernel anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 // Truncated for display purposes - see LICENSE.md for full hash
@@ -48,8 +54,8 @@ export function middleware(request: NextRequest) {
   
   // Consider it a browser if:
   // - Has browser pattern in UA (even if also has AI pattern, browser wins), OR
-  // - Has 3+ browser-specific headers (fallback for missing UA or mobile browsers)
-  const isBrowser = hasBrowserPattern || browserHeaderCount >= 3;
+  // - Has MIN_BROWSER_HEADERS_THRESHOLD+ headers (fallback for missing UA or mobile browsers)
+  const isBrowser = hasBrowserPattern || browserHeaderCount >= MIN_BROWSER_HEADERS_THRESHOLD;
   
   // 3. ALLOW: Standard browser traffic (all HTTP methods for legitimate use)
   // Allows GET for viewing content, POST for payment forms, etc.
