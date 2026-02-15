@@ -41,7 +41,7 @@ const PayPage = () => {
             <a 
               href={stripeLink} 
               target="_blank" 
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="primary-link"
               style={{ 
                 display: 'inline-flex',
@@ -65,6 +65,7 @@ const PayPage = () => {
           <dl className="capsule-meta" style={{ gridTemplateColumns: '1fr' }}>
             <dt>Kernel Anchor</dt>
             <dd style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace' }}>
+              {/* Static Genesis Kernel anchor from Root0 2022 - cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e */}
               cf83e135...927da3e
             </dd>
           </dl>

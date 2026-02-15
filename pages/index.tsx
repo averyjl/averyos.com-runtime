@@ -36,7 +36,9 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
             and anchored to the 2022 Root0 Genesis Kernel. 
           </p>
           <div className="protocol-links">
-            <a href="https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01" target="_blank" className="btn-license">Official Licensing (averyos.com/pay)</a>
+            <Link href="/pay">
+              <span className="btn-license">Official Licensing (averyos.com/pay)</span>
+            </Link>
             <Link href="https://brown-rear-wildebeest-343.mypinata.cloud/ipfs/bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4" target="_blank">
               <span className="btn-ipfs">IPFS Sovereign Manifest</span>
             </Link>
