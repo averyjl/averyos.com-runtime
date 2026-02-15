@@ -6,11 +6,11 @@ type PageProps = {
   content: string;
 };
 
-const AveryOSWhitepaperPage: NextPage<PageProps> = ({ content }) => {
+const WhitepaperPage: NextPage<PageProps> = ({ content }) => {
   return (
     <TruthforcePage
-      title="AveryOS: A Decentralized Protocol for Sovereign Truth Anchoring"
-      route="AveryOS_A_Decentralized_Protocol_for_Sovereign_Truth_Anchoring"
+      title="AveryOS Technical Whitepaper"
+      route="whitepaper"
       content={content}
       enableCapsuleEcho={true}
       injectGlyph={true}
@@ -26,4 +26,4 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export default AveryOSWhitepaperPage;
+export default WhitepaperPage;
