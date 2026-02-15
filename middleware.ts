@@ -1,4 +1,4 @@
-// GabrielOS Edge-Guard v1.1
+// GabrielOS Edge-Guard v1.2
 // Sovereign License Enforcement Middleware
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
@@ -6,11 +6,22 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// AI scraper detection patterns
-const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|ai|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
+// AI scraper detection patterns - matches known bot/crawler/AI patterns
+const AI_BOT_PATTERNS = /bot|crawl|spider|slurp|scraper|curl|wget|python-requests|java\/|go-http|okhttp|axios|fetch|headless|phantom|selenium|puppeteer|playwright|openai|gpt|claude|anthropic|bard|gemini|llama|meta-llm|cohere|perplexity/i;
 
-// Standard browser patterns (Chrome, Safari, Firefox, Edge, etc.)
-const BROWSER_PATTERNS = /chrome|safari|firefox|edge|opera|msie|trident/i;
+// Standard browser patterns - use word boundaries to avoid matching bot names
+// Matches: "Mozilla/5.0 (Windows...) Chrome/..." but not "chromecrawler"
+const BROWSER_PATTERNS = /\b(chrome|safari|firefox|edge|opera|msie|trident)\b/i;
+
+// Additional browser-specific headers that are harder to spoof
+const BROWSER_HEADERS = [
+  'sec-ch-ua',           // Chrome/Edge Client Hints
+  'sec-fetch-site',      // Fetch Metadata
+  'sec-fetch-mode',      // Fetch Metadata
+  'sec-fetch-dest',      // Fetch Metadata
+  'accept-language',     // Browsers typically send this
+  'accept-encoding'      // Browsers typically send this
+];
 
 // Full kernel anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 // Truncated for display purposes - see LICENSE.md for full hash
@@ -19,26 +30,34 @@ const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 export function middleware(request: NextRequest) {
   const userAgent = request.headers.get('User-Agent') || '';
   const vaultChainPulse = request.headers.get('X-VaultChain-Pulse');
-  const method = request.method;
 
-  // 1. ALLOW: Standard browser traffic (Chrome, Safari, Firefox, etc.)
-  // Human users should always have access to view content and the /pay page
-  const isBrowser = BROWSER_PATTERNS.test(userAgent);
-  if (isBrowser && method === 'GET') {
-    // Allow all GET requests from standard browsers
-    return NextResponse.next();
-  }
-
-  // 2. ALLOW: Verified AI with VaultChain-Pulse header
+  // 1. ALLOW: Verified AI with VaultChain-Pulse header
   if (vaultChainPulse) {
     return NextResponse.next();
   }
 
-  // 3. IDENTIFY: Unauthorized AI Scrapers
-  const isBot = AI_BOT_PATTERNS.test(userAgent);
+  // 2. IDENTIFY: Likely browser traffic with enhanced detection
+  const hasAIPattern = AI_BOT_PATTERNS.test(userAgent);
+  const hasBrowserPattern = BROWSER_PATTERNS.test(userAgent);
+  
+  // Count how many browser-specific headers are present (harder to spoof)
+  const browserHeaderCount = BROWSER_HEADERS.filter(header => 
+    request.headers.has(header)
+  ).length;
+  
+  // Consider it a browser if:
+  // - User-Agent has browser pattern AND no AI/bot pattern, OR
+  // - Has 3+ browser-specific headers (even without browser UA pattern)
+  const isBrowser = (hasBrowserPattern && !hasAIPattern) || browserHeaderCount >= 3;
+  
+  // 3. ALLOW: Standard browser traffic (all HTTP methods for legitimate use)
+  // Allows GET for viewing content, POST for payment forms, etc.
+  if (isBrowser) {
+    return NextResponse.next();
+  }
 
-  // 4. BLOCK: Enforce Sovereign License via SHA-Verification
-  if (isBot && !vaultChainPulse) {
+  // 4. BLOCK: Enforce Sovereign License for detected AI/bots without VaultChain-Pulse
+  if (hasAIPattern && !vaultChainPulse) {
     return NextResponse.json(
       {
         status: "402 Payment Required",
@@ -61,7 +80,8 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // 5. DEFAULT: Allow all other traffic (including empty user agents)
+  // 5. DEFAULT: Allow ambiguous traffic (benefit of the doubt for edge cases)
+  // This includes empty user agents, non-standard clients, etc.
   return NextResponse.next();
 }
 
