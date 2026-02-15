@@ -1,11 +1,11 @@
 name = "averyos-runtime"
-type = "javascript"
 compatibility_date = "2026-02-05"
+main = ".open-next/worker.js"
+compatibility_flags = ["nodejs_compat"]
 
-[build]
-command = "npm run build"
-upload_format = "modules"
-upload_dir = "dist"
+[assets]
+binding = "ASSETS"
+directory = ".open-next/assets"
 
 [env.production]
 name = "averyos-runtime"
@@ -16,5 +16,7 @@ routes = ["https://averyos.com/*"]
 VAULTSIG_SECRET = "REPLACE_WITH_VAULTSIG_SECRET"
 STRIPE_KEY = "REPLACE_WITH_STRIPE_KEY"
 
-[site]
-bucket = "dist"
+# R2 bucket for incremental cache (optional but recommended)
+# [[r2_buckets]]
+# binding = "NEXT_CACHE_R2"
+# bucket_name = "averyos-next-cache"

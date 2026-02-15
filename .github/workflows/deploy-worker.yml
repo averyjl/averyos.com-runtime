@@ -18,8 +18,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build project
-        run: bun run build
+      - name: Build project with OpenNext
+        run: bun run build:worker
 
       - name: Deploy to Cloudflare Workers
         run: |
@@ -29,7 +29,7 @@ jobs:
           
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Deploy attempt $i of $MAX_RETRIES..."
-            if npx wrangler deploy --env production; then
+            if bun run deploy --env production; then
               echo "✅ Deploy succeeded"
               exit 0
             else
