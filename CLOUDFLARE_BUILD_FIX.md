@@ -28,18 +28,15 @@ This ensures the Next.js app is compiled into the `.open-next` format required b
 
 Navigate to your Cloudflare Pages or Workers dashboard and configure the build settings:
 
-**Build command:**
-```bash
-npm run build && npx @opennextjs/cloudflare build
-```
-
-This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
-
-**Alternative:** Use the convenience script that includes capsule generation:
+**Build command (RECOMMENDED):**
 ```bash
 npm run build:cloudflare
 ```
-(which runs: `capsule:build && capsule:sitemap && npx @opennextjs/cloudflare build`)
+
+This convenience script runs the complete build pipeline:
+- `npm run capsule:build` - Generates capsule pages
+- `npm run capsule:sitemap` - Creates sitemap.xml
+- `npx @opennextjs/cloudflare build` - Builds Worker with entry point
 
 **Build output directory:**
 ```
@@ -47,6 +44,8 @@ npm run build:cloudflare
 ```
 
 Verify that the Build output directory is set to `.open-next`.
+
+> **📖 For detailed step-by-step instructions, see [CLOUDFLARE_PAGES_SETUP.md](./CLOUDFLARE_PAGES_SETUP.md)**
 
 > **Note:** After the build completes successfully, your deployment will use the new Cloudflare Workers runtime (indicated by the navy blue terminal in the Cloudflare UI), replacing any previous static site configuration.
 
@@ -71,7 +70,7 @@ If you're deploying via **Cloudflare Pages** (instead of Cloudflare Workers), co
 
 **Framework preset:** None or Next.js
 
-**Build command:**
+**Build command (RECOMMENDED):**
 ```bash
 npm run build:cloudflare
 ```
@@ -86,6 +85,8 @@ npm run build:cloudflare
 - Add any required secrets (VAULTSIG_SECRET, STRIPE_KEY, etc.)
 
 > **Important:** The build output directory MUST be set to `.open-next` (not `out` or `.next`). This directory contains the Cloudflare Worker entry point (`worker.js`) and static assets.
+
+> **📖 For detailed step-by-step dashboard configuration, see [CLOUDFLARE_PAGES_SETUP.md](./CLOUDFLARE_PAGES_SETUP.md)**
 
 ### 4. Build Process Explanation
 
