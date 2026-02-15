@@ -15,31 +15,22 @@ While the initial requirement mentioned `@cloudflare/next-on-pages`, we use `@op
 
 ## Build Commands
 
-### Full Build (Recommended for Cloudflare Dashboard)
+### Full Build (Recommended for Cloudflare Pages Dashboard)
 
-**For Cloudflare Dashboard, use:**
-
-```bash
-npm run build && npx @opennextjs/cloudflare build
-```
-
-This command ensures:
-1. The Next.js app is compiled (`npm run build` runs `next build`)
-2. The build is converted to Cloudflare Worker format (`npx @opennextjs/cloudflare build`)
-3. The output is placed in `.open-next/` directory required by the Worker
-
-**Alternative:** If you need to include capsule generation and sitemap:
+**For Cloudflare Pages Dashboard, use:**
 
 ```bash
 npm run build:cloudflare
 ```
 
-This convenience script runs:
+This convenience script runs the complete build pipeline:
 1. `npm run capsule:build` - Generates capsule pages from markdown
 2. `npm run capsule:sitemap` - Generates sitemap.xml
 3. `npx @opennextjs/cloudflare build` - Builds Next.js app and converts to Cloudflare Worker bundle
 
-Note: The `@opennextjs/cloudflare build` command automatically runs `npm run build` internally before the conversion.
+> **📖 For detailed Cloudflare Dashboard configuration, see [CLOUDFLARE_PAGES_SETUP.md](./CLOUDFLARE_PAGES_SETUP.md)**
+
+**Note:** The `@opennextjs/cloudflare build` command automatically runs `npm run build` (Next.js build) internally before the conversion, so you don't need to run it separately.
 
 ### Worker-Only Build
 
@@ -109,10 +100,10 @@ When configuring your project in the Cloudflare Pages Dashboard:
 
 **Build command:**
 ```bash
-npm run build && npx @opennextjs/cloudflare build
+npm run build:cloudflare
 ```
 
-This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
+This runs the complete build pipeline including capsule generation, sitemap creation, and Worker compilation.
 
 **Build output directory:**
 ```
@@ -120,6 +111,8 @@ This ensures the Next.js app is compiled into the `.open-next` format required b
 ```
 
 **Important:** Verify that the Build output directory is set to `.open-next` (not `out` or `.next`).
+
+> **📖 For detailed step-by-step dashboard setup, see [CLOUDFLARE_PAGES_SETUP.md](./CLOUDFLARE_PAGES_SETUP.md)**
 
 ## Route-Specific Configuration
 
