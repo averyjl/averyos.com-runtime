@@ -193,13 +193,17 @@ If deploying via Cloudflare Pages dashboard, configure:
 
 **Build command:**
 ```bash
-npm run build:cloudflare
+npm run build && npx @opennextjs/cloudflare build
 ```
+
+This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
 
 **Build output directory:**
 ```
 .open-next
 ```
+
+Verify that the Build output directory is set to `.open-next`.
 
 See [CLOUDFLARE_BUILD_FIX.md](./CLOUDFLARE_BUILD_FIX.md) for detailed setup instructions.
 

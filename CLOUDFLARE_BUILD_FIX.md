@@ -14,7 +14,12 @@ The build command configured in Cloudflare Dashboard was running only:
 npm run capsule:build && npm run capsule:sitemap
 ```
 
-This command generates the capsule pages and sitemap but **does not run the OpenNext Cloudflare build** which creates the `.open-next/worker.js` entry point file required by `wrangler.toml`.
+This command generates the capsule pages and sitemap but **does not compile the Next.js application or run the OpenNext Cloudflare build** which creates the `.open-next/worker.js` entry point file required by `wrangler.toml`.
+
+The build process requires three steps:
+1. Build Next.js application (`npm run build` → runs `next build`)
+2. Convert to Cloudflare Worker format (`npx @opennextjs/cloudflare build`)
+3. This ensures the Next.js app is compiled into the `.open-next` format required by the Worker
 
 ## Solution
 
@@ -24,19 +29,23 @@ Navigate to your Cloudflare Pages or Workers dashboard and configure the build s
 
 **Build command:**
 ```bash
+npm run build && npx @opennextjs/cloudflare build
+```
+
+This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
+
+**Alternative:** Use the convenience script that includes capsule generation:
+```bash
 npm run build:cloudflare
 ```
-
-**OR** if you prefer the explicit command:
-
-```bash
-npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build
-```
+(which runs: `capsule:build && capsule:sitemap && npx @opennextjs/cloudflare build`)
 
 **Build output directory:**
 ```
 .open-next
 ```
+
+Verify that the Build output directory is set to `.open-next`.
 
 > **Note:** After the build completes successfully, your deployment will use the new Cloudflare Workers runtime (indicated by the navy blue terminal in the Cloudflare UI), replacing any previous static site configuration.
 

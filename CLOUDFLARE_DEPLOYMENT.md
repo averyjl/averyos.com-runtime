@@ -17,13 +17,24 @@ While the initial requirement mentioned `@cloudflare/next-on-pages`, we use `@op
 
 ### Full Build (Recommended for Cloudflare Dashboard)
 
-To build the complete project including capsules, sitemap, and Cloudflare Worker:
+**For Cloudflare Dashboard, use:**
+
+```bash
+npm run build && npx @opennextjs/cloudflare build
+```
+
+This command ensures:
+1. The Next.js app is compiled (`npm run build` runs `next build`)
+2. The build is converted to Cloudflare Worker format (`npx @opennextjs/cloudflare build`)
+3. The output is placed in `.open-next/` directory required by the Worker
+
+**Alternative:** If you need to include capsule generation and sitemap:
 
 ```bash
 npm run build:cloudflare
 ```
 
-This command runs:
+This convenience script runs:
 1. `npm run capsule:build` - Generates capsule pages from markdown
 2. `npm run capsule:sitemap` - Generates sitemap.xml
 3. `npx @opennextjs/cloudflare build` - Builds the Cloudflare Worker bundle
@@ -90,7 +101,25 @@ Some routes in this project cannot use Edge runtime because they require Node.js
 
 The OpenNext adapter handles this correctly by bundling these as regular serverless functions while keeping static pages and other routes optimized.
 
-## Pages Configuration
+## Cloudflare Pages Dashboard Configuration
+
+When configuring your project in the Cloudflare Pages Dashboard:
+
+**Build command:**
+```bash
+npm run build && npx @opennextjs/cloudflare build
+```
+
+This ensures the Next.js app is compiled into the `.open-next` format required by the Worker.
+
+**Build output directory:**
+```
+.open-next
+```
+
+**Important:** Verify that the Build output directory is set to `.open-next` (not `out` or `.next`).
+
+## Route-Specific Configuration
 
 ### /pay Route
 The `/pay` page (AveryOS Licensing Terminal) is configured as a static page and works seamlessly with Cloudflare Workers.
