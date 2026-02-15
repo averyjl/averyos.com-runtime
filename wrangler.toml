@@ -1,4 +1,4 @@
-name = "averyos-runtime"
+name = "averyoscom-runtime"
 compatibility_date = "2026-02-05"
 main = ".open-next/worker.js"
 compatibility_flags = ["nodejs_compat"]
