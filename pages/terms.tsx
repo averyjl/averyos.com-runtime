@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 import { termsOfServiceMd } from "../lib/terms-of-service.js";
 import { marked } from "marked";
@@ -11,7 +10,7 @@ const TermsPage: NextPage = () => {
   const content = marked(termsOfServiceMd) as string;
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>Terms of Service • AveryOS</title>
         <meta name="description" content="AveryOS Terms of Service - Cryptographically anchored to the AveryOS Encrypted Deterministic Kernel" />
@@ -47,7 +46,7 @@ const TermsPage: NextPage = () => {
           dangerouslySetInnerHTML={{ __html: content }}
         />
       </main>
-    </Layout>
+    </>
   );
 };
 

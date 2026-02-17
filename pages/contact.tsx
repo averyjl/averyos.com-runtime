@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 
 const ContactPage: NextPage = () => {
@@ -8,7 +7,7 @@ const ContactPage: NextPage = () => {
   const pageUrl = `${siteUrl}/contact`;
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>Contact • AveryOS</title>
         <meta name="description" content="Contact AveryOS - Get in touch with Jason Lee Avery and the AveryOS team" />
@@ -146,7 +145,7 @@ const ContactPage: NextPage = () => {
           </p>
         </div>
       </main>
-    </Layout>
+    </>
   );
 };
 

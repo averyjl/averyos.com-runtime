@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 import { privacyPolicyMd } from "../lib/privacy-policy.js";
 import { marked } from "marked";
@@ -11,7 +10,7 @@ const PrivacyPage: NextPage = () => {
   const content = marked(privacyPolicyMd) as string;
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>Privacy Policy • AveryOS</title>
         <meta name="description" content="AveryOS Privacy Policy - Cryptographically anchored to the AveryOS Encrypted Deterministic Kernel" />
@@ -47,7 +46,7 @@ const PrivacyPage: NextPage = () => {
           dangerouslySetInnerHTML={{ __html: content }}
         />
       </main>
-    </Layout>
+    </>
   );
 };
 
