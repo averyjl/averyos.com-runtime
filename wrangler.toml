@@ -18,17 +18,23 @@ persist = true
 invocation_logs = true
 
 [observability.traces]
-enabled = true 
+enabled = true
 persist = true
 head_sampling_rate = 1
 
-[env.production]
-name = "averyos-runtime"
-workers_dev = false
-routes = ["https://averyos.com/*"]
+# Root Domain Binding - REPLACING THE A-RECORDS
+[[routes]]
+pattern = "averyos.com"
+custom_domain = true
 
-[env.production.vars]
+[[routes]]
+pattern = "averyos.com/*"
+custom_domain = true
+
+[vars]
 SITE_URL = "https://averyos.com"
 NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
-# Note: VAULTAUTH_TOKEN, VAULTSIG_SECRET, and STRIPE_KEY 
-# should be managed as SECRETS in the Cloudflare Dashboard.
+NEXT_TELEMETRY_DISABLED = "1"
+
+[env.production]
+workers_dev = false
