@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:worker": "npx opennextjs-cloudflare build",
-    "build:cloudflare": "npm install && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
+    "build:cloudflare": "npm ci && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
     "preview": "npx @opennextjs/cloudflare preview",
     "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
