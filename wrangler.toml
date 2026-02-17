@@ -7,16 +7,28 @@ compatibility_flags = ["nodejs_compat"]
 binding = "ASSETS"
 directory = ".open-next/assets"
 
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true 
+persist = true
+head_sampling_rate = 1
+
 [env.production]
 name = "averyos-runtime"
 workers_dev = false
 routes = ["https://averyos.com/*"]
 
 [env.production.vars]
-VAULTSIG_SECRET = "REPLACE_WITH_VAULTSIG_SECRET"
-STRIPE_KEY = "REPLACE_WITH_STRIPE_KEY"
-
-# R2 bucket for incremental cache (optional but recommended)
-# [[r2_buckets]]
-# binding = "NEXT_CACHE_R2"
-# bucket_name = "averyos-next-cache"
+SITE_URL = "https://averyos.com"
+NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
+# Note: VAULTAUTH_TOKEN, VAULTSIG_SECRET, and STRIPE_KEY 
+# should be managed as SECRETS in the Cloudflare Dashboard.
