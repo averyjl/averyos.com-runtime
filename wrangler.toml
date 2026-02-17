@@ -22,12 +22,21 @@ enabled = true
 persist = true
 head_sampling_rate = 1
 
+# Dual-Gate Routing
 [[routes]]
 pattern = "averyos.com"
 custom_domain = true
 
 [[routes]]
 pattern = "averyos.com/*"
+custom_domain = true
+
+[[routes]]
+pattern = "www.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.averyos.com/*"
 custom_domain = true
 
 [vars]
