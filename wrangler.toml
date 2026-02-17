@@ -18,11 +18,10 @@ persist = true
 invocation_logs = true
 
 [observability.traces]
-enabled = true
+enabled = true 
 persist = true
 head_sampling_rate = 1
 
-# Root Domain Binding - REPLACING THE A-RECORDS
 [[routes]]
 pattern = "averyos.com"
 custom_domain = true
