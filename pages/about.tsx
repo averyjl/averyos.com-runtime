@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 
 const AboutPage: NextPage = () => {
@@ -8,7 +7,7 @@ const AboutPage: NextPage = () => {
   const pageUrl = `${siteUrl}/about`;
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>About AveryOS • Sovereign Truth Terminal</title>
         <meta name="description" content="About AveryOS - A Sovereign Truth Anchoring System founded by Jason Lee Avery" />
@@ -101,7 +100,7 @@ const AboutPage: NextPage = () => {
           <p><strong>Entity:</strong> AveryOS, LLC (Utah, USA)</p>
         </section>
       </main>
-    </Layout>
+    </>
   );
 };
 
