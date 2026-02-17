@@ -50,6 +50,26 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         <hr className="divider" />
 
+        <section className="info-links" style={{ marginBottom: '2rem' }}>
+          <h2>Information & Legal</h2>
+          <div className="protocol-links">
+            <Link href="/about/">
+              <span className="btn-license">About AveryOS</span>
+            </Link>
+            <Link href="/contact/">
+              <span className="btn-whitepaper">Contact Us</span>
+            </Link>
+            <Link href="/privacy/">
+              <span className="btn-ipfs">Privacy Policy</span>
+            </Link>
+            <Link href="/terms/">
+              <span className="btn-license">Terms of Service</span>
+            </Link>
+          </div>
+        </section>
+
+        <hr className="divider" />
+
         <section className="capsule-registry">
           <h2>Available Capsules</h2>
           <p className="capsule-meta">{capsuleCount} sovereign capsule(s) registered.</p>
