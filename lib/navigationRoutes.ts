@@ -22,4 +22,8 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/diff", label: "Capsule Diff", icon: "📊" },
   { path: "/certificate", label: "Certificate", icon: "📄" },
   { path: "/sigtrace", label: "Signature Trace", icon: "🔐" },
+  { path: "/about", label: "About", icon: "ℹ️" },
+  { path: "/contact", label: "Contact", icon: "📬" },
+  { path: "/privacy", label: "Privacy", icon: "🔒" },
+  { path: "/terms", label: "Terms", icon: "📋" },
 ];
