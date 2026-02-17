@@ -6,7 +6,11 @@ const navItems = [
   { title: 'Viewer', href: '/viewer' },
   { title: 'Certificates', href: '/certificate' },
   { title: 'Diff', href: '/diff' },
-  { title: 'Badges', href: '/VaultBridge/badges' }
+  { title: 'Badges', href: '/VaultBridge/badges' },
+  { title: 'About', href: '/about' },
+  { title: 'Contact', href: '/contact' },
+  { title: 'Privacy', href: '/privacy' },
+  { title: 'Terms', href: '/terms' }
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
