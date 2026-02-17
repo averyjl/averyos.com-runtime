@@ -1,77 +1,222 @@
-import fs from "fs";
-import path from "path";
-import type { GetStaticProps, NextPage } from "next";
 import Head from "next/head";
+import { useState, useEffect } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
+import type { EnforcementEvent } from "../lib/enforcementTypes";
 
-type EnforcementEvent = {
-  id: string;
-  capsuleId: string;
-  sha512: string;
-  timestamp: string;
-  source?: string | null;
-  status: string;
-  message: string;
-};
-
-type Props = { events: EnforcementEvent[] };
-
-const LicenseEnforcementPage: NextPage<Props> = ({ events }) => {
+/**
+ * License Enforcement Log Page
+ * Public, transparent view of license compliance tracking
+ * Focus: Voluntary compliance and licensing offers
+ */
+const LicenseEnforcementPage = () => {
   const siteUrl = getSiteUrl();
   const pageUrl = `${siteUrl}/license-enforcement`;
+  const [events, setEvents] = useState<EnforcementEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/enforcement-log")
+      .then((res) => res.json())
+      .then((data) => {
+        setEvents(data.events || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load enforcement log:", err);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <>
       <Head>
         <title>License Enforcement Log • AveryOS</title>
-        <meta name="description" content="Public SHA-verified license enforcement and compliance log." />
+        <meta
+          name="description"
+          content="Public, transparent log of AveryOS license compliance tracking. Voluntary licensing offers with SHA-512 verification."
+        />
+        <meta property="og:title" content="License Enforcement Log • AveryOS" />
+        <meta
+          property="og:description"
+          content="Public, transparent log of AveryOS license compliance tracking."
+        />
+        <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
+        <link rel="canonical" href={pageUrl} />
       </Head>
-      <main className="page truthnest-page">
-        <section className="hero truthnest-hero">
+      <main className="page">
+        <section className="hero">
           <h1>License Enforcement Log</h1>
-          <p>Transparent, SHA-512 verified compliance tracking with voluntary licensing options.</p>
+          <p>
+            Public, transparent tracking of AveryOS capsule licensing. All events are
+            SHA-512 verified and focused on voluntary compliance.
+          </p>
         </section>
+
         <section className="card">
-          {events.length === 0 ? (
-            <p>No enforcement events logged yet.</p>
+          <h2>About This System</h2>
+          <div className="info-grid">
+            <div className="info-box">
+              <h3>🔐 Purpose</h3>
+              <p>
+                Track capsule usage and offer voluntary licensing options. Similar to software
+                license tracking and DRM compliance systems.
+              </p>
+            </div>
+            <div className="info-box">
+              <h3>✅ Transparency</h3>
+              <p>
+                All enforcement events are publicly viewable with SHA-512 verification.
+                No hidden actions or automated legal threats.
+              </p>
+            </div>
+            <div className="info-box">
+              <h3>💳 Voluntary Compliance</h3>
+              <p>
+                Events focus on offering licensing via Stripe. No forced actions, lawsuits,
+                or takedown notices.
+              </p>
+            </div>
+            <div className="info-box">
+              <h3>⚖️ Creator Rights</h3>
+              <p>
+                Helps creators protect their work under the AveryOS Sovereign Integrity
+                License v1.0.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="card">
+          <h2>Enforcement Events</h2>
+          {loading ? (
+            <p>Loading enforcement log...</p>
+          ) : events.length === 0 ? (
+            <div className="status-pill">No enforcement events recorded</div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Capsule</th>
-                  <th>SHA-512</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((event) => (
-                  <tr key={event.id}>
-                    <td>{event.timestamp}</td>
-                    <td>{event.capsuleId}</td>
-                    <td>{event.sha512.slice(0, 18)}…</td>
-                    <td>{event.status}</td>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Capsule ID</th>
+                    <th>Event Type</th>
+                    <th>Status</th>
+                    <th>Reference</th>
+                    <th>SHA-512 (prefix)</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {events.map((event) => (
+                    <tr key={event.id}>
+                      <td>{new Date(event.timestamp).toLocaleString()}</td>
+                      <td>
+                        <code>{event.capsuleId}</code>
+                      </td>
+                      <td>
+                        <span className="badge">{event.eventType}</span>
+                      </td>
+                      <td>
+                        <span className="status-pill">{event.status}</span>
+                      </td>
+                      <td>
+                        <code>{event.referenceId}</code>
+                      </td>
+                      <td>
+                        <code className="hash-preview">
+                          {event.capsuleSha512.substring(0, 16)}...
+                        </code>
+                      </td>
+                      <td>
+                        {event.stripeProductId && (
+                          <a href="/buy" className="action-link-small">
+                            View License
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          <p className="capsule-meta">All enforcement is informational only and focused on voluntary licensing options.</p>
+        </section>
+
+        <section className="card">
+          <h2>Evidence & Notices</h2>
+          <p>
+            All enforcement events include SHA-verified evidence bundles and compliance
+            notices stored in:
+          </p>
+          <ul>
+            <li>
+              <strong>Evidence Bundles:</strong>{" "}
+              <code>/license-enforcement/evidence/</code>
+            </li>
+            <li>
+              <strong>Compliance Notices:</strong>{" "}
+              <code>/license-enforcement/notices/</code>
+            </li>
+            <li>
+              <strong>Event Logs:</strong> <code>/license-enforcement/logs/</code>
+            </li>
+          </ul>
+          <p className="capsule-meta">
+            All records are publicly accessible and cryptographically verifiable.
+          </p>
+        </section>
+
+        <section className="card">
+          <h2>How It Works</h2>
+          <ol>
+            <li>
+              <strong>Detection:</strong> System detects potential capsule usage through
+              SHA-512 verification
+            </li>
+            <li>
+              <strong>Evidence:</strong> Creates timestamped, SHA-verified evidence bundle
+            </li>
+            <li>
+              <strong>Notice:</strong> Publishes public compliance notice (informational only)
+            </li>
+            <li>
+              <strong>Offer:</strong> Provides Stripe link for voluntary license purchase
+            </li>
+            <li>
+              <strong>Log:</strong> Records event in public, transparent log
+            </li>
+          </ol>
+          <div className="status-pill">
+            This system does NOT automate lawsuits, takedowns, or legal threats
+          </div>
+        </section>
+
+        <section className="card call-to-action-section">
+          <h2>Need a License?</h2>
+          <p>
+            If you're using AveryOS capsule content, you can purchase a license voluntarily
+            through Stripe.
+          </p>
+          <a href="/buy" className="primary-button">
+            View License Options
+          </a>
+          <a href="/verify" className="secondary-button">
+            Verify Your License
+          </a>
+        </section>
+
+        <section className="card">
+          <h2>Questions?</h2>
+          <p>
+            This system is designed for transparent license tracking, not legal enforcement.
+            For questions about licensing, contact:{" "}
+            <a href="mailto:truth@averyworld.com">truth@averyworld.com</a>
+          </p>
         </section>
       </main>
     </>
   );
-};
-
-export const getStaticProps: GetStaticProps<Props> = async () => {
-  const logPath = path.join(process.cwd(), "public", "license-enforcement", "logs", "index.json");
-  if (!fs.existsSync(logPath)) {
-    return { props: { events: [] }, revalidate: 60 };
-  }
-
-  const payload = JSON.parse(fs.readFileSync(logPath, "utf8"));
-  return { props: { events: payload.events ?? [] }, revalidate: 60 };
 };
 
 export default LicenseEnforcementPage;

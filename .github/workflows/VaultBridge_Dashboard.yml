@@ -1,0 +1,35 @@
+name: 🧭 VaultBridge Dashboard Sync
+
+on:
+  push:
+    paths:
+      - 'VaultBridge/**'
+      - 'capsules/**'
+      - '**/*.aoscap'
+      - '**/*.json'
+    branches: [ main ]
+
+jobs:
+  render-dashboard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📊 Extract SHA Chain Snapshot
+        run: |
+          grep -Eo '"sha512": *"[^"]+"' VaultBridge/*.json > VaultBridge/sha_snapshot.log
+          cat VaultBridge/sha_snapshot.log
+
+      - name: 🛡️ Configure Git Auth
+        run: |
+          git config user.name "VaultBridge Bot"
+          git config user.email "bot@averyos.com"
+
+      - name: 🔄 Pull + Force Push If Needed
+        run: |
+          git pull origin main --rebase || true
+          git add VaultBridge/sha_snapshot.log
+          git commit -m "🔐 SHA Sync Auto Snapshot" || echo "No changes"
+          git push origin main || git push origin main --force

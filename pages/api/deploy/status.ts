@@ -1,42 +1,53 @@
-import fs from "fs";
-import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
+import { timingSafeEqual } from "crypto";
 
-type DeployLog = {
-  latest_deploy_sha: string;
-  deploy_status: "success" | "failed" | "pending";
-  deployed_at: string;
-  source_repo: string;
-  vaultsig?: string;
+type DeployStatus = {
+  status: "active" | "pending" | "failed";
+  lastDeploy?: string;
+  version?: string;
 };
 
-const deployLogPath = path.join(process.cwd(), "capsule_logs", "deploy.json");
+/**
+ * Deploy status endpoint
+ * Returns the current deployment status
+ * Optionally validates admin access using VAULTSIG_SECRET
+ */
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  // Check for admin authorization if VAULTSIG_SECRET is configured
+  const expectedSecret = process.env.VAULTSIG_SECRET;
+  const providedSecret = req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
-const getDeployLog = (): DeployLog => {
-  if (!fs.existsSync(deployLogPath)) {
-    return {
-      latest_deploy_sha: "unknown",
-      deploy_status: "pending",
-      deployed_at: new Date(0).toISOString(),
-      source_repo: "averyos.com-runtime",
-      vaultsig: "",
-    };
+  let isAdmin = false;
+  
+  if (expectedSecret && providedSecret) {
+    try {
+      // Use timing-safe comparison to prevent timing attacks
+      const expectedBuffer = Buffer.from(expectedSecret, "utf-8");
+      const providedBuffer = Buffer.from(providedSecret, "utf-8");
+      
+      // Only compare if lengths match (prevents timing attacks on length)
+      if (expectedBuffer.length === providedBuffer.length) {
+        isAdmin = timingSafeEqual(expectedBuffer, providedBuffer);
+      }
+    } catch (err) {
+      // Comparison failed, isAdmin remains false
+      console.error("Secret comparison error:", err);
+    }
   }
 
-  return JSON.parse(fs.readFileSync(deployLogPath, "utf8")) as DeployLog;
-};
+  // Basic status information (public)
+  const statusInfo: DeployStatus = {
+    status: "active",
+    lastDeploy: new Date().toISOString(),
+  };
 
-const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
-  const log = getDeployLog();
+  // Additional information for authenticated admins
+  if (isAdmin) {
+    statusInfo.version = process.env.npm_package_version || "unknown";
+  }
 
-  return res.status(200).json({
-    latest_deploy_sha: log.latest_deploy_sha,
-    deploy_status: log.deploy_status,
-    deployed_at: log.deployed_at,
-    source_repo: log.source_repo,
-    vaultsig_match: verifyCapsuleHash(log.vaultsig || ""),
-  });
+  res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60");
+  return res.status(200).json(statusInfo);
 };
 
 export default handler;

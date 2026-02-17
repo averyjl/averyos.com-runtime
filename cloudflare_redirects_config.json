@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Redirect www to root domain",
+    "enabled": true,
+    "priority": 1,
+    "condition": {
+      "request_url": "https://www.averyos.com/*",
+      "expression_type": "wildcard"
+    },
+    "action": {
+      "type": "redirect",
+      "status_code": 301,
+      "target_url": "https://averyos.com/$1"
+    }
+  },
+  {
+    "name": "Redirect from HTTP to HTTPS",
+    "enabled": true,
+    "priority": 2,
+    "condition": {
+      "request_url": "http://*",
+      "expression_type": "wildcard"
+    },
+    "action": {
+      "type": "redirect",
+      "status_code": 301,
+      "target_url": "https://$1"
+    }
+  }
+]

@@ -6,8 +6,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.env.production
-.env.production.local
-capsule_logs/*.json
-!capsule_logs/.gitkeep
-bun.lockb
+
+# Dependencies
+node_modules
+
+# Next.js build outputs
+.next
+out
+tsconfig.tsbuildinfo
+
+# Production
+build
+dist
+
+# Runtime logs
+capsule_logs/vaultchain_push.json
+capsule_logs/license_access.json
+
+# OpenNext Cloudflare build output
+.open-next/

@@ -5,7 +5,7 @@ export type CapsuleBlockProps = {
   summary: string;
   sha: string;
   driftLock: string;
-  vaultChainUrl?: string;
+  vaultChainUrl?: string | null;
   capsuleId: string;
   licenseStatus: string;
   compiledAt?: string;

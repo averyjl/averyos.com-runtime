@@ -1,0 +1,24 @@
+[
+  {
+    "id": "EV-2026-001",
+    "timestamp": "2026-02-08T18:00:00Z",
+    "capsuleId": "sovereign-index",
+    "capsuleSha512": "cf83e1357eefb8bd1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+    "eventType": "detection",
+    "status": "monitoring",
+    "stripeProductId": "prod_sovereign_index",
+    "referenceId": "LE-001",
+    "description": "Capsule usage detected - license available for voluntary compliance"
+  },
+  {
+    "id": "EV-20260208-554",
+    "timestamp": "2026-02-08T18:03:43.145Z",
+    "capsuleId": "test-capsule",
+    "capsuleSha512": "cf83e1357eefb8bd1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+    "eventType": "detection",
+    "status": "monitoring",
+    "stripeProductId": "prod_test_capsule",
+    "referenceId": "LE-773",
+    "description": "Capsule usage detected - license available for voluntary compliance"
+  }
+]

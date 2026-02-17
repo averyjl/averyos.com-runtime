@@ -9,7 +9,7 @@ export type CapsuleManifest = {
   sha: string;
   driftLock: string;
   compiledAt: string;
-  vaultChainUrl?: string;
+  vaultChainUrl?: string | null;
   licenseStatus: string;
   viewerUrl?: string | null;
   stripeUrl?: string | null;

@@ -5,6 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:worker": "npx opennextjs-cloudflare build",
+    "build:cloudflare": "npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
+    "preview": "npx @opennextjs/cloudflare preview",
+    "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
     "lint": "next lint",
     "capsule:build": "node scripts/capsulePageAutoCompiler.js",
@@ -18,13 +22,22 @@
   },
   "dependencies": {
     "next": "15.5.12",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "marked": "17.0.2"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.16.5",
     "@types/node": "20.14.9",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "typescript": "5.5.3"
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.1.6",
+    "typescript": "5.5.3",
+    "wrangler": "4.65.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   }
 }

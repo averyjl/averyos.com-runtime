@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VaultEcho Capsule Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="/VaultBridge/badges/trustgem.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles/globals.css" />
+</head>
+<body>
+  <header>
+    <img src="/VaultBridge/badges/trustgem.svg" alt="TrustGem Badge" width="64" />
+    <h1>VaultEcho Capsule Viewer</h1>
+    <p>Visualize and verify capsule lineage and public runtime manifests.</p>
+  </header>
+
+  <main>
+    <section id="capsule-index">
+      <h2>📦 Capsule Manifest</h2>
+      <pre id="manifest"></pre>
+    </section>
+
+    <section id="viewer">
+      <h2>🎯 Capsule Viewer Embed</h2>
+      <iframe src="/VaultBridge/manifest.json" width="100%" height="500px"></iframe>
+    </section>
+  </main>
+
+  <footer>
+    <small>🔐 Secured by VaultSig • AveryOS 2026</small>
+  </footer>
+
+  <script>
+    fetch("/VaultBridge/manifest.json")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("manifest").textContent = JSON.stringify(data, null, 2);
+      });
+  </script>
+</body>
+</html>

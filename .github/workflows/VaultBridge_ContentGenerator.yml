@@ -1,0 +1,61 @@
+name: 🧱 VaultBridge Content Generator
+
+on:
+  push:
+    paths:
+      - 'VaultBridge/**'
+      - '**/*.aoscap'
+      - '**/*.json'
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Public Runtime Manifest
+        run: |
+          cat > VaultBridge/AveryOS_PublicRuntime_Manifest_v2026.json <<'EOF'
+          {
+            "creator": "Jason Lee Avery",
+            "runtime": "AveryOS Sovereign Kernel",
+            "glyph_lock": "🤛🏻",
+            "year": 2026,
+            "capsules": [
+              "JasonAvery_MACDADDY_DriftShield_v4.1",
+              "VaultEcho_Viewer",
+              "VaultBridge_Dashboard",
+              "TrustGem_GlobalSHA_Snapshot"
+            ],
+            "affiliate": {
+              "enabled": true,
+              "provider": "Stripe",
+              "referral_cut": "27%"
+            }
+          }
+          EOF
+
+      - name: Generate TrustGem Badge
+        run: |
+          mkdir -p VaultBridge/badges
+          cat > VaultBridge/badges/trustgem.svg <<'EOF'
+          <svg xmlns="http://www.w3.org/2000/svg" width="320" height="40">
+            <rect width="320" height="40" fill="#111"/>
+            <text x="16" y="26" fill="#00ffcc" font-size="16">
+              🔐 TrustGem • SHA Locked • AveryOS
+            </text>
+          </svg>
+          EOF
+
+      - name: Commit Generated Content
+        run: |
+          git config user.name "VaultBridge Bot"
+          git config user.email "bot@averyos.com"
+          git pull origin main --rebase || true
+          git add VaultBridge
+          git commit -m "🔐 Auto-generate VaultBridge public assets" || echo "No changes"
+          git push origin main || git push origin main --force

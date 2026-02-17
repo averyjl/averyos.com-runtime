@@ -1,14 +1,41 @@
-name = "averyos-runtime"
-main = "dist/worker.js"
+name = "averyoscom-runtime"
 compatibility_date = "2026-02-05"
-workers_dev = false
+main = ".open-next/worker.js"
+compatibility_flags = ["nodejs_compat"]
 
-[build]
-command = "bun run build"
-upload_format = "modules"
-upload_dir = "dist"
+[assets]
+binding = "ASSETS"
+directory = ".open-next/assets"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true 
+persist = true
+head_sampling_rate = 1
+
+# Sovereign Dual-Gate Anchors
+[[routes]]
+pattern = "averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.averyos.com"
+custom_domain = true
+
+[vars]
+SITE_URL = "https://averyos.com"
+NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
+NEXT_TELEMETRY_DISABLED = "1"
 
 [env.production]
-name = "averyos-runtime"
-workers_dev = false
-routes = ["https://averyos.com/*"]
+workers_dev = true 
+# REMOVED --minify to prevent the 'cr is not a function' runtime crash

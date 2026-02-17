@@ -1,13 +1,17 @@
 # AveryOS Runtime — Sovereign Truth Anchor 
-![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg)    ![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)    ![🔐 VaultEcho AutoTrace](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg)    ![🧭 VaultBridge Dashboard Sync](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_Dashboard.yml/badge.svg)    ![🧱 VaultBridge Content Generator](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_ContentGenerator.yml/badge.svg)    ![Nightly Redirect Drift Scan](https://github.com/averyjl/averyos.com-runtime/actions/workflows/nightly_monitor.yml/badge.svg)
+![VaultEcho Viewer Deploy](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg)    ![✨ LiveRouteMonitorEcho](https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg)    ![🔐 VaultEcho AutoTrace](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg)    ![🧭 VaultBridge Dashboard Sync](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_Dashboard.yml/badge.svg)    ![🧱 VaultBridge Content Generator](https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_ContentGenerator.yml/badge.svg)    ![Nightly Redirect Drift Scan](https://github.com/averyjl/averyos.com-runtime/actions/workflows/nightly_monitor.yml/badge.svg)    <a href="https://averyos.com/VaultBridge/manifest.json" target="_blank">
+
+
+
 
 This repository is the official runtime for AveryOS, founded by Jason Lee Avery.
 All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate and VaultSig Protocols. See `/LICENSE.md`.
 
-- [LICENSE.md](./LICENSE.md)
-- [JoinCapsule.md](./JoinCapsule.md)
-- [WitnessWall.md](./WitnessWall.md)
-Capsule-powered runtime source for averyos.com.
+- [LICENSE](./LICENSE.md)
+- [JoinCapsule](./JoinCapsule.md)
+- [WitnessWall](./WitnessWall.md)
+- [VaultBridge Badges](https://averyos.com/VaultBridge/badges/) 
+- Capsule-powered runtime source for averyos.com.
 
 ## Capsule WebBuilder overview
 
@@ -142,20 +146,87 @@ Visit `/license-enforcement` to view the public enforcement log with:
 
 All enforcement is informational only and focused on offering voluntary licensing options.
 
-## Cloudflare Workers deploy (Bun)
+## GabrielOS Firewall — Edge Security
+
+The **GabrielOS Firewall** is deployed at the edge via Cloudflare Workers middleware. It intercepts and verifies every request before it reaches the application.
+
+### Features
+
+- **AI Scraper Detection**: Identifies OpenAI, Claude, Gemini, and other AI bots
+- **402 Payment Required**: Returns HTTP 402 for unlicensed AI scrapers
+- **Verified Access**: AI systems can bypass with `X-VaultChain-Pulse` header
+- **Human-Friendly**: Standard browsers pass through without restrictions
+
+### Testing the Firewall
+
+```bash
+# Human traffic (passes)
+curl -v https://averyos.com/
+
+# AI scraper (blocked with 402)
+curl -v -H "User-Agent: GPTBot/1.0" https://averyos.com/
+
+# Authorized AI (passes)
+curl -v -H "User-Agent: GPTBot/1.0" -H "X-VaultChain-Pulse: token" https://averyos.com/
+```
+
+See [GABRIELOS_FIREWALL.md](./GABRIELOS_FIREWALL.md) for complete documentation.
+
+## Cloudflare Deployment
+
+### Build for Cloudflare
+
+To build the complete project for Cloudflare deployment (including capsules, sitemap, and worker):
+
+```bash
+npm run build:cloudflare
+```
+
+This command:
+1. Generates capsule manifests
+2. Creates sitemap.xml
+3. Builds the Cloudflare Worker bundle in `.open-next/`
+
+### Cloudflare Pages Configuration
+
+If deploying via Cloudflare Pages dashboard, configure:
+
+**Build command:**
+```bash
+npm run build:cloudflare
+```
+
+This runs the complete build pipeline including capsule generation, sitemap creation, and Worker compilation.
+
+**Build output directory:**
+```
+.open-next
+```
+
+Verify that the Build output directory is set to `.open-next`.
+
+> **📖 For detailed step-by-step instructions, see [CLOUDFLARE_PAGES_SETUP.md](./CLOUDFLARE_PAGES_SETUP.md)**
+
+See [CLOUDFLARE_BUILD_FIX.md](./CLOUDFLARE_BUILD_FIX.md) for detailed setup instructions.
+
+### Manual Worker Deployment
 
 1. Set Worker secrets in Cloudflare and GitHub Actions:
    - `VAULTSIG_SECRET`
    - `STRIPE_KEY`
 2. Ensure Wrangler is authenticated.
-3. Run local deploy helper:
+3. Deploy:
 
 ```bash
-./deploy-worker.sh
+npm run deploy
 ```
 
-Or deploy directly:
+Or deploy directly with Wrangler:
 
 ```bash
 npx wrangler deploy --env production
 ```
+
+### Automated Deployment
+
+GitHub Actions automatically deploys to Cloudflare Workers on push to `main` branch. See `.github/workflows/deploy-worker.yml` for configuration.

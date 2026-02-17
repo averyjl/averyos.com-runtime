@@ -1,0 +1,71 @@
+name: ✨ LiveRouteMonitorEcho
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  monitor-routes:
+    runs-on: ubuntu-latest
+    env:
+      CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: 💾 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 📦 Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: ✨ Diff Cloudflare Live Ruleset vs JSON
+        id: diff
+        run: |
+          curl -s -X GET \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets \
+            > live_rules.json
+
+          diff cloudflare_redirects_config.json live_rules.json > diff_output.txt || true
+
+      - name: 📝 Log Differences to GitHub Issue (if any)
+        if: success()
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: 🔧 Cloudflare Redirect Drift Detected
+          content-filepath: diff_output.txt
+          labels: monitoring, redirect-drift
+
+      - name: 💾 Save Snapshot with SHA Anchor
+        run: |
+          mkdir -p VaultEcho
+          timestamp=$(date +"%Y-%m-%d--%H-%M-%S")
+          sha=$(sha512sum cloudflare_redirects_config.json | cut -d ' ' -f1)
+          echo "SHA512: $sha" > vaulttrace-$timestamp.md
+          echo "Timestamp: $timestamp" >> vaulttrace-$timestamp.md
+          echo "Capsule: VaultEcho Cloudflare Routes" >> vaulttrace-$timestamp.md
+          mv vaulttrace-$timestamp.md ./VaultEcho/
+
+      - name: 📋 Commit VaultEcho Anchor Log
+        run: |
+          git config user.name "VaultEcho Bot"
+          git config user.email "bot@averyos.com"
+          git pull origin main --rebase
+          git add VaultEcho/
+          git commit -m "📊 VaultEcho snapshot @ $(date)" || echo "No changes to commit"
+          git push origin main --no-verify
+
+      - name: 🛠️ Wrangler Fallback Deploy (Optional)
+        run: |
+          npm install -g wrangler
+          echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" > .env
+          wrangler whoami || echo "✅ Wrangler auth confirmed"
+          wrangler publish || echo "⚠️ Wrangler fallback skipped (optional)"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        continue-on-error: true

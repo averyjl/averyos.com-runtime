@@ -1,0 +1,25 @@
+{
+  "bundleId": "EB-20260208-584",
+  "timestamp": "2026-02-08T18:03:43.141Z",
+  "creator": "Jason Lee Avery",
+  "capsuleId": "test-capsule",
+  "capsuleSha512": "cf83e1357eefb8bd1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "bundleSha512": "2adef24440b47a255265c9cbda36032379b7dd8abb12bd49123825dbdb37ee2e6cdf5521a44d8e6bd081483878e9b3f56b37f90c6141aee3adbf68ff92c62bfb",
+  "evidenceType": "usage_detection",
+  "evidence": {
+    "detectedAt": "2026-02-08T18:03:43.141Z",
+    "sourceUrl": "https://example.com/test",
+    "checksumMatch": true,
+    "metadata": {
+      "detectionMethod": "sha512_verification",
+      "licenseRequired": true,
+      "publiclyTracked": true
+    }
+  },
+  "licenseOfferUrl": "https://averyos.com/buy?capsule=test-capsule",
+  "publiclyVerifiable": true,
+  "notice": "This evidence bundle documents detected usage of AveryOS capsule content. License available for voluntary compliance.",
+  "complianceType": "voluntary",
+  "legalStatus": "no_legal_action",
+  "purpose": "transparent_tracking_and_licensing_offer"
+}
