@@ -37,4 +37,5 @@ NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
 NEXT_TELEMETRY_DISABLED = "1"
 
 [env.production]
-workers_dev = true
+workers_dev = true 
+# REMOVED --minify to prevent the 'cr is not a function' runtime crash
