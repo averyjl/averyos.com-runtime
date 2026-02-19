@@ -16,7 +16,7 @@ jobs:
 
       - name: Deploy redirects to Cloudflare
         run: |
-          curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets" \
+          curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets/phases/http_request_redirect/entrypoint" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data-binary "@cloudflare_redirects_config.json"
+            --data "$(jq '{rules: .}' cloudflare_redirects_config.json)"

@@ -1,30 +1,32 @@
 [
   {
-    "name": "Redirect www to root domain",
+    "description": "Redirect www to root domain",
+    "action": "redirect",
+    "expression": "http.request.full_uri wildcard \"https://www.averyos.com/*\"",
     "enabled": true,
-    "priority": 1,
-    "condition": {
-      "request_url": "https://www.averyos.com/*",
-      "expression_type": "wildcard"
-    },
-    "action": {
-      "type": "redirect",
-      "status_code": 301,
-      "target_url": "https://averyos.com/$1"
+    "action_parameters": {
+      "from_value": {
+        "status_code": 301,
+        "target_url": {
+          "expression": "wildcard_replace(http.request.full_uri, \"https://www.averyos.com/*\", \"https://averyos.com/${1}\")"
+        },
+        "preserve_query_string": true
+      }
     }
   },
   {
-    "name": "Redirect from HTTP to HTTPS",
+    "description": "Redirect HTTP to HTTPS",
+    "action": "redirect",
+    "expression": "not ssl",
     "enabled": true,
-    "priority": 2,
-    "condition": {
-      "request_url": "http://*",
-      "expression_type": "wildcard"
-    },
-    "action": {
-      "type": "redirect",
-      "status_code": 301,
-      "target_url": "https://$1"
+    "action_parameters": {
+      "from_value": {
+        "status_code": 301,
+        "target_url": {
+          "expression": "concat(\"https://\", http.request.host, http.request.uri)"
+        },
+        "preserve_query_string": false
+      }
     }
   }
 ]

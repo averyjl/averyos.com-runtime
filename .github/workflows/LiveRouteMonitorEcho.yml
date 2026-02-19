@@ -28,13 +28,33 @@ jobs:
           curl -s -X GET \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets \
-            > live_rules.json
+            "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/phases/http_request_redirect/entrypoint" \
+            > live_rules_raw.json
+
+          # Check if the API call was successful before diffing
+          API_SUCCESS=$(jq -r '.success' live_rules_raw.json 2>/dev/null || echo "false")
+          if [ "$API_SUCCESS" != "true" ]; then
+            echo "⚠️ Cloudflare API call failed — skipping diff to avoid false-positive issues."
+            echo "Error: $(jq -r '.errors[0].message // "Unknown error"' live_rules_raw.json 2>/dev/null)"
+            echo "api_success=false" >> $GITHUB_OUTPUT
+            echo "has_diff=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "api_success=true" >> $GITHUB_OUTPUT
+
+          # Extract just the rules array from the API result for comparison
+          jq '[.result.rules[] | {description, action, expression, enabled, action_parameters}]' live_rules_raw.json > live_rules.json 2>/dev/null || echo "[]" > live_rules.json
 
           diff cloudflare_redirects_config.json live_rules.json > diff_output.txt || true
 
+          if [ -s diff_output.txt ]; then
+            echo "has_diff=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_diff=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 📝 Log Differences to GitHub Issue (if any)
-        if: success()
+        if: steps.diff.outputs.api_success == 'true' && steps.diff.outputs.has_diff == 'true'
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: 🔧 Cloudflare Redirect Drift Detected
