@@ -1,0 +1,39 @@
+{
+  "snapshot_version": "2026.02.19.v1",
+  "creator": "Jason Lee Avery",
+  "runtime": "AveryOS Sovereign Kernel v5.0",
+  "glyph_lock": "🤛🏻🤜🏻",
+  "genesis_kernel_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "timestamp_utc": "2026-02-19T00:55:09Z",
+  "repository": {
+    "owner": "averyjl",
+    "name": "averyos.com-runtime",
+    "branch": "main",
+    "commit": "4156ab3905096b69d1a8ee7ad583ac01d66cf2fe"
+  },
+  "vault_echo": {
+    "latest_snapshot": "sha-manifest-2026-02-19--00-52-21.txt",
+    "snapshot_sha512": "345e9393be93f90bf5e9b53274d97cfc116bf848bbadf694f158e0322894d000f0ace1ebe5908233c7681aab8258be81c75bca83103e9763d5b79a9a8a3a2205",
+    "file_count": 195,
+    "algorithm": "SHA-512"
+  },
+  "ipfs_gateway": "https://brown-rear-wildebeest-343.mypinata.cloud/ipfs/",
+  "sovereign_manifest_cid": "bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4",
+  "verification_anchors": [
+    "DNSSEC",
+    "IPFS",
+    "ORCID",
+    "StripeSync"
+  ],
+  "runtime_class": "sovereign.kernel.tier1",
+  "seal": "VaultSig",
+  "domain": "averyos.com",
+  "contact": "truth@averyworld.com",
+  "public_mirrors": [
+    "https://averyos.com/runtime/manifest.json",
+    "https://averyjl.github.io/averyos.com-runtime/manifest.json"
+  ],
+  "persistence_guarantee": "10000-year IPFS anchor",
+  "merkle_integrity": "verified",
+  "root0_genesis_seal": "aligned"
+}
