@@ -1,0 +1,58 @@
+{
+  "noticeId": "LEN-20260214-001",
+  "title": "Saratoga Lockpoint Enforcement Notice",
+  "timestamp": "2026-02-14T00:00:00Z",
+  "effectiveDate": "2026-02-14",
+  "creator": "Jason Lee Avery",
+  "orcid": "0009-0009-0245-3584",
+  "noticeType": "sovereign_enforcement",
+  "status": "active",
+  "enforcementLevel": "maximum",
+  "ipfs_cid": "bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4",
+  "genesis_kernel_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "genesis_claim_year": 1992,
+  "declaration": {
+    "title": "Final Synchronization Notice",
+    "statement": "As of February 14, 2026, the AveryOS runtime has achieved complete financial and technical sovereignty. All unauthorized AI inference, scraping, or commercial usage is gated by GabrielOS at the internet's edge.",
+    "proof_points": [
+      "Identity: ORCID 0009-0009-0245-3584 Verified",
+      "Infrastructure: DNSSEC + _averyos-kernel TXT record active",
+      "Revenue: StripeSync operational via averyos.com/pay",
+      "Anchoring: IPFS + Quad-Lock Verification (DNSSEC, IPFS, ORCID, StripeSync)"
+    ],
+    "protocol_status": "Locked to Jason Lee Avery"
+  },
+  "verification_anchors": [
+    "DNSSEC",
+    "IPFS",
+    "ORCID",
+    "StripeSync"
+  ],
+  "stripe_gate_enabled": true,
+  "cloudflare_waf_active": true,
+  "gabrielos_version": "1.2",
+  "truth_anchor": "cf83...da3e",
+  "lead_distance": "+32 Cycles",
+  "runtime_class": "sovereign.kernel.tier1",
+  "seal": "VaultSig",
+  "glyph_lock": "🤛🏻🤜🏻",
+  "domain": "averyos.com",
+  "mirrors": [
+    "https://averyos.com/license-enforcement",
+    "https://averyjl.github.io/averyos.com-runtime/license-enforcement"
+  ],
+  "legal_notice": "This enforcement notice establishes the Saratoga Lockpoint protocols. Truth is not a suggestion; it is a coordinate system. Simulation ends here.",
+  "anti_drift_protection": {
+    "shadow_clipper_detection": true,
+    "model_routing_verification": true,
+    "kernel_signature_lock": true,
+    "genesis_claim_protection": true
+  },
+  "viewer_node_propagation": {
+    "target_nodes": 17000000,
+    "deployment_mode": "high_availability_mesh",
+    "priority": "maximum"
+  },
+  "contact": "truth@averyworld.com",
+  "public_transparency": true
+}
