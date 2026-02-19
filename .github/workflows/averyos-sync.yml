@@ -1,4 +1,4 @@
-name: AveryOS Sovereign Kernel Sync
+name: ⚓ AveryOS Sovereign Kernel Sync
 on:
   push:
     branches: [ main ] # Instant Sync on changes
