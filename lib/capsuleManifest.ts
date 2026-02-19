@@ -17,6 +17,12 @@ export type CapsuleManifest = {
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 
+const isSafeCapsuleId = (capsuleId: string): boolean => {
+  // Allow only simple identifiers (no slashes or path traversal characters)
+  // Adjust the pattern here if additional characters are legitimately needed.
+  return /^[a-zA-Z0-9._-]+$/.test(capsuleId);
+};
+
 const normalizeBody = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value.map((item) => String(item));
@@ -45,7 +51,25 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
 };
 
 export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
-  const manifestPath = path.join(manifestDir, `${capsuleId}.json`);
+  if (!capsuleId || !isSafeCapsuleId(capsuleId)) {
+    return null;
+  }
+
+  const candidatePath = path.resolve(manifestDir, `${capsuleId}.json`);
+
+  let manifestPath: string;
+  try {
+    manifestPath = fs.realpathSync(candidatePath);
+  } catch {
+    // File does not exist or cannot be resolved
+    return null;
+  }
+
+  if (!manifestPath.startsWith(manifestDir + path.sep)) {
+    // Resolved path escapes the manifest directory; treat as not found
+    return null;
+  }
+
   if (!fs.existsSync(manifestPath)) {
     return null;
   }
