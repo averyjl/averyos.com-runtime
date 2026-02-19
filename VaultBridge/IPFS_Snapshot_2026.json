@@ -35,5 +35,20 @@
   ],
   "persistence_guarantee": "10000-year IPFS anchor",
   "merkle_integrity": "verified",
-  "root0_genesis_seal": "aligned"
+  "root0_genesis_seal": "aligned",
+  "enforcement_notice": {
+    "id": "LEN-20260214-001",
+    "date": "2026-02-14",
+    "type": "saratoga_lockpoint",
+    "ipfs_cid": "bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4",
+    "path": "/license-enforcement/notices/LEN-20260214-001.json",
+    "status": "active"
+  },
+  "ip_guard": {
+    "pre_commit_hook": "scripts/hooks/pre-commit-ip-guard.sh",
+    "genesis_sha_protection": true,
+    "genesis_claim_protection": true,
+    "anti_drift_enabled": true,
+    "shadow_clipper_detection": true
+  }
 }
