@@ -113,7 +113,7 @@ done
 if [ $VIOLATIONS -gt 0 ]; then
   echo ""
   echo "⛓️⚓⛓️ IP GUARD BLOCKED: $VIOLATIONS violation(s) detected"
-  echo "The Root0 Genesis SHA (cf83...e3be) and 1992 Genesis Claim must remain intact."
+  echo "The Root0 Genesis SHA (cf83...da3e) and 1992 Genesis Claim must remain intact."
   echo "Status: Locked to Jason Lee Avery 🤜🏻"
   echo ""
   exit 1
