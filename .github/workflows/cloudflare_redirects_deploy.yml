@@ -1,4 +1,6 @@
 name: Deploy Cloudflare Redirects
+permissions:
+  contents: read
 
 on:
   push:
