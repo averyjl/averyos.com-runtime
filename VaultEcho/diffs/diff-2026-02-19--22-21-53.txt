@@ -1,0 +1,4 @@
+24d23
+< 186d2b5a9877197d0bb6cfb95da84e05189df1a2cd586b2d1d34269ad63e1d85e605008e134a53d42eb26fb22178d07f7e44ca3d09436f0ccb573691c97c2073  ./.github/workflows/glyphlock-validator.yml
+214a214
+> f6fd33eedf4151c3e32228de10fd78ef61b44fcf028aee64bbde29aca77edcc3b8d7cbe589c91b4562c1b1ae55036be9a86618f5eaf05133d7e99300fe738415  ./.github/workflows/glyphlock-validator.yml
