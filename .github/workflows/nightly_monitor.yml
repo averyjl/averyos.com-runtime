@@ -1,5 +1,8 @@
 name: 🔁 Nightly Redirect Drift Scan
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 6 * * *'  # 6:00 AM UTC daily
