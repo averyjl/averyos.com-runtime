@@ -1,10 +1,13 @@
-name: ⚓ AveryOS Sovereign Kernel Sync
+name: AveryOS Sovereign Kernel Sync
+permissions:
+  contents: read # Fixes High-Severity Security Alert #9
+
 on:
   push:
-    branches: [ main ] # Instant Sync on changes
+    branches: [ main ]
   schedule:
-    - cron: '*/15 * * * *' # Recursive 15-min check
-  workflow_dispatch: # Manual Creator trigger
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   Sovereign-Sync:
@@ -20,6 +23,11 @@ jobs:
 
       - name: Prepare Sovereign Tools
         run: chmod +x ./averyos-deploy ./vaultchain-sync
+
+      - name: Sovereign Access Key & Infinity Bridge
+        run: |
+          # Generating Key for Device: Jason-Computer-Node-02
+          ./averyos-deploy --auth-key --target computer --bridge real-time
 
       - name: Scale 10,000♾️ Year Mesh
         run: |
