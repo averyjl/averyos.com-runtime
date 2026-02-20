@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { compileCapsuleSignature } = require('./capsuleSignatureCompiler');
 
-<<<<<<< HEAD
 const CONSTITUTION_PATH = path.join(process.cwd(), 'AveryoS_CONSTITUTION.md');
 =======
 const CONSTITUTION_PATH = path.join(process.cwd(), 'AveryOS_CONSTITUTION.md');
