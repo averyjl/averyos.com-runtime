@@ -1,4 +1,6 @@
 name: AveryOS Sovereign PR Triage
+permissions:
+  contents: read
 on:
   pull_request:
     types: [opened, synchronize]
