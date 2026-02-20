@@ -25,3 +25,8 @@ capsule_logs/license_access.json
 
 # OpenNext Cloudflare build output
 .open-next/
+
+# Sovereign runtime files
+.sovereign-lock
+capsule_logs/interference-log.json
+capsule_logs/watchdog-redirect.json
