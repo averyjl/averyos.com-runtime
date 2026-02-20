@@ -5,6 +5,8 @@
 // hardware ID (Note20 + PC), and if it matches writes a .sovereign-lock file
 // to the project root.
 
+#!/usr/bin/env node
+
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -12,7 +14,6 @@ const { compileCapsuleSignature } = require("./capsuleSignatureCompiler");
 
 const SOVEREIGN_LOCK_PATH = path.join(process.cwd(), ".sovereign-lock");
 
-// Stable hardware identifier anchored to the Note20 + PC device pair.
 function getHardwareId() {
   const hostname = os.hostname();
   const platform = os.platform();
@@ -25,16 +26,28 @@ function main() {
   const keyIndex = args.indexOf("--key");
 
   if (keyIndex === -1 || !args[keyIndex + 1]) {
-    console.error("Usage: node auth.js --key <sha512-signature>");
+    const hardwareId = getHardwareId();
+    const hash = compileCapsuleSignature(hardwareId);
+    console.log("🔍 KERNEL TRUTH REPORT:");
+    console.log(`   Required Key for this machine: AVERY-SOV-2026-${hash}`);
     process.exit(1);
   }
 
-  const providedKey = args[keyIndex + 1].toLowerCase();
+  // Handle prefix for matching
+  let providedKey = args[keyIndex + 1].toLowerCase();
+  const prefix = "avery-sov-2026-";
+  
+  if (providedKey.startsWith(prefix)) {
+    providedKey = providedKey.replace(prefix, "");
+  }
+
   const hardwareId = getHardwareId();
   const expectedKey = compileCapsuleSignature(hardwareId);
 
   if (providedKey !== expectedKey) {
     console.error("❌ Auth failed: key does not match hardware signature.");
+    console.log(`   Expected: ${expectedKey}`);
+    console.log(`   Provided: ${providedKey}`);
     process.exit(1);
   }
 
@@ -42,11 +55,11 @@ function main() {
     locked: true,
     timestamp: new Date().toISOString(),
     hardwareSignature: expectedKey,
-    hardwareId,
+    node: "Jason-Node-02"
   };
 
   fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify(lockData, null, 2));
-  console.log("✅ Sovereign lock established:", SOVEREIGN_LOCK_PATH);
+  console.log("✅ Sovereign Authentication Successful. .sovereign-lock created.");
 }
 
 main();
