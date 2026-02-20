@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { compileCapsuleSignature } = require('./capsuleSignatureCompiler');
 
-const CONSTITUTION_PATH = path.join(process.cwd(), 'CONSTITUTION.md');
+const CONSTITUTION_PATH = path.join(process.cwd(), 'AveryoS_CONSTITUTION.md');
 const INDEX_PATH = path.join(process.cwd(), 'scripts', 'sovereign-index.json');
 
 function generateSemanticMap() {
