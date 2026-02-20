@@ -235,6 +235,37 @@ npm run preview
 ✅ **Documented** - Updated `CLOUDFLARE_DEPLOYMENT.md` with new instructions  
 ⚠️ **Action Required** - Update build command in Cloudflare Dashboard to `npm run build:cloudflare`
 
+---
+
+## Redirect Drift Resolution (Issue #112)
+
+Issue #112 tracked authentication drift and redirect misalignment in the Cloudflare Rulesets API. The following changes have been implemented and verified:
+
+### Changes Made
+
+- **`cloudflare_redirects_deploy.yml`** — Captures the `PUT` response, checks `.success`, and exits with a clear error (including token permission guidance) when code `10000` is returned. Requires `Zone:Edit` permission (not `Zone:Read`).
+- **`LiveRouteMonitorEcho.yml`** — Guards against auth errors before diffing; uses `npx wrangler` for the optional auth check; annotates that monitoring (`GET`) only needs `Zone:Read`.
+- **`nightly_monitor.yml`** — Fails fast with a descriptive message when the Cloudflare API returns an auth error, preventing false drift reports.
+
+### Required Cloudflare API Token Permissions
+
+| Scope | Permission | Used for |
+|-------|-----------|---------|
+| Account → Workers Scripts | Edit | `wrangler deploy` (Worker deployments) |
+| Zone → Zone | Edit | `PUT` redirect rulesets endpoint |
+| Zone → Cache Purge | Purge | Cache invalidation |
+| Zone → Page Rules | Edit | Page rules management |
+| Zone → DNS | Edit | DNS record management |
+
+> **Note:** `Zone:Read` is sufficient for monitoring (`GET`) operations only. The redirect-deploy (`PUT`) endpoint requires `Zone:Edit`.
+
+### Resolution Status
+
+✅ Monitoring workflow detects drift without false positives from auth errors  
+✅ Deploy workflow validates success and provides actionable error messages  
+✅ Token permission requirements documented above  
+✅ Closes [#112](https://github.com/averyjl/averyos.com-runtime/issues/112)
+
 ## Related Files
 
 - `package.json` - Contains `build:cloudflare` script
