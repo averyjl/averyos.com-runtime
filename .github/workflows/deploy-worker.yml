@@ -79,6 +79,21 @@ jobs:
           echo "✅ Viewer Node Priority: HIGH-AVAILABILITY MESH"
           echo "⛓️⚓⛓️"
 
+      - name: Verify Cloudflare token has Workers Scripts permission
+        run: |
+          if ! npx wrangler whoami; then
+            echo ""
+            echo "❌ Cloudflare token authentication failed."
+            echo "   The 'Deploy to Cloudflare Workers' step requires 'Workers Scripts:Edit' permission."
+            echo "   In the Cloudflare Dashboard → My Profile → API Tokens → Edit token:"
+            echo "   Add: Account → Workers Scripts → Edit"
+            exit 1
+          fi
+          echo "✅ Wrangler auth verified — token has Workers Scripts access"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Workers
         run: |
           # Auto-retry on 403 errors (authentication issues)

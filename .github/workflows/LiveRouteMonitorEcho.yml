@@ -28,18 +28,55 @@ jobs:
           curl -s -X GET \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets \
-            > live_rules.json
+            "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/phases/http_request_redirect/entrypoint" \
+            > live_rules_raw.json
+
+          # Check if the API call was successful before diffing
+          API_SUCCESS=$(jq -r '.success' live_rules_raw.json 2>/dev/null || echo "false")
+          if [ "$API_SUCCESS" != "true" ]; then
+            echo "⚠️ Cloudflare API call failed — skipping diff to avoid false-positive issues."
+            echo "Error: $(jq -r '.errors[0].message // "Unknown error"' live_rules_raw.json 2>/dev/null)"
+            echo "api_success=false" >> $GITHUB_OUTPUT
+            echo "has_diff=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "api_success=true" >> $GITHUB_OUTPUT
+
+          # Extract just the rules array from the API result for comparison
+          jq '[.result.rules[] | {description, action, expression, enabled, action_parameters}]' live_rules_raw.json > live_rules.json 2>/dev/null || echo "[]" > live_rules.json
 
           diff cloudflare_redirects_config.json live_rules.json > diff_output.txt || true
 
+          if [ -s diff_output.txt ]; then
+            echo "has_diff=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_diff=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 📝 Log Differences to GitHub Issue (if any)
-        if: success()
+        if: steps.diff.outputs.api_success == 'true' && steps.diff.outputs.has_diff == 'true'
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: 🔧 Cloudflare Redirect Drift Detected
           content-filepath: diff_output.txt
           labels: monitoring, redirect-drift
+
+      - name: ✅ Close Resolved Redirect-Drift Issues (if no drift)
+        if: steps.diff.outputs.api_success == 'true' && steps.diff.outputs.has_diff == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OPEN_ISSUES=$(gh issue list --label redirect-drift --state open --json number --jq '.[].number')
+          if [ -z "$OPEN_ISSUES" ]; then
+            echo "✅ No open redirect-drift issues to close."
+          else
+            echo "Closing resolved redirect-drift issues: $OPEN_ISSUES"
+            while IFS= read -r ISSUE_NUM; do
+              gh issue close "$ISSUE_NUM" \
+                --comment "✅ Closing: redirect drift resolved. No drift detected in latest monitoring run. Root cause (auth error false-positive) fixed in #112."
+              echo "Closed #$ISSUE_NUM"
+            done <<< "$OPEN_ISSUES"
+          fi
 
       - name: 💾 Save Snapshot with SHA Anchor
         run: |
@@ -60,12 +97,14 @@ jobs:
           git commit -m "📊 VaultEcho snapshot @ $(date)" || echo "No changes to commit"
           git push origin main --no-verify
 
-      - name: 🛠️ Wrangler Fallback Deploy (Optional)
+      - name: 🛠️ Wrangler Auth Check (Optional)
         run: |
-          npm install -g wrangler
-          echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" > .env
-          wrangler whoami || echo "✅ Wrangler auth confirmed"
-          wrangler publish || echo "⚠️ Wrangler fallback skipped (optional)"
+          if npx wrangler whoami; then
+            echo "✅ Wrangler auth confirmed"
+          else
+            echo "⚠️ Wrangler auth failed — token may be missing 'Workers Scripts:Edit' permission"
+            echo "   Redirect rules monitoring above uses Zone:Read (GET only) and is unaffected."
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         continue-on-error: true
