@@ -16,7 +16,26 @@ jobs:
 
       - name: Deploy redirects to Cloudflare
         run: |
-          curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets/phases/http_request_redirect/entrypoint" \
+          RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets/phases/http_request_redirect/entrypoint" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data "$(jq '{rules: .}' cloudflare_redirects_config.json)"
+            --data "$(jq '{rules: .}' cloudflare_redirects_config.json)")
+
+          echo "$RESPONSE" | jq .
+
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+          if [ "$SUCCESS" != "true" ]; then
+            ERROR_CODE=$(echo "$RESPONSE" | jq -r '.errors[0].code // "unknown"')
+            ERROR_MSG=$(echo "$RESPONSE" | jq -r '.errors[0].message // "unknown error"')
+            echo ""
+            echo "❌ Cloudflare API call failed (code: $ERROR_CODE): $ERROR_MSG"
+            if [ "$ERROR_CODE" = "10000" ]; then
+              # Error code 10000 = Cloudflare authentication/authorization failure
+              echo "   Authentication error — token may be invalid or missing Zone:Edit permission."
+              echo "   The Rulesets PUT endpoint requires Zone:Edit (not Zone:Read)."
+              echo "   In Cloudflare Dashboard → API Tokens → Edit token:"
+              echo "   Change 'All zones → Zone:Read' to 'All zones → Zone:Edit'"
+            fi
+            exit 1
+          fi
+          echo "✅ Redirect rules deployed successfully"

@@ -86,7 +86,7 @@ jobs:
             echo "✅ Wrangler auth confirmed"
           else
             echo "⚠️ Wrangler auth failed — token may be missing 'Workers Scripts:Edit' permission"
-            echo "   Redirect rules monitoring above uses Zone:Edit and is unaffected."
+            echo "   Redirect rules monitoring above uses Zone:Read (GET only) and is unaffected."
           fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

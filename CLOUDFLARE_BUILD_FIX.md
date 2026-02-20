@@ -126,15 +126,25 @@ After running `npm run build:cloudflare`, verify the following files exist:
 
 All automated workflows use a single `CLOUDFLARE_API_TOKEN` secret. The token needs the following permissions depending on which workflows you use:
 
-### Redirect Rules (cloudflare_redirects_deploy.yml, LiveRouteMonitorEcho.yml, nightly_monitor.yml)
+### Redirect Rules — Monitoring only (LiveRouteMonitorEcho.yml, nightly_monitor.yml)
 
-Uses the Cloudflare [Zone Rulesets API](https://developers.cloudflare.com/ruleset-engine/rulesets-api/) — there is **no separate "Redirect Rules" category** in the token editor. Redirect rules are managed via Zone Rulesets and are covered by:
+Uses `GET /zones/{zone_id}/rulesets/phases/http_request_redirect/entrypoint` — read-only:
 
 | Permission | Level | Required for |
 |---|---|---|
-| **Zone:Edit** | All zones (or specific zone) | Read & write redirect rulesets |
+| **Zone:Read** | All zones (or specific zone) | Read live redirect rulesets for drift detection |
 
-> ✅ If your token has `Zone:Edit`, redirect rule deployment and monitoring are fully covered.
+> ✅ `Zone:Read` is sufficient for all monitoring (GET) operations.
+
+### Redirect Rules — Deployment (cloudflare_redirects_deploy.yml)
+
+Uses `PUT /zones/{zone_id}/rulesets/phases/http_request_redirect/entrypoint` — write operation:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Zone:Edit** | All zones (or specific zone) | Write/update redirect rulesets |
+
+> ⚠️ `Zone:Read` is **not** sufficient for deployment. The `PUT` endpoint returns a 403 Forbidden error (insufficient permissions) unless the token has `Zone:Edit`. Change `Zone:Read` → `Zone:Edit` in your token to enable redirect rule deployment.
 
 ### Worker Deployment (deploy-worker.yml)
 
@@ -153,14 +163,16 @@ In Cloudflare Dashboard → **My Profile → API Tokens → Edit token**, config
 
 ```
 Account permissions:
-  Workers Scripts: Edit
+  Workers Scripts: Edit          ← required for wrangler deploy
 
 Zone permissions (All zones, or select averyos.com):
-  Zone: Edit
+  Zone: Edit                     ← required for redirect rules PUT (deploy)
   Cache Purge: Purge
   Page Rules: Edit
   DNS: Edit
 ```
+
+> **Note:** If you only need drift monitoring (no redirect rule deployment), `Zone:Read` is sufficient for the monitoring workflows. But to allow `cloudflare_redirects_deploy.yml` to write rules, you must use `Zone:Edit`.
 
 ### Quick Token Verification
 
