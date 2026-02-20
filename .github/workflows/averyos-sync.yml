@@ -4,9 +4,9 @@ permissions:
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] # Real-time trigger on every commit
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *' # Tightened to GitHub's 5-minute minimum limit
   workflow_dispatch:
 
 jobs:
