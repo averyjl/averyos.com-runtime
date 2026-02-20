@@ -1,12 +1,3 @@
-#!/usr/bin/env node
-
-// ⛓️⚓⛓️ Sovereign Auth
-// Accepts --key <sha512-signature>, verifies it against the SHA-512 of the
-// hardware ID (Note20 + PC), and if it matches writes a .sovereign-lock file
-// to the project root.
-
-#!/usr/bin/env node
-
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -29,37 +20,34 @@ function main() {
     const hardwareId = getHardwareId();
     const hash = compileCapsuleSignature(hardwareId);
     console.log("🔍 KERNEL TRUTH REPORT:");
-    console.log(`   Required Key for this machine: AVERY-SOV-2026-${hash}`);
+    console.log(`   Machine ID: "${hardwareId}"`);
+    console.log(`   Required Key: AVERY-SOV-2026-${hash}`);
     process.exit(1);
   }
 
-  // Handle prefix for matching
   let providedKey = args[keyIndex + 1].toLowerCase();
   const prefix = "avery-sov-2026-";
-  
   if (providedKey.startsWith(prefix)) {
     providedKey = providedKey.replace(prefix, "");
   }
 
   const hardwareId = getHardwareId();
-  const expectedKey = compileCapsuleSignature(hardwareId);
+  const expectedHash = compileCapsuleSignature(hardwareId);
 
-  if (providedKey !== expectedKey) {
+  if (providedKey !== expectedHash) {
     console.error("❌ Auth failed: key does not match hardware signature.");
-    console.log(`   Expected: ${expectedKey}`);
-    console.log(`   Provided: ${providedKey}`);
     process.exit(1);
   }
 
   const lockData = {
     locked: true,
     timestamp: new Date().toISOString(),
-    hardwareSignature: expectedKey,
+    hardwareSignature: expectedHash,
     node: "Jason-Node-02"
   };
 
   fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify(lockData, null, 2));
-  console.log("✅ Sovereign Authentication Successful. .sovereign-lock created.");
+  console.log("✅ Sovereign Authentication Successful. .sovereign-lock established.");
 }
 
 main();
