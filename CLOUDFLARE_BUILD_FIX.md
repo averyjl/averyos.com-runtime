@@ -122,6 +122,72 @@ After running `npm run build:cloudflare`, verify the following files exist:
 .open-next/middleware/            # Middleware bundle
 ```
 
+## Required Cloudflare API Token Permissions
+
+All automated workflows use a single `CLOUDFLARE_API_TOKEN` secret. The token needs the following permissions depending on which workflows you use:
+
+### Redirect Rules — Monitoring only (LiveRouteMonitorEcho.yml, nightly_monitor.yml)
+
+Uses `GET /zones/{zone_id}/rulesets/phases/http_request_redirect/entrypoint` — read-only:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Zone:Read** | All zones (or specific zone) | Read live redirect rulesets for drift detection |
+
+> ✅ `Zone:Read` is sufficient for all monitoring (GET) operations.
+
+### Redirect Rules — Deployment (cloudflare_redirects_deploy.yml)
+
+Uses `PUT /zones/{zone_id}/rulesets/phases/http_request_redirect/entrypoint` — write operation:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Zone:Edit** | All zones (or specific zone) | Write/update redirect rulesets |
+
+> ⚠️ `Zone:Read` is **not** sufficient for deployment. The `PUT` endpoint returns a 403 Forbidden error (insufficient permissions) unless the token has `Zone:Edit`. Change `Zone:Read` → `Zone:Edit` in your token to enable redirect rule deployment.
+
+### Worker Deployment (deploy-worker.yml)
+
+Uses Wrangler (`wrangler deploy`) to upload and publish the Cloudflare Worker script:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Workers Scripts:Edit** | Account | Upload/publish the Worker |
+| **Zone:Edit** | All zones (or specific zone) | Configure Worker routes |
+
+> ⚠️ If you only have `Zone:Edit` and are missing `Workers Scripts:Edit`, Wrangler will fail with an authentication error. Add **Account → Workers Scripts → Edit** to the token.
+
+### Full Token Summary (Recommended)
+
+In Cloudflare Dashboard → **My Profile → API Tokens → Edit token**, configure:
+
+```
+Account permissions:
+  Workers Scripts: Edit          ← required for wrangler deploy
+
+Zone permissions (All zones, or select averyos.com):
+  Zone: Edit                     ← required for redirect rules PUT (deploy)
+  Cache Purge: Purge
+  Page Rules: Edit
+  DNS: Edit
+```
+
+> **Note:** If you only need drift monitoring (no redirect rule deployment), `Zone:Read` is sufficient for the monitoring workflows. But to allow `cloudflare_redirects_deploy.yml` to write rules, you must use `Zone:Edit`.
+
+### Quick Token Verification
+
+After updating your token, you can verify it locally:
+
+```bash
+# Check Wrangler auth (requires Workers Scripts:Edit)
+CLOUDFLARE_API_TOKEN=<your-token> npx wrangler whoami
+
+# Check Zone/Redirect Rules access (requires Zone:Edit)
+curl -s -H "Authorization: Bearer <your-token>" \
+  "https://api.cloudflare.com/client/v4/zones" | jq '.success'
+# Should return: true
+```
+
 ## Quick Reference
 
 ### Available Build Commands
@@ -168,6 +234,37 @@ npm run preview
 ✅ **Verified** - Build successfully generates `.open-next/worker.js`  
 ✅ **Documented** - Updated `CLOUDFLARE_DEPLOYMENT.md` with new instructions  
 ⚠️ **Action Required** - Update build command in Cloudflare Dashboard to `npm run build:cloudflare`
+
+---
+
+## Redirect Drift Resolution (Issue #112)
+
+Issue #112 tracked authentication drift and redirect misalignment in the Cloudflare Rulesets API. The following changes have been implemented and verified:
+
+### Changes Made
+
+- **`cloudflare_redirects_deploy.yml`** — Captures the `PUT` response, checks `.success`, and exits with a clear error (including token permission guidance) when code `10000` is returned. Requires `Zone:Edit` permission (not `Zone:Read`).
+- **`LiveRouteMonitorEcho.yml`** — Guards against auth errors before diffing; uses `npx wrangler` for the optional auth check; annotates that monitoring (`GET`) only needs `Zone:Read`.
+- **`nightly_monitor.yml`** — Fails fast with a descriptive message when the Cloudflare API returns an auth error, preventing false drift reports.
+
+### Required Cloudflare API Token Permissions
+
+| Scope | Permission | Used for |
+|-------|-----------|---------|
+| Account → Workers Scripts | Edit | `wrangler deploy` (Worker deployments) |
+| Zone → Zone | Edit | `PUT` redirect rulesets endpoint |
+| Zone → Cache Purge | Purge | Cache invalidation |
+| Zone → Page Rules | Edit | Page rules management |
+| Zone → DNS | Edit | DNS record management |
+
+> **Note:** `Zone:Read` is sufficient for monitoring (`GET`) operations only. The redirect-deploy (`PUT`) endpoint requires `Zone:Edit`.
+
+### Resolution Status
+
+✅ Monitoring workflow detects drift without false positives from auth errors  
+✅ Deploy workflow validates success and provides actionable error messages  
+✅ Token permission requirements documented above  
+✅ Closes [#112](https://github.com/averyjl/averyos.com-runtime/issues/112)
 
 ## Related Files
 

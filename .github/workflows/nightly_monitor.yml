@@ -19,9 +19,19 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/pagerules" \
+          curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets/phases/http_request_redirect/entrypoint" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" > live_rules.json
+            -H "Content-Type: application/json" > live_rules_raw.json
+
+          # Guard against auth errors before diffing
+          API_SUCCESS=$(jq -r '.success' live_rules_raw.json 2>/dev/null || echo "false")
+          if [ "$API_SUCCESS" != "true" ]; then
+            echo "⚠️ Cloudflare API authentication failed — skipping diff."
+            echo "Error: $(jq -r '.errors[0].message // "Unknown error"' live_rules_raw.json 2>/dev/null)"
+            exit 1
+          fi
+
+          jq '[.result.rules[] | {description, action, expression, enabled, action_parameters}]' live_rules_raw.json > live_rules.json 2>/dev/null || echo "[]" > live_rules.json
 
           echo "🔁 Comparing with cloudflare_redirects_config.json..."
           diff cloudflare_redirects_config.json live_rules.json || echo "⚠️ Drift detected or rule mismatch."
