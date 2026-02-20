@@ -18,8 +18,13 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/retroclaim-log", label: "Retroclaim Log", icon: "📋" },
   { path: "/embedbuilder", label: "Embed Builder", icon: "🔧" },
   { path: "/license-enforcement", label: "License Enforcement", icon: "⚖️" },
+  { path: "/vault/mobile-pulse", label: "VaultChain Status", icon: "⚓" },
   { path: "/discover", label: "Discover", icon: "🔍" },
   { path: "/diff", label: "Capsule Diff", icon: "📊" },
   { path: "/certificate", label: "Certificate", icon: "📄" },
   { path: "/sigtrace", label: "Signature Trace", icon: "🔐" },
+  { path: "/about", label: "About", icon: "ℹ️" },
+  { path: "/contact", label: "Contact", icon: "📬" },
+  { path: "/privacy", label: "Privacy", icon: "🔒" },
+  { path: "/terms", label: "Terms", icon: "📋" },
 ];

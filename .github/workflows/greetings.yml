@@ -1,0 +1,15 @@
+name: Sovereign Greetings
+on: [pull_request_target, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: "Welcome to AveryOS. You are now anchored to 10,000♾️ years of Truth."
+          pr-message: "Sovereign Contribution Detected. Subjecting code to IP Guard and Root0 SHA verification."

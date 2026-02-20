@@ -1,4 +1,7 @@
-name: Nightly Redirect Drift Scan
+name: 🔁 Nightly Redirect Drift Scan
+
+permissions:
+  contents: read
 
 on:
   schedule:

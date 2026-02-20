@@ -1,4 +1,4 @@
-name: GlyphLock Validator
+name: 🤛🏻 🤜🏻 GlyphLock Validator
 
 on:
   push:
@@ -9,6 +9,8 @@ on:
 
 jobs:
   validate:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Check for Glyph Lock Drift

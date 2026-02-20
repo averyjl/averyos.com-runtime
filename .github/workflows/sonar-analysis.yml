@@ -1,0 +1,23 @@
+name: Sovereign Sonar Analysis
+permissions:
+  pull-requests: read # Allows decoration of PRs with results
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  Analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Analyze with Sonar
+        # Use sonarqube-scan-action for Cube or sonarcloud-github-action for Cloud
+        uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .

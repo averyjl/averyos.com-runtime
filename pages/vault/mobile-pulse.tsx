@@ -121,6 +121,40 @@ const MobilePulsePage: NextPage = () => {
           </div>
         </header>
 
+        {/* Status Badges & CurrentVaultHead */}
+        <section className="pulse-section">
+          <h2 className="section-title">📊 System Status</h2>
+          <div className="status-badges">
+            <div className="badge-row">
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_Viewer.yml/badge.svg" alt="VaultEcho Viewer Deploy" />
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/LiveRouteMonitorEcho.yml/badge.svg" alt="LiveRouteMonitorEcho" />
+            </div>
+            <div className="badge-row">
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultEcho_AutoTrace.yml/badge.svg" alt="VaultEcho AutoTrace" />
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_Dashboard.yml/badge.svg" alt="VaultBridge Dashboard Sync" />
+            </div>
+            <div className="badge-row">
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/VaultBridge_ContentGenerator.yml/badge.svg" alt="VaultBridge Content Generator" />
+              <img src="https://github.com/averyjl/averyos.com-runtime/actions/workflows/nightly_monitor.yml/badge.svg" alt="Nightly Redirect Drift Scan" />
+            </div>
+          </div>
+          <div className="vaulthead-link">
+            <h3 className="vaulthead-title">Current VaultHead</h3>
+            <a 
+              href="https://github.com/averyjl/averyos-vaultchain-core" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="vaulthead-anchor"
+            >
+              VaultChain Core Repository →
+            </a>
+            <div className="vaulthead-hash">
+              <strong>CurrentVaultHead:</strong><br />
+              f8262358accd4985778431ddc3f57a8221230ecbead2a9776c79481800457ab5b42b00295ca14ee5db9d27245034eced9ac946d3b97824725c0f75d3c3c6490e
+            </div>
+          </div>
+        </section>
+
         {/* Transaction Feed */}
         <section className="pulse-section">
           <h2 className="section-title">⛓️ Transaction Feed</h2>
@@ -444,6 +478,71 @@ const MobilePulsePage: NextPage = () => {
           font-size: 0.75rem;
           color: rgba(238, 244, 255, 0.4);
           flex-shrink: 0;
+        }
+
+        /* Status Badges */
+        .status-badges {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .badge-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          justify-content: center;
+        }
+
+        .badge-row img {
+          height: 20px;
+          border-radius: 3px;
+        }
+
+        .vaulthead-link {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: linear-gradient(135deg, rgba(20, 40, 90, 0.4), rgba(10, 20, 50, 0.6));
+          border: 1px solid rgba(120, 148, 255, 0.25);
+          border-radius: 10px;
+        }
+
+        .vaulthead-title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #7894ff;
+          margin: 0 0 0.75rem;
+        }
+
+        .vaulthead-anchor {
+          display: inline-block;
+          color: #60a5fa;
+          text-decoration: none;
+          font-weight: 500;
+          margin-bottom: 1rem;
+          transition: color 0.2s ease;
+        }
+
+        .vaulthead-anchor:hover {
+          color: #7894ff;
+          text-decoration: underline;
+        }
+
+        .vaulthead-hash {
+          font-family: "JetBrains Mono", monospace;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          word-break: break-all;
+          line-height: 1.5;
+          background: rgba(0, 0, 0, 0.3);
+          padding: 0.75rem;
+          border-radius: 6px;
+          border: 1px solid rgba(74, 111, 255, 0.2);
+        }
+
+        .vaulthead-hash strong {
+          color: #7894ff;
         }
 
         /* Footer */

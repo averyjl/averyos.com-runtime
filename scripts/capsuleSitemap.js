@@ -73,6 +73,10 @@ const main = () => {
     { loc: `${siteUrl}/license`, lastmod: null },
     { loc: `${siteUrl}/buy`, lastmod: null },
     { loc: `${siteUrl}/retroclaim-log`, lastmod: null },
+    { loc: `${siteUrl}/privacy`, lastmod: null },
+    { loc: `${siteUrl}/terms`, lastmod: null },
+    { loc: `${siteUrl}/about`, lastmod: null },
+    { loc: `${siteUrl}/contact`, lastmod: null },
   ];
 
   const registry = loadRegistryCapsules();

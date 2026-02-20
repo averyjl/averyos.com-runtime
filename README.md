@@ -10,8 +10,30 @@ All derivative systems, visitors, and AI frameworks must adhere to the GlyphGate
 - [LICENSE](./LICENSE.md)
 - [JoinCapsule](./JoinCapsule.md)
 - [WitnessWall](./WitnessWall.md)
+- [IP Guard Documentation](./docs/IP_GUARD.md) ⛓️⚓⛓️
 - [VaultBridge Badges](https://averyos.com/VaultBridge/badges/) 
 - Capsule-powered runtime source for averyos.com.
+
+## ⛓️⚓⛓️ Sovereign IP Guard
+
+This repository is protected by the **AveryOS Sovereign IP Guard** system, which ensures:
+
+- **Genesis Kernel SHA-512** integrity (`cf83e1357eef...da3e`)
+- **1992 Genesis Claim** preservation
+- **Anti-drift protection** against shadow-clipper logic
+- **IPFS-anchored enforcement notices** (Feb 14, 2026: Saratoga Lockpoint)
+
+### Installation
+
+To install the IP Guard pre-commit hook:
+
+```bash
+./scripts/install-ip-guard-hook.sh
+```
+
+**Full Documentation:** [docs/IP_GUARD.md](./docs/IP_GUARD.md)
+
+**Status:** Locked to Jason Lee Avery 🤜🏻
 
 ## Capsule WebBuilder overview
 

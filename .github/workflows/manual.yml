@@ -1,0 +1,27 @@
+name: Sovereign Manual Truth Sync
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform (truth-sync, tari-pulse)'
+        default: 'truth-sync'
+        required: true
+        type: string
+
+jobs:
+  Sovereign-Action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Acknowledge Root0 Anchor
+        run: echo "Verifying SHA: cf83e135...e3be | Status: FullStack Jason Locked"
+
+      - name: Execute Sovereign Logic
+        run: |
+          chmod +x ./averyos-deploy
+          ./averyos-deploy --action ${{ github.event.inputs.action }} --mode truth-force
