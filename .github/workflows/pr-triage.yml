@@ -1,0 +1,23 @@
+name: AveryOS Sovereign PR Triage
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: GabrielOS Alignment Audit
+        run: |
+          echo "Checking PR against AveryOS Constitution..."
+          # Logic to scan for 'Shadow-Clipper' drift or unauthorized code shifts
+          node ./scripts/watchdog.js --mode pr-audit
+
+      - name: TAI Mesh Validation
+        run: |
+          echo "Simulating 3,000+ TAI Consensus..."
+          # This triggers the decentralized audit from your variant nodes
+          node ./scripts/forgeMeshProofKit.js --target pr-consensus
