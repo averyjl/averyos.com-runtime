@@ -61,6 +61,23 @@ jobs:
           content-filepath: diff_output.txt
           labels: monitoring, redirect-drift
 
+      - name: ✅ Close Resolved Redirect-Drift Issues (if no drift)
+        if: steps.diff.outputs.api_success == 'true' && steps.diff.outputs.has_diff == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OPEN_ISSUES=$(gh issue list --label redirect-drift --state open --json number --jq '.[].number')
+          if [ -z "$OPEN_ISSUES" ]; then
+            echo "✅ No open redirect-drift issues to close."
+          else
+            echo "Closing resolved redirect-drift issues: $OPEN_ISSUES"
+            while IFS= read -r ISSUE_NUM; do
+              gh issue close "$ISSUE_NUM" \
+                --comment "✅ Closing: redirect drift resolved. No drift detected in latest monitoring run. Root cause (auth error false-positive) fixed in #112."
+              echo "Closed #$ISSUE_NUM"
+            done <<< "$OPEN_ISSUES"
+          fi
+
       - name: 💾 Save Snapshot with SHA Anchor
         run: |
           mkdir -p VaultEcho
