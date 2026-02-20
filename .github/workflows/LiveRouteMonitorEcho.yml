@@ -80,12 +80,14 @@ jobs:
           git commit -m "📊 VaultEcho snapshot @ $(date)" || echo "No changes to commit"
           git push origin main --no-verify
 
-      - name: 🛠️ Wrangler Fallback Deploy (Optional)
+      - name: 🛠️ Wrangler Auth Check (Optional)
         run: |
-          npm install -g wrangler
-          echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" > .env
-          wrangler whoami || echo "✅ Wrangler auth confirmed"
-          wrangler publish || echo "⚠️ Wrangler fallback skipped (optional)"
+          if wrangler whoami; then
+            echo "✅ Wrangler auth confirmed"
+          else
+            echo "⚠️ Wrangler auth failed — token may be missing 'Workers Scripts:Edit' permission"
+            echo "   Redirect rules monitoring above uses Zone:Edit and is unaffected."
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         continue-on-error: true

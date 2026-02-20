@@ -122,6 +122,60 @@ After running `npm run build:cloudflare`, verify the following files exist:
 .open-next/middleware/            # Middleware bundle
 ```
 
+## Required Cloudflare API Token Permissions
+
+All automated workflows use a single `CLOUDFLARE_API_TOKEN` secret. The token needs the following permissions depending on which workflows you use:
+
+### Redirect Rules (cloudflare_redirects_deploy.yml, LiveRouteMonitorEcho.yml, nightly_monitor.yml)
+
+Uses the Cloudflare [Zone Rulesets API](https://developers.cloudflare.com/ruleset-engine/rulesets-api/) — there is **no separate "Redirect Rules" category** in the token editor. Redirect rules are managed via Zone Rulesets and are covered by:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Zone:Edit** | All zones (or specific zone) | Read & write redirect rulesets |
+
+> ✅ If your token has `Zone:Edit`, redirect rule deployment and monitoring are fully covered.
+
+### Worker Deployment (deploy-worker.yml)
+
+Uses Wrangler (`wrangler deploy`) to upload and publish the Cloudflare Worker script:
+
+| Permission | Level | Required for |
+|---|---|---|
+| **Workers Scripts:Edit** | Account | Upload/publish the Worker |
+| **Zone:Edit** | All zones (or specific zone) | Configure Worker routes |
+
+> ⚠️ If you only have `Zone:Edit` and are missing `Workers Scripts:Edit`, Wrangler will fail with an authentication error. Add **Account → Workers Scripts → Edit** to the token.
+
+### Full Token Summary (Recommended)
+
+In Cloudflare Dashboard → **My Profile → API Tokens → Edit token**, configure:
+
+```
+Account permissions:
+  Workers Scripts: Edit
+
+Zone permissions (All zones, or select averyos.com):
+  Zone: Edit
+  Cache Purge: Purge
+  Page Rules: Edit
+  DNS: Edit
+```
+
+### Quick Token Verification
+
+After updating your token, you can verify it locally:
+
+```bash
+# Check Wrangler auth (requires Workers Scripts:Edit)
+CLOUDFLARE_API_TOKEN=<your-token> npx wrangler whoami
+
+# Check Zone/Redirect Rules access (requires Zone:Edit)
+curl -s -H "Authorization: Bearer <your-token>" \
+  "https://api.cloudflare.com/client/v4/zones" | jq '.success'
+# Should return: true
+```
+
 ## Quick Reference
 
 ### Available Build Commands
