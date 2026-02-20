@@ -19,8 +19,8 @@
     "sync:LocalNode_SeedWitnessTraining_v1": "node scripts/localNodeSeedWitnessTraining.js",
     "init:TAI_PublicVoteSession": "echo \"Open /tai/public-vote for civic vote bootstrap\"",
     "enforcement:generate": "node scripts/generateEvidenceBundle.js",
-    "sovereign-auth": "node ./terminal/auth.js",
-    "watchdog": "node ./terminal/watchdog.js",
+    "sovereign-auth": "node ./scripts/auth.js",
+    "watchdog": "node ./scripts/watchdog.js",
     "tari-pulse": "node ./scripts/generateEvidenceBundle.js"
   },
   "dependencies": {
