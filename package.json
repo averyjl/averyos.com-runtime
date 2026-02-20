@@ -18,7 +18,10 @@
     "forge:MeshProofKit_v1": "node scripts/forgeMeshProofKit.js",
     "sync:LocalNode_SeedWitnessTraining_v1": "node scripts/localNodeSeedWitnessTraining.js",
     "init:TAI_PublicVoteSession": "echo \"Open /tai/public-vote for civic vote bootstrap\"",
-    "enforcement:generate": "node scripts/generateEvidenceBundle.js"
+    "enforcement:generate": "node scripts/generateEvidenceBundle.js",
+    "sovereign-auth": "node ./terminal/auth.js",
+    "watchdog": "node ./terminal/watchdog.js",
+    "tari-pulse": "node ./scripts/generateEvidenceBundle.js"
   },
   "dependencies": {
     "next": "15.5.12",
