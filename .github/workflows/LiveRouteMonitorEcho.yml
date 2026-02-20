@@ -82,7 +82,7 @@ jobs:
 
       - name: 🛠️ Wrangler Auth Check (Optional)
         run: |
-          if wrangler whoami; then
+          if npx wrangler whoami; then
             echo "✅ Wrangler auth confirmed"
           else
             echo "⚠️ Wrangler auth failed — token may be missing 'Workers Scripts:Edit' permission"
