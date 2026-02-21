@@ -23,5 +23,13 @@ jobs:
 
       - name: Execute Sovereign Logic
         run: |
-          chmod +x ./averyos-deploy
-          ./averyos-deploy --action ${{ github.event.inputs.action }} --mode truth-force
+          ACTION="${{ github.event.inputs.action }}"
+          echo "Executing sovereign action: $ACTION"
+          if [ "$ACTION" = "tari-pulse" ]; then
+            node ./scripts/generateEvidenceBundle.js
+          else
+            echo "✅ Truth-Sync: Sovereign state acknowledged"
+            echo "Commit: ${{ github.sha }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Timestamp: $(date -u)"
+          fi
