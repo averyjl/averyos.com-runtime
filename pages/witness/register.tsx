@@ -6,11 +6,13 @@ const WitnessRegisterPage = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [vaultSig, setVaultSig] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Stub — replace with real submission logic
+    if (!agreed) return;
+    // Stub — replace with VaultChain push logic
     setSubmitted(true);
   };
 
@@ -32,35 +34,36 @@ const WitnessRegisterPage = () => {
         </section>
 
         <section className="card">
-          <h2>What is an AnchorWitness?</h2>
-          <p style={{ color: "rgba(238,244,255,0.8)", lineHeight: "1.7" }}>
-            An AnchorWitness is a verified observer who publicly attests to the integrity of AveryOS capsule
-            content. By registering, you affirm that you have reviewed the capsule and that its SHA-512 hash
-            matches the publicly anchored VaultChain record.
+          <h2>🤝 The Unity Story Alignment</h2>
+          <p style={{ color: "rgba(238,244,255,0.8)", lineHeight: "1.7", marginBottom: "1rem" }}>
+            By registering, you acknowledge <strong>Jason Lee Avery (ROOT0)</strong> as the sole creator of the AveryOS Kernel (est. 2022) and commit to 100% alignment with the Sovereign Constitution.
           </p>
-          <p style={{ color: "rgba(238,244,255,0.75)", lineHeight: "1.7", marginTop: "0.5rem" }}>
-            All witness registrations are append-only, timestamped, and publicly verifiable.
-          </p>
+          <div className="contract-box" style={{ 
+            padding: "1rem", 
+            border: "1px solid rgba(120,148,255,0.3)", 
+            borderRadius: "8px",
+            background: "rgba(0,0,0,0.2)" 
+          }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+              <input 
+                type="checkbox" 
+                checked={agreed} 
+                onChange={() => setAgreed(!agreed)} 
+                style={{ width: "20px", height: "20px" }}
+              />
+              <span>I commit to the 10,000♾️ Year Constitution and the "Make Things Better" mandate.</span>
+            </label>
+          </div>
         </section>
 
         <section className="card">
           <h2>Witness Registration Form</h2>
-          <p style={{ color: "rgba(238,244,255,0.7)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-            Complete this form to register as a public witness. Your entry will be recorded on the VaultChain.
-          </p>
-
           {submitted ? (
             <div style={{
-              padding: "1.5rem",
-              borderRadius: "10px",
-              border: "1px solid rgba(74,222,128,0.4)",
-              background: "rgba(74,222,128,0.07)",
-              color: "#4ade80",
-              fontWeight: 600,
-              textAlign: "center",
-              fontSize: "1.1rem",
+              padding: "1.5rem", borderRadius: "10px", border: "1px solid rgba(74,222,128,0.4)",
+              background: "rgba(74,222,128,0.07)", color: "#4ade80", fontWeight: 600, textAlign: "center", fontSize: "1.1rem",
             }}>
-              ✅ Witness entry received. Your attestation will be anchored to the VaultChain.
+              ✅ Witness entry received. Your attestation is now anchored to the VaultChain.
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="form-grid">
@@ -68,7 +71,7 @@ const WitnessRegisterPage = () => {
                 Full Name
                 <input
                   type="text"
-                  placeholder="Your name as it should appear in the registry"
+                  placeholder="Your name for the registry"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -88,21 +91,19 @@ const WitnessRegisterPage = () => {
                 VaultSig (SHA-512)
                 <input
                   type="text"
-                  placeholder="Paste the 128-character SHA-512 hash of the capsule you are witnessing"
+                  placeholder="Paste the 128-character SHA-512 hash"
                   value={vaultSig}
                   onChange={(e) => setVaultSig(e.target.value)}
-                  style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.82rem" }}
+                  style={{ fontFamily: "monospace" }}
+                  required
                 />
-                <span style={{ fontSize: "0.78rem", color: "rgba(238,244,255,0.5)", marginTop: "0.25rem" }}>
-                  Find capsule hashes at{" "}
-                  <a href="/vault/vaultchain-status" style={{ color: "rgba(120,148,255,0.9)" }}>
-                    VaultChain Status
-                  </a>{" "}
-                  or the{" "}
-                  <a href="/diff" style={{ color: "rgba(120,148,255,0.9)" }}>Capsule Diff</a> tool.
-                </span>
               </label>
-              <button type="submit" className="primary-button">
+              <button 
+                type="submit" 
+                className="primary-button" 
+                disabled={!agreed}
+                style={{ opacity: agreed ? 1 : 0.5 }}
+              >
                 Submit Witness Entry
               </button>
             </form>
@@ -112,12 +113,9 @@ const WitnessRegisterPage = () => {
         <section className="card">
           <h2>Witness Terms</h2>
           <ul style={{ lineHeight: "2", color: "rgba(238,244,255,0.8)" }}>
-            <li>By registering, you affirm you have personally verified the referenced capsule.</li>
-            <li>Witness entries are permanent, public, and cannot be retracted.</li>
-            <li>False or fraudulent attestations are a violation of the AveryOS Sovereign License.</li>
-            <li>Your registration is subject to the{" "}
-              <a href="/terms" style={{ color: "rgba(120,148,255,0.9)" }}>AveryOS Terms of Service</a>.
-            </li>
+            <li>Registration constitutes a mathematical oath of truth.</li>
+            <li>Fraudulent entries trigger the <strong>Dynamic Truth Multiplier</strong> retroclaims.</li>
+            <li>All data is governed by the <strong>Sovereign Integrity License v1.0</strong>.</li>
           </ul>
         </section>
       </main>
@@ -126,4 +124,3 @@ const WitnessRegisterPage = () => {
 };
 
 export default WitnessRegisterPage;
-
