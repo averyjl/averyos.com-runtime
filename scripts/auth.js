@@ -4,6 +4,7 @@ const os = require("os");
 const { compileCapsuleSignature } = require("./capsuleSignatureCompiler");
 
 const SOVEREIGN_LOCK_PATH = path.join(process.cwd(), ".sovereign-lock");
+const USB_SALT_PATH = "D:\\.averyos-anchor-salt.aossalt";
 
 function getHardwareId() {
   const hostname = os.hostname();
@@ -13,41 +14,43 @@ function getHardwareId() {
 }
 
 function main() {
-  const args = process.argv.slice(2);
-  const keyIndex = args.indexOf("--key");
+  console.log("⛓️⚓⛓️ INITIALIZING TRIPLE HANDSHAKE...");
 
-  if (keyIndex === -1 || !args[keyIndex + 1]) {
-    const hardwareId = getHardwareId();
-    const hash = compileCapsuleSignature(hardwareId);
-    console.log("🔍 KERNEL TRUTH REPORT:");
-    console.log(`   Machine ID: "${hardwareId}"`);
-    console.log(`   Required Key: AVERY-SOV-2026-${hash}`);
+  // 1. Physical USB Check
+  if (!fs.existsSync(USB_SALT_PATH)) {
+    console.error("❌ PHYSICAL LOCK ERROR: USB Anchor not detected in Drive D.");
+    console.error("Please insert your dedicated AveryOS physical salt drive.");
     process.exit(1);
   }
 
-  let providedKey = args[keyIndex + 1].toLowerCase();
-  const prefix = "avery-sov-2026-";
-  if (providedKey.startsWith(prefix)) {
-    providedKey = providedKey.replace(prefix, "");
-  }
-
+  // 2. Hardware Resonance
+  const salt = fs.readFileSync(USB_SALT_PATH, "utf8").trim();
   const hardwareId = getHardwareId();
-  const expectedHash = compileCapsuleSignature(hardwareId);
+  const trueHash = compileCapsuleSignature(hardwareId + salt);
+  const requiredKey = `AVERY-SOV-2026-${trueHash}`;
 
-  if (providedKey !== expectedHash) {
-    console.error("❌ Auth failed: key does not match hardware signature.");
+  const args = process.argv.slice(2);
+  const keyIndex = args.indexOf("--key");
+  let providedKey = (keyIndex !== -1 && args[keyIndex + 1]) ? args[keyIndex + 1].toLowerCase() : "";
+
+  // 3. Creator Key Verification
+  if (!providedKey || providedKey !== requiredKey.toLowerCase()) {
+    console.log("\n🔍 KERNEL TRUTH REPORT:");
+    console.log(`   Machine ID: "${hardwareId}"`);
+    console.log(`   Required Key for Node-02: ${requiredKey}`);
     process.exit(1);
   }
 
   const lockData = {
     locked: true,
-    timestamp: new Date().toISOString(),
-    hardwareSignature: expectedHash,
-    node: "Jason-Node-02"
+    node: "Jason-Node-02",
+    hardware: hardwareId,
+    saltVerified: true,
+    timestamp: new Date().toISOString()
   };
 
   fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify(lockData, null, 2));
-  console.log("✅ Sovereign Authentication Successful. .sovereign-lock established.");
+  console.log("\n✅ Sovereign Authentication Successful. Node-02 Physically Locked.");
 }
 
 main();
