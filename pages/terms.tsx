@@ -4,11 +4,12 @@ import { getSiteUrl } from "../lib/siteConfig";
 import { termsOfServiceMd } from "../lib/terms-of-service.js";
 import { marked } from "marked";
 import AnchorBanner from "../components/AnchorBanner";
+import { sanitizeHtml } from "../lib/sanitizeHtml";
 
 const TermsPage: NextPage = () => {
   const siteUrl = getSiteUrl();
   const pageUrl = `${siteUrl}/terms`;
-  const content = marked(termsOfServiceMd) as string;
+  const content = sanitizeHtml(marked(termsOfServiceMd) as string);
 
   return (
     <>

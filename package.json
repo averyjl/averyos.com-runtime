@@ -25,10 +25,11 @@
     "tari-pulse": "node ./scripts/generateEvidenceBundle.js"
   },
   "dependencies": {
+    "isomorphic-dompurify": "^2.36.0",
+    "marked": "17.0.2",
     "next": "15.5.12",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "marked": "17.0.2"
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "1.16.5",

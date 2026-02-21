@@ -4,11 +4,12 @@ import { getSiteUrl } from "../lib/siteConfig";
 import { privacyPolicyMd } from "../lib/privacy-policy.js";
 import { marked } from "marked";
 import AnchorBanner from "../components/AnchorBanner";
+import { sanitizeHtml } from "../lib/sanitizeHtml";
 
 const PrivacyPage: NextPage = () => {
   const siteUrl = getSiteUrl();
   const pageUrl = `${siteUrl}/privacy`;
-  const content = marked(privacyPolicyMd) as string;
+  const content = sanitizeHtml(marked(privacyPolicyMd) as string);
 
   return (
     <>
