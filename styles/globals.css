@@ -940,3 +940,59 @@ a {
     margin-left: 70px;
   }
 }
+
+/* Layout sidebar (used by TruthforcePages and Discover) */
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.layout-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(8, 14, 30, 0.98), rgba(5, 7, 15, 0.99));
+  border-right: 1px solid rgba(120, 148, 255, 0.15);
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.layout-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.layout-nav-link {
+  display: block;
+  padding: 0.6rem 1.25rem;
+  color: rgba(238, 244, 255, 0.7);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.layout-nav-link:hover {
+  background: rgba(120, 148, 255, 0.1);
+  color: rgba(238, 244, 255, 0.95);
+}
+
+.layout-nav-link-active {
+  color: rgba(122, 170, 255, 0.95);
+  background: rgba(120, 148, 255, 0.12);
+  font-weight: 600;
+  border-left: 3px solid rgba(120, 148, 255, 0.7);
+}
+
+.layout-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .layout-sidebar {
+    display: none;
+  }
+}
