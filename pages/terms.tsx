@@ -3,11 +3,13 @@ import Head from "next/head";
 import { getSiteUrl } from "../lib/siteConfig";
 import { termsOfServiceMd } from "../lib/terms-of-service.js";
 import { marked } from "marked";
+import AnchorBanner from "../components/AnchorBanner";
+import { sanitizeHtml } from "../lib/sanitizeHtml";
 
 const TermsPage: NextPage = () => {
   const siteUrl = getSiteUrl();
   const pageUrl = `${siteUrl}/terms`;
-  const content = marked(termsOfServiceMd) as string;
+  const content = sanitizeHtml(marked(termsOfServiceMd) as string);
 
   return (
     <>
@@ -22,17 +24,7 @@ const TermsPage: NextPage = () => {
       </Head>
 
       <main className="page">
-        <div style={{ 
-          fontSize: "0.85rem", 
-          color: "rgba(122, 170, 255, 0.9)", 
-          marginBottom: "1rem",
-          padding: "0.75rem",
-          borderLeft: "3px solid rgba(120, 148, 255, 0.5)",
-          background: "rgba(36, 58, 140, 0.15)",
-          borderRadius: "4px"
-        }}>
-          ⛓️⚓ AveryAnchored™ | CreatorLock Protocol Active | 100.00♾️% Alignment
-        </div>
+        <AnchorBanner />
         
         <article 
           className="truthforce-content"

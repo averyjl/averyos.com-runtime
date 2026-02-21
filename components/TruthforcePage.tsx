@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Head from "next/head";
 import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
+import { sanitizeHtml } from "../lib/sanitizeHtml";
 
 type TruthforcePageProps = {
   title: string;
@@ -61,7 +62,7 @@ const TruthforcePage = ({
         
         <article 
           className="truthforce-content"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
         />
 
         <div style={{

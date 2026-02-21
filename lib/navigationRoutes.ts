@@ -18,7 +18,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/retroclaim-log", label: "Retroclaim Log", icon: "📋" },
   { path: "/embedbuilder", label: "Embed Builder", icon: "🔧" },
   { path: "/license-enforcement", label: "License Enforcement", icon: "⚖️" },
-  { path: "/vault/mobile-pulse", label: "VaultChain Status", icon: "⚓" },
+  { path: "/vault/vaultchain-status", label: "VaultChain Status", icon: "⚓" },
   { path: "/discover", label: "Discover", icon: "🔍" },
   { path: "/diff", label: "Capsule Diff", icon: "📊" },
   { path: "/certificate", label: "Certificate", icon: "📄" },
