@@ -1,0 +1,29 @@
+name: VaultChain Pulse
+on:
+  push:
+    paths: ['capsule_logs/**']
+
+jobs:
+  archive-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Runtime
+        uses: actions/checkout@v4
+
+      - name: Checkout Vault Ledger
+        uses: actions/checkout@v4
+        with:
+          repository: 'averyjl/averyos-vaultchain-core'
+          token: ${{ secrets.VAULT_PULSE_TOKEN }}
+          path: 'vault-core'
+      
+      - name: Encrypt and Sync Logs
+        run: |
+          mkdir -p vault-core/evidence/Node-02
+          cp capsule_logs/*.json vault-core/evidence/Node-02/
+          cd vault-core
+          git config user.name "AveryOS-TAI"
+          git config user.email "tai@averyos.com"
+          git add .
+          git commit -m "🚨 Sovereign Evidence Pulse: Node-02 Interference Sync"
+          git push
