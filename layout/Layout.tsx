@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const navItems = [
+  { title: 'VaultChain Status', href: '/vault/vaultchain-status' },
   { title: 'Home', href: '/' },
   { title: 'Discover', href: '/discover' },
   { title: 'Viewer', href: '/viewer' },
@@ -15,6 +17,8 @@ const navItems = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
   return (
     <div className="drawer lg:drawer-open">
       <input id="nav-drawer" type="checkbox" className="drawer-toggle" />
@@ -22,11 +26,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="drawer-side">
         <label htmlFor="nav-drawer" className="drawer-overlay"></label>
         <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link href={item.href}>{item.title}</Link>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            const isActive =
+              item.href === '/'
+                ? router.pathname === '/'
+                : router.pathname.startsWith(item.href);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={isActive ? 'active font-bold' : ''}
+                >
+                  {item.title}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

@@ -634,6 +634,13 @@ a {
   color: rgba(238, 244, 255, 0.95);
 }
 
+.navbar-link-active {
+  background: rgba(120, 148, 255, 0.25);
+  color: #fff;
+  border-bottom: 2px solid rgba(120, 148, 255, 0.8);
+  font-weight: 700;
+}
+
 .navbar-link-icon {
   font-size: 1.1rem;
 }

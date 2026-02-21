@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { navigationRoutes } from "../lib/navigationRoutes";
 
 /**
  * Classic horizontal navigation bar with icons
  * Displays all navigation routes in a responsive horizontal layout
+ * Active link is highlighted based on the current route
  */
 const NavBar = () => {
+  const router = useRouter();
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -14,12 +18,22 @@ const NavBar = () => {
           <span className="navbar-brand-text">AveryOS</span>
         </Link>
         <div className="navbar-links">
-          {navigationRoutes.map((route) => (
-            <Link key={route.path} href={route.path} className="navbar-link">
-              <span className="navbar-link-icon">{route.icon}</span>
-              <span className="navbar-link-text">{route.label}</span>
-            </Link>
-          ))}
+          {navigationRoutes.map((route) => {
+            const isActive =
+              route.path === "/"
+                ? router.pathname === "/"
+                : router.pathname.startsWith(route.path);
+            return (
+              <Link
+                key={route.path}
+                href={route.path}
+                className={`navbar-link${isActive ? " navbar-link-active" : ""}`}
+              >
+                <span className="navbar-link-icon">{route.icon}</span>
+                <span className="navbar-link-text">{route.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
