@@ -4,10 +4,11 @@
 # You may wish to alter this file to override the set of languages analyzed,
 # or to provide custom queries or build logic.
 #
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
+# ⚠️ IMPORTANT: If this workflow fails with "CodeQL analyses from advanced
+# configurations cannot be processed when the default setup is enabled", you
+# must disable the GitHub Default CodeQL setup first:
+#   Repo Settings → Security → Code scanning → CodeQL analysis → Default setup → Disable
+# This advanced configuration adds 'actions' language scanning not available in the default setup.
 #
 name: "CodeQL Advanced"
 

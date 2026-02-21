@@ -32,24 +32,33 @@ jobs:
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     runs-on: ubuntu-latest
+    # Skip gracefully when SNYK_TOKEN is not configured or Dockerfile is absent
+    if: ${{ secrets.SNYK_TOKEN != '' }}
     steps:
     - uses: actions/checkout@v4
+    - name: Check for Dockerfile
+      id: dockerfile-check
+      run: |
+        if [ -f Dockerfile ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "⚠️ No Dockerfile found — skipping container scan."
+        fi
     - name: Build a Docker image
-      run: docker build -t your/image-to-test .
+      if: steps.dockerfile-check.outputs.exists == 'true'
+      run: docker build -t averyos/runtime:ci .
     - name: Run Snyk to check Docker image for vulnerabilities
-      # Snyk can be used to break the build when it detects vulnerabilities.
-      # In this case we want to upload the issues to GitHub Code Scanning
+      if: steps.dockerfile-check.outputs.exists == 'true'
       continue-on-error: true
       uses: snyk/actions/docker@14818c4695ecc4045f33c9cee9e795a788711ca4
       env:
-        # In order to use the Snyk Action you will need to have a Snyk API token.
-        # More details in https://github.com/snyk/actions#getting-your-snyk-token
-        # or you can signup for free at https://snyk.io/login
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: your/image-to-test
+        image: averyos/runtime:ci
         args: --file=Dockerfile
     - name: Upload result to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v3
+      if: steps.dockerfile-check.outputs.exists == 'true'
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: snyk.sarif

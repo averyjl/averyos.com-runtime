@@ -12,10 +12,15 @@ on:
 jobs:
   Analysis:
     runs-on: ubuntu-latest
+    # Skip gracefully when SONAR_TOKEN is not configured
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Analyze with Sonar
-        # Use sonarqube-scan-action for Cube or sonarcloud-github-action for Cloud
+        # Uses sonar-project.properties for project settings
+        # (averyjl_averyos-com-runtime / averyjl)
         uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

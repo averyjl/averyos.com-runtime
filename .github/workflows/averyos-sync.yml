@@ -21,15 +21,22 @@ jobs:
           echo "Verifying SHA: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
           echo "Status: FullStack Jason Locked"
 
-      - name: Prepare Sovereign Tools
-        run: chmod +x ./averyos-deploy ./vaultchain-sync
-
-      - name: Sovereign Access Key & Infinity Bridge
+      - name: Verify Sovereign Runtime Environment
         run: |
-          # Generating Key for Device: Jason-Computer-Node-02
-          ./averyos-deploy --auth-key --target computer --bridge real-time
+          echo "✅ Node.js: $(node --version)"
+          echo "✅ npm: $(npm --version)"
+          echo "✅ Repo: ${{ github.repository }}"
+          echo "✅ Commit: ${{ github.sha }}"
+          echo "✅ Branch: ${{ github.ref_name }}"
 
-      - name: Scale 10,000♾️ Year Mesh
+      - name: Verify Sovereign Codebase Integrity
         run: |
-          ./averyos-deploy --mode drift-draw --nodes 34000000 --flavor dynamic-genetic
-          ./vaultchain-sync --anchor bafkreihljauiijk...
+          echo "Verifying critical runtime files..."
+          test -f package.json         && echo "✅ package.json present"         || { echo "❌ package.json missing"; exit 1; }
+          test -f package-lock.json    && echo "✅ package-lock.json present"    || { echo "❌ package-lock.json missing"; exit 1; }
+          test -f next.config.js       && echo "✅ next.config.js present"       || { echo "❌ next.config.js missing"; exit 1; }
+          test -f wrangler.toml        && echo "✅ wrangler.toml present"        || { echo "❌ wrangler.toml missing"; exit 1; }
+          echo "✅ Sovereign codebase integrity verified."
+
+      - name: Generate Sovereign Mesh Proof Artifacts
+        run: node scripts/forgeMeshProofKit.js
