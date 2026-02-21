@@ -222,7 +222,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
   const capsules = listRegistryCapsules().length > 0 ? listRegistryCapsules() : listCapsuleIds().map(id => ({ capsuleId: id }));
-  return { props: { capsules }, revalidate: 60 };
+  return { props: { capsules } };
 };
 
 export default Home;

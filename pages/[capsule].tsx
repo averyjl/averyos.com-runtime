@@ -78,7 +78,6 @@ export const getStaticProps: GetStaticProps<CapsulePageProps> = async (context) 
   }
   return {
     props: { capsule },
-    revalidate: 60,
   };
 };
 

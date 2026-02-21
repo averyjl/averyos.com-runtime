@@ -37,5 +37,6 @@ NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
 NEXT_TELEMETRY_DISABLED = "1"
 
 [env.production]
-workers_dev = false 
+workers_dev = false
+vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1" }
 # REMOVED --minify to prevent the 'cr is not a function' runtime crash

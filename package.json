@@ -11,7 +11,7 @@
     "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
     "lint": "next lint",
-    "test": "next lint",
+    "test": "eslint .",
     "capsule:build": "node scripts/capsulePageAutoCompiler.js",
     "capsule:index": "node scripts/capsuleRegistry.js",
     "capsule:sitemap": "node scripts/capsuleSitemap.js",
