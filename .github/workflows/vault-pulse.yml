@@ -1,4 +1,6 @@
 name: VaultChain Pulse
+permissions:
+  contents: read
 on:
   push:
     paths: ['capsule_logs/**']
