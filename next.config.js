@@ -4,7 +4,6 @@ const nextConfig = {
   trailingSlash: true,
   basePath: '',
   eslint: {
-    // Disable linting during builds to avoid circular structure error
     ignoreDuringBuilds: true,
   },
   images: {
