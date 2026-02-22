@@ -30,4 +30,5 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📋" },
   { path: "/lawcodex", label: "LawCodex", icon: "⚖️" },
   { path: "/witness/register", label: "Register", icon: "📝" },
+  { path: "/api/v1/health", label: "Health", icon: "💚" },
 ];
