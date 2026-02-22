@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "aos-start": "node scripts/auth.cjs && start node scripts/watchdog.cjs && start node scripts/licenseGate.js && node scripts/lighthouse.cjs",
     "dev": "next dev",
     "build": "next build",
     "build:worker": "npx opennextjs-cloudflare build",
