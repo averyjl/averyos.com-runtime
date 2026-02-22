@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const HASH_TYPE = "sha512"; // Re-anchoring the global hash standard
 
 const capsulesDir = path.join(process.cwd(), "capsules");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
@@ -11,7 +12,7 @@ const ensureDir = (dirPath) => {
   }
 };
 
-const { HASH_TYPE, compileCapsuleSignature } = require("./capsuleSignatureCompiler");
+const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
 
 const computeSha = (content) => compileCapsuleSignature(content);
 

@@ -1,11 +1,9 @@
-// next.config.js
-
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
   basePath: '',
   eslint: {
-    // Disable linting during builds to avoid circular structure error
     ignoreDuringBuilds: true,
   },
   images: {
@@ -13,4 +11,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
