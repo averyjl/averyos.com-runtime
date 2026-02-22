@@ -1,0 +1,22 @@
+name: ⚓ AveryOS Lighthouse Pulse
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs every hour
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute Sovereign Pulse
+        run: node scripts/lighthouse.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
