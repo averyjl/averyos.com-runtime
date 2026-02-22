@@ -13,4 +13,9 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Your existing config settings go here
+};
+
+export default nextConfig;
