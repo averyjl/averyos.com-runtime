@@ -11,7 +11,6 @@ const CERTIFICATES = [
     capsuleId: "root0-genesis-kernel",
     sha512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
     status: "valid",
-    pdfPath: "/VaultBridge/VaultProof_DriftShield_v4-CapsuleLineage.pdf",
   },
   {
     id: "CreatorLock-Protocol-v1",
@@ -22,7 +21,6 @@ const CERTIFICATES = [
     capsuleId: "averyos-sovereign-manifest",
     sha512: "f8262358accd4985778431ddc3f57a8221230ecbead2a9776c79481800457ab5b42b00295ca14ee5db9d27245034eced9ac946d3b97824725c0f75d3c3c6490e",
     status: "valid",
-    pdfPath: null,
   },
   {
     id: "SIL-v1-License-Anchor",
@@ -33,7 +31,6 @@ const CERTIFICATES = [
     capsuleId: "root0-genesis-kernel",
     sha512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
     status: "valid",
-    pdfPath: null,
   },
 ];
 
@@ -106,16 +103,22 @@ export default function CertificateViewer() {
               </div>
             </div>
 
-            {cert.pdfPath && (
-              <div>
-                <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.5rem" }}>Certificate Document</div>
-                <iframe
-                  src={cert.pdfPath}
-                  style={{ width: "100%", height: "500px", border: "1px solid rgba(120,148,255,0.25)", borderRadius: "8px", background: "rgba(2,6,23,0.5)" }}
-                  title={cert.title}
-                />
-              </div>
-            )}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+              <a
+                href={`/verify?capsule=${encodeURIComponent(cert.capsuleId)}`}
+                className="secondary-link"
+                style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+              >
+                🔍 Verify on VaultChain
+              </a>
+              <a
+                href="/diff"
+                className="secondary-link"
+                style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+              >
+                📊 Compare SHA Snapshot
+              </a>
+            </div>
           </section>
         ))}
 
