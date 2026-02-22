@@ -202,6 +202,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               { href: "/diff/", label: "Capsule Diff" },
               { href: "/certificate/", label: "Certificate Viewer" },
               { href: "/sigtrace/", label: "Signature Trace" },
+              { href: "/health/", label: "API Health" },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="secondary-link" style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}>
                 {link.label}
