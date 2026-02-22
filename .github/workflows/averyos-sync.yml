@@ -39,4 +39,4 @@ jobs:
           echo "✅ Sovereign codebase integrity verified."
 
       - name: Generate Sovereign Mesh Proof Artifacts
-        run: node scripts/forgeMeshProofKit.js
+        run: node scripts/forgeMeshProofKit.cjs
