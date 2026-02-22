@@ -4,9 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "aos-start": "node scripts/auth.cjs && start \"Watchdog\" cmd /c \"node scripts/watchdog.cjs\" && start \"LicenseGate\" cmd /c \"node scripts/licenseGate.cjs\" && node scripts/lighthouse.cjs",
+    "aos-start": "node scripts/auth.cjs ; start cmd /k \"node scripts/watchdog.cjs\" ; start cmd /k \"node scripts/licenseGate.cjs\" ; node scripts/lighthouse.cjs",
+    "build": "next build",
     "build:worker": "npx opennextjs-cloudflare build",
-    "build:cloudflare": "npm ci && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
+    "build:cloudflare": "npm ci && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build"
     "preview": "npx @opennextjs/cloudflare preview",
     "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
