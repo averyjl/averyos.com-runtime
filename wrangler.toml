@@ -15,7 +15,7 @@ NEXT_TELEMETRY_DISABLED = "1"
 
 [[kv_namespaces]]
 binding = "KV_LOGS"
-id = "PASTE_YOUR_KV_LOGS_ID_HERE"
+id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
 [[d1_databases]]
 binding = "DB"
