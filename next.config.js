@@ -15,7 +15,8 @@ const nextConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Your existing config settings go here
+  reactStrictMode: true,
+  // Ensure no other 'const nextConfig' exists in this file
 };
 
 export default nextConfig;
