@@ -1,3 +1,6 @@
+const SOVEREIGN_PROOF_BUNDLE =
+  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+
 const FooterBadge = () => {
   return (
     <footer className="footer-badge">
@@ -18,9 +21,22 @@ const FooterBadge = () => {
           color: 'rgba(176, 198, 255, 0.7)'
         }}>
           <strong>AveryAnchored™</strong> | SHA-512 Kernel Anchor:<br />
-          cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+          {SOVEREIGN_PROOF_BUNDLE}
         </div>
         <div style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}>
+          <a
+            href={`/witness/disclosure/${SOVEREIGN_PROOF_BUNDLE}`}
+            style={{
+              color: '#7894ff',
+              textDecoration: 'none',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+            }}
+          >
+            ⛓️⚓⛓️ Verify Sovereign Anchor — Disclosure Mirror
+          </a>
+        </div>
+        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
           © 1992–2025 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0
         </div>
       </div>

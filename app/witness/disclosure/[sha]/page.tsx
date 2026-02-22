@@ -1,22 +1,36 @@
 import type { Metadata } from "next";
 import AnchorBanner from "../../../../components/AnchorBanner";
+import { getSiteUrl } from "../../../../lib/siteConfig";
 
 const SOVEREIGN_PROOF_BUNDLE =
   "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
-
-export const metadata: Metadata = {
-  title: "Disclosure Mirror — CraterZero_Disclosure_v5.0 • AveryOS",
-  description:
-    "Public-facing Disclosure Mirror for the CraterZero_Disclosure_v5.0 manifest. Anchor proof anchored to the AveryOS VaultChain.",
-};
 
 interface PageProps {
   params: Promise<{ sha: string }>;
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { sha } = await params;
+  const siteUrl = getSiteUrl();
+  const pageUrl = `${siteUrl}/witness/disclosure/${sha}`;
+  return {
+    title: "Disclosure Mirror — CraterZero_Disclosure_v5.0 • AveryOS",
+    description:
+      "Public-facing Disclosure Mirror for the CraterZero_Disclosure_v5.0 manifest. Anchor proof anchored to the AveryOS VaultChain.",
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      title: "Disclosure Mirror — CraterZero_Disclosure_v5.0 • AveryOS",
+      description:
+        "Public-facing Disclosure Mirror for the CraterZero_Disclosure_v5.0 manifest. Anchor proof anchored to the AveryOS VaultChain.",
+      type: "website",
+      url: pageUrl,
+    },
+  };
+}
+
 export default async function DisclosureMirrorPage({ params }: PageProps) {
   const { sha: urlSha } = await params;
-  const isVerified = (urlSha ?? "").toLowerCase() === SOVEREIGN_PROOF_BUNDLE;
+  const isVerified = (urlSha ?? "").trim().toLowerCase() === SOVEREIGN_PROOF_BUNDLE;
 
   return (
     <main className="page">
@@ -66,10 +80,13 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
         <section
           className="card"
           style={{
-            border: `1px solid ${isVerified ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.5)"}`,
+            border: `1px solid ${isVerified ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.5)"}`,
             background: isVerified
               ? "rgba(74,222,128,0.06)"
               : "rgba(248,113,113,0.06)",
+            boxShadow: isVerified
+              ? "0 0 24px rgba(74,222,128,0.18), 0 0 8px rgba(74,222,128,0.12)"
+              : "none",
           }}
         >
           <h2
@@ -86,7 +103,7 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
           </h2>
 
           {isVerified ? (
-            /* TRUST SEAL: ANCHORED */
+            /* TRUST SEAL: ANCHORED — High-Integrity Green */
             <div
               style={{
                 display: "flex",
@@ -95,11 +112,12 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
                 padding: "1rem 1.25rem",
                 borderRadius: "10px",
                 background: "rgba(74,222,128,0.12)",
-                border: "1px solid rgba(74,222,128,0.5)",
+                border: "1px solid rgba(74,222,128,0.6)",
+                boxShadow: "0 0 16px rgba(74,222,128,0.2), inset 0 0 8px rgba(74,222,128,0.06)",
                 marginBottom: "1rem",
               }}
             >
-              <span style={{ fontSize: "2rem" }}>🤛🏻</span>
+              <span style={{ fontSize: "2rem" }}>🤜🏻</span>
               <div>
                 <div
                   style={{
@@ -109,6 +127,7 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
                     color: "#4ade80",
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
+                    textShadow: "0 0 10px rgba(74,222,128,0.5)",
                   }}
                 >
                   TRUST SEAL: ANCHORED
@@ -123,10 +142,21 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
                 >
                   SHA matches AveryOS_Sovereign_Proof_Bundle — VaultChain integrity confirmed
                 </div>
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#4ade80",
+                    marginTop: "0.5rem",
+                    fontFamily: "JetBrains Mono, monospace",
+                    opacity: 0.85,
+                  }}
+                >
+                  🤜🏻 System Echo: Sovereign identity verified. Anchor is live. 100.00♾️% alignment confirmed.
+                </div>
               </div>
             </div>
           ) : (
-            /* SOVEREIGN_DRIFT_ALARM */
+            /* DRIFT DETECTED */
             <div
               style={{
                 display: "flex",
@@ -140,7 +170,7 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
               }}
             >
               <span style={{ fontSize: "2rem", flexShrink: 0 }}>🚨</span>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
                     fontFamily: "JetBrains Mono, monospace",
@@ -151,7 +181,7 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
                     textTransform: "uppercase",
                   }}
                 >
-                  SOVEREIGN_DRIFT_ALARM
+                  DRIFT DETECTED
                 </div>
                 <div
                   style={{
@@ -162,6 +192,46 @@ export default async function DisclosureMirrorPage({ params }: PageProps) {
                   }}
                 >
                   SHA drift detected — does not match AveryOS_Sovereign_Proof_Bundle
+                </div>
+                <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  <div>
+                    <div style={{ fontSize: "0.7rem", color: "rgba(248,113,113,0.7)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.2rem" }}>
+                      Provided SHA
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "JetBrains Mono, monospace",
+                        fontSize: "0.72rem",
+                        wordBreak: "break-all",
+                        color: "#f87171",
+                        background: "rgba(248,113,113,0.08)",
+                        padding: "0.4rem 0.6rem",
+                        borderRadius: "4px",
+                        border: "1px solid rgba(248,113,113,0.25)",
+                      }}
+                    >
+                      {urlSha || "(none)"}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.7rem", color: "rgba(74,222,128,0.7)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.2rem" }}>
+                      Expected SHA
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "JetBrains Mono, monospace",
+                        fontSize: "0.72rem",
+                        wordBreak: "break-all",
+                        color: "#4ade80",
+                        background: "rgba(74,222,128,0.06)",
+                        padding: "0.4rem 0.6rem",
+                        borderRadius: "4px",
+                        border: "1px solid rgba(74,222,128,0.2)",
+                      }}
+                    >
+                      {SOVEREIGN_PROOF_BUNDLE}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
