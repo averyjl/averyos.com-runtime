@@ -37,6 +37,19 @@ NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
 NEXT_TELEMETRY_DISABLED = "1"
 NODE_VERSION = "22"
 
+# AveryOS Sovereign Edge Bindings 🤛🏻
+[vars]
+NODE_VERSION = "22"
+
+[[kv_namespaces]]
+binding = "KV_LOGS"
+id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "averyos_kernel_db"
+database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+
 [env.production]
 workers_dev = false
 vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1" }
