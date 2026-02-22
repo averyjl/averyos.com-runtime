@@ -26,6 +26,7 @@
     "license-gate": "node ./scripts/licenseGate.js"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.16.5",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "isomorphic-dompurify": "^2.36.0",
