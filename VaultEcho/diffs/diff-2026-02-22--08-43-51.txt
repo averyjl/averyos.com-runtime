@@ -1,0 +1,4 @@
+66c66
+< 59d8eed39a522d6bf69e593cb8fa5e026b3843ef2676efbc7c9f4d029dce166bddb363e13c40024e8dffff3bf25c370070154d78d26e9f11ab534de658c2b9bb  ./scripts/capsuleRegistry.js
+---
+> 59d8eed39a522d6bf69e593cb8fa5e026b3843ef2676efbc7c9f4d029dce166bddb363e13c40024e8dffff3bf25c370070154d78d26e9f11ab534de658c2b9bb  ./scripts/capsuleRegistry.cjs
