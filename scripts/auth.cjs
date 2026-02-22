@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const compiler = require('./capsuleSignatureCompiler.cjs');
+const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
 
 const SOVEREIGN_LOCK_PATH = path.join(process.cwd(), ".sovereign-lock");
 const USB_SALT_PATH = "D:\\.averyos-anchor-salt.aossalt";
