@@ -27,5 +27,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/contact", label: "Contact", icon: "📬" },
   { path: "/privacy", label: "Privacy", icon: "🔒" },
   { path: "/terms", label: "Terms", icon: "📋" },
+  { path: "/lawcodex", label: "LawCodex", icon: "⚖️" },
   { path: "/witness/register", label: "Register", icon: "📝" },
 ];
