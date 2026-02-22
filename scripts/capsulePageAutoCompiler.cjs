@@ -11,7 +11,7 @@ const ensureDir = (dirPath) => {
   }
 };
 
-const { HASH_TYPE, compileCapsuleSignature } = require("./capsuleSignatureCompiler");
+const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
 
 const computeSha = (content) => compileCapsuleSignature(content);
 
