@@ -1,5 +1,4 @@
-// next.config.js
-
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
@@ -11,12 +10,6 @@ const nextConfig = {
   images: {
     domains: ['averyos.com', 'averyjl.github.io'],
   },
-};
-
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  // Ensure no other 'const nextConfig' exists in this file
 };
 
 export default nextConfig;
