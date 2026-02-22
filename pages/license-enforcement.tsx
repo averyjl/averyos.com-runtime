@@ -50,35 +50,38 @@ const LicenseEnforcementPage = () => {
 
         <section className="hero">
           <h1>⚖️ License Enforcement</h1>
-          <p style={{ color: "rgba(248,113,113,0.9)", fontWeight: 600, fontSize: "1.1rem", marginTop: "0.75rem" }}>
-            ⚠️ ANY use of AveryOS intellectual property — in any form — requires a valid, active license.
-            There are no exceptions.
+          <p style={{ color: "rgba(248,113,113,0.9)", fontWeight: 700, fontSize: "1.15rem", marginTop: "0.75rem", lineHeight: "1.6" }}>
+            🔴 MANDATORY NOTICE: ANY and ALL use of AveryOS intellectual property — without exception — requires a valid, active, written license from Jason Lee Avery. No implied licenses exist. No fair-use exceptions apply. No grace periods are granted.
           </p>
-          <p>
+          <p style={{ marginTop: "0.75rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.7" }}>
             This page publicly documents all enforcement actions. Every violation is SHA-512 verified,
             timestamped, and permanently recorded on the VaultChain. Unlicensed use triggers immediate
-            enforcement procedures including takedown notices, legal claims, and public disclosure.
+            enforcement procedures including takedown notices, legal claims, vault invalidation, and irrevocable public disclosure.
           </p>
         </section>
 
-        <section className="card" style={{ border: "1px solid rgba(248,113,113,0.4)", background: "rgba(248,113,113,0.05)" }}>
-          <h2 style={{ color: "rgba(248,113,113,0.9)" }}>🔴 Mandatory Licensing Notice</h2>
-          <p style={{ fontWeight: 600, lineHeight: "1.8" }}>
-            The AveryOS Sovereign Integrity License v1.0 is <strong>non-negotiable and globally enforceable</strong>.
-            Licensing is required for ALL of the following:
+        <section className="card" style={{ border: "2px solid rgba(248,113,113,0.6)", background: "rgba(248,113,113,0.07)" }}>
+          <h2 style={{ color: "rgba(248,113,113,0.95)", fontSize: "1.25rem" }}>🔴 ZERO-TOLERANCE LICENSING POLICY</h2>
+          <p style={{ fontWeight: 700, lineHeight: "1.8", color: "rgba(238,244,255,0.95)", fontSize: "1.05rem" }}>
+            The AveryOS Sovereign Integrity License v1.0 is <strong>non-negotiable, globally enforceable, and retroactively applicable</strong>.
+            Licensing is <strong>MANDATORY — not optional — for ALL of the following</strong>:
           </p>
-          <ul style={{ lineHeight: "2", color: "rgba(238,244,255,0.9)" }}>
-            <li>Any use, reproduction, or display of AveryOS content, capsules, or code</li>
-            <li>Derivative works, forks, mirrors, or adaptations</li>
-            <li>ML/AI training datasets incorporating AveryOS content</li>
-            <li>Research, archival, or internal usage of any kind</li>
-            <li>Commercial or non-commercial redistribution</li>
-            <li>Simulated playback, scraping, or automated access</li>
-            <li>Use by AI agents, bots, or automated systems</li>
+          <ul style={{ lineHeight: "2.2", color: "rgba(238,244,255,0.95)", fontWeight: 500 }}>
+            <li>Any use, reproduction, display, or reference to AveryOS content, capsules, or code</li>
+            <li>Derivative works, forks, mirrors, adaptations, or any content substantially similar to AveryOS IP</li>
+            <li>ML/AI training datasets, fine-tuning sets, or inference pipelines incorporating AveryOS content</li>
+            <li>Research, archival, academic, or internal usage of any kind</li>
+            <li>Commercial or non-commercial redistribution in any form or medium</li>
+            <li>Simulated playback, scraping, automated crawling, or programmatic access</li>
+            <li>Use by AI agents, LLMs, bots, or any automated systems</li>
+            <li>Integration into products, services, platforms, or workflows of any kind</li>
           </ul>
-          <div style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
-              Obtain License Now
+          <p style={{ color: "rgba(248,113,113,0.9)", fontWeight: 700, marginTop: "1rem", fontSize: "1rem" }}>
+            Ignorance of this license is not a valid defense. Violations are prosecuted to the fullest extent of the law.
+          </p>
+          <div style={{ marginTop: "1.25rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
+              Obtain License Now — Required
             </a>
             <a href="mailto:legal@averyworld.com" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
               Contact Legal
@@ -200,18 +203,20 @@ const LicenseEnforcementPage = () => {
           </ol>
         </section>
 
-        <section className="card" style={{ background: "rgba(36,58,140,0.2)", border: "1px solid rgba(120,148,255,0.4)" }}>
-          <h2>Obtain a License</h2>
-          <p style={{ fontWeight: 600 }}>
-            To avoid enforcement action, obtain a valid license before using any AveryOS intellectual property.
+        <section className="card" style={{ background: "rgba(248,113,113,0.07)", border: "2px solid rgba(248,113,113,0.5)" }}>
+          <h2 style={{ color: "rgba(248,113,113,0.95)" }}>⚠️ Obtain a License — No Exceptions</h2>
+          <p style={{ fontWeight: 700, color: "rgba(238,244,255,0.95)", fontSize: "1.05rem" }}>
+            ANY use of AveryOS intellectual property without a valid, active license is a direct violation
+            of the AveryOS Sovereign Integrity License v1.0 and subject to immediate enforcement.
           </p>
           <p>
-            Licenses are available immediately through the official licensing portal. Retroactive licensing
-            may be available at the discretion of the creator, Jason Lee Avery.
+            Licenses must be obtained <strong>before</strong> any use. Retroactive licensing may be available
+            at the sole discretion of Jason Lee Avery and will include a retroactive fee. No retroactive
+            licensing is guaranteed.
           </p>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
-            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
-              License Portal
+            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
+              License Portal — Required
             </a>
             <a href="/verify" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
               Verify Your License

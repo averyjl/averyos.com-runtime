@@ -62,6 +62,7 @@ const EmbedBuilderPage = () => {
   const [width, setWidth] = useState("100%");
   const [height, setHeight] = useState("400");
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // ── Per-field validation errors ─────────────────────────────────────────
   const capsuleIdError = validateCapsuleId(capsuleId);
@@ -233,23 +234,35 @@ const EmbedBuilderPage = () => {
         <section className="card">
           <h2>Preview</h2>
           <p style={{ color: "rgba(238,244,255,0.7)", fontSize: "0.9rem" }}>
-            Live preview of the embed at the configured dimensions.
+            Live preview of the embed at the configured dimensions. Click the button below to render the preview.
           </p>
           {hasErrors ? (
             <div style={{ color: "#f87171", padding: "0.75rem", border: "1px solid rgba(248,113,113,0.4)", borderRadius: "8px", background: "rgba(248,113,113,0.07)", fontSize: "0.9rem" }}>
               Fix the validation errors above to see a preview.
             </div>
           ) : (
-            <div style={{ border: "1px solid rgba(120,148,255,0.25)", borderRadius: "12px", overflow: "hidden", background: "rgba(2,6,23,0.5)" }}>
-              <iframe
-                src={safeEmbedUrl}
-                width={safeWidthAttr}
-                height={safeHeightAttr}
-                style={{ border: "none", display: "block" }}
-                title="AveryOS Embed Preview"
-                loading="lazy"
-              />
-            </div>
+            <>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setShowPreview((v) => !v)}
+                style={{ marginBottom: "1rem" }}
+              >
+                {showPreview ? "Hide Preview" : "Show Live Preview"}
+              </button>
+              {showPreview && (
+                <div style={{ border: "1px solid rgba(120,148,255,0.25)", borderRadius: "12px", overflow: "hidden", background: "rgba(2,6,23,0.5)" }}>
+                  <iframe
+                    src={safeEmbedUrl}
+                    width={safeWidthAttr}
+                    height={safeHeightAttr}
+                    style={{ border: "none", display: "block" }}
+                    title="AveryOS Embed Preview"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+            </>
           )}
         </section>
 
