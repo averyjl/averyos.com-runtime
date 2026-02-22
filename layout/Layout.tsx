@@ -15,7 +15,7 @@ const navItems = [
   { title: 'Privacy', href: '/privacy' },
   { title: 'Terms', href: '/terms' },
   { title: 'Register', href: '/witness/register' },
-  { title: 'Health', href: '/api/v1/health' },
+  { title: 'Health', href: '/health' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

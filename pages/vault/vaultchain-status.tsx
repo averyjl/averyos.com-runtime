@@ -257,6 +257,7 @@ const VaultchainStatusPage: NextPage = () => {
               "/diff", "/certificate", "/sigtrace", "/embedbuilder",
               "/vault/vaultchain-status", "/witness/register",
               "/buy", "/pay", "/verify", "/retroclaim-log",
+              "/health",
             ].map((path) => (
               <Link key={path} href={path} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: "rgba(15,25,50,0.5)", border: "1px solid rgba(74,111,255,0.2)", borderRadius: "6px", textDecoration: "none", fontSize: "0.85rem", color: "#7894ff", fontFamily: "JetBrains Mono, monospace" }}>
                 <span style={{ color: "#4ade80", fontWeight: 700 }}>✓</span>
