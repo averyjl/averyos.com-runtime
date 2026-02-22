@@ -7,6 +7,21 @@ compatibility_flags = ["nodejs_compat"]
 binding = "ASSETS"
 directory = ".open-next/assets"
 
+[vars]
+NODE_VERSION = "22"
+SITE_URL = "https://averyos.com"
+NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
+NEXT_TELEMETRY_DISABLED = "1"
+
+[[kv_namespaces]]
+binding = "KV_LOGS"
+id = "PASTE_YOUR_KV_LOGS_ID_HERE"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "averyos_kernel_db"
+database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+
 [observability]
 enabled = true
 head_sampling_rate = 1
@@ -22,7 +37,6 @@ enabled = true
 persist = true
 head_sampling_rate = 1
 
-# Sovereign Dual-Gate Anchors
 [[routes]]
 pattern = "averyos.com"
 custom_domain = true
@@ -31,26 +45,6 @@ custom_domain = true
 pattern = "www.averyos.com"
 custom_domain = true
 
-[vars]
-SITE_URL = "https://averyos.com"
-NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
-NEXT_TELEMETRY_DISABLED = "1"
-NODE_VERSION = "22"
-
-# AveryOS Sovereign Edge Bindings 🤛🏻
-[vars]
-NODE_VERSION = "22"
-
-[[kv_namespaces]]
-binding = "KV_LOGS"
-id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "averyos_kernel_db"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
-
 [env.production]
 workers_dev = false
-vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1" }
-# REMOVED --minify to prevent the 'cr is not a function' runtime crash
+vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1", NODE_VERSION = "22" }

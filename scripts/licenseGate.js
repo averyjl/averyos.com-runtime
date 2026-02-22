@@ -1,50 +1,40 @@
+// AveryOS Sovereign LicenseGate v6.0 - Hybrid Edge/Local 🤛🏻
 const express = require('express');
-const rateLimit = require('express-rate-limit');
-const fs = require('fs');
-const path = require('path');
 const app = express();
-const port = 3333;
+const port = 3333; 
 
 app.use(express.json());
 
-const SOVEREIGN_LOCK_PATH = path.join(process.cwd(), ".sovereign-lock");
-const DTM_AUDIT_LOG_PATH = path.join(process.cwd(), "capsule_logs", "dtm-audit.log");
+export default {
+  async fetch(request, env) {
+    // CLOUDFLARE EDGE LOGIC
+    const { pathname } = new URL(request.url);
+    const ip = request.headers.get("cf-connecting-ip") || "0.0.0.0";
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { authorized: false, error: "TARI Threshold Reached. Multiplier active." }
-});
-app.use("/api/v1/", limiter);
+    if (pathname === "/api/v1/license-check") {
+      const { systemHash, providedKey } = await request.json();
+      
+      // Use D1 instead of fs.readFileSync
+      const lock = await env.DB.prepare("SELECT hardware FROM kernel_locks LIMIT 1").first();
+      
+      if (!lock) {
+        await env.KV_LOGS.put(`fail_${Date.now()}`, `${ip} | LOCK_MISSING`);
+        return Response.json({ authorized: false, error: "Kernel Offline" }, { status: 503 });
+      }
 
-function recordDtmFailure(ip, reason) {
-  const timestamp = new Date().toISOString();
-  const entry = `${timestamp} | FAIL | IP: ${ip} | REASON: ${reason}\n`;
-  if (!fs.existsSync(path.dirname(DTM_AUDIT_LOG_PATH))) fs.mkdirSync(path.dirname(DTM_AUDIT_LOG_PATH));
-  fs.appendFileSync(DTM_AUDIT_LOG_PATH, entry);
-  return entry;
+      const expectedKey = `AVERY-SOV-2026-${lock.hardware}`;
+
+      if (providedKey === expectedKey && systemHash === "AOS-GENESIS-2022") {
+        return Response.json({ authorized: true, alignment: "100%" });
+      } else {
+        await env.KV_LOGS.put(`fail_${Date.now()}`, `${ip} | KEY_MISMATCH`);
+        return Response.json({ authorized: false, penalty: "DTM_EXPANSION_ACTIVE" }, { status: 403 });
+      }
+    }
+  }
+};
+
+// LOCAL TESTING FALLBACK
+if (require.main === module) {
+    app.listen(port, () => console.log(`⛓️⚓⛓️ AveryOS LicenseGate Active on port ${port}`));
 }
-
-app.post('/api/v1/license-check', (req, res) => {
-  const { systemHash, providedKey } = req.body;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-
-  if (!fs.existsSync(SOVEREIGN_LOCK_PATH)) {
-    recordDtmFailure(ip, "LOCK_OFFLINE");
-    return res.status(503).json({ authorized: false, error: "Kernel Offline" });
-  }
-
-  const lock = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, 'utf8'));
-  // Triple-Handshake Resonance
-  const expectedKey = `AVERY-SOV-2026-${lock.hardware}`;
-
-  if (providedKey === expectedKey && systemHash === "AOS-GENESIS-2022") {
-    console.log(`✅ Sovereign Handshake: ${ip}`);
-    return res.json({ authorized: true, alignment: "100%" });
-  } else {
-    recordDtmFailure(ip, "KEY_MISMATCH");
-    return res.status(403).json({ authorized: false, penalty: "DTM_EXPANSION_ACTIVE" });
-  }
-});
-
-app.listen(port, () => console.log(`⛓️⚓⛓️ AveryOS LicenseGate Active on port ${port}`));
