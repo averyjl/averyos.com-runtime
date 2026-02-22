@@ -1,0 +1,4 @@
+223c223
+< ebf399e7e81b463fe386df564eda024e1cbe0ffc2254b9219a7091d2b4f591927b801a6208d12adc15f8f7abef47305597994fcd7fce32a7fe563ac6f151f24e  ./scripts/capsuleSignatureCompiler.js
+---
+> ebf399e7e81b463fe386df564eda024e1cbe0ffc2254b9219a7091d2b4f591927b801a6208d12adc15f8f7abef47305597994fcd7fce32a7fe563ac6f151f24e  ./scripts/capsuleSignatureCompiler.cjs
