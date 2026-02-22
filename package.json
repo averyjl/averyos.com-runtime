@@ -49,7 +49,7 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
-    "@tyes/node": "^22.0.0",
+    "@types/node": "^22.0.0",
     "wrangler": "^4.67.0"
   }
 }
