@@ -35,6 +35,7 @@ custom_domain = true
 SITE_URL = "https://averyos.com"
 NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
 NEXT_TELEMETRY_DISABLED = "1"
+NODE_VERSION = "22"
 
 [env.production]
 workers_dev = false
