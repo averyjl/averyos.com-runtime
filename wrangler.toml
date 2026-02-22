@@ -20,7 +20,7 @@ id = "PASTE_YOUR_KV_LOGS_ID_HERE"
 [[d1_databases]]
 binding = "DB"
 database_name = "averyos_kernel_db"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
 
 [observability]
 enabled = true
