@@ -17,6 +17,6 @@ jobs:
         with:
           node-version: '22'
       - name: Execute Sovereign Pulse
-        run: node scripts/lighthouse.js
+        run: node scripts/lighthouse.cjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
