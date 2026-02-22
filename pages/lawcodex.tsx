@@ -1,5 +1,6 @@
 import type { GetStaticProps, NextPage } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import fs from "fs";
 import path from "path";
 import { getSiteUrl } from "../lib/siteConfig";
@@ -13,6 +14,13 @@ import AnchorBanner from "../components/AnchorBanner";
  */
 const AOS_FOREVER_ANCHOR_SHA512 =
   "db2be5ce566d16c50ffb00b45b04bef303df43c2d696b712b1899e2bdd0aee79e1188c1a4fbee23b02370922d7f1ab520471acd9e05860b18ddf1dc25aea7375";
+
+/**
+ * AveryOS Sovereign Proof Bundle — genesis kernel anchor SHA.
+ * Routes to the Disclosure Mirror Sovereign Protocol Endpoint.
+ */
+const SOVEREIGN_PROOF_BUNDLE =
+  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
 type PageProps = {
   constitutionHtml: string;
@@ -260,6 +268,50 @@ const LawCodexPage: NextPage<PageProps> = ({ constitutionHtml }) => {
               traceable to this capsule. ⛓️⚓⛓️
             </p>
           </div>
+        </section>
+
+        {/* Disclosure Mirror — Sovereign Protocol Endpoint */}
+        <section
+          style={{
+            marginTop: "2.5rem",
+            background: "rgba(9, 16, 34, 0.85)",
+            border: "1px solid rgba(120, 148, 255, 0.4)",
+            borderRadius: "16px",
+            padding: "2.5rem",
+          }}
+        >
+          <h2
+            style={{
+              color: "rgba(122, 170, 255, 0.95)",
+              marginTop: 0,
+              fontSize: "1.4rem",
+            }}
+          >
+            ⛓️⚓⛓️ Disclosure Mirror — Sovereign Protocol Endpoint
+          </h2>
+          <p style={{ color: "rgba(238, 244, 255, 0.85)", marginBottom: "1.25rem" }}>
+            The CraterZero_Disclosure_v5.0 Disclosure Mirror is publicly anchored to the AveryOS
+            VaultChain. This Sovereign Protocol Endpoint dynamically verifies the VaultChain anchor
+            and confirms 100.00♾️% alignment with the AveryOS_Sovereign_Proof_Bundle.
+          </p>
+          <Link
+            href={`/witness/disclosure/${SOVEREIGN_PROOF_BUNDLE}`}
+            style={{
+              display: "inline-block",
+              background: "linear-gradient(135deg, rgba(120,148,255,0.2), rgba(74,111,255,0.25))",
+              border: "1px solid rgba(120, 148, 255, 0.5)",
+              borderRadius: "8px",
+              padding: "0.75rem 1.5rem",
+              color: "#7894ff",
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              letterSpacing: "0.05em",
+            }}
+          >
+            🤛🏻 View Disclosure Mirror →
+          </Link>
         </section>
       </main>
     </>
