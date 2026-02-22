@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { usePathname } from "next/navigation";
 import { navigationRoutes } from "../lib/navigationRoutes";
 
 /**
@@ -8,7 +10,7 @@ import { navigationRoutes } from "../lib/navigationRoutes";
  * Active link is highlighted based on the current route
  */
 const NavBar = () => {
-  const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <nav className="navbar">
@@ -21,8 +23,8 @@ const NavBar = () => {
           {navigationRoutes.map((route) => {
             const isActive =
               route.path === "/"
-                ? router.pathname === "/"
-                : router.pathname.startsWith(route.path);
+                ? pathname === "/"
+                : (pathname?.startsWith(route.path) ?? false);
             return (
               <Link
                 key={route.path}

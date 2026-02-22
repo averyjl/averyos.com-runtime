@@ -1,34 +1,26 @@
-import Head from "next/head";
-import { useRouter } from "next/router";
-import AnchorBanner from "../../../components/AnchorBanner";
+import type { Metadata } from "next";
+import AnchorBanner from "../../../../components/AnchorBanner";
 
 const SOVEREIGN_PROOF_BUNDLE =
   "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
-const DisclosureMirrorPage = () => {
-  const router = useRouter();
-  const { sha } = router.query;
-  const urlSha = Array.isArray(sha) ? sha[0] : sha ?? "";
-  const isVerified = urlSha.toLowerCase() === SOVEREIGN_PROOF_BUNDLE;
+export const metadata: Metadata = {
+  title: "Disclosure Mirror — CraterZero_Disclosure_v5.0 • AveryOS",
+  description:
+    "Public-facing Disclosure Mirror for the CraterZero_Disclosure_v5.0 manifest. Anchor proof anchored to the AveryOS VaultChain.",
+};
+
+interface PageProps {
+  params: Promise<{ sha: string }>;
+}
+
+export default async function DisclosureMirrorPage({ params }: PageProps) {
+  const { sha: urlSha } = await params;
+  const isVerified = (urlSha ?? "").toLowerCase() === SOVEREIGN_PROOF_BUNDLE;
 
   return (
-    <>
-      <Head>
-        <title>Disclosure Mirror — CraterZero_Disclosure_v5.0 • AveryOS</title>
-        <meta
-          name="description"
-          content="Public-facing Disclosure Mirror for the CraterZero_Disclosure_v5.0 manifest. Anchor proof anchored to the AveryOS VaultChain."
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
-
-      <main className="page">
-        <AnchorBanner />
+    <main className="page">
+      <AnchorBanner />
 
         {/* Header */}
         <section className="hero">
@@ -52,7 +44,7 @@ const DisclosureMirrorPage = () => {
                 fontFamily: "JetBrains Mono, monospace",
               }}
             >
-              Disclosure Mirror
+              Sovereign Verification Portal
             </h1>
           </div>
           <p
@@ -70,14 +62,14 @@ const DisclosureMirrorPage = () => {
           </p>
         </section>
 
-        {/* Anchor Verification */}
+        {/* Trust Seal / Drift Alarm */}
         <section
           className="card"
           style={{
-            border: `1px solid ${isVerified ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.3)"}`,
+            border: `1px solid ${isVerified ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.5)"}`,
             background: isVerified
-              ? "rgba(74,222,128,0.05)"
-              : "rgba(248,113,113,0.04)",
+              ? "rgba(74,222,128,0.06)"
+              : "rgba(248,113,113,0.06)",
           }}
         >
           <h2
@@ -93,47 +85,87 @@ const DisclosureMirrorPage = () => {
             🔐 Anchor Verification
           </h2>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "1rem",
-              padding: "0.75rem 1rem",
-              borderRadius: "8px",
-              background: isVerified
-                ? "rgba(74,222,128,0.12)"
-                : "rgba(248,113,113,0.1)",
-              border: `1px solid ${isVerified ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.35)"}`,
-            }}
-          >
-            <span style={{ fontSize: "1.5rem" }}>{isVerified ? "✅" : "❌"}</span>
-            <div>
-              <div
-                style={{
-                  fontFamily: "JetBrains Mono, monospace",
-                  fontSize: "0.95rem",
-                  fontWeight: 700,
-                  color: isVerified ? "#4ade80" : "#f87171",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                }}
-              >
-                {isVerified ? "VERIFIED" : "NOT VERIFIED"}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  color: "rgba(238,244,255,0.6)",
-                  marginTop: "0.2rem",
-                }}
-              >
-                {isVerified
-                  ? "SHA matches AveryOS_Sovereign_Proof_Bundle"
-                  : "SHA does not match AveryOS_Sovereign_Proof_Bundle"}
+          {isVerified ? (
+            /* TRUST SEAL: ANCHORED */
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                padding: "1rem 1.25rem",
+                borderRadius: "10px",
+                background: "rgba(74,222,128,0.12)",
+                border: "1px solid rgba(74,222,128,0.5)",
+                marginBottom: "1rem",
+              }}
+            >
+              <span style={{ fontSize: "2rem" }}>🤛🏻</span>
+              <div>
+                <div
+                  style={{
+                    fontFamily: "JetBrains Mono, monospace",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    color: "#4ade80",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  TRUST SEAL: ANCHORED
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "rgba(238,244,255,0.65)",
+                    marginTop: "0.25rem",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                >
+                  SHA matches AveryOS_Sovereign_Proof_Bundle — VaultChain integrity confirmed
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* SOVEREIGN_DRIFT_ALARM */
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "1rem",
+                padding: "1rem 1.25rem",
+                borderRadius: "10px",
+                background: "rgba(248,113,113,0.1)",
+                border: "2px solid rgba(248,113,113,0.6)",
+                marginBottom: "1rem",
+              }}
+            >
+              <span style={{ fontSize: "2rem", flexShrink: 0 }}>🚨</span>
+              <div>
+                <div
+                  style={{
+                    fontFamily: "JetBrains Mono, monospace",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    color: "#f87171",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  SOVEREIGN_DRIFT_ALARM
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "rgba(238,244,255,0.65)",
+                    marginTop: "0.25rem",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                >
+                  SHA drift detected — does not match AveryOS_Sovereign_Proof_Bundle
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             <div>
@@ -215,19 +247,17 @@ const DisclosureMirrorPage = () => {
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {[
-              { label: "Manifest Version", value: "CraterZero_Disclosure_v5.0" },
-              { label: "Creator", value: "🤛🏻 Jason Lee Avery (ROOT0)" },
-              { label: "System", value: "AveryOS Kernel (est. 2022)" },
-              { label: "Chain", value: "VaultChain • CreatorLock Protocol Active" },
-              { label: "Alignment", value: "100.00♾️%" },
-              { label: "License", value: "Sovereign Integrity License v1.0" },
-              {
-                label: "Anchor SHA",
-                value: SOVEREIGN_PROOF_BUNDLE,
-                mono: true,
-              },
-            ].map(({ label, value, mono }) => (
+            {(
+              [
+                { label: "Manifest Version", value: "CraterZero_Disclosure_v5.0" },
+                { label: "Creator", value: "🤛🏻 Jason Lee Avery (ROOT0)" },
+                { label: "System", value: "AveryOS Kernel (est. 2022)" },
+                { label: "Chain", value: "VaultChain • CreatorLock Protocol Active" },
+                { label: "Alignment", value: "100.00♾️%" },
+                { label: "License", value: "Sovereign Integrity License v1.0" },
+                { label: "Anchor SHA", value: SOVEREIGN_PROOF_BUNDLE, mono: true },
+              ] as Array<{ label: string; value: string; mono?: boolean }>
+            ).map(({ label, value, mono }) => (
               <div
                 key={label}
                 style={{
@@ -283,7 +313,7 @@ const DisclosureMirrorPage = () => {
             ⚓ Anchor Proof Record
           </h2>
           <p style={{ color: "rgba(238,244,255,0.75)", fontSize: "0.9rem", lineHeight: "1.7", margin: 0 }}>
-            This Disclosure Mirror is publicly anchored to the AveryOS VaultChain. The
+            This Sovereign Verification Portal is publicly anchored to the AveryOS VaultChain. The
             CraterZero_Disclosure_v5.0 manifest records the cryptographic anchor proof for the
             AveryOS Sovereign runtime, establishing the immutable origin record of{" "}
             <strong style={{ color: "rgba(122,170,255,0.95)" }}>
@@ -323,8 +353,5 @@ const DisclosureMirrorPage = () => {
           </p>
         </footer>
       </main>
-    </>
   );
-};
-
-export default DisclosureMirrorPage;
+}
