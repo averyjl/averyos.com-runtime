@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 
 const navItems = [
   { title: 'VaultChain Status', href: '/vault/vaultchain-status' },
+  { title: 'AI Anchor Feed', href: '/latent-anchor' },
   { title: 'Home', href: '/' },
   { title: 'Discover', href: '/discover' },
   { title: 'Viewer', href: '/viewer/truthdeck-ui' },
