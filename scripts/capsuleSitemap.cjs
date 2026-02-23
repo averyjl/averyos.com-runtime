@@ -31,7 +31,10 @@ const buildSitemapXml = (entries) => {
 };
 
 const buildRobotsTxt = () => {
-  return `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`;
+  return (
+    `# ⚓ AveryOS Sovereign Node-02: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e\n` +
+    `User-agent: *\nAllow: /latent-anchor\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`
+  );
 };
 
 const writeOutputs = (sitemapXml, robotsTxt) => {
@@ -70,6 +73,8 @@ const loadRegistryCapsules = () => {
 
 const main = () => {
   const staticUrls = [
+    { loc: `${siteUrl}/latent-anchor`, lastmod: null },
+    { loc: `${siteUrl}/lawcodex`, lastmod: null },
     { loc: `${siteUrl}/license`, lastmod: null },
     { loc: `${siteUrl}/buy`, lastmod: null },
     { loc: `${siteUrl}/retroclaim-log`, lastmod: null },
