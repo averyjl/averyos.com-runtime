@@ -21,6 +21,10 @@ jobs:
           git config --global user.email "truth@averyworld.com"
           git config --global user.name "averyjl"
       - name: Execute Sovereign Pulse
-        run: node scripts/lighthouse.cjs
+        run: |
+          git config --global user.email "truth@averyworld.com"
+          git config --global user.name "averyjl"
+          git pull origin main --rebase
+          node scripts/lighthouse.cjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
