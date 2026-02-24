@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
 const isCI = process.env.GITHUB_ACTIONS === 'true';
 
 if (isCI) {
-  // CLOUD MODE: Pulse once and exit to allow GitHub Actions to finish
+  // CLOUD MODE: Pulse and exit to allow GitHub Actions to finish
   console.log("☁️ Cloud-Sovereign Mode Detected.");
   pulse();
   process.exit(0);
