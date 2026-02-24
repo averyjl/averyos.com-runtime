@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // CORRECT: In Next.js 15, this is a root-level property
+  // PROMOTED: This must be at the root for Next.js 15
   serverExternalPackages: ['stripe'],
   
   eslint: {
