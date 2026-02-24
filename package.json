@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "aos-start": "node scripts/auth.cjs & start \"Watchdog\" cmd /k \"node scripts/watchdog.cjs\" & start \"LicenseGate\" cmd /k \"node scripts/licenseGate.cjs\" & node scripts/lighthouse.cjs",
+    "build:cloudflare": "npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build --external stripe",
     "build": "next build",
     "build:worker": "npx opennextjs-cloudflare build",
     "build:cloudflare": "npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
