@@ -3,6 +3,9 @@ import { useState } from "react";
 const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
 
+const KERNEL_SHA =
+  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+
 const FooterBadge = () => {
   const [showTariModal, setShowTariModal] = useState(false);
 
@@ -24,8 +27,18 @@ const FooterBadge = () => {
           wordBreak: 'break-all',
           color: 'rgba(176, 198, 255, 0.7)'
         }}>
-          <strong>AveryAnchored™</strong> | SHA-512 Kernel Anchor:<br />
+          <strong>AveryAnchored™</strong> | SHA-512 TARI Pricing Model:<br />
           {CAPSULE_SHA}
+        </div>
+        <div style={{ 
+          fontFamily: 'monospace', 
+          fontSize: '0.75rem',
+          wordBreak: 'break-all',
+          color: 'rgba(176, 198, 255, 0.7)',
+          marginTop: '0.5rem'
+        }}>
+          SHA-512 Kernel Anchor:<br />
+          {KERNEL_SHA}
         </div>
         <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
           <span>© 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0</span>
