@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Move this OUT of experimental for Next.js 15+
+  serverExternalPackages: ['stripe'], 
+  
+  // Keep your other settings here
   experimental: {
-    // This tells Next.js to treat stripe as an external package
-    serverExternalPackages: ['stripe'],
-  },
+    // serverExternalPackages should NOT be here anymore
+  }
 };
 
 export default nextConfig;
