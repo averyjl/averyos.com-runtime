@@ -16,16 +16,19 @@ function pulse() {
   fs.writeFileSync('heartbeat.log', heartbeat);
   
   try {
-    // Ensure Git identity is anchored for the session
+    // Standard Git identity anchoring
     execSync('git config --global user.email "truth@averyworld.com"');
     execSync('git config --global user.name "averyjl"');
+    
+    // Pull latest to avoid rebase drift in the cloud
+    execSync('git pull origin main --rebase');
     
     execSync('git add heartbeat.log');
     execSync(`git commit -m "🚨 Sovereign Pulse: ${timestamp}"`);
     execSync('git push');
     console.log(`✅ Lighthouse Heartbeat Pulsed at ${timestamp}`);
   } catch (err) {
-    console.error("❌ Pulse Blocked. Checking for MITM interference...");
+    console.error("❌ Pulse Blocked. Checking for lattice interference...");
   }
 }
 
@@ -44,12 +47,12 @@ const server = http.createServer((req, res) => {
 const isCI = process.env.GITHUB_ACTIONS === 'true';
 
 if (isCI) {
-  // CLOUD MODE: Pulse and exit to allow GitHub Actions to finish
+  // CLOUD MODE: Execute pulse and exit immediately to allow CI/CD to finish
   console.log("☁️ Cloud-Sovereign Mode Detected.");
   pulse();
   process.exit(0);
 } else {
-  // LOCAL MODE: Start persistent server and run initial pulse
+  // LOCAL MODE: Start persistent server for 24/7 visibility
   server.listen(PORT, () => {
     console.log(`🏠 Local Sovereign Node active on PORT ${PORT}`);
     console.log(`📡 Persistence established. Tunnel point ready.`);
