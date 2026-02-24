@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // This is the Sovereign Shield for your dependencies
-  experimental: {
-    serverExternalPackages: ['stripe'],
-  },
-  // Ensure the build can finish without being micromanaged by standard lints
+  // Promotion: serverExternalPackages is now a root property in Next.js 15
+  serverExternalPackages: ['stripe'],
+  
   eslint: {
     ignoreDuringBuilds: true,
   },
