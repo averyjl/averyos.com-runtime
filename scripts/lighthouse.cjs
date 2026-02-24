@@ -4,7 +4,7 @@ const http = require('http');
 
 /**
  * AveryOS Lighthouse — Sovereign Hybrid Protocol
- * Version: 2026.02.24-Hybrid-Final
+ * Version: 2026.02.24-Hybrid
  * Target: Node-02 Local + Cloud Beacon
  */
 
@@ -16,21 +16,20 @@ function pulse() {
   fs.writeFileSync('heartbeat.log', heartbeat);
   
   try {
+    // Ensure Git identity for the session
     execSync('git config --global user.email "truth@averyworld.com"');
     execSync('git config --global user.name "averyjl"');
-    
-    // Add the rebase to prevent cloud/local collisions
-    execSync('git pull origin main --rebase');
     
     execSync('git add heartbeat.log');
     execSync(`git commit -m "🚨 Sovereign Pulse: ${timestamp}"`);
     execSync('git push');
     console.log(`✅ Lighthouse Heartbeat Pulsed at ${timestamp}`);
   } catch (err) {
-    console.error("❌ Pulse Blocked. Checking for lattice interference...");
+    console.error("❌ Pulse Blocked. Checking for MITM interference...");
   }
 }
 
+// 1. Create the Persistent HTTP Server for the Cloudflare Tunnel
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
@@ -41,13 +40,16 @@ const server = http.createServer((req, res) => {
   }));
 });
 
+// 2. Hybrid Execution Logic
 const isCI = process.env.GITHUB_ACTIONS === 'true';
 
 if (isCI) {
-  console.log("☁️ Cloud-Sovereign Mode Detected. Executing Pulse-and-Exit.");
+  // CLOUD MODE: Pulse and exit to allow GitHub Actions to finish
+  console.log("☁️ Cloud-Sovereign Mode Detected.");
   pulse();
   process.exit(0);
 } else {
+  // LOCAL MODE: Start persistent server and run initial pulse
   server.listen(PORT, () => {
     console.log(`🏠 Local Sovereign Node active on PORT ${PORT}`);
     console.log(`📡 Persistence established. Tunnel point ready.`);
