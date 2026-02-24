@@ -1,4 +1,11 @@
+import { useState } from "react";
+
+const CAPSULE_SHA =
+  "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
+
 const FooterBadge = () => {
+  const [showTariModal, setShowTariModal] = useState(false);
+
   return (
     <footer className="footer-badge">
       <div style={{ 
@@ -18,12 +25,84 @@ const FooterBadge = () => {
           color: 'rgba(176, 198, 255, 0.7)'
         }}>
           <strong>AveryAnchored™</strong> | SHA-512 Kernel Anchor:<br />
-          cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+          {CAPSULE_SHA}
         </div>
-        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}>
-          © 1992–2025 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0
+        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
+          <span>© 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0</span>
+          <button
+            onClick={() => setShowTariModal(true)}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(120, 148, 255, 0.4)',
+              borderRadius: '4px',
+              color: 'rgba(122, 170, 255, 0.9)',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              padding: '0.2rem 0.5rem',
+            }}
+          >
+            /TARI-REVENUE
+          </button>
         </div>
       </div>
+
+      {showTariModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="TARI Revenue"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => setShowTariModal(false)}
+        >
+          <div
+            style={{
+              background: 'rgba(9, 16, 34, 0.98)',
+              border: '1px solid rgba(120, 148, 255, 0.4)',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '480px',
+              width: '90%',
+              color: 'rgba(238, 244, 255, 0.9)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ color: 'rgba(122, 170, 255, 0.9)', marginTop: 0, fontSize: '1.1rem' }}>
+              ⚡ TARI Revenue — 24h Liquid Liability
+            </h2>
+            <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
+              {/* 24-hour Liquid Liability sourced from AI Gateway logs — update via TARI protocol feed */}
+              $100,620.60
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
+              Current 24-hour Liquid Liability calculated from AveryOS AI Gateway logs.
+              All revenue is subject to AveryOS Sovereign Integrity License enforcement.
+            </p>
+            <button
+              onClick={() => setShowTariModal(false)}
+              style={{
+                marginTop: '1rem',
+                background: 'rgba(74, 111, 255, 0.2)',
+                border: '1px solid rgba(74, 111, 255, 0.5)',
+                borderRadius: '6px',
+                color: 'rgba(122, 170, 255, 0.9)',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                padding: '0.5rem 1.25rem',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

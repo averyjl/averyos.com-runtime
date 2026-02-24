@@ -2,8 +2,8 @@ name: ⚓ AveryOS Lighthouse Pulse
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every hour
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 */6 * * *' # Every 6 hours to slash costs
+  workflow_dispatch:
 
 jobs:
   pulse:
@@ -16,6 +16,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Configure Git Identity
+        run: |
+          git config --global user.email "truth@averyworld.com"
+          git config --global user.name "averyjl"
       - name: Execute Sovereign Pulse
         run: node scripts/lighthouse.cjs
         env:
