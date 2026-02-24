@@ -2,9 +2,7 @@
 import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
 
 export default defineCloudflareConfig({
-  default: {
-    minify: true,
-    // This marks stripe as external to resolve the ESM worker bundling error
-    external: ["stripe"],
-  },
+  minify: true,
+  // Externalizing stripe resolves the ESM worker bundling error
+  external: ["stripe"],
 });
