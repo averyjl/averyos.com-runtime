@@ -1,6 +1,7 @@
 import Head from "next/head";
 import { useMemo, useState } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
+import AnchorBanner from "../components/AnchorBanner";
 
 const HASH_LENGTH = 128;
 const HASH_REGEX = /^[a-fA-F0-9]{128}$/;
@@ -138,6 +139,7 @@ const VerifyPage = () => {
         <link rel="canonical" href={pageUrl} />
       </Head>
       <main className="page">
+        <AnchorBanner />
         <section className="hero">
           <h1>Capsule License Validator</h1>
           <p>
@@ -212,13 +214,16 @@ const VerifyPage = () => {
               style={{
                 marginTop: "1rem",
                 padding: "1rem",
-                borderRadius: "4px",
-                backgroundColor:
+                borderRadius: "8px",
+                background: "rgba(9, 16, 34, 0.75)",
+                border: `1px solid ${
                   validationResult.status === "success"
-                    ? "#d4edda"
+                    ? "rgba(74, 222, 128, 0.4)"
                     : validationResult.status === "error"
-                      ? "#f8d7da"
-                      : "#fff3cd",
+                      ? "rgba(248, 113, 113, 0.4)"
+                      : "rgba(250, 204, 21, 0.4)"
+                }`,
+                color: "rgba(238, 244, 255, 0.9)",
               }}
             >
               <p>

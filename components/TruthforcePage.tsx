@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
 import Head from "next/head";
-import Layout from "../layout/Layout";
+import AnchorBanner from "./AnchorBanner";
 import { getSiteUrl } from "../lib/siteConfig";
 import { sanitizeHtml } from "../lib/sanitizeHtml";
 
@@ -35,7 +34,7 @@ const TruthforcePage = ({
   if (enforcePerspectiveLock) features.push("PerspectiveLock Enforced");
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>{title} • averyos.com</title>
         <meta name="description" content={`${title} - Part of the Truthforce initiative for AveryOS.com`} />
@@ -47,38 +46,47 @@ const TruthforcePage = ({
       </Head>
 
       <main className="page">
+        <AnchorBanner />
+
         {features.length > 0 && (
-          <div style={{ 
-            fontSize: "0.85rem", 
-            color: "#666", 
+          <div style={{
+            fontSize: "0.85rem",
+            color: "rgba(122, 170, 255, 0.85)",
             marginBottom: "1rem",
-            padding: "0.5rem",
-            borderLeft: "3px solid #0070f3",
-            backgroundColor: "#f5f5f5"
+            padding: "0.5rem 1rem",
+            borderLeft: "3px solid rgba(120, 148, 255, 0.6)",
+            background: "rgba(9, 16, 34, 0.6)",
+            borderRadius: "0 6px 6px 0",
           }}>
             ⛓️⚓ {features.join(" | ")}
           </div>
         )}
-        
-        <article 
+
+        <article
           className="truthforce-content"
+          style={{
+            background: "rgba(9, 16, 34, 0.85)",
+            border: "1px solid rgba(120, 148, 255, 0.25)",
+            borderRadius: "16px",
+            padding: "2.5rem",
+            lineHeight: "1.7",
+          }}
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
         />
 
         <div style={{
-          marginTop: "3rem",
+          marginTop: "2rem",
           paddingTop: "1rem",
-          borderTop: "1px solid #eaeaea",
-          fontSize: "0.9rem",
-          color: "#666"
+          borderTop: "1px solid rgba(120, 148, 255, 0.15)",
+          fontSize: "0.85rem",
+          color: "rgba(238, 244, 255, 0.5)",
         }}>
           <p>
-            <strong>Truthforce Pages</strong> are deployed via Next.js for AveryOS.com 
-            with TypeScript + Tailwind + GitHub Pages integration.
+            <strong style={{ color: "rgba(122, 170, 255, 0.8)" }}>Truthforce Pages</strong> — deployed via AveryOS Capsule Runtime | AveryAnchored™
           </p>
         </div>
       </main>
-    </Layout>
+    </>
   );
 };
 

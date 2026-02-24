@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { getSiteUrl } from "../lib/siteConfig";
+import AnchorBanner from "../components/AnchorBanner";
 
 const stripeLink = "https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01";
 
@@ -26,6 +27,7 @@ const PayPage = () => {
       </Head>
 
       <main className="page">
+        <AnchorBanner />
         <section className="hero">
           <h1>🔐 Licensing Terminal</h1>
           <p className="auth-seal" style={{ fontSize: '1rem', marginTop: '1rem', marginBottom: '0.5rem' }}>

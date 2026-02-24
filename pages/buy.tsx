@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { getSiteUrl } from "../lib/siteConfig";
+import AnchorBanner from "../components/AnchorBanner";
 
 const stripeLink = "https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01";
 
@@ -25,6 +26,7 @@ const BuyPage = () => {
         <link rel="canonical" href={pageUrl} />
       </Head>
       <main className="page">
+        <AnchorBanner />
         <section className="hero">
           <h1>Purchase AveryOS License</h1>
           <p>Secure payment is handled by Stripe. Your license will be issued on completion.</p>

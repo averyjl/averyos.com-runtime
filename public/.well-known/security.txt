@@ -1,0 +1,23 @@
+# AveryOS Security Policy
+# RFC 9116 — https://www.rfc-editor.org/rfc/rfc9116
+#
+# For vulnerabilities or security concerns related to averyos.com,
+# please contact us via the channels below.
+
+Contact: mailto:security@averyos.com
+Contact: https://averyos.com/contact
+
+Expires: 2027-02-24T00:00:00.000Z
+
+Encryption: https://averyos.com/.well-known/pgp-key.txt
+
+Acknowledgments: https://averyos.com/security#acknowledgments
+
+Policy: https://averyos.com/security
+
+Preferred-Languages: en
+
+Canonical: https://averyos.com/.well-known/security.txt
+
+# AveryAnchored™ | VaultChain Protocol ACTIVE
+# © 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved.
