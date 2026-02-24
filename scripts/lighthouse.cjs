@@ -16,10 +16,8 @@ function pulse() {
   fs.writeFileSync('heartbeat.log', heartbeat);
   
   try {
-    // Ensure Git identity for the session
     execSync('git config --global user.email "truth@averyworld.com"');
     execSync('git config --global user.name "averyjl"');
-    
     execSync('git add heartbeat.log');
     execSync(`git commit -m "🚨 Sovereign Pulse: ${timestamp}"`);
     execSync('git push');
@@ -29,7 +27,6 @@ function pulse() {
   }
 }
 
-// 1. Create the Persistent HTTP Server for the Cloudflare Tunnel
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
@@ -40,19 +37,15 @@ const server = http.createServer((req, res) => {
   }));
 });
 
-// 2. Hybrid Execution Logic
 const isCI = process.env.GITHUB_ACTIONS === 'true';
 
 if (isCI) {
-  // CLOUD MODE: Pulse and exit to allow GitHub Actions to finish
   console.log("☁️ Cloud-Sovereign Mode Detected.");
   pulse();
   process.exit(0);
 } else {
-  // LOCAL MODE: Start persistent server and run initial pulse
   server.listen(PORT, () => {
     console.log(`🏠 Local Sovereign Node active on PORT ${PORT}`);
-    console.log(`📡 Persistence established. Tunnel point ready.`);
     pulse();
   });
 }
