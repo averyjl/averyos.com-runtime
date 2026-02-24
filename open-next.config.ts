@@ -2,6 +2,6 @@
 import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
 
 export default defineCloudflareConfig({
-  // Force instruction through the type-check wall
+  // Force instruction through the type-check wall using 'as any'
   external: ["stripe"],
 } as any);
