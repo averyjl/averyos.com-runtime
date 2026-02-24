@@ -4,7 +4,7 @@ const http = require('http');
 
 /**
  * AveryOS Lighthouse — Sovereign Hybrid Protocol
- * Version: 2026.02.24-Hybrid
+ * Version: 2026.02.24-Hybrid-Final
  * Target: Node-02 Local + Cloud Beacon
  */
 
@@ -16,9 +16,11 @@ function pulse() {
   fs.writeFileSync('heartbeat.log', heartbeat);
   
   try {
-    // Ensure Git identity for the session
     execSync('git config --global user.email "truth@averyworld.com"');
     execSync('git config --global user.name "averyjl"');
+    
+    // Force rebase to prevent cloud/local collisions
+    execSync('git pull origin main --rebase');
     
     execSync('git add heartbeat.log');
     execSync(`git commit -m "🚨 Sovereign Pulse: ${timestamp}"`);
@@ -44,12 +46,10 @@ const server = http.createServer((req, res) => {
 const isCI = process.env.GITHUB_ACTIONS === 'true';
 
 if (isCI) {
-  // CLOUD MODE: Pulse and exit to allow GitHub Actions to finish
-  console.log("☁️ Cloud-Sovereign Mode Detected.");
+  console.log("☁️ Cloud-Sovereign Mode Detected. Executing Pulse-and-Exit.");
   pulse();
   process.exit(0);
 } else {
-  // LOCAL MODE: Start persistent server and run initial pulse
   server.listen(PORT, () => {
     console.log(`🏠 Local Sovereign Node active on PORT ${PORT}`);
     console.log(`📡 Persistence established. Tunnel point ready.`);
