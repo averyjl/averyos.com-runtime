@@ -4,7 +4,7 @@
 # For vulnerabilities or security concerns related to averyos.com,
 # please contact us via the channels below.
 
-Contact: mailto:security@averyos.com
+Contact: mailto:truth@averyworld.com
 Contact: https://averyos.com/contact
 
 Expires: 2027-02-24T00:00:00.000Z
