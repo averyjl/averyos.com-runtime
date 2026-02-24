@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Promotion: serverExternalPackages is now a root property in Next.js 15
+  // CORRECT: In Next.js 15, this is a root-level property
   serverExternalPackages: ['stripe'],
   
   eslint: {
