@@ -5,12 +5,12 @@ import path from "path";
 /**
  * TARI Revenue API
  * Computes real-time 24-hour Liquid Liability from AveryOS AI Gateway logs.
- * Pricing mirrors generateInvoices.cjs: $10,000 (Base BSU) + $0.01 per request per corporate org.
+ * Pricing mirrors generateInvoices.cjs: $10,000 (Base BSU) + $1.00 per request per corporate org.
  */
 
 const LOG_PATH = path.join(process.cwd(), "capsule_logs", "ai_gateway_logs.json");
 const BASE_BSU_USD = 10_000;
-const PER_REQUEST_USD = 0.01;
+const PER_REQUEST_USD = 1.00;
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type GatewayLogEntry = {
