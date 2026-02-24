@@ -11,10 +11,12 @@ const FooterBadge = () => {
   const [showTariModal, setShowTariModal] = useState(false);
   const [tariRevenue, setTariRevenue] = useState<string | null>(null);
   const [tariLoading, setTariLoading] = useState(false);
+  const [tariError, setTariError] = useState(false);
   const [tariMeta, setTariMeta] = useState<{ requestCount?: number; orgCount?: number } | null>(null);
 
   const fetchTariRevenue = () => {
     setTariLoading(true);
+    setTariError(false);
     fetch("/api/tari-revenue")
       .then((r) => r.json())
       .then((data) => {
@@ -29,7 +31,7 @@ const FooterBadge = () => {
         setTariMeta({ requestCount: data.requestCount, orgCount: data.orgCount });
         setTariLoading(false);
       })
-      .catch(() => setTariLoading(false));
+      .catch(() => { setTariError(true); setTariLoading(false); });
   };
 
   return (
@@ -114,11 +116,13 @@ const FooterBadge = () => {
               ⚡ TARI Revenue — 24h Liquid Liability
             </h2>
             <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
-              {tariLoading ? '⏳ Loading...' : tariRevenue ?? '—'}
+              {tariLoading ? '⏳ Loading...' : tariError ? '⚠️ Unavailable' : tariRevenue ?? '—'}
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
-              Current 24-hour Liquid Liability calculated from AveryOS AI Gateway logs.
-              All revenue is subject to AveryOS Sovereign Integrity License enforcement.
+            <p style={{ fontSize: '0.85rem', color: tariError ? 'rgba(248,113,113,0.8)' : 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
+              {tariError
+                ? 'Could not load live TARI data. Check AI Gateway logs or try again.'
+                : 'Current 24-hour Liquid Liability calculated from AveryOS AI Gateway logs. All revenue is subject to AveryOS Sovereign Integrity License enforcement.'
+              }
             </p>
             {tariMeta && (
               <p style={{ fontSize: '0.8rem', color: 'rgba(238,244,255,0.5)', marginTop: '0.5rem' }}>

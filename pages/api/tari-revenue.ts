@@ -54,12 +54,12 @@ export default function handler(
     }
   }
 
-  // Filter to 24-hour window
+  // Filter to 24-hour window; skip entries without a parseable timestamp
   const cutoff = Date.now() - WINDOW_MS;
   const recent = logs.filter((e) => {
-    if (!e.timestamp) return true; // include if no timestamp
+    if (!e.timestamp) return false;
     const t = new Date(e.timestamp).getTime();
-    return isNaN(t) || t >= cutoff;
+    return !isNaN(t) && t >= cutoff;
   });
 
   // Aggregate by org_id for corporate entries; treat non-org entries as individual units
