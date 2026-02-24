@@ -5,19 +5,22 @@ const nextConfig = {
    * Syntax: ESM (Required by package.json "type": "module")
    */
 
-  // Resolve Stripe resolution error for Cloudflare/OpenNext
+  // 1. Primary External Lock: Prevents bundling for App Router & generic imports.
   serverExternalPackages: ['stripe'],
 
-  // Enable standalone output for high-availability environments
+  // 2. Webpack Sovereign Override: Specifically protects the Pages Router API (stripe-webhook).
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'stripe'];
+    }
+    return config;
+  },
+
+  // 3. Standalone Output: Required for high-availability Cloudflare/OpenNext deployment.
   output: 'standalone',
 
-  // Ensure strict truth-anchoring for UI components
+  // 4. Integrity Check: Ensures strict truth-anchoring for the UI.
   reactStrictMode: true,
-  
-  experimental: {
-    // Other sovereign experimental flags can be added here
-  }
 };
 
-// Use ESM export instead of module.exports
 export default nextConfig;
