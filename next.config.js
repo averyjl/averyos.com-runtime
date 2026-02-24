@@ -1,9 +1,4 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    // This tells Next.js to treat stripe as an external package
-    serverExternalPackages: ['stripe'],
-  },
-};
+// open-next.config.ts - Configuration for @opennextjs/cloudflare adapter
+import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
 
-export default nextConfig;
+export default defineCloudflareConfig({});
