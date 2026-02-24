@@ -1,7 +1,6 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Layout from "../layout/Layout";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 
@@ -62,7 +61,7 @@ const DiscoverPage = () => {
   ];
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>Discover • AveryOS Runtime</title>
         <meta name="description" content="Discover and explore capsules across the AveryOS sovereign ecosystem." />
@@ -180,7 +179,7 @@ const DiscoverPage = () => {
           </div>
         </section>
       </main>
-    </Layout>
+    </>
   );
 };
 

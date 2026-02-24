@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
@@ -9,6 +9,28 @@ const KERNEL_SHA =
 
 const FooterBadge = () => {
   const [showTariModal, setShowTariModal] = useState(false);
+  const [tariRevenue, setTariRevenue] = useState<string | null>(null);
+  const [tariLoading, setTariLoading] = useState(false);
+  const [tariMeta, setTariMeta] = useState<{ requestCount?: number; orgCount?: number } | null>(null);
+
+  const fetchTariRevenue = () => {
+    setTariLoading(true);
+    fetch("/api/tari-revenue")
+      .then((r) => r.json())
+      .then((data) => {
+        setTariRevenue(
+          Number(data.totalUsd).toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+        setTariMeta({ requestCount: data.requestCount, orgCount: data.orgCount });
+        setTariLoading(false);
+      })
+      .catch(() => setTariLoading(false));
+  };
 
   return (
     <footer className="footer-badge">
@@ -44,7 +66,7 @@ const FooterBadge = () => {
         <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
           <span>© 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0</span>
           <button
-            onClick={() => setShowTariModal(true)}
+            onClick={() => { setShowTariModal(true); fetchTariRevenue(); }}
             style={{
               background: 'none',
               border: '1px solid rgba(120, 148, 255, 0.4)',
@@ -92,13 +114,18 @@ const FooterBadge = () => {
               ⚡ TARI Revenue — 24h Liquid Liability
             </h2>
             <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
-              {/* 24-hour Liquid Liability sourced from AI Gateway logs — update via TARI protocol feed */}
-              $100,620.60
+              {tariLoading ? '⏳ Loading...' : tariRevenue ?? '—'}
             </div>
             <p style={{ fontSize: '0.85rem', color: 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
               Current 24-hour Liquid Liability calculated from AveryOS AI Gateway logs.
               All revenue is subject to AveryOS Sovereign Integrity License enforcement.
             </p>
+            {tariMeta && (
+              <p style={{ fontSize: '0.8rem', color: 'rgba(238,244,255,0.5)', marginTop: '0.5rem' }}>
+                {tariMeta.requestCount} request{tariMeta.requestCount !== 1 ? 's' : ''} •{' '}
+                {tariMeta.orgCount} corporate org{tariMeta.orgCount !== 1 ? 's' : ''} • 24h window
+              </p>
+            )}
             <button
               onClick={() => setShowTariModal(false)}
               style={{

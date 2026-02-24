@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+
+// Force static generation so fs reads happen at build time, not at Cloudflare edge runtime.
+export const dynamic = "force-static";
 import fs from "fs";
 import path from "path";
 import { getSiteUrl } from "../../lib/siteConfig";
