@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use client } from "react";
 
 const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
