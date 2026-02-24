@@ -6,6 +6,7 @@ import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
+import CapsuleEchoFooter from "../components/CapsuleEchoFooter";
 
 type CapsuleIndexItem = ReturnType<typeof listRegistryCapsules>[number];
 
@@ -216,6 +217,8 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
             Truth is not a suggestion; it is a coordinate system. ⛓️⚓⛓️
           </p>
         </footer>
+
+        <CapsuleEchoFooter />
       </main>
     </>
   );

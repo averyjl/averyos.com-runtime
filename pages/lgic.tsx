@@ -8,7 +8,6 @@ const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
 
 const LGIC_PLAINTEXT = `AveryOS_LGIC_PublicCapsule_v1
-==============================
 Title: Immutable Laws of Genuine Intelligence & Conduct (LGIC)
 Author: Jason Lee Avery
 Version: 1.0
