@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  trailingSlash: true,
-  basePath: '',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  images: {
-    domains: ['averyos.com', 'averyjl.github.io'],
+  experimental: {
+    // This tells Next.js to treat stripe as an external package
+    serverExternalPackages: ['stripe'],
   },
 };
 
