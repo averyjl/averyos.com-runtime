@@ -41,7 +41,8 @@ const FooterBadge = () => {
         background: 'rgba(9, 16, 34, 0.85)', 
         borderTop: '1px solid rgba(120, 148, 255, 0.25)',
         fontSize: '0.85rem',
-        color: 'rgba(238, 244, 255, 0.7)'
+        color: 'rgba(238, 244, 255, 0.7)',
+        textAlign: 'center'
       }}>
         <div style={{ marginBottom: '0.75rem' }}>
           Powered by CapsuleEcho™ | VaultSignature: ENFORCED
@@ -65,8 +66,8 @@ const FooterBadge = () => {
           SHA-512 Kernel Anchor:<br />
           {KERNEL_SHA}
         </div>
-        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
-          <span>© 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved. Licensed under AveryOS Sovereign Integrity License v1.0</span>
+        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', textAlign: 'center' }}>
+          <span>© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved. Licensed under AveryOS™ Sovereign Integrity License v1.0</span>
           <button
             onClick={() => { setShowTariModal(true); fetchTariRevenue(); }}
             style={{

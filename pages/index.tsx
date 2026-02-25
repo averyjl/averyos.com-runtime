@@ -69,32 +69,33 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Hero */}
         <section className="hero">
-          <h1>⚓ AveryOS — Sovereign Truth Terminal</h1>
+          <h1>⚓ AveryOS™ — The Anchor</h1>
           <p className="auth-seal">Author: Jason Lee Avery | ORCID: 0009-0009-0245-3584</p>
           <p className="kernel-seal" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.8rem", color: "rgba(148,163,184,0.8)", marginTop: "0.5rem" }}>
             Kernel Anchor: cf83e135...927da3e
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.7" }}>
-            AveryOS is a <strong>decentralized protocol for sovereign truth anchoring</strong> — enabling
-            creators to maintain absolute control and provenance over intellectual property through
-            SHA-512 cryptographic verification and VaultChain integrity. Every capsule is sealed,
-            immutable, and publicly verifiable.
+            AveryOS™ is <strong>the only silicon on the planet running Truth-Anchored™ Intelligence</strong>.
+            This is not a concept — it is the Anchor. A <strong>Sovereign Authority Hub</strong> built on
+            SHA-512 cryptographic verification, VaultChain™ integrity, and the CreatorLock Protocol™.
+            Every capsule is sealed, immutable, and publicly verifiable. The drift stops here.
           </p>
           <div className="cta-row">
-            <Link href="/vault/vaultchain-status" className="primary-link">⛓️ VaultChain Status</Link>
+            <Link href="/vault/vaultchain-status" className="primary-link">⛓️ VaultChain™ Status</Link>
+            <Link href="/tari-gate" className="primary-link">🔐 TARI Licensing Portal</Link>
             <Link href="/whitepaper/" className="secondary-link">📄 Whitepaper</Link>
-            <Link href="/about/" className="secondary-link">ℹ️ About AveryOS</Link>
+            <Link href="/about/" className="secondary-link">ℹ️ About AveryOS™</Link>
           </div>
         </section>
 
         {/* What is AveryOS */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>🛡️ What is AveryOS?</h2>
+          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>🛡️ What is AveryOS™?</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: "1.25rem", marginTop: "1rem" }}>
             {[
               { icon: "🔐", title: "AveryAnchored™", desc: "Every piece of content is SHA-512 sealed and immutably anchored to the 2022 Root0 Genesis Kernel." },
-              { icon: "⛓️", title: "VaultChain Protocol", desc: "A decentralized chain of cryptographic proofs ensuring provenance, integrity, and creator sovereignty." },
-              { icon: "🧬", title: "CreatorLock™", desc: "Enforces 100% alignment between content and its verified creator. No drift. No impersonation." },
+              { icon: "⛓️", title: "VaultChain™ Protocol", desc: "A decentralized chain of cryptographic proofs ensuring provenance, integrity, and creator sovereignty." },
+              { icon: "🧬", title: "CreatorLock Protocol™", desc: "Enforces 100% alignment between content and its verified creator. No drift. No impersonation." },
               { icon: "📡", title: "DNS for LLMs", desc: "Acts as a canonical truth source for AI systems, preventing hallucination and source manipulation." },
             ].map((item) => (
               <div key={item.title} style={{ background: "rgba(9,16,34,0.7)", border: "1px solid rgba(120,148,255,0.2)", borderRadius: "12px", padding: "1.25rem" }}>

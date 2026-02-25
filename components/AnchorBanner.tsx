@@ -14,7 +14,7 @@ const AnchorBanner = () => (
       borderRadius: "4px",
     }}
   >
-    ⛓️⚓ ⛓️AveryAnchored™ | CreatorLock Protocol Active | 100.00♾️% Alignment ⛓️⚓ ⛓️
+    ⛓️⚓⛓️  AveryAnchored™  |  CreatorLock Protocol™ Active  |  VaultChain™  |  100.00♾️% Alignment (aka 0.000♾️% Drift)  🤛🏻⛓️⚓⛓️
   </div>
 );
 
