@@ -48,3 +48,20 @@ custom_domain = true
 [env.production]
 workers_dev = false
 vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1", NODE_VERSION = "22" }
+
+[[env.production.kv_namespaces]]
+binding = "KV_LOGS"
+id = "3ddd05bfb66549fca9e4ad1faccd72bd"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "averyos_kernel_db"
+database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+
+[[env.production.routes]]
+pattern = "averyos.com"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "www.averyos.com"
+custom_domain = true
