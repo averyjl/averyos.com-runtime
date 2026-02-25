@@ -28,7 +28,6 @@
     "generate:invoices": "node ./scripts/generateInvoices.cjs"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.16.5",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "isomorphic-dompurify": "^2.36.0",
@@ -39,11 +38,12 @@
     "stripe": "^20.3.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.3",
-    "wrangler": "^4.67.0"
+    "wrangler": "^4.68.1"
   },
   "engines": {
     "node": ">=22.0.0",
