@@ -24,10 +24,8 @@
     "init:TAI_PublicVoteSession": "echo \"Open /tai/public-vote for civic vote bootstrap\"",
     "enforcement:generate": "node scripts/generateEvidenceBundle.cjs",
     "sovereign-auth": "node ./scripts/auth.cjs",
-    "watchdog": "node ./scripts/watchdog.cjs",
     "tari-pulse": "node ./scripts/generateEvidenceBundle.cjs",
-    "generate:invoices": "node ./scripts/generateInvoices.cjs",
-    "license-gate": "node ./scripts/licenseGate.cjs"
+    "generate:invoices": "node ./scripts/generateInvoices.cjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.16.5",
