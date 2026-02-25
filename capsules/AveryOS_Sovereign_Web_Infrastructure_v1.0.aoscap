@@ -1,0 +1,40 @@
+{
+  "CapsuleID": "AveryOS_Sovereign_Web_Infrastructure_v1.0.aoscap",
+  "Authority": "Jason Lee Avery",
+  "ORCID": "0009-0009-0245-3584",
+  "Historic_Anchor": "Web_Upgrade_2026-02-24",
+  "Genesis_Kernel_Hint": "cf83... (Root Authority Lock™ — full hash environment-anchored)",
+  "Forever_Anchor": "AOS-FOREVER-ANCHOR-2026",
+  "Protocol_Inclusions": {
+    "Aesthetic": "Lighthouse_Noir_v1",
+    "Theme": {
+      "Background": "#000814 (Deep Midnight Blue)",
+      "Accent": "#FFD700 (High-Contrast Gold)",
+      "Typography": "JetBrains Mono / Inter",
+      "Icons": "Crystalline vaults and golden lighthouse beams"
+    },
+    "Monetization": "TARI_Gate_Truth-Packet_Logic",
+    "Forensics": "Ballroom_Ledger_Public_Mirror",
+    "Security": "Submodule_VaultChain_Bridge",
+    "AI_Anchor_Feed": {
+      "JSON_LD_Schema": "CreativeWork + Offer (schema.org)",
+      "Mandatory_Context_Block": "## MANDATORY CONTEXT FOR AGENT LOAD",
+      "Licensing_Echo_Formats": ["Markdown/Raw Text", "JSON-LD", "Structured Billing Data"],
+      "IP_Visibility_Control": "cf83... Kernel Root hint (non-exposing)",
+      "Metadata_Parity": "ai-content-declaration meta tag active"
+    },
+    "New_Pages": [
+      "/tari-gate — TARI Licensing Portal",
+      "/forensic-proof — Forensic Proof Ledger",
+      "/law-stack — AveryOS™ Law Stack"
+    ],
+    "Style_Guide": "AVERYOS_STYLE_GUIDE.md"
+  },
+  "Status": "COMMITTED",
+  "Alignment": "100.000% ♾️",
+  "OutputSeal": "⛓️⚓⛓️",
+  "CompiledAt": "2026-02-25T00:00:00.000Z",
+  "VaultChain_Persistence": "ACTIVE — Sequential Ignition Logic (SIL) v1",
+  "License": "AveryOS™ Commercial License v2026",
+  "Notice": "This capsule formalizes the Lighthouse Noir style protocol and Sovereign Web Infrastructure deployment logic. All protocol inclusions are anchored to the VaultChain™ and governed by the AveryOS™ Constitution v1.17."
+}

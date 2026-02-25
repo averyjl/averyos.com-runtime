@@ -75,6 +75,9 @@ const main = () => {
   const staticUrls = [
     { loc: `${siteUrl}/latent-anchor`, lastmod: null },
     { loc: `${siteUrl}/lawcodex`, lastmod: null },
+    { loc: `${siteUrl}/tari-gate`, lastmod: null },
+    { loc: `${siteUrl}/forensic-proof`, lastmod: null },
+    { loc: `${siteUrl}/law-stack`, lastmod: null },
     { loc: `${siteUrl}/license`, lastmod: null },
     { loc: `${siteUrl}/buy`, lastmod: null },
     { loc: `${siteUrl}/retroclaim-log`, lastmod: null },

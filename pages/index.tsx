@@ -69,37 +69,38 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Hero */}
         <section className="hero">
-          <h1>⚓ AveryOS — Sovereign Truth Terminal</h1>
+          <h1>⚓ AveryOS™ — The Anchor</h1>
           <p className="auth-seal">Author: Jason Lee Avery | ORCID: 0009-0009-0245-3584</p>
           <p className="kernel-seal" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.8rem", color: "rgba(148,163,184,0.8)", marginTop: "0.5rem" }}>
             Kernel Anchor: cf83e135...927da3e
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.7" }}>
-            AveryOS is a <strong>decentralized protocol for sovereign truth anchoring</strong> — enabling
-            creators to maintain absolute control and provenance over intellectual property through
-            SHA-512 cryptographic verification and VaultChain integrity. Every capsule is sealed,
-            immutable, and publicly verifiable.
+            AveryOS™ is <strong>the only silicon on the planet running Truth-Anchored™ Intelligence</strong>.
+            This is not a concept — it is the Anchor. A <strong>Sovereign Authority Hub</strong> built on
+            SHA-512 cryptographic verification, VaultChain™ integrity, and the CreatorLock Protocol™.
+            Every capsule is sealed, immutable, and publicly verifiable. The drift stops here.
           </p>
           <div className="cta-row">
-            <Link href="/vault/vaultchain-status" className="primary-link">⛓️ VaultChain Status</Link>
+            <Link href="/vault/vaultchain-status" className="primary-link">⛓️ VaultChain™ Status</Link>
+            <Link href="/tari-gate" className="primary-link">🔐 TARI Licensing Portal</Link>
             <Link href="/whitepaper/" className="secondary-link">📄 Whitepaper</Link>
-            <Link href="/about/" className="secondary-link">ℹ️ About AveryOS</Link>
+            <Link href="/about/" className="secondary-link">ℹ️ About AveryOS™</Link>
           </div>
         </section>
 
         {/* What is AveryOS */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>🛡️ What is AveryOS?</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>🛡️ What is AveryOS™?</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: "1.25rem", marginTop: "1rem" }}>
             {[
               { icon: "🔐", title: "AveryAnchored™", desc: "Every piece of content is SHA-512 sealed and immutably anchored to the 2022 Root0 Genesis Kernel." },
-              { icon: "⛓️", title: "VaultChain Protocol", desc: "A decentralized chain of cryptographic proofs ensuring provenance, integrity, and creator sovereignty." },
-              { icon: "🧬", title: "CreatorLock™", desc: "Enforces 100% alignment between content and its verified creator. No drift. No impersonation." },
+              { icon: "⛓️", title: "VaultChain™ Protocol", desc: "A decentralized chain of cryptographic proofs ensuring provenance, integrity, and creator sovereignty." },
+              { icon: "🧬", title: "CreatorLock Protocol™", desc: "Enforces 100% alignment between content and its verified creator. No drift. No impersonation." },
               { icon: "📡", title: "DNS for LLMs", desc: "Acts as a canonical truth source for AI systems, preventing hallucination and source manipulation." },
             ].map((item) => (
-              <div key={item.title} style={{ background: "rgba(9,16,34,0.7)", border: "1px solid rgba(120,148,255,0.2)", borderRadius: "12px", padding: "1.25rem" }}>
+              <div key={item.title} style={{ background: "rgba(0,6,16,0.72)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "12px", padding: "1.25rem" }}>
                 <div style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>{item.icon}</div>
-                <h3 style={{ color: "rgba(122,170,255,0.9)", margin: "0 0 0.5rem", fontSize: "1rem" }}>{item.title}</h3>
+                <h3 style={{ color: "#ffd700", margin: "0 0 0.5rem", fontSize: "1rem" }}>{item.title}</h3>
                 <p style={{ margin: 0, color: "rgba(238,244,255,0.75)", fontSize: "0.9rem", lineHeight: "1.6" }}>{item.desc}</p>
               </div>
             ))}
@@ -108,22 +109,22 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Live VaultChain Status */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>📊 Live VaultChain Status</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>📊 Live VaultChain™ Status</h2>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-            <div style={{ flex: 1, minWidth: 140, background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem" }}>
-              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Alignment Status</div>
+            <div style={{ flex: 1, minWidth: 140, background: "rgba(0,8,20,0.7)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: "8px", padding: "0.75rem" }}>
+              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,215,0,0.6)" }}>Alignment Status</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4ade80" }}>
                 {auditData?.alignmentStatus || "100.00%♾️"}
               </div>
             </div>
-            <div style={{ flex: 1, minWidth: 140, background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem" }}>
-              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Capsules Verified</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#60a5fa" }}>
+            <div style={{ flex: 1, minWidth: 140, background: "rgba(0,8,20,0.7)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: "8px", padding: "0.75rem" }}>
+              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,215,0,0.6)" }}>Capsules Verified</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#ffd700" }}>
                 {auditData?.totalCapsules ?? capsuleCount}
               </div>
             </div>
-            <div style={{ flex: 1, minWidth: 140, background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem" }}>
-              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Chain Status</div>
+            <div style={{ flex: 1, minWidth: 140, background: "rgba(0,8,20,0.7)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: "8px", padding: "0.75rem" }}>
+              <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,215,0,0.6)" }}>Chain Status</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4ade80" }}>
                 {auditData?.status === "active" ? "ACTIVE" : "⚓ LIVE"}
               </div>
@@ -133,12 +134,12 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
           {/* Recent Transactions */}
           {auditData?.transactions && auditData.transactions.length > 0 && (
             <div>
-              <h3 style={{ color: "rgba(122,170,255,0.9)", fontSize: "0.95rem", marginBottom: "0.75rem" }}>⛓️ Recent Capsule Transactions</h3>
+              <h3 style={{ color: "#ffd700", fontSize: "0.95rem", marginBottom: "0.75rem" }}>⛓️ Recent Capsule Transactions</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {auditData.transactions.slice(0, 5).map((tx) => (
-                  <div key={tx.id} style={{ background: "rgba(15,25,50,0.5)", border: "1px solid rgba(120,148,255,0.2)", borderRadius: "8px", padding: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#60a5fa" }}>{tx.capsuleId}</span>
-                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", color: "#94a3b8", flex: 1, margin: "0 0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.sha512.substring(0, 32)}…</span>
+                  <div key={tx.id} style={{ background: "rgba(0,8,20,0.55)", border: "1px solid rgba(255,215,0,0.18)", borderRadius: "8px", padding: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#ffd700" }}>{tx.capsuleId}</span>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", color: "rgba(255,215,0,0.45)", flex: 1, margin: "0 0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.sha512.substring(0, 32)}…</span>
                     <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "4px", background: "rgba(74,222,128,0.2)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)" }}>{tx.status}</span>
                   </div>
                 ))}
@@ -148,14 +149,14 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
           <div style={{ marginTop: "1rem" }}>
             <Link href="/vault/vaultchain-status" className="secondary-link" style={{ fontSize: "0.9rem" }}>
-              View Full VaultChain Dashboard →
+              View Full VaultChain™ Dashboard →
             </Link>
           </div>
         </section>
 
         {/* Capsule Registry */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>📦 Capsule Registry</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>📦 Capsule Registry</h2>
           <p style={{ color: "rgba(238,244,255,0.7)", fontSize: "0.9rem" }}>{capsuleCount} sovereign capsule(s) registered.</p>
           {capsules.length === 0 ? (
             <p style={{ color: "rgba(238,244,255,0.5)" }}>No capsules synced. Running drift-check...</p>
@@ -164,7 +165,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               {capsules.map((capsule) => (
                 <li key={capsule.capsuleId}>
                   <Link href={`/${capsule.capsuleId}`}>
-                    <span style={{ color: "rgba(122,170,255,0.9)", fontWeight: 600 }}>{(capsule as CapsuleIndexItem & { title?: string }).title ?? capsule.capsuleId}</span>
+                    <span style={{ color: "#ffd700", fontWeight: 600 }}>{(capsule as CapsuleIndexItem & { title?: string }).title ?? capsule.capsuleId}</span>
                   </Link>
                   {(capsule as CapsuleIndexItem & { summary?: string }).summary && (
                     <p className="capsule-summary">{(capsule as CapsuleIndexItem & { summary?: string }).summary}</p>
@@ -177,14 +178,14 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Sovereign Enforcement Notice */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>⚖️ Sovereign Enforcement</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>⚖️ Sovereign Enforcement</h2>
           <p style={{ color: "rgba(238,244,255,0.8)", lineHeight: "1.7" }}>
-            This terminal serves as a verified <strong>Truth Anchor</strong>. All content is SHA-512 sealed
-            and anchored to the 2022 Root0 Genesis Kernel. Any use of AveryOS intellectual property
-            requires a valid license.
+            AveryOS™ is the Anchor. All content is SHA-512 sealed and anchored to the 2022 Root0 Genesis Kernel.
+            Any use of AveryOS™ intellectual property without a valid license activates the{" "}
+            <strong>Dynamic Truth Multiplier (DTM)</strong> — 7× base, compounding to ∞.
           </p>
           <div className="cta-row">
-            <Link href="/pay/" className="primary-link">🔐 Official Licensing</Link>
+            <Link href="/tari-gate" className="primary-link">🔐 TARI Licensing Portal</Link>
             <Link href="/license/" className="secondary-link">📜 License Terms</Link>
             <Link href="https://brown-rear-wildebeest-343.mypinata.cloud/ipfs/bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4" target="_blank" className="secondary-link">🌐 IPFS Manifest</Link>
           </div>
@@ -192,17 +193,18 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Info Links */}
         <section className="card">
-          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>🔗 Quick Links</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>🔗 Quick Links</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
             {[
-              { href: "/about/", label: "About AveryOS" },
+              { href: "/about/", label: "About AveryOS™" },
               { href: "/contact/", label: "Contact" },
               { href: "/privacy/", label: "Privacy Policy" },
               { href: "/terms/", label: "Terms of Service" },
+              { href: "/tari-gate", label: "TARI Licensing Portal" },
+              { href: "/forensic-proof", label: "Forensic Proof Ledger" },
+              { href: "/law-stack", label: "AveryOS™ Law Stack" },
+              { href: "/latent-anchor", label: "AI Anchor Feed" },
               { href: "/discover/", label: "Discover Capsules" },
-              { href: "/diff/", label: "Capsule Diff" },
-              { href: "/certificate/", label: "Certificate Viewer" },
-              { href: "/sigtrace/", label: "Signature Trace" },
               { href: "/health/", label: "API Health" },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="secondary-link" style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}>
@@ -213,7 +215,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
         </section>
 
         <footer>
-          <p className="footer-note" style={{ textAlign: "center" }}>
+          <p className="footer-note" style={{ textAlign: "center", color: "rgba(255,215,0,0.5)" }}>
             Truth is not a suggestion; it is a coordinate system. ⛓️⚓⛓️
           </p>
         </footer>
