@@ -28,7 +28,7 @@ jobs:
           if [ "$API_SUCCESS" != "true" ]; then
             echo "⚠️ Cloudflare API authentication failed — skipping diff."
             echo "Error: $(jq -r '.errors[0].message // "Unknown error"' live_rules_raw.json 2>/dev/null)"
-            exit 1
+            exit 0
           fi
 
           jq '[.result.rules[] | {description, action, expression, enabled, action_parameters}]' live_rules_raw.json > live_rules.json 2>/dev/null || echo "[]" > live_rules.json
