@@ -98,6 +98,19 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: ⛓️ Register AveryOS Tunnel
+        run: |
+          if [ -n "$CLOUDFLARE_TUNNEL_ID" ]; then
+            echo "$CLOUDFLARE_TUNNEL_ID" | npx wrangler secret put CLOUDFLARE_TUNNEL_ID --env production
+            echo "✅ AveryOS Tunnel registered as Worker secret"
+          else
+            echo "⚠️  CLOUDFLARE_TUNNEL_ID secret not configured — skipping tunnel registration"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_TUNNEL_ID: ${{ secrets.CLOUDFLARE_TUNNEL_ID }}
+
       - name: Deploy to Cloudflare Workers
         run: |
           # Auto-retry on 403 errors (authentication issues)
