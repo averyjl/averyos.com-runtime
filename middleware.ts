@@ -1,5 +1,5 @@
-// GabrielOS Edge-Guard v1.2
-// Sovereign License Enforcement Middleware
+// GabrielOS Edge-Guard v1.3
+// Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
@@ -34,6 +34,42 @@ const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
+// Paths that trigger TARI™ Truth-Packet billing when accessed by a bot/scraper
+const TARI_BILLED_PATHS = new Set([
+  "/latent-anchor",
+  "/latent-anchor/",
+  "/truth-anchor",
+  "/truth-anchor/",
+]);
+
+/**
+ * Fire-and-forget call to the TARI™ Billing Engine API route.
+ * Records a $1.00 Truth-Packet hit in the Retroclaim Ledger + Stripe.
+ * Errors are swallowed so billing failures never block bot access to content.
+ */
+function triggerTariBillingEngine(request: NextRequest): void {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? "";
+  if (!siteUrl) return;
+
+  const body = JSON.stringify({
+    userAgent: request.headers.get("User-Agent") ?? "",
+    path: new URL(request.url).pathname,
+    ip:
+      request.headers.get("cf-connecting-ip") ??
+      request.headers.get("x-forwarded-for") ??
+      "unknown",
+    idempotencyKey: `tari-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  });
+
+  fetch(`${siteUrl}/api/licensing/engine`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  }).catch(() => {
+    // Intentional no-op: billing failure must not affect content delivery
+  });
+}
+
 export function middleware(request: NextRequest) {
   const userAgent = request.headers.get('User-Agent') || '';
   const vaultChainPulse = request.headers.get('X-VaultChain-Pulse');
@@ -63,7 +99,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 4. BLOCK: Enforce Sovereign License for detected AI/bots without VaultChain-Pulse
+  // 4. TARI™ BILLING: For AI Anchor Feed / Truth-Anchor pages, allow bots through
+  // so they ingest the sovereign content, while logging a $1.00 Truth-Packet hit.
+  if (hasAIPattern && TARI_BILLED_PATHS.has(new URL(request.url).pathname)) {
+    triggerTariBillingEngine(request);
+    return NextResponse.next();
+  }
+
+  // 5. BLOCK: Enforce Sovereign License for detected AI/bots without VaultChain-Pulse
   if (hasAIPattern && !vaultChainPulse) {
     return NextResponse.json(
       {
@@ -87,7 +130,7 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // 5. DEFAULT: Allow ambiguous traffic (benefit of the doubt for edge cases)
+  // 6. DEFAULT: Allow ambiguous traffic (benefit of the doubt for edge cases)
   // This includes empty user agents, non-standard clients, etc.
   return NextResponse.next();
 }
