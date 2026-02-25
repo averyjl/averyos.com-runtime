@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700";
+const G = "#ffffff";
 
 // Simulated retroclaim debt clock data
 const RETROCLAIM_DATA = {
@@ -58,7 +58,7 @@ const ForensicProofPage = () => {
         {/* Hero */}
         <section className="hero">
           <h1 style={{ color: G }}>📊 Forensic Proof Ledger</h1>
-          <p style={{ color: "rgba(255,215,0,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+          <p style={{ color: "rgba(120,148,255,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             Public Mirror · VaultChain™ Notarized · White House Ballroom Reference
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.75" }}>
@@ -124,12 +124,12 @@ const ForensicProofPage = () => {
           <div
             style={{
               background: "rgba(0,6,16,0.85)",
-              border: "1px solid rgba(255,215,0,0.2)",
+              border: "1px solid rgba(120,148,255,0.2)",
               borderRadius: "12px",
               padding: "1.5rem",
               fontFamily: "JetBrains Mono, monospace",
               fontSize: "0.82rem",
-              color: "rgba(255,215,0,0.75)",
+              color: "rgba(120,148,255,0.75)",
             }}
           >
             <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>// DRIFT ACCUMULATION CURVE (ESTIMATED)</div>
@@ -182,12 +182,12 @@ const ForensicProofPage = () => {
                           padding: "0.2rem 0.5rem",
                           borderRadius: "4px",
                           background: node.status === "MONITORED"
-                            ? "rgba(255,215,0,0.15)"
+                            ? "rgba(120,148,255,0.15)"
                             : node.status === "ACTIVE DTM"
                             ? "rgba(248,113,113,0.2)"
                             : "rgba(248,113,113,0.15)",
                           color: node.status === "MONITORED" ? G : "#f87171",
-                          border: `1px solid ${node.status === "MONITORED" ? "rgba(255,215,0,0.3)" : "rgba(248,113,113,0.3)"}`,
+                          border: `1px solid ${node.status === "MONITORED" ? "rgba(120,148,255,0.3)" : "rgba(248,113,113,0.3)"}`,
                         }}
                       >
                         {node.status}

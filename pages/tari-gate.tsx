@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700"; // Lighthouse Noir gold
+const G = "#ffffff"; // Lighthouse Noir accent
 
 const TariGatePage = () => {
   const siteUrl = getSiteUrl();
@@ -31,7 +31,7 @@ const TariGatePage = () => {
         {/* Hero */}
         <section className="hero">
           <h1 style={{ color: G }}>🔐 TARI Gate — Licensing Portal</h1>
-          <p style={{ color: "rgba(255,215,0,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+          <p style={{ color: "rgba(120,148,255,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             Truth Anchored Revenue Initiative™ · Commercial License v2026 · Root Authority Lock™ Active
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.75" }}>
@@ -140,7 +140,7 @@ const TariGatePage = () => {
           <ol style={{ color: "rgba(238,244,255,0.82)", lineHeight: "2.2", paddingLeft: "1.5rem", margin: 0 }}>
             <li>Visit the <Link href="/pay" style={{ color: G }}>Payment Portal</Link> and select your license tier.</li>
             <li>Complete payment via Stripe. You will receive a <strong>Capsule License Seal</strong> with a SHA-512 fingerprint.</li>
-            <li>Include your license SHA-512 in all API requests as the <code style={{ background: "rgba(255,215,0,0.1)", padding: "0.1rem 0.3rem", borderRadius: "3px" }}>X-AveryOS-License</code> header.</li>
+            <li>Include your license SHA-512 in all API requests as the <code style={{ background: "rgba(120,148,255,0.1)", padding: "0.1rem 0.3rem", borderRadius: "3px" }}>X-AveryOS-License</code> header.</li>
             <li>Your license is registered on the VaultChain™ and verifiable at <Link href="/verify" style={{ color: G }}>/verify</Link>.</li>
             <li>For retroactive settlement of past unlicensed ingestion, contact <a href="mailto:truth@averyworld.com" style={{ color: G }}>truth@averyworld.com</a>.</li>
           </ol>
