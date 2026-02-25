@@ -9,17 +9,17 @@
   --color-bg-panel:    rgba(0, 10, 28, 0.88);
   --color-bg-card:     rgba(0, 8, 20, 0.85);
   --color-bg-deep:     rgba(0, 6, 16, 0.95);
-  --color-gold:        #ffd700;
-  --color-gold-dim:    rgba(255, 215, 0, 0.75);
-  --color-gold-subtle: rgba(255, 215, 0, 0.35);
-  --color-gold-ghost:  rgba(255, 215, 0, 0.15);
-  --color-gold-ink:    rgba(255, 215, 0, 0.9);
+  --color-gold:        #d4af37;
+  --color-gold-dim:    rgba(212, 175, 55, 0.75);
+  --color-gold-subtle: rgba(212, 175, 55, 0.35);
+  --color-gold-ghost:  rgba(212, 175, 55, 0.15);
+  --color-gold-ink:    rgba(212, 175, 55, 0.9);
   --color-text:        #eef4ff;
   --color-text-muted:  rgba(238, 244, 255, 0.75);
   --color-text-faint:  rgba(238, 244, 255, 0.5);
-  --color-border:      rgba(255, 215, 0, 0.3);
-  --color-border-dim:  rgba(255, 215, 0, 0.18);
-  --color-border-bright: rgba(255, 215, 0, 0.65);
+  --color-border:      rgba(212, 175, 55, 0.3);
+  --color-border-dim:  rgba(212, 175, 55, 0.18);
+  --color-border-bright: rgba(212, 175, 55, 0.65);
   --color-dark-text:   #000814;
 }
 
@@ -48,10 +48,10 @@ a {
 
 .hero {
   background: linear-gradient(135deg, rgba(20, 15, 0, 0.55), rgba(0, 8, 20, 0.95));
-  border: 1px solid rgba(255, 215, 0, 0.4);
+  border: 1px solid rgba(212, 175, 55, 0.4);
   border-radius: 18px;
   padding: 2.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 60px rgba(255, 215, 0, 0.04);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 60px rgba(212, 175, 55, 0.04);
 }
 
 .hero h1 {
@@ -69,12 +69,12 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.85rem;
-  color: rgba(255, 215, 0, 0.75);
+  color: rgba(212, 175, 55, 0.75);
 }
 
 .capsule-block {
   background: rgba(0, 8, 20, 0.85);
-  border: 1px solid rgba(255, 215, 0, 0.22);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 16px;
   padding: 2rem;
   display: flex;
@@ -86,7 +86,7 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.7rem;
-  color: rgba(255, 215, 0, 0.9);
+  color: rgba(212, 175, 55, 0.9);
 }
 
 .capsule-summary {
@@ -105,7 +105,7 @@ a {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 215, 0, 0.65);
+  color: rgba(212, 175, 55, 0.65);
 }
 
 .capsule-meta dd {
@@ -118,7 +118,7 @@ a {
 
 .capsule-body {
   background: rgba(0, 6, 16, 0.8);
-  border: 1px solid rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: 14px;
   padding: 1.5rem 2rem;
   display: grid;
@@ -140,7 +140,7 @@ a {
 .badge {
   border-radius: 14px;
   padding: 1rem;
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   background: rgba(10, 8, 0, 0.8);
 }
 
@@ -170,7 +170,7 @@ a {
   justify-content: center;
   padding: 0.45rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 215, 0, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.45);
   color: rgba(238, 244, 255, 0.9);
   text-decoration: none;
   font-size: 0.85rem;
@@ -179,7 +179,7 @@ a {
 }
 
 .badge-link:hover {
-  border-color: rgba(255, 215, 0, 0.85);
+  border-color: rgba(212, 175, 55, 0.85);
   transform: translateY(-1px);
 }
 
@@ -195,7 +195,7 @@ a {
 .capsule-list li {
   padding: 1rem 1.2rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.15);
   background: rgba(0, 6, 16, 0.8);
 }
 
@@ -231,15 +231,15 @@ a {
   padding: 1rem 1.5rem 2rem;
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(255, 215, 0, 0.7);
+  color: rgba(212, 175, 55, 0.7);
   background: rgba(0, 6, 14, 0.92);
-  border-top: 1px solid rgba(255, 215, 0, 0.2);
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 .card {
   padding: 1.5rem;
   border-radius: 16px;
-  border: 1px solid rgba(255, 215, 0, 0.18);
+  border: 1px solid rgba(212, 175, 55, 0.18);
   background: rgba(0, 6, 16, 0.7);
   margin-bottom: 1.5rem;
 }
@@ -261,13 +261,13 @@ a {
 }
 
 .primary-link {
-  background: rgba(255, 215, 0, 0.92);
+  background: rgba(212, 175, 55, 0.92);
   color: #000814;
 }
 
 .secondary-link {
-  border: 1px solid rgba(255, 215, 0, 0.55);
-  color: rgba(255, 215, 0, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  color: rgba(212, 175, 55, 0.9);
 }
 
 .form-grid {
@@ -285,7 +285,7 @@ a {
 .form-grid input {
   padding: 0.65rem 0.75rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 215, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.25);
   background: rgba(0, 4, 12, 0.85);
   color: inherit;
 }
@@ -300,14 +300,14 @@ a {
 }
 
 .primary-button {
-  background: rgba(255, 215, 0, 0.92);
+  background: rgba(212, 175, 55, 0.92);
   color: #000814;
 }
 
 .secondary-button {
   background: rgba(0, 8, 20, 0.9);
-  color: rgba(255, 215, 0, 0.9);
-  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: rgba(212, 175, 55, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.5);
 }
 
 .status-pill {
@@ -315,8 +315,8 @@ a {
   display: inline-flex;
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  color: rgba(255, 215, 0, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: rgba(212, 175, 55, 0.85);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
 }
@@ -330,16 +330,16 @@ a {
 .data-table th,
 .data-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
 }
 
 .data-table th {
   text-align: left;
-  color: rgba(255, 215, 0, 0.8);
+  color: rgba(212, 175, 55, 0.8);
 }
 
 .embed-frame {
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 16px;
   overflow: hidden;
   background: rgba(0, 4, 12, 0.95);
@@ -357,7 +357,7 @@ a {
   align-items: center;
   padding: 1rem 1.5rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 215, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.25);
   background: rgba(0, 6, 16, 0.8);
   text-decoration: none;
   color: rgba(238, 244, 255, 0.9);
@@ -366,14 +366,14 @@ a {
 }
 
 .action-link:hover {
-  border-color: rgba(255, 215, 0, 0.65);
+  border-color: rgba(212, 175, 55, 0.65);
   background: rgba(10, 8, 0, 0.9);
   transform: translateX(4px);
 }
 
 .call-to-action-section {
   background: linear-gradient(135deg, rgba(20, 15, 0, 0.35), rgba(0, 8, 20, 0.85));
-  border-color: rgba(255, 215, 0, 0.3);
+  border-color: rgba(212, 175, 55, 0.3);
 }
 
 .capsule-meta-small {
@@ -511,7 +511,7 @@ a {
 
 .info-box {
   background: rgba(0, 6, 16, 0.72);
-  border: 1px solid rgba(255, 215, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: 12px;
   padding: 1.25rem;
 }
@@ -520,7 +520,7 @@ a {
   margin-top: 0;
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
-  color: rgba(255, 215, 0, 0.95);
+  color: rgba(212, 175, 55, 0.95);
 }
 
 .info-box p {
@@ -538,8 +538,8 @@ a {
   display: inline-block;
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
-  background: rgba(255, 215, 0, 0.15);
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.35);
   font-size: 0.8rem;
   text-transform: capitalize;
 }
@@ -547,13 +547,13 @@ a {
 .hash-preview {
   font-family: "Courier New", monospace;
   font-size: 0.85rem;
-  color: rgba(255, 215, 0, 0.8);
+  color: rgba(212, 175, 55, 0.8);
 }
 
 .action-link-small {
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.3);
   background: rgba(0, 6, 16, 0.8);
   text-decoration: none;
   color: rgba(238, 244, 255, 0.9);
@@ -563,7 +563,7 @@ a {
 }
 
 .action-link-small:hover {
-  border-color: rgba(255, 215, 0, 0.65);
+  border-color: rgba(212, 175, 55, 0.65);
   background: rgba(10, 8, 0, 0.9);
 }
 
@@ -571,9 +571,9 @@ a {
   display: inline-block;
   padding: 0.75rem 1.5rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.35);
   background: rgba(0, 6, 16, 0.8);
-  color: rgba(255, 215, 0, 0.9);
+  color: rgba(212, 175, 55, 0.9);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -581,7 +581,7 @@ a {
 }
 
 .secondary-button:hover {
-  border-color: rgba(255, 215, 0, 0.7);
+  border-color: rgba(212, 175, 55, 0.7);
   background: rgba(10, 8, 0, 0.9);
 }
 
@@ -590,7 +590,7 @@ a {
 /* Classic Horizontal NavBar */
 .navbar {
   background: linear-gradient(135deg, rgba(0, 6, 16, 0.97), rgba(0, 4, 12, 0.99));
-  border-bottom: 1px solid rgba(255, 215, 0, 0.22);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -613,12 +613,12 @@ a {
   text-decoration: none;
   font-weight: 700;
   font-size: 1.25rem;
-  color: rgba(255, 215, 0, 0.95);
+  color: rgba(212, 175, 55, 0.95);
   transition: color 0.2s ease;
 }
 
 .navbar-brand:hover {
-  color: #ffd700;
+  color: #d4af37;
 }
 
 .navbar-brand-icon {
@@ -648,14 +648,14 @@ a {
 }
 
 .navbar-link:hover {
-  background: rgba(255, 215, 0, 0.12);
-  color: rgba(255, 215, 0, 0.95);
+  background: rgba(212, 175, 55, 0.12);
+  color: rgba(212, 175, 55, 0.95);
 }
 
 .navbar-link-active {
-  background: rgba(255, 215, 0, 0.18);
-  color: #ffd700;
-  border-bottom: 2px solid rgba(255, 215, 0, 0.85);
+  background: rgba(212, 175, 55, 0.18);
+  color: #d4af37;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.85);
   font-weight: 700;
 }
 
@@ -671,11 +671,11 @@ a {
   transform: translateY(-50%);
   z-index: 110;
   background: linear-gradient(135deg, rgba(15, 12, 0, 0.9), rgba(0, 6, 16, 0.95));
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.3);
   border-left: none;
   border-radius: 0 8px 8px 0;
   padding: 1rem 0.5rem;
-  color: rgba(255, 215, 0, 0.9);
+  color: rgba(212, 175, 55, 0.9);
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
@@ -692,7 +692,7 @@ a {
   top: 0;
   bottom: 0;
   background: linear-gradient(180deg, rgba(0, 6, 16, 0.98), rgba(0, 4, 12, 0.99));
-  border-right: 1px solid rgba(255, 215, 0, 0.2);
+  border-right: 1px solid rgba(212, 175, 55, 0.2);
   transition: width 0.3s ease;
   z-index: 105;
   display: flex;
@@ -710,7 +710,7 @@ a {
 
 .sidebar-header {
   padding: 1.5rem 1rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
 }
 
 .sidebar-brand {
@@ -720,12 +720,12 @@ a {
   text-decoration: none;
   font-weight: 700;
   font-size: 1.25rem;
-  color: rgba(255, 215, 0, 0.95);
+  color: rgba(212, 175, 55, 0.95);
   transition: color 0.2s ease;
 }
 
 .sidebar-brand:hover {
-  color: #ffd700;
+  color: #d4af37;
 }
 
 .sidebar-brand-icon {
@@ -755,9 +755,9 @@ a {
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 215, 0, 0.08);
-  color: rgba(255, 215, 0, 0.95);
-  border-left-color: rgba(255, 215, 0, 0.65);
+  background: rgba(212, 175, 55, 0.08);
+  color: rgba(212, 175, 55, 0.95);
+  border-left-color: rgba(212, 175, 55, 0.65);
 }
 
 .sidebar-link-icon {
@@ -781,10 +781,10 @@ a {
   left: 1rem;
   z-index: 120;
   background: linear-gradient(135deg, rgba(15, 12, 0, 0.9), rgba(0, 6, 16, 0.95));
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  color: rgba(255, 215, 0, 0.9);
+  color: rgba(212, 175, 55, 0.9);
   cursor: pointer;
   font-size: 1.5rem;
   transition: all 0.2s ease;
@@ -820,7 +820,7 @@ a {
   bottom: 0;
   width: 280px;
   background: linear-gradient(180deg, rgba(0, 6, 16, 0.98), rgba(0, 4, 12, 0.99));
-  border-right: 1px solid rgba(255, 215, 0, 0.3);
+  border-right: 1px solid rgba(212, 175, 55, 0.3);
   z-index: 130;
   display: flex;
   flex-direction: column;
@@ -838,7 +838,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 .drawer-brand {
@@ -848,12 +848,12 @@ a {
   text-decoration: none;
   font-weight: 700;
   font-size: 1.25rem;
-  color: rgba(255, 215, 0, 0.95);
+  color: rgba(212, 175, 55, 0.95);
   transition: color 0.2s ease;
 }
 
 .drawer-brand:hover {
-  color: #ffd700;
+  color: #d4af37;
 }
 
 .drawer-brand-icon {
@@ -863,7 +863,7 @@ a {
 .drawer-close {
   background: transparent;
   border: none;
-  color: rgba(255, 215, 0, 0.7);
+  color: rgba(212, 175, 55, 0.7);
   font-size: 1.75rem;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
@@ -872,7 +872,7 @@ a {
 }
 
 .drawer-close:hover {
-  color: #ffd700;
+  color: #d4af37;
 }
 
 .drawer-nav {
@@ -897,9 +897,9 @@ a {
 }
 
 .drawer-link:hover {
-  background: rgba(255, 215, 0, 0.1);
-  color: rgba(255, 215, 0, 0.98);
-  border-left-color: rgba(255, 215, 0, 0.7);
+  background: rgba(212, 175, 55, 0.1);
+  color: rgba(212, 175, 55, 0.98);
+  border-left-color: rgba(212, 175, 55, 0.7);
 }
 
 .drawer-link-icon {
@@ -969,7 +969,7 @@ a {
   width: 220px;
   flex-shrink: 0;
   background: linear-gradient(180deg, rgba(0, 6, 16, 0.98), rgba(0, 4, 12, 0.99));
-  border-right: 1px solid rgba(255, 215, 0, 0.15);
+  border-right: 1px solid rgba(212, 175, 55, 0.15);
   padding: 1.5rem 0;
   position: sticky;
   top: 0;
@@ -993,15 +993,15 @@ a {
 }
 
 .layout-nav-link:hover {
-  background: rgba(255, 215, 0, 0.08);
-  color: rgba(255, 215, 0, 0.95);
+  background: rgba(212, 175, 55, 0.08);
+  color: rgba(212, 175, 55, 0.95);
 }
 
 .layout-nav-link-active {
-  color: rgba(255, 215, 0, 0.95);
-  background: rgba(255, 215, 0, 0.1);
+  color: rgba(212, 175, 55, 0.95);
+  background: rgba(212, 175, 55, 0.1);
   font-weight: 600;
-  border-left: 3px solid rgba(255, 215, 0, 0.75);
+  border-left: 3px solid rgba(212, 175, 55, 0.75);
 }
 
 .layout-content {
