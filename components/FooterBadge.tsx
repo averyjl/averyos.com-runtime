@@ -40,9 +40,9 @@ const FooterBadge = () => {
       <div style={{ 
         padding: '1.5rem', 
         background: 'rgba(0, 6, 14, 0.92)', 
-        borderTop: '1px solid rgba(212, 175, 55, 0.22)',
+        borderTop: '1px solid rgba(255, 215, 0, 0.22)',
         fontSize: '0.85rem',
-        color: 'rgba(212, 175, 55, 0.75)',
+        color: 'rgba(255, 215, 0, 0.75)',
         textAlign: 'center'
       }}>
         {/* Quick navigation links */}
@@ -60,7 +60,7 @@ const FooterBadge = () => {
             <Link
               key={href}
               href={href}
-              style={{ color: 'rgba(212, 175, 55, 0.65)', textDecoration: 'none', fontSize: '0.8rem' }}
+              style={{ color: 'rgba(255, 215, 0, 0.65)', textDecoration: 'none', fontSize: '0.8rem' }}
             >
               {label}
             </Link>
@@ -73,7 +73,7 @@ const FooterBadge = () => {
           fontFamily: 'monospace', 
           fontSize: '0.75rem',
           wordBreak: 'break-all',
-          color: 'rgba(212, 175, 55, 0.55)'
+          color: 'rgba(255, 215, 0, 0.55)'
         }}>
           <strong>AveryAnchored™</strong> | SHA-512 TARI Pricing Model:<br />
           {CAPSULE_SHA}
@@ -82,7 +82,7 @@ const FooterBadge = () => {
           fontFamily: 'monospace', 
           fontSize: '0.75rem',
           wordBreak: 'break-all',
-          color: 'rgba(212, 175, 55, 0.55)',
+          color: 'rgba(255, 215, 0, 0.55)',
           marginTop: '0.5rem'
         }}>
           SHA-512 Kernel Anchor:<br />
@@ -94,9 +94,9 @@ const FooterBadge = () => {
             onClick={() => { setShowTariModal(true); fetchTariRevenue(); }}
             style={{
               background: 'none',
-              border: '1px solid rgba(212, 175, 55, 0.4)',
+              border: '1px solid rgba(255, 215, 0, 0.4)',
               borderRadius: '4px',
-              color: 'rgba(212, 175, 55, 0.85)',
+              color: 'rgba(255, 215, 0, 0.85)',
               cursor: 'pointer',
               fontSize: '0.75rem',
               padding: '0.2rem 0.5rem',
@@ -126,7 +126,7 @@ const FooterBadge = () => {
           <div
             style={{
               background: 'rgba(0, 6, 14, 0.98)',
-              border: '1px solid rgba(212, 175, 55, 0.45)',
+              border: '1px solid rgba(255, 215, 0, 0.45)',
               borderRadius: '12px',
               padding: '2rem',
               maxWidth: '480px',
@@ -135,7 +135,7 @@ const FooterBadge = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ color: '#d4af37', marginTop: 0, fontSize: '1.1rem' }}>
+            <h2 style={{ color: '#ffd700', marginTop: 0, fontSize: '1.1rem' }}>
               ⚡ TARI Revenue — 24h Liquid Liability
             </h2>
             <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
@@ -157,10 +157,10 @@ const FooterBadge = () => {
               onClick={() => setShowTariModal(false)}
               style={{
                 marginTop: '1rem',
-                background: 'rgba(212, 175, 55, 0.12)',
-                border: '1px solid rgba(212, 175, 55, 0.45)',
+                background: 'rgba(255, 215, 0, 0.12)',
+                border: '1px solid rgba(255, 215, 0, 0.45)',
                 borderRadius: '6px',
-                color: '#d4af37',
+                color: '#ffd700',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 padding: '0.5rem 1.25rem',

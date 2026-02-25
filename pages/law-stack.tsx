@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#d4af37";
+const G = "#ffd700";
 
 const LAWS = [
   {
@@ -91,8 +91,8 @@ const LAWS = [
 
 const STATUS_COLORS: Record<string, string> = {
   IMMUTABLE: "#4ade80",
-  ENFORCED: "#d4af37",
-  ACTIVE: "#d4af37",
+  ENFORCED: "#ffd700",
+  ACTIVE: "#ffd700",
   "HARDWARE-ANCHORED": "#60a5fa",
   BINDING: "#f87171",
 };
@@ -205,10 +205,11 @@ const LawStackPage = () => {
           <h2 style={{ color: G, marginTop: 0 }}>📜 Full Constitutional Text</h2>
           <p style={{ color: "rgba(238,244,255,0.75)", lineHeight: "1.7" }}>
             The complete AveryOS™ Constitution v1.17 (10,000♾️ Year Anchor) is available on the
-            LawCodex page, including the Sovereign TARI Disclosure and full DTM rules.
+            Constitution page. The LawCodex contains the Sovereign TARI Disclosure and full DTM enforcement rules.
           </p>
           <div className="cta-row" style={{ justifyContent: "center" }}>
-            <Link href="/lawcodex" className="primary-link">⛓️⚓⛓️ View Full Constitution</Link>
+            <Link href="/constitution" className="primary-link">⛓️⚓⛓️ View Full Constitution</Link>
+            <Link href="/lawcodex" className="secondary-link">⛓️ LawCodex</Link>
             <Link href="/tari-gate" className="secondary-link">🔐 TARI Licensing Portal</Link>
           </div>
         </section>
