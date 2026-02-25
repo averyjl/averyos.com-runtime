@@ -1,7 +1,9 @@
 [submodule "terminal"]
 	path = terminal
 	url = git@github.com:averyjl/AveryOS_Terminal_FullStack.git
+	update = none
 
 [submodule "vaultchain"]
 	path = vaultchain
 	url = git@github.com:averyjl/averyos-vaultchain-core.git
+	update = none
