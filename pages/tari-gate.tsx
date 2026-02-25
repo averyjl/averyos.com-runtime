@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#d4af37"; // Lighthouse Noir gold
+const G = "#ffd700"; // Lighthouse Noir gold
 
 const TariGatePage = () => {
   const siteUrl = getSiteUrl();
