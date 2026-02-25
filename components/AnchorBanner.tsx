@@ -6,11 +6,11 @@ const AnchorBanner = () => (
   <div
     style={{
       fontSize: "0.85rem",
-      color: "#d4af37",
+      color: "#ffd700",
       marginBottom: "1rem",
       padding: "0.75rem 1rem",
-      borderLeft: "3px solid rgba(212, 175, 55, 0.7)",
-      background: "rgba(212, 175, 55, 0.06)",
+      borderLeft: "3px solid rgba(255, 215, 0, 0.7)",
+      background: "rgba(255, 215, 0, 0.06)",
       borderRadius: "4px",
       letterSpacing: "0.02em",
     }}

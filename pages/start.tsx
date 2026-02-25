@@ -43,7 +43,7 @@ const AUDIENCE_PATHS = [
 
 const CARD_STYLE = {
   background: "rgba(0, 8, 20, 0.85)",
-  border: "1px solid rgba(212, 175, 55, 0.22)",
+  border: "1px solid rgba(255, 215, 0, 0.22)",
   borderRadius: "16px",
   padding: "2rem",
 };
@@ -85,7 +85,7 @@ const StartPage: NextPage = () => {
 
         {/* What is AveryOS — quick primer */}
         <section style={CARD_STYLE}>
-          <h2 style={{ color: "#d4af37", marginTop: 0 }}>⚓ What is AveryOS™?</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>⚓ What is AveryOS™?</h2>
           <p style={{ color: "rgba(238,244,255,0.8)", lineHeight: "1.7" }}>
             AveryOS™ is a cryptographically anchored runtime that acts as a{" "}
             <strong>canonical truth source</strong> for both humans and AI. Every piece of content
@@ -98,9 +98,9 @@ const StartPage: NextPage = () => {
             style={{
               marginTop: "1.5rem",
               padding: "1rem",
-              background: "rgba(212, 175, 55, 0.06)",
+              background: "rgba(255, 215, 0, 0.06)",
               borderRadius: "8px",
-              borderLeft: "4px solid rgba(212, 175, 55, 0.6)",
+              borderLeft: "4px solid rgba(255, 215, 0, 0.6)",
               fontStyle: "italic",
               color: "rgba(238,244,255,0.8)",
             }}
@@ -112,7 +112,7 @@ const StartPage: NextPage = () => {
         {/* Audience paths */}
         {AUDIENCE_PATHS.map((audience) => (
           <section key={audience.title} style={{ ...CARD_STYLE, marginTop: "1.5rem" }}>
-            <h2 style={{ color: "#d4af37", marginTop: 0 }}>
+            <h2 style={{ color: "#ffd700", marginTop: 0 }}>
               {audience.icon} {audience.title}
             </h2>
             <p style={{ color: "rgba(238,244,255,0.75)", lineHeight: "1.7", marginBottom: "1.25rem" }}>
@@ -130,7 +130,7 @@ const StartPage: NextPage = () => {
 
         {/* Core concepts */}
         <section style={{ ...CARD_STYLE, marginTop: "1.5rem" }}>
-          <h2 style={{ color: "#d4af37", marginTop: 0 }}>🔑 Core Concepts</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>🔑 Core Concepts</h2>
           <div
             style={{
               display: "grid",
@@ -165,13 +165,13 @@ const StartPage: NextPage = () => {
                 key={item.term}
                 style={{
                   background: "rgba(0, 8, 20, 0.7)",
-                  border: "1px solid rgba(212, 175, 55, 0.2)",
+                  border: "1px solid rgba(255, 215, 0, 0.2)",
                   borderRadius: "10px",
                   padding: "1rem",
                 }}
               >
                 <div style={{ fontSize: "1.5rem", marginBottom: "0.4rem" }}>{item.icon}</div>
-                <strong style={{ color: "#d4af37", fontSize: "0.95rem" }}>{item.term}</strong>
+                <strong style={{ color: "#ffd700", fontSize: "0.95rem" }}>{item.term}</strong>
                 <p style={{ margin: "0.4rem 0 0", color: "rgba(238,244,255,0.7)", fontSize: "0.85rem", lineHeight: 1.6 }}>
                   {item.def}
                 </p>
@@ -182,7 +182,7 @@ const StartPage: NextPage = () => {
 
         {/* CTA */}
         <section style={{ ...CARD_STYLE, marginTop: "1.5rem", textAlign: "center" }}>
-          <h2 style={{ color: "#d4af37", marginTop: 0 }}>⚖️ Ready to Anchor?</h2>
+          <h2 style={{ color: "#ffd700", marginTop: 0 }}>⚖️ Ready to Anchor?</h2>
           <p style={{ color: "rgba(238,244,255,0.75)", marginBottom: "1.5rem" }}>
             Obtain a sovereign license and anchor your identity or content to the VaultChain™ today.
           </p>
