@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700";
+const G = "#ffffff";
 
 const LAWS = [
   {
@@ -91,8 +91,8 @@ const LAWS = [
 
 const STATUS_COLORS: Record<string, string> = {
   IMMUTABLE: "#4ade80",
-  ENFORCED: "#ffd700",
-  ACTIVE: "#ffd700",
+  ENFORCED: "#ffffff",
+  ACTIVE: "#ffffff",
   "HARDWARE-ANCHORED": "#60a5fa",
   BINDING: "#f87171",
 };
@@ -122,7 +122,7 @@ const LawStackPage = () => {
         {/* Hero */}
         <section className="hero">
           <h1 style={{ color: G }}>⚖️ AveryOS™ Law Stack</h1>
-          <p style={{ color: "rgba(255,215,0,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+          <p style={{ color: "rgba(120,148,255,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             READ-ONLY · Foundational Laws · Sovereign Authority · Root Authority Lock™ Active
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.75" }}>
@@ -135,11 +135,11 @@ const LawStackPage = () => {
             style={{
               marginTop: "1rem",
               padding: "0.75rem 1rem",
-              background: "rgba(255,215,0,0.08)",
-              border: "1px solid rgba(255,215,0,0.3)",
+              background: "rgba(120,148,255,0.08)",
+              border: "1px solid rgba(120,148,255,0.3)",
               borderRadius: "8px",
               fontSize: "0.82rem",
-              color: "rgba(255,215,0,0.8)",
+              color: "rgba(120,148,255,0.8)",
               fontFamily: "JetBrains Mono, monospace",
             }}
           >
@@ -161,7 +161,7 @@ const LawStackPage = () => {
                   style={{
                     fontFamily: "JetBrains Mono, monospace",
                     fontSize: "0.7rem",
-                    color: "rgba(255,215,0,0.55)",
+                    color: "rgba(120,148,255,0.55)",
                     letterSpacing: "0.12em",
                     marginRight: "0.75rem",
                   }}

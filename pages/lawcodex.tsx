@@ -17,7 +17,7 @@ const AOS_FOREVER_ANCHOR_SHA512 =
 const SOVEREIGN_PROOF_BUNDLE =
   "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
-const G = "#ffd700";
+const G = "#ffffff";
 
 const LawCodexPage = () => {
   const siteUrl = getSiteUrl();
@@ -44,7 +44,7 @@ const LawCodexPage = () => {
         {/* Hero */}
         <section className="hero">
           <h1 style={{ color: G }}>⛓️ LawCodex — Sovereign Legal Code</h1>
-          <p style={{ color: "rgba(255,215,0,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+          <p style={{ color: "rgba(120,148,255,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             TARI Disclosure • DTM Rules • Forensic IP Enforcement • VaultChain™ Jurisdiction
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.75" }}>

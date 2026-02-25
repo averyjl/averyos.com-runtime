@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700";
+const G = "#ffffff";
 
 const ARTICLES = [
   {
@@ -128,7 +128,7 @@ const ConstitutionPage = () => {
         {/* Hero */}
         <section className="hero">
           <h1 style={{ color: G }}>⛓️⚓⛓️ AveryOS™ Constitution v1.17</h1>
-          <p style={{ color: "rgba(255,215,0,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+          <p style={{ color: "rgba(120,148,255,0.75)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             Sovereign Law • 10,000♾️ Year Anchor • VaultChain™ Notarized • 23 Articles
           </p>
           <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.75" }}>
@@ -140,11 +140,11 @@ const ConstitutionPage = () => {
             style={{
               marginTop: "1rem",
               padding: "0.75rem 1rem",
-              background: "rgba(255,215,0,0.08)",
-              border: "1px solid rgba(255,215,0,0.3)",
+              background: "rgba(120,148,255,0.08)",
+              border: "1px solid rgba(120,148,255,0.3)",
               borderRadius: "8px",
               fontSize: "0.82rem",
-              color: "rgba(255,215,0,0.8)",
+              color: "rgba(120,148,255,0.8)",
               fontFamily: "JetBrains Mono, monospace",
             }}
           >
@@ -158,14 +158,14 @@ const ConstitutionPage = () => {
           <section
             key={article.num}
             className="card"
-            style={{ borderLeft: `3px solid rgba(255,215,0,0.55)` }}
+            style={{ borderLeft: `3px solid rgba(120,148,255,0.55)` }}
           >
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
               <span
                 style={{
                   fontFamily: "JetBrains Mono, monospace",
                   fontSize: "0.7rem",
-                  color: "rgba(255,215,0,0.55)",
+                  color: "rgba(120,148,255,0.55)",
                   letterSpacing: "0.12em",
                   flexShrink: 0,
                 }}
