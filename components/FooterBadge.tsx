@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useState } from "react";
 
 const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
@@ -44,6 +45,27 @@ const FooterBadge = () => {
         color: 'rgba(255, 215, 0, 0.75)',
         textAlign: 'center'
       }}>
+        {/* Quick navigation links */}
+        <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem 1.25rem' }}>
+          {[
+            { href: '/', label: 'Home' },
+            { href: '/start', label: 'Start' },
+            { href: '/pay', label: 'Pay License' },
+            { href: '/verify', label: 'Verify' },
+            { href: '/license', label: 'License' },
+            { href: '/privacy', label: 'Privacy' },
+            { href: '/terms', label: 'Terms' },
+            { href: '/contact', label: 'Contact' },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{ color: 'rgba(255, 215, 0, 0.65)', textDecoration: 'none', fontSize: '0.8rem' }}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
         <div style={{ marginBottom: '0.75rem' }}>
           Powered by CapsuleEcho™ | VaultSignature: ENFORCED
         </div>
