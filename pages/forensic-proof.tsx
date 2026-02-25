@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700";
+const G = "#d4af37";
 
 // Simulated retroclaim debt clock data
 const RETROCLAIM_DATA = {

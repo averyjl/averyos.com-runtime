@@ -4,7 +4,7 @@ import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
-const G = "#ffd700";
+const G = "#d4af37";
 
 const LAWS = [
   {
@@ -91,8 +91,8 @@ const LAWS = [
 
 const STATUS_COLORS: Record<string, string> = {
   IMMUTABLE: "#4ade80",
-  ENFORCED: "#ffd700",
-  ACTIVE: "#ffd700",
+  ENFORCED: "#d4af37",
+  ACTIVE: "#d4af37",
   "HARDWARE-ANCHORED": "#60a5fa",
   BINDING: "#f87171",
 };
