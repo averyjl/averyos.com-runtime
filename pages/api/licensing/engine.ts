@@ -7,7 +7,7 @@
  *  1. The local Retroclaim Ledger (capsule_logs/retroclaim_ledger.json)
  *  2. Stripe (PaymentIntent with capture_method=manual — log-only, no capture)
  *
- * Security: STRIPE_API_KEY is read exclusively from process.env — never hardcoded.
+ * Security: STRIPE_SECRET_KEY is read exclusively from process.env — never hardcoded.
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -23,7 +23,7 @@ const RETROCLAIM_LEDGER_PATH = path.join(
 
 const TRUTH_PACKET_AMOUNT_CENTS = 100; // $1.00 per Truth-Packet hit
 
-type RetroclaIimEntry = {
+type RetroclaImEntry = {
   timestamp: string;
   path: string;
   userAgent: string;
@@ -38,10 +38,10 @@ type RetroclaIimEntry = {
   license: string;
 };
 
-function appendLedger(entry: RetroclaIimEntry): void {
+function appendLedger(entry: RetroclaImEntry): void {
   const logDir = path.dirname(RETROCLAIM_LEDGER_PATH);
   if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  let ledger: RetroclaIimEntry[] = [];
+  let ledger: RetroclaImEntry[] = [];
   if (fs.existsSync(RETROCLAIM_LEDGER_PATH)) {
     try {
       const raw = JSON.parse(fs.readFileSync(RETROCLAIM_LEDGER_PATH, "utf8"));
@@ -118,7 +118,7 @@ export default async function handler(
 
   const stripeIntentId = await logStripetruthPacket(ua, rpath, remoteIp, iKey);
 
-  const entry: RetroclaIimEntry = {
+  const entry: RetroclaImEntry = {
     timestamp,
     path: rpath,
     userAgent: ua.slice(0, 500),
