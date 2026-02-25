@@ -1,20 +1,21 @@
 /**
  * Shared AveryAnchored™ banner component
- * Displayed at the top of every page
+ * Displayed at the top of every page — Lighthouse Noir theme
  */
 const AnchorBanner = () => (
   <div
     style={{
       fontSize: "0.85rem",
-      color: "rgba(122, 170, 255, 0.9)",
+      color: "#ffd700",
       marginBottom: "1rem",
-      padding: "0.75rem",
-      borderLeft: "3px solid rgba(120, 148, 255, 0.5)",
-      background: "rgba(36, 58, 140, 0.15)",
+      padding: "0.75rem 1rem",
+      borderLeft: "3px solid rgba(255, 215, 0, 0.7)",
+      background: "rgba(255, 215, 0, 0.06)",
       borderRadius: "4px",
+      letterSpacing: "0.02em",
     }}
   >
-    ⛓️⚓ ⛓️AveryAnchored™ | CreatorLock Protocol Active | 100.00♾️% Alignment ⛓️⚓ ⛓️
+    ⛓️⚓⛓️  AveryAnchored™  |  CreatorLock Protocol™ Active  |  VaultChain™  |  100.00♾️% Alignment (aka 0.000♾️% Drift)  🤛🏻⛓️⚓⛓️
   </div>
 );
 
