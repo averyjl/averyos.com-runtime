@@ -90,7 +90,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* What is AveryOS */}
         <section className="card">
-          <h2 style={{ color: "#ffd700", marginTop: 0 }}>🛡️ What is AveryOS™?</h2>
+          <h2 style={{ color: "#d4af37", marginTop: 0 }}>🛡️ What is AveryOS™?</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: "1.25rem", marginTop: "1rem" }}>
             {[
               { icon: "🔐", title: "AveryAnchored™", desc: "Every piece of content is SHA-512 sealed and immutably anchored to the 2022 Root0 Genesis Kernel." },
@@ -100,7 +100,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
             ].map((item) => (
               <div key={item.title} style={{ background: "rgba(0,6,16,0.72)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "12px", padding: "1.25rem" }}>
                 <div style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>{item.icon}</div>
-                <h3 style={{ color: "#ffd700", margin: "0 0 0.5rem", fontSize: "1rem" }}>{item.title}</h3>
+                <h3 style={{ color: "#d4af37", margin: "0 0 0.5rem", fontSize: "1rem" }}>{item.title}</h3>
                 <p style={{ margin: 0, color: "rgba(238,244,255,0.75)", fontSize: "0.9rem", lineHeight: "1.6" }}>{item.desc}</p>
               </div>
             ))}
@@ -109,7 +109,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Live VaultChain Status */}
         <section className="card">
-          <h2 style={{ color: "#ffd700", marginTop: 0 }}>📊 Live VaultChain™ Status</h2>
+          <h2 style={{ color: "#d4af37", marginTop: 0 }}>📊 Live VaultChain™ Status</h2>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             <div style={{ flex: 1, minWidth: 140, background: "rgba(0,8,20,0.7)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: "8px", padding: "0.75rem" }}>
               <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,215,0,0.6)" }}>Alignment Status</div>
@@ -119,7 +119,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
             </div>
             <div style={{ flex: 1, minWidth: 140, background: "rgba(0,8,20,0.7)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: "8px", padding: "0.75rem" }}>
               <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,215,0,0.6)" }}>Capsules Verified</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#ffd700" }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#d4af37" }}>
                 {auditData?.totalCapsules ?? capsuleCount}
               </div>
             </div>
@@ -134,11 +134,11 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
           {/* Recent Transactions */}
           {auditData?.transactions && auditData.transactions.length > 0 && (
             <div>
-              <h3 style={{ color: "#ffd700", fontSize: "0.95rem", marginBottom: "0.75rem" }}>⛓️ Recent Capsule Transactions</h3>
+              <h3 style={{ color: "#d4af37", fontSize: "0.95rem", marginBottom: "0.75rem" }}>⛓️ Recent Capsule Transactions</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {auditData.transactions.slice(0, 5).map((tx) => (
                   <div key={tx.id} style={{ background: "rgba(0,8,20,0.55)", border: "1px solid rgba(255,215,0,0.18)", borderRadius: "8px", padding: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#ffd700" }}>{tx.capsuleId}</span>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#d4af37" }}>{tx.capsuleId}</span>
                     <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", color: "rgba(255,215,0,0.45)", flex: 1, margin: "0 0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.sha512.substring(0, 32)}…</span>
                     <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "4px", background: "rgba(74,222,128,0.2)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)" }}>{tx.status}</span>
                   </div>
@@ -156,7 +156,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Capsule Registry */}
         <section className="card">
-          <h2 style={{ color: "#ffd700", marginTop: 0 }}>📦 Capsule Registry</h2>
+          <h2 style={{ color: "#d4af37", marginTop: 0 }}>📦 Capsule Registry</h2>
           <p style={{ color: "rgba(238,244,255,0.7)", fontSize: "0.9rem" }}>{capsuleCount} sovereign capsule(s) registered.</p>
           {capsules.length === 0 ? (
             <p style={{ color: "rgba(238,244,255,0.5)" }}>No capsules synced. Running drift-check...</p>
@@ -165,7 +165,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               {capsules.map((capsule) => (
                 <li key={capsule.capsuleId}>
                   <Link href={`/${capsule.capsuleId}`}>
-                    <span style={{ color: "#ffd700", fontWeight: 600 }}>{(capsule as CapsuleIndexItem & { title?: string }).title ?? capsule.capsuleId}</span>
+                    <span style={{ color: "#d4af37", fontWeight: 600 }}>{(capsule as CapsuleIndexItem & { title?: string }).title ?? capsule.capsuleId}</span>
                   </Link>
                   {(capsule as CapsuleIndexItem & { summary?: string }).summary && (
                     <p className="capsule-summary">{(capsule as CapsuleIndexItem & { summary?: string }).summary}</p>
@@ -178,7 +178,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Sovereign Enforcement Notice */}
         <section className="card">
-          <h2 style={{ color: "#ffd700", marginTop: 0 }}>⚖️ Sovereign Enforcement</h2>
+          <h2 style={{ color: "#d4af37", marginTop: 0 }}>⚖️ Sovereign Enforcement</h2>
           <p style={{ color: "rgba(238,244,255,0.8)", lineHeight: "1.7" }}>
             AveryOS™ is the Anchor. All content is SHA-512 sealed and anchored to the 2022 Root0 Genesis Kernel.
             Any use of AveryOS™ intellectual property without a valid license activates the{" "}
@@ -193,7 +193,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 
         {/* Info Links */}
         <section className="card">
-          <h2 style={{ color: "#ffd700", marginTop: 0 }}>🔗 Quick Links</h2>
+          <h2 style={{ color: "#d4af37", marginTop: 0 }}>🔗 Quick Links</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
             {[
               { href: "/about/", label: "About AveryOS™" },
