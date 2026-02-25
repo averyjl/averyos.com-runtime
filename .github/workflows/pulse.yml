@@ -2,7 +2,7 @@ name: ⚓ AveryOS Lighthouse Pulse
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours to slash costs
+    - cron: '0 */1 * * *' # Every 1 hour to slash costs
   workflow_dispatch:
 
 jobs:
