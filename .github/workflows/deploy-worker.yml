@@ -91,6 +91,8 @@ jobs:
             echo "   The 'Deploy to Cloudflare Workers' step requires 'Workers Scripts:Edit' permission."
             echo "   In the Cloudflare Dashboard → My Profile → API Tokens → Edit token:"
             echo "   Add: Account → Workers Scripts → Edit"
+            echo "   Note: To enable Workers Gradual Deployments (remove legacy_env=false from wrangler.toml),"
+            echo "   also add: Account → Workers KV Storage → Edit"
             exit 1
           fi
           echo "✅ Wrangler auth verified — token has Workers Scripts access"
