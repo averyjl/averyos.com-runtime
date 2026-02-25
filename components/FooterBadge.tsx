@@ -38,10 +38,10 @@ const FooterBadge = () => {
     <footer className="footer-badge">
       <div style={{ 
         padding: '1.5rem', 
-        background: 'rgba(9, 16, 34, 0.85)', 
-        borderTop: '1px solid rgba(120, 148, 255, 0.25)',
+        background: 'rgba(0, 6, 14, 0.92)', 
+        borderTop: '1px solid rgba(255, 215, 0, 0.22)',
         fontSize: '0.85rem',
-        color: 'rgba(238, 244, 255, 0.7)',
+        color: 'rgba(255, 215, 0, 0.75)',
         textAlign: 'center'
       }}>
         <div style={{ marginBottom: '0.75rem' }}>
@@ -51,7 +51,7 @@ const FooterBadge = () => {
           fontFamily: 'monospace', 
           fontSize: '0.75rem',
           wordBreak: 'break-all',
-          color: 'rgba(176, 198, 255, 0.7)'
+          color: 'rgba(255, 215, 0, 0.55)'
         }}>
           <strong>AveryAnchored™</strong> | SHA-512 TARI Pricing Model:<br />
           {CAPSULE_SHA}
@@ -60,7 +60,7 @@ const FooterBadge = () => {
           fontFamily: 'monospace', 
           fontSize: '0.75rem',
           wordBreak: 'break-all',
-          color: 'rgba(176, 198, 255, 0.7)',
+          color: 'rgba(255, 215, 0, 0.55)',
           marginTop: '0.5rem'
         }}>
           SHA-512 Kernel Anchor:<br />
@@ -72,9 +72,9 @@ const FooterBadge = () => {
             onClick={() => { setShowTariModal(true); fetchTariRevenue(); }}
             style={{
               background: 'none',
-              border: '1px solid rgba(120, 148, 255, 0.4)',
+              border: '1px solid rgba(255, 215, 0, 0.4)',
               borderRadius: '4px',
-              color: 'rgba(122, 170, 255, 0.9)',
+              color: 'rgba(255, 215, 0, 0.85)',
               cursor: 'pointer',
               fontSize: '0.75rem',
               padding: '0.2rem 0.5rem',
@@ -93,7 +93,7 @@ const FooterBadge = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.75)',
+            background: 'rgba(0,0,0,0.82)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -103,8 +103,8 @@ const FooterBadge = () => {
         >
           <div
             style={{
-              background: 'rgba(9, 16, 34, 0.98)',
-              border: '1px solid rgba(120, 148, 255, 0.4)',
+              background: 'rgba(0, 6, 14, 0.98)',
+              border: '1px solid rgba(255, 215, 0, 0.45)',
               borderRadius: '12px',
               padding: '2rem',
               maxWidth: '480px',
@@ -113,7 +113,7 @@ const FooterBadge = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ color: 'rgba(122, 170, 255, 0.9)', marginTop: 0, fontSize: '1.1rem' }}>
+            <h2 style={{ color: '#ffd700', marginTop: 0, fontSize: '1.1rem' }}>
               ⚡ TARI Revenue — 24h Liquid Liability
             </h2>
             <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
@@ -122,11 +122,11 @@ const FooterBadge = () => {
             <p style={{ fontSize: '0.85rem', color: tariError ? 'rgba(248,113,113,0.8)' : 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
               {tariError
                 ? 'Could not load live TARI data. Check AI Gateway logs or try again.'
-                : 'Current 24-hour Liquid Liability calculated from AveryOS AI Gateway logs. All revenue is subject to AveryOS Sovereign Integrity License enforcement.'
+                : 'Current 24-hour Liquid Liability calculated from AveryOS™ AI Gateway logs. All revenue is subject to AveryOS™ Sovereign Integrity License enforcement.'
               }
             </p>
             {tariMeta && (
-              <p style={{ fontSize: '0.8rem', color: 'rgba(238,244,255,0.5)', marginTop: '0.5rem' }}>
+              <p style={{ fontSize: '0.8rem', color: 'rgba(255,215,0,0.5)', marginTop: '0.5rem' }}>
                 {tariMeta.requestCount} request{tariMeta.requestCount !== 1 ? 's' : ''} •{' '}
                 {tariMeta.orgCount} corporate org{tariMeta.orgCount !== 1 ? 's' : ''} • 24h window
               </p>
@@ -135,10 +135,10 @@ const FooterBadge = () => {
               onClick={() => setShowTariModal(false)}
               style={{
                 marginTop: '1rem',
-                background: 'rgba(74, 111, 255, 0.2)',
-                border: '1px solid rgba(74, 111, 255, 0.5)',
+                background: 'rgba(255, 215, 0, 0.12)',
+                border: '1px solid rgba(255, 215, 0, 0.45)',
                 borderRadius: '6px',
-                color: 'rgba(122, 170, 255, 0.9)',
+                color: '#ffd700',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 padding: '0.5rem 1.25rem',
