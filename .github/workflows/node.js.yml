@@ -34,6 +34,35 @@ jobs:
     - run: npm run build --if-present
     - run: npm test
 
+  gate_schema:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 22
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    - run: npm ci
+    - name: Mask private account identifier
+      run: echo "::add-mask::${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+    - name: Gate — Sovereign Anchor kernel_locks schema check
+      run: |
+        RESULT=$(npx wrangler d1 execute averyos_kernel_db --remote --command 'SELECT name FROM sqlite_master WHERE type=\"table\" AND name=\"kernel_locks\";')
+        echo "$RESULT"
+        if echo "$RESULT" | grep -q "kernel_locks"; then
+          echo "✅ Sovereign Anchor present — kernel_locks verified in averyos_kernel_db"
+        else
+          echo "❌ SCHEMA GATE: kernel_locks table absent from averyos_kernel_db"
+          echo "⛓️⚓⛓️ Sovereign Anchor required — deployment blocked"
+          exit 1
+        fi
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
   verify_sovereign_schema:
     runs-on: ubuntu-latest
     needs: build
