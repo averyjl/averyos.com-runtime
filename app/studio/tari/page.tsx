@@ -10,6 +10,7 @@ interface TariLedgerRow {
   impact_multiplier: number;
   revenue_projection: number;
   status: string;
+  event_type: string;
   created_at: string;
 }
 
@@ -248,7 +249,7 @@ export default function TariDashboard() {
                 >
                   <thead>
                     <tr style={{ background: BG_TABLE_HEAD }}>
-                      {["ID", "Timestamp", "Entity", "Impact Multiplier", "Revenue Projection", "Status", "Anchor SHA"].map(
+                      {["ID", "Timestamp", "Entity", "Impact Multiplier", "Revenue Projection", "Event Type", "Anchor SHA"].map(
                         (h) => (
                           <th
                             key={h}
@@ -272,7 +273,18 @@ export default function TariDashboard() {
                   </thead>
                   <tbody>
                     {stats.recent_entries.map((row, idx) => {
-                      const isAnchored = row.status === "ANCHORED";
+                      const eventBadgeStyle = (() => {
+                        switch (row.event_type) {
+                          case "RETROCLAIM_STRIKE":
+                            return { color: "#f87171", textShadow: "0 0 8px #f87171" };
+                          case "HANDSHAKE_SUCCESS":
+                            return { color: GREEN, textShadow: `0 0 8px ${GREEN}` };
+                          case "GLOBAL_EDGE_ACTIVATION":
+                            return { color: "#60a5fa", textShadow: "0 0 8px #ffd700" };
+                          default:
+                            return { color: "#fbbf24", textShadow: "none" };
+                        }
+                      })();
                       return (
                         <tr
                           key={row.id}
@@ -297,14 +309,13 @@ export default function TariDashboard() {
                           <td style={{ padding: "0.55rem 0.85rem" }}>
                             <span
                               style={{
-                                color: isAnchored ? GREEN : "#fbbf24",
-                                textShadow: isAnchored ? `0 0 8px ${GREEN}` : "none",
+                                ...eventBadgeStyle,
                                 fontWeight: 700,
                                 fontSize: "0.72rem",
                                 letterSpacing: "0.05em",
                               }}
                             >
-                              {isAnchored ? "✅ ANCHORED" : row.status}
+                              {row.event_type}
                             </span>
                           </td>
                           <td

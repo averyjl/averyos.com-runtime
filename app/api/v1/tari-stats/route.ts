@@ -19,6 +19,7 @@ interface TariLedgerRow {
   impact_multiplier: number;
   revenue_projection: number;
   status: string;
+  event_type: string;
   created_at: string;
 }
 
@@ -37,7 +38,7 @@ export async function GET() {
 
     // Fetch the 20 most recent ledger entries for display
     const { results: recent } = await cfEnv.DB.prepare(
-      `SELECT id, timestamp, anchor_sha, entity_name, impact_multiplier, revenue_projection, status, created_at
+      `SELECT id, timestamp, anchor_sha, entity_name, impact_multiplier, revenue_projection, status, event_type, created_at
        FROM tari_ledger
        ORDER BY id DESC
        LIMIT 20`
