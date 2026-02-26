@@ -69,5 +69,9 @@ pattern = "averyos.com"
 custom_domain = true
 
 [[env.production.routes]]
+
+[[r2_buckets]]
+binding = 'VAULT'
+bucket_name = 'averyos-capsules'
 pattern = "www.averyos.com"
 custom_domain = true
