@@ -54,6 +54,32 @@ export default function CertificateViewer() {
           </p>
         </section>
 
+        {/* Official Certificate Images */}
+        <section className="card" style={{ border: "1px solid rgba(120,148,255,0.3)" }}>
+          <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0 }}>📜 Official Certificates</h2>
+          <p style={{ color: "rgba(238,244,255,0.75)", marginBottom: "1.5rem", lineHeight: "1.7" }}>
+            Officially issued AveryOS sovereign integrity certificates, cryptographically anchored to the VaultChain.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
+            <div style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid rgba(120,148,255,0.25)", background: "rgba(9,16,34,0.6)" }}>
+              <img
+                src="/VaultBridge/certificates/averyos-cert-01.png"
+                alt="AveryOS Certificate — Dec 21 2025 05:02"
+                style={{ width: "100%", display: "block", objectFit: "contain" }}
+                loading="eager"
+              />
+            </div>
+            <div style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid rgba(120,148,255,0.25)", background: "rgba(9,16,34,0.6)" }}>
+              <img
+                src="/VaultBridge/certificates/averyos-cert-02.png"
+                alt="AveryOS Certificate — Dec 21 2025 05:10"
+                style={{ width: "100%", display: "block", objectFit: "contain" }}
+                loading="eager"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Certificate List */}
         {CERTIFICATES.map((cert) => (
           <section key={cert.id} className="card" style={{ border: "1px solid rgba(120,148,255,0.3)" }}>

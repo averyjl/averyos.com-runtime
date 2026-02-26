@@ -84,6 +84,41 @@ const AboutPage: NextPage = () => {
           borderRadius: '16px',
           padding: '2rem'
         }}>
+          <h3 style={{ color: 'rgba(122, 170, 255, 0.9)', marginTop: 0 }}>🎨 Brand Identity</h3>
+          <p style={{ color: 'rgba(238,244,255,0.8)', lineHeight: '1.7', marginBottom: '1.5rem' }}>
+            Official AveryOS visual identity assets. All artwork is sovereign-anchored and cryptographically
+            tied to the AveryOS CreatorLock Protocol.
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: '1rem',
+          }}>
+            {[1,2,3,4,5,6,7,8,9,10,11,12].map((n) => (
+              <div key={n} style={{
+                borderRadius: '10px',
+                overflow: 'hidden',
+                border: '1px solid rgba(120,148,255,0.25)',
+                background: 'rgba(9,16,34,0.6)',
+              }}>
+                <img
+                  src={`/branding/averyos-brand-${String(n).padStart(2,'0')}.png`}
+                  alt={`AveryOS Brand Asset ${n}`}
+                  style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={{
+          marginTop: '2rem',
+          background: 'rgba(9, 16, 34, 0.85)',
+          border: '1px solid rgba(120, 148, 255, 0.25)',
+          borderRadius: '16px',
+          padding: '2rem'
+        }}>
           <h3 style={{ color: 'rgba(122, 170, 255, 0.9)', marginTop: 0 }}>Contact & Legal</h3>
           <p><strong>Creator:</strong> Jason Lee Avery</p>
           <p><strong>Email:</strong> truth@averyworld.com</p>
