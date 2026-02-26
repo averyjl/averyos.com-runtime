@@ -1,0 +1,56 @@
+name: Persistence Sync — VaultChain Commit
+
+on:
+  # Trigger automatically when files land in logs/persistence/ via push
+  push:
+    paths:
+      - "logs/persistence/**"
+  # Allow manual dispatch (e.g. after running persistence-sync.cjs locally)
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Optional commit message suffix"
+        required: false
+        default: ""
+
+jobs:
+  sync:
+    name: Commit persistence logs to vaultchain branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout vaultchain branch
+        uses: actions/checkout@v4
+        with:
+          ref: vaultchain
+          token: ${{ secrets.GITHUB_PAT }}
+          fetch-depth: 0
+
+      - name: Merge latest from main (fast-forward only)
+        run: |
+          git config user.name  "AveryOS Persistence Bot"
+          git config user.email "bot@averyos.com"
+          git fetch origin main --depth=1
+          git merge --ff-only origin/main || echo "⚠️ FF merge skipped — branch has diverged"
+
+      - name: Copy new persistence files from main
+        run: |
+          git checkout origin/main -- logs/persistence/ 2>/dev/null || true
+
+      - name: Stage and commit
+        run: |
+          git add logs/persistence/
+          if git diff --cached --quiet; then
+            echo "✅ Nothing new to commit."
+          else
+            SUFFIX="${{ github.event.inputs.message }}"
+            TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            MSG="⛓️ persistence-sync ${TS}${SUFFIX:+ — $SUFFIX}"
+            git commit -m "$MSG"
+          fi
+
+      - name: Push to vaultchain branch
+        run: |
+          git push origin vaultchain

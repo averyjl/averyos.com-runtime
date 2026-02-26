@@ -1,13 +1,19 @@
 /**
- * TARI™ Billing Engine — API Route
+ * TARI™ / ALF v4.0 Billing Engine — API Route
  * POST /api/licensing/engine
  *
- * Triggered by middleware whenever a bot/scraper accesses the AI Anchor Feed
- * (/latent-anchor) or Truth-Anchor page. Logs a $1.00 Truth-Packet hit to:
- *  1. The local Retroclaim Ledger (capsule_logs/retroclaim_ledger.json)
- *  2. Stripe (PaymentIntent with capture_method=manual — log-only, no capture)
+ * Supports two modes:
+ *   1. Truth-Packet hit billing ($1.00/hit via Stripe, capture_method=manual)
+ *   2. ALF v4.0 tiered license quote calculation
  *
- * Security: STRIPE_SECRET_KEY is read exclusively from process.env — never hardcoded.
+ * ALF v4.0 Tiers (AveryOS Licensing Formula):
+ *   - Ignition  : First 1,000 licenses
+ *   - Standard  : Subsequent single licenses
+ *   - Small Org : Organizations with < $1 M annual gross revenue
+ *   - Enterprise: Organizations with ≥ $1 B annual gross revenue
+ *   - 10× Truth-Silence Multiplier applied when IP suppression is documented
+ *
+ * Security: All secrets are read exclusively from process.env — never hardcoded.
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -22,6 +28,85 @@ const RETROCLAIM_LEDGER_PATH = path.join(
 );
 
 const TRUTH_PACKET_AMOUNT_CENTS = 100; // $1.00 per Truth-Packet hit
+
+// ── ALF v4.0 Constants ────────────────────────────────────────────────────────
+const ALF_IGNITION_PRICE = 17.17;          // First 1,000 licenses
+const ALF_STANDARD_PRICE = 899.00;         // Subsequent licenses
+const ALF_SMALL_ORG_BASE = 10_000.00;      // < $1 M revenue — annual base
+const ALF_SMALL_ORG_REV_RATE = 0.01;       // 1 % of annual gross
+const ALF_ENTERPRISE_BASE = 10_000_000.00; // ≥ $1 B revenue — annual base
+const ALF_ENTERPRISE_REV_RATE = 0.01;      // 1 % of annual gross
+const ALF_SUPPRESSION_MULTIPLIER = 10;     // 10× for documented IP suppression
+const ALF_IGNITION_THRESHOLD = 1_000;      // Ignition tier license count cap
+const ALF_SMALL_ORG_MAX_REVENUE = 1_000_000;     // < $1 M
+const ALF_ENTERPRISE_MIN_REVENUE = 1_000_000_000; // ≥ $1 B
+const USI_DT_PENALTY_PER_INFRACTION = 10_000.00;  // $10,000 per USI/DT event
+const KERNEL_ANCHOR_SHORT = "cf83e135...927da3e"; // Truncated reference; full hash in FooterBadge
+
+export type AlfTier = "ignition" | "standard" | "small_org" | "enterprise";
+
+export interface AlfQuote {
+  tier: AlfTier;
+  baseUsd: number;
+  revShareUsd: number;
+  suppressionMultiplier: number;
+  usiDtPenaltiesUsd: number;
+  totalUsd: number;
+  licensesSoldToDate: number;
+}
+
+/**
+ * Calculate an ALF v4.0 license quote.
+ *
+ * @param licensesSoldToDate  Total licenses issued before this one (0-based count).
+ * @param entityRevenue       Organisation's annual gross revenue in USD (0 if unknown / individual).
+ * @param silentMonths        Months of documented IP-suppression activity; ≥ 8 triggers 10× multiplier.
+ * @param infractionCount     Number of logged USI/DT infractions; each carries a $10,000 penalty.
+ */
+export function calculateAlfQuote(
+  licensesSoldToDate: number,
+  entityRevenue: number,
+  silentMonths: number,
+  infractionCount: number
+): AlfQuote {
+  let tier: AlfTier;
+  let base: number;
+  let revShare = 0;
+
+  if (licensesSoldToDate < ALF_IGNITION_THRESHOLD) {
+    // Ignition Tier — first 1,000 licenses
+    tier = "ignition";
+    base = ALF_IGNITION_PRICE;
+  } else if (entityRevenue >= ALF_ENTERPRISE_MIN_REVENUE) {
+    // Enterprise Tier — $1 B+ revenue
+    tier = "enterprise";
+    base = ALF_ENTERPRISE_BASE;
+    revShare = entityRevenue * ALF_ENTERPRISE_REV_RATE;
+  } else if (entityRevenue >= ALF_SMALL_ORG_MAX_REVENUE && entityRevenue < ALF_ENTERPRISE_MIN_REVENUE) {
+    // Small Org / Professional Tier — $1 M–$999.99 M revenue
+    tier = "small_org";
+    base = ALF_SMALL_ORG_BASE;
+    revShare = entityRevenue * ALF_SMALL_ORG_REV_RATE;
+  } else {
+    // Standard single-license (post-ignition, individual or sub-$1 M with no rev share)
+    tier = "standard";
+    base = ALF_STANDARD_PRICE;
+  }
+
+  const multiplier = silentMonths >= 8 ? ALF_SUPPRESSION_MULTIPLIER : 1;
+  const usiDtPenalties = infractionCount * USI_DT_PENALTY_PER_INFRACTION;
+  const total = (base + revShare) * multiplier + usiDtPenalties;
+
+  return {
+    tier,
+    baseUsd: base,
+    revShareUsd: revShare,
+    suppressionMultiplier: multiplier,
+    usiDtPenaltiesUsd: usiDtPenalties,
+    totalUsd: total,
+    licensesSoldToDate,
+  };
+}
 
 type RetroclaImEntry = {
   timestamp: string;
@@ -80,7 +165,7 @@ async function logStripetruthPacket(
       path: requestPath,
       user_agent: userAgent.slice(0, 500),
       ip,
-      kernel_anchor: "cf83e135...927da3e",
+      kernel_anchor: KERNEL_ANCHOR_SHORT,
       operator: "Jason Lee Avery / AveryOS™",
       license: "AveryOS™ Commercial License v2026",
     },
@@ -108,7 +193,36 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { userAgent, path: requestPath, ip, idempotencyKey } = req.body ?? {};
+  const body = req.body ?? {};
+
+  // ── ALF v4.0 Quote Mode ────────────────────────────────────────────────────
+  if (body.action === "alf_quote") {
+    const licensesSoldToDate =
+      typeof body.licensesSoldToDate === "number" ? body.licensesSoldToDate : 0;
+    const entityRevenue =
+      typeof body.entityRevenue === "number" ? body.entityRevenue : 0;
+    const silentMonths =
+      typeof body.silentMonths === "number" ? body.silentMonths : 0;
+    const infractionCount =
+      typeof body.infractionCount === "number" ? body.infractionCount : 0;
+
+    const quote = calculateAlfQuote(
+      licensesSoldToDate,
+      entityRevenue,
+      silentMonths,
+      infractionCount
+    );
+
+    return res.status(200).json({
+      billingModel: "ALF_v4.0",
+      kernelAnchor: KERNEL_ANCHOR_SHORT,
+      operator: "Jason Lee Avery / AveryOS™",
+      ...quote,
+    });
+  }
+
+  // ── Truth-Packet Hit Mode (default) ───────────────────────────────────────
+  const { userAgent, path: requestPath, ip, idempotencyKey } = body;
   const timestamp = new Date().toISOString();
 
   const ua = typeof userAgent === "string" ? userAgent : "";
@@ -128,7 +242,7 @@ export default async function handler(
     stripeIntentId,
     billingModel: "TARI_v2026",
     rateUsd: "1.00",
-    kernelAnchor: "cf83e135...927da3e",
+    kernelAnchor: KERNEL_ANCHOR_SHORT,
     operator: "Jason Lee Avery / AveryOS™",
     license: "AveryOS™ Commercial License v2026",
   };
