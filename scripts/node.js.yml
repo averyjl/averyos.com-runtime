@@ -1,0 +1,16 @@
+// AveryOS D1 Backup Utility 🤛🏻
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const BACKUP_DIR = path.join(process.cwd(), 'backups');
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR);
+
+try {
+  console.log("∎⛓️🤛🏻::INITIATING_COLD_STORAGE_SYNC");
+  const fileName = `averyos_kernel_backup_${new Date().toISOString().split('T')[0]}.sql`;
+  execSync(`npx wrangler d1 export averyos_kernel_db --remote --output ${path.join(BACKUP_DIR, fileName)}`);
+  console.log(`✅ Backup Successful: ${fileName}`);
+} catch (error) {
+  console.error("❌ Backup Failed:", error.message);
+}
