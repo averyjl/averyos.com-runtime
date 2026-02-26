@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import AnchorBanner from "../components/AnchorBanner";
+import { DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 
 type HealthData = {
   status: string;
@@ -120,6 +121,9 @@ const HealthPage: NextPage = () => {
             <a href="/api/v1/health" target="_blank" rel="noopener noreferrer" className="secondary-link" style={{ fontSize: "0.85rem" }}>
               📡 Raw JSON Endpoint
             </a>
+            <Link href={DISCLOSURE_MIRROR_PATH} className="secondary-link" style={{ fontSize: "0.85rem" }}>
+              🤛🏻 Disclosure Mirror
+            </Link>
           </div>
         </section>
 
