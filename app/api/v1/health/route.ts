@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_VERSION } from '../../../../lib/sovereignConstants';
 
