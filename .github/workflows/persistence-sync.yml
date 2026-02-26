@@ -1,4 +1,4 @@
-name: Persistence Sync — VaultChain Commit
+name: 🔁 Persistence Sync — VaultChain Commit
 
 on:
   # Trigger automatically when files land in logs/persistence/ via push
