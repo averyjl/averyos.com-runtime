@@ -69,9 +69,13 @@ pattern = "averyos.com"
 custom_domain = true
 
 [[env.production.routes]]
+pattern = "www.averyos.com"
+custom_domain = true
 
 [[r2_buckets]]
 binding = 'VAULT'
-bucket_name = 'averyos-capsules'
-pattern = "www.averyos.com"
-custom_domain = true
+bucket_name = 'cloudflare-managed-42f4b874'
+
+[[env.production.r2_buckets]]
+binding = 'VAULT'
+bucket_name = 'cloudflare-managed-42f4b874'
