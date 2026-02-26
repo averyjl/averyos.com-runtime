@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
 import { getSiteUrl } from "../lib/siteConfig";
+import { DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
 import CapsuleEchoFooter from "../components/CapsuleEchoFooter";
 
@@ -206,6 +207,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               { href: "/latent-anchor", label: "AI Anchor Feed" },
               { href: "/discover/", label: "Discover Capsules" },
               { href: "/health/", label: "API Health" },
+              { href: DISCLOSURE_MIRROR_PATH, label: "🤛🏻 Disclosure Mirror" },
             ].map((link) => (
               <Link key={link.href} href={link.href} className="secondary-link" style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}>
                 {link.label}

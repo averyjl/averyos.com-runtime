@@ -6,7 +6,10 @@ import AnchorBanner from "../components/AnchorBanner";
 
 type HealthData = {
   status: string;
-  runtime: string;
+  kernel_version?: string;
+  d1?: string;
+  kv?: string;
+  error?: string;
 };
 
 const HealthPage: NextPage = () => {
@@ -39,7 +42,7 @@ const HealthPage: NextPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const isOk = !error && health?.status === "ok";
+  const isOk = !error && health?.status === "SOVEREIGN_SYSTEM_ONLINE";
 
   return (
     <>
@@ -70,13 +73,25 @@ const HealthPage: NextPage = () => {
             <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Status</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: loading ? "#fbbf24" : isOk ? "#4ade80" : "#f87171" }}>
-                {loading ? "CHECKING" : isOk ? "OK" : "ERROR"}
+                {loading ? "CHECKING" : isOk ? "SOVEREIGN_SYSTEM_ONLINE" : "DRIFT_DETECTED"}
               </div>
             </div>
             <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
-              <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Runtime</div>
+              <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Kernel Version</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#60a5fa" }}>
-                {health?.runtime ?? "—"}
+                {health?.kernel_version ?? "—"}
+              </div>
+            </div>
+            <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
+              <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>D1</div>
+              <div style={{ fontSize: "1rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: health?.d1 ? "#4ade80" : "#94a3b8" }}>
+                {health?.d1 ?? "—"}
+              </div>
+            </div>
+            <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
+              <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>KV</div>
+              <div style={{ fontSize: "1rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: health?.kv ? "#4ade80" : "#94a3b8" }}>
+                {health?.kv ?? "—"}
               </div>
             </div>
           </div>
