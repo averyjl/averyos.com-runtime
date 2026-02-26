@@ -9,11 +9,31 @@ const WitnessRegisterPage = () => {
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) return;
-    // Stub — replace with VaultChain push logic
-    setSubmitted(true);
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/witness/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, vaultSig }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Submission failed. Please try again.");
+      } else {
+        setSubmitted(true);
+      }
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -103,13 +123,18 @@ const WitnessRegisterPage = () => {
                   required
                 />
               </label>
+              {submitError && (
+                <div style={{ padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid rgba(248,113,113,0.4)", background: "rgba(248,113,113,0.07)", color: "#f87171", fontSize: "0.9rem" }}>
+                  ⚠️ {submitError}
+                </div>
+              )}
               <button
                 type="submit"
                 className="primary-button"
-                disabled={!agreed}
-                style={{ opacity: agreed ? 1 : 0.5, cursor: agreed ? "pointer" : "not-allowed" }}
+                disabled={!agreed || submitting}
+                style={{ opacity: agreed && !submitting ? 1 : 0.5, cursor: agreed && !submitting ? "pointer" : "not-allowed" }}
               >
-                Submit Witness Entry
+                {submitting ? "Submitting…" : "Submit Witness Entry"}
               </button>
             </form>
           )}
