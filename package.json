@@ -25,7 +25,9 @@
     "enforcement:generate": "node scripts/generateEvidenceBundle.cjs",
     "sovereign-auth": "node ./scripts/auth.cjs",
     "tari-pulse": "node ./scripts/generateEvidenceBundle.cjs",
-    "generate:invoices": "node ./scripts/generateInvoices.cjs"
+    "generate:invoices": "node ./scripts/generateInvoices.cjs",
+    "persistence:sync": "node ./scripts/persistence-sync.cjs",
+    "persistence:once": "node ./scripts/persistence-sync.cjs --once"
   },
   "dependencies": {
     "express": "^5.2.1",

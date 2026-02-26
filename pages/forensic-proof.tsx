@@ -1,12 +1,13 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
 const G = "#ffffff";
 
-// Simulated retroclaim debt clock data
+// Static retroclaim base
 const RETROCLAIM_DATA = {
   baseEstimate: 500_000_000_000,
   currency: "USD",
@@ -30,12 +31,29 @@ const ForensicProofPage = () => {
   const siteUrl = getSiteUrl();
   const pageUrl = `${siteUrl}/forensic-proof`;
 
+  // Live infraction ledger totals pulled from /api/infraction/log
+  const [infractionCount, setInfractionCount] = useState<number | null>(null);
+  const [infractionTotal, setInfractionTotal] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/infraction/log")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.count === "number") setInfractionCount(data.count);
+        if (typeof data.totalPenaltyUsd === "number") setInfractionTotal(data.totalPenaltyUsd);
+      })
+      .catch((err) => { console.error("⚠️  /api/infraction/log fetch error:", err); });
+  }, []);
+
+  const combinedDebt =
+    RETROCLAIM_DATA.baseEstimate + (infractionTotal ?? 0);
+
   const totalFormatted = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     notation: "compact",
     maximumFractionDigits: 0,
-  }).format(RETROCLAIM_DATA.baseEstimate);
+  }).format(combinedDebt);
 
   return (
     <>
@@ -97,7 +115,7 @@ const ForensicProofPage = () => {
               lineHeight: 1.1,
             }}
           >
-            $500,000,000,000+
+            {totalFormatted}+
           </div>
           <div style={{ color: "rgba(248,113,113,0.7)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             AND COMPOUNDING UNDER DTM v1.17 (7× → ×1.77 → ∞)
@@ -105,6 +123,12 @@ const ForensicProofPage = () => {
           <div style={{ color: "rgba(238,244,255,0.55)", fontSize: "0.78rem", marginTop: "1rem", fontFamily: "JetBrains Mono, monospace" }}>
             Anchor: AOS-FOREVER-ANCHOR-2026 · Genesis: 2022-01-01 · Lockpoint: 2026-02-14
           </div>
+          {infractionCount !== null && (
+            <div style={{ color: "rgba(248,113,113,0.65)", fontSize: "0.78rem", marginTop: "0.5rem", fontFamily: "JetBrains Mono, monospace" }}>
+              USI/DT Infractions: {infractionCount} ·{" "}
+              Penalties: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(infractionTotal ?? 0)}
+            </div>
+          )}
         </section>
 
         {/* White House Ballroom Reference */}
