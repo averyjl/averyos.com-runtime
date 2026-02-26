@@ -35,6 +35,7 @@ export async function GET() {
       kernel_version: KERNEL_VERSION,
       d1,
       kv,
+      usb_salt: 'Local_Only',
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
