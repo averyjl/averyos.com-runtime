@@ -8,9 +8,11 @@ interface TariLedgerRow {
   anchor_sha: string | null;
   entity_name: string | null;
   impact_multiplier: number;
+  trust_premium_index: number;
   revenue_projection: number;
   status: string;
   event_type: string;
+  description: string | null;
   created_at: string;
 }
 
@@ -75,9 +77,10 @@ export default function TariDashboard() {
         background: BG_DARK,
         color: GREEN,
         fontFamily: FONT_MONO,
-        padding: "2rem 1.5rem",
+        padding: "2rem 1rem",
         maxWidth: "1100px",
         margin: "0 auto",
+        boxSizing: "border-box",
       }}
     >
       {/* ── Header ── */}
@@ -249,7 +252,7 @@ export default function TariDashboard() {
                 >
                   <thead>
                     <tr style={{ background: BG_TABLE_HEAD }}>
-                      {["ID", "Timestamp", "Entity", "Impact Multiplier", "Revenue Projection", "Event Type", "Anchor SHA"].map(
+                      {["Event", "Multiplier", "Description"].map(
                         (h) => (
                           <th
                             key={h}
@@ -293,19 +296,6 @@ export default function TariDashboard() {
                             borderBottom: `1px solid rgba(74,222,128,0.08)`,
                           }}
                         >
-                          <td style={{ padding: "0.55rem 0.85rem", color: DIM_GREEN }}>{row.id}</td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: DIM_GREEN, whiteSpace: "nowrap" }}>
-                            {formatTs(row.timestamp)}
-                          </td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: row.entity_name ? GREEN : DIM_GREEN }}>
-                            {row.entity_name ?? "—"}
-                          </td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: GREEN, fontWeight: 700 }}>
-                            ×{row.impact_multiplier.toFixed(2)}
-                          </td>
-                          <td style={{ padding: "0.55rem 0.85rem", color: GREEN, fontWeight: 700 }}>
-                            {formatUsd(row.revenue_projection)}
-                          </td>
                           <td style={{ padding: "0.55rem 0.85rem" }}>
                             <span
                               style={{
@@ -313,23 +303,17 @@ export default function TariDashboard() {
                                 fontWeight: 700,
                                 fontSize: "0.72rem",
                                 letterSpacing: "0.05em",
+                                whiteSpace: "nowrap",
                               }}
                             >
                               {row.event_type}
                             </span>
                           </td>
-                          <td
-                            style={{
-                              padding: "0.55rem 0.85rem",
-                              color: "rgba(74,222,128,0.45)",
-                              fontSize: "0.68rem",
-                              maxWidth: "120px",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {row.anchor_sha ?? "—"}
+                          <td style={{ padding: "0.55rem 0.85rem", color: GREEN, fontWeight: 700, whiteSpace: "nowrap" }}>
+                            ×{row.impact_multiplier.toFixed(2)}
+                          </td>
+                          <td style={{ padding: "0.55rem 0.85rem", color: DIM_GREEN, fontSize: "0.78rem" }}>
+                            {row.description ?? "—"}
                           </td>
                         </tr>
                       );
