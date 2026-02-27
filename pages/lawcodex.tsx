@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { getSiteUrl } from "../lib/siteConfig";
+import { DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
 import FooterBadge from "../components/FooterBadge";
 
@@ -282,7 +283,7 @@ const LawCodexPage = () => {
             and confirms 100.00♾️% alignment with the AveryOS_Sovereign_Proof_Bundle.
           </p>
           <Link
-            href="/the-proof"
+            href={DISCLOSURE_MIRROR_PATH}
             target="_blank"
             rel="noopener noreferrer"
             style={{

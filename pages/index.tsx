@@ -9,7 +9,7 @@ import { DISCLOSURE_MIRROR_PATH, KERNEL_SHA } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
 import CapsuleEchoFooter from "../components/CapsuleEchoFooter";
 
-const THE_PROOF_PATH = `/the-proof`;
+const THE_PROOF_PATH = DISCLOSURE_MIRROR_PATH;
 
 const AUDIENCE_PATHS = [
   {
