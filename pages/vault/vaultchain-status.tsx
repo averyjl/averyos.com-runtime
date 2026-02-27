@@ -164,8 +164,8 @@ const VaultchainStatusPage: NextPage = () => {
               { badge: "VaultBridge_ContentGenerator.yml", label: "VaultBridge Content Generator" },
               { badge: "nightly_monitor.yml", label: "Nightly Redirect Drift Scan" },
             ].map((item) => (
-              <div key={item.badge} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <span style={{ fontSize: "0.85rem", color: "rgba(238,244,255,0.7)", width: "220px", flexShrink: 0 }}>{item.label}</span>
+              <div key={item.badge} style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.85rem", color: "rgba(238,244,255,0.7)", minWidth: "140px", flex: "1 1 140px" }}>{item.label}</span>
                 <img
                   src={`https://github.com/averyjl/averyos.com-runtime/actions/workflows/${item.badge}/badge.svg`}
                   alt={item.label}

@@ -13,6 +13,8 @@ const AnchorBanner = () => (
       background: "rgba(120, 148, 255, 0.06)",
       borderRadius: "4px",
       letterSpacing: "0.02em",
+      overflowWrap: "break-word",
+      wordBreak: "break-word",
     }}
   >
     ⛓️⚓⛓️  AveryAnchored™  |  CreatorLock Protocol™ Active  |  VaultChain™  |  100.00♾️% Alignment (aka 0.000♾️% Drift)  🤛🏻⛓️⚓⛓️
