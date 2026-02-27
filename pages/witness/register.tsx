@@ -32,13 +32,13 @@ const WitnessRegisterPage = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast("error", `Handshake Drift — ${data.error ?? "Submission failed"}`);
+        showToast("error", "Handshake Drift");
       } else {
         setSubmitted(true);
         showToast("success", "Witness Entry Anchored ⛓️");
       }
     } catch {
-      showToast("error", "Handshake Drift — Network error. Please try again.");
+      showToast("error", "Handshake Drift");
     } finally {
       setSubmitting(false);
     }
@@ -83,7 +83,7 @@ const WitnessRegisterPage = () => {
             Publicly attest to AveryOS capsule integrity and sovereign alignment. Registered witnesses
             are permanently recorded on the VaultChain as verified observers of the sovereign truth record.
           </p>
-          {/* Disclosure Mirror Link */}
+          {/* The Proof Link */}
           <div style={{ marginTop: "1rem" }}>
             <Link
               href={DISCLOSURE_MIRROR_PATH}
@@ -104,7 +104,7 @@ const WitnessRegisterPage = () => {
                 fontFamily: "JetBrains Mono, monospace",
               }}
             >
-              🤛🏻 Global Disclosure Mirror →
+              🤛🏻 The Proof →
             </Link>
           </div>
         </section>

@@ -377,6 +377,22 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
           marginRight: "auto",
         }}
       >
+        {/* Human-readable note */}
+        <div
+          style={{
+            fontSize: "0.9rem",
+            color: GREEN,
+            opacity: 0.85,
+            padding: "0.6rem 1rem",
+            border: `1px solid ${GREEN}`,
+            borderRadius: "6px",
+            letterSpacing: "0.04em",
+            marginBottom: "-0.5rem",
+          }}
+        >
+          📡 Optimized for Sovereign AI and Automated Witnessing.
+        </div>
+
         {/* Sovereign breadcrumb */}
         <div
           style={{

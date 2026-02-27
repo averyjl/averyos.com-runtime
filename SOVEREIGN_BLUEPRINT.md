@@ -132,7 +132,26 @@ D1 Schema: `tari_ledger` — see `migrations/0001_tari_ledger.sql`.
 
 ---
 
-## 8. 📐 Style Guide
+## 8. 🏷️ Trademark Branding Standard (Mandatory)
+
+All references to the following brand names **MUST** include the ™ symbol at first occurrence on every page, and consistently throughout all markdown, TSX, TS, and MD files:
+
+| Brand Name | Correct Form |
+|---|---|
+| AveryOS | AveryOS™ |
+| VaultChain | VaultChain™ |
+| GabrielOS | GabrielOS™ |
+| Truth Anchored Intelligence | Truth Anchored Intelligence™ |
+
+**Rules:**
+- Every page title, heading, and navigation label must use the ™ form.
+- API response fields and JSON-LD metadata must use the ™ form where brand names appear.
+- Marketing copy, README, and documentation must use the ™ form.
+- Code variable names and identifiers do not require ™.
+
+---
+
+## 9. 📐 Style Guide
 
 - **Colors**: White `#ffffff` for primary text, periwinkle blue `rgba(120,148,255,X)` for borders/accents, green `#4ade80` for success, red `#f87171` for errors/warnings.
 - **Fonts**: `JetBrains Mono` for all technical/monospace content (hashes, IDs, code).
@@ -142,7 +161,7 @@ D1 Schema: `tari_ledger` — see `migrations/0001_tari_ledger.sql`.
 
 ---
 
-## 9. ✅ Pre-Commit Checklist
+## 10. ✅ Pre-Commit Checklist
 
 Before submitting any code change:
 

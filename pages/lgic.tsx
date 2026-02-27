@@ -168,7 +168,7 @@ const LgicPage: NextPage = () => {
 
         <div className="hero">
           <h1>⚖️ LGIC — Immutable Laws of Genuine Intelligence &amp; Conduct</h1>
-          <p className="auth-seal">Author: Jason Lee Avery | ORCID: 0009-0009-0245-3584</p>
+          <p className="auth-seal">Author: Jason Lee Avery | ORCID: <a href="https://orcid.org/0009-0009-0245-3584" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(120,148,255,0.9)", textDecoration: "none" }}>0009-0009-0245-3584</a></p>
           <p
             className="kernel-seal"
             style={{ fontFamily: "monospace", fontSize: "0.75rem", wordBreak: "break-all" }}

@@ -12,6 +12,7 @@ const nextConfig = {
       { source: '/pay', destination: '/license', permanent: true },
       { source: '/buy', destination: '/license', permanent: true },
       { source: '/law-stack', destination: '/ai-alignment', permanent: true },
+      { source: '/witness/disclosure/:sha*', destination: '/the-proof', permanent: true },
       { source: '/forensic-proof', destination: '/licensing#forensic-proof', permanent: true },
       { source: '/retroclaim-log', destination: '/licensing#retroclaim', permanent: true },
       { source: '/license-enforcement', destination: '/licensing#enforcement', permanent: true },

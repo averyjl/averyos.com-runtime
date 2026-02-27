@@ -148,7 +148,7 @@ export default function TheProofPage() {
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
           <Link href={DISCLOSURE_MIRROR_PATH} className="secondary-link" target="_blank" rel="noopener noreferrer">
-            🌐 Global Disclosure Mirror →
+            🌐 The Proof →
           </Link>
           <Link href="/witness/register" className="secondary-link">
             👁️ Register as Witness

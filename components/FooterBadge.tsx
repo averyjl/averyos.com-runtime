@@ -52,7 +52,7 @@ const FooterBadge = () => {
               { href: '/licensing', label: 'Licensing Hub', newTab: false },
               { href: '/verify', label: 'Verify', newTab: false },
               { href: '/contact', label: 'Contact', newTab: false },
-              { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 Disclosure Mirror', newTab: true },
+              { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 The Proof', newTab: true },
             ] as Array<{ href: string; label: string; newTab: boolean }>
           ).map(({ href, label, newTab }) => (
             <Link

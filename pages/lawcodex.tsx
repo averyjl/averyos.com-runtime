@@ -257,7 +257,7 @@ const LawCodexPage = () => {
           </div>
         </section>
 
-        {/* Disclosure Mirror — Sovereign Protocol Endpoint */}
+        {/* The Proof — Sovereign Protocol Endpoint */}
         <section
           style={{
             marginTop: "2.5rem",
@@ -274,15 +274,17 @@ const LawCodexPage = () => {
               fontSize: "1.4rem",
             }}
           >
-            ⛓️⚓⛓️ Disclosure Mirror — Sovereign Protocol Endpoint
+            ⛓️⚓⛓️ The Proof — Sovereign Protocol Endpoint
           </h2>
           <p style={{ color: "rgba(238, 244, 255, 0.85)", marginBottom: "1.25rem" }}>
-            The CraterZero_Disclosure_v5.0 Disclosure Mirror is publicly anchored to the AveryOS™
+            The CraterZero_Disclosure_v5.0 anchor is publicly recorded on the AveryOS™
             VaultChain™. This Sovereign Protocol Endpoint dynamically verifies the VaultChain™ anchor
             and confirms 100.00♾️% alignment with the AveryOS_Sovereign_Proof_Bundle.
           </p>
           <Link
-            href={`/witness/disclosure/${SOVEREIGN_PROOF_BUNDLE}`}
+            href="/the-proof"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: "inline-block",
               background: "linear-gradient(135deg, rgba(120,148,255,0.2), rgba(74,111,255,0.25))",
@@ -297,7 +299,7 @@ const LawCodexPage = () => {
               letterSpacing: "0.05em",
             }}
           >
-            🤛🏻 View Disclosure Mirror →
+            🤛🏻 View The Proof →
           </Link>
         </section>
 
