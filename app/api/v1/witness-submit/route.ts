@@ -53,10 +53,10 @@ export async function POST(request: Request) {
     // Ensure witness_registry table exists
     await cfEnv.DB.exec(`
       CREATE TABLE IF NOT EXISTS witness_registry (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp  TEXT NOT NULL DEFAULT (datetime('now')),
-        name       TEXT NOT NULL,
-        statement  TEXT NOT NULL,
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
+        name        TEXT NOT NULL,
+        statement   TEXT NOT NULL,
         sha_witness TEXT NOT NULL
       )
     `);

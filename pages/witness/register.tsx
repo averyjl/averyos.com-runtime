@@ -146,7 +146,7 @@ const WitnessRegisterPage = () => {
                   type="text"
                   placeholder="Your name for the registry"
                   value={name}
-                  onChange={(e) => setName(e.target.value.slice(0, 100))}
+                  onChange={(e) => setName(e.target.value)}
                   maxLength={100}
                   required
                 />
@@ -156,7 +156,7 @@ const WitnessRegisterPage = () => {
                 <textarea
                   placeholder="Your sovereign attestation (max 2,000 characters)"
                   value={statement}
-                  onChange={(e) => setStatement(e.target.value.slice(0, 2000))}
+                  onChange={(e) => setStatement(e.target.value)}
                   maxLength={2000}
                   rows={4}
                   required

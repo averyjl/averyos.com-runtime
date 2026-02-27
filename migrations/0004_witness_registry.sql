@@ -8,6 +8,5 @@ CREATE TABLE IF NOT EXISTS witness_registry (
   timestamp   TEXT    NOT NULL DEFAULT (datetime('now')),
   name        TEXT    NOT NULL,
   statement   TEXT    NOT NULL,
-  sha_witness TEXT    NOT NULL,
-  created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  sha_witness TEXT    NOT NULL
 );

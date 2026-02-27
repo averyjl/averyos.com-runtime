@@ -45,14 +45,16 @@ const FooterBadge = () => {
       }}>
         {/* Quick navigation links */}
         <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem 1.25rem' }}>
-          {[
-            { href: '/', label: 'Home' },
-            { href: '/license', label: 'License' },
-            { href: '/licensing', label: 'Licensing Hub' },
-            { href: '/verify', label: 'Verify' },
-            { href: '/contact', label: 'Contact' },
-            { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 Disclosure Mirror', newTab: true },
-          ].map(({ href, label, newTab }) => (
+          {(
+            [
+              { href: '/', label: 'Home', newTab: false },
+              { href: '/license', label: 'License', newTab: false },
+              { href: '/licensing', label: 'Licensing Hub', newTab: false },
+              { href: '/verify', label: 'Verify', newTab: false },
+              { href: '/contact', label: 'Contact', newTab: false },
+              { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 Disclosure Mirror', newTab: true },
+            ] as Array<{ href: string; label: string; newTab: boolean }>
+          ).map(({ href, label, newTab }) => (
             <Link
               key={href}
               href={href}
