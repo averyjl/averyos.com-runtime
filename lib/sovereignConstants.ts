@@ -5,5 +5,5 @@ export const KERNEL_SHA =
 /** Current AveryOS kernel version */
 export const KERNEL_VERSION = "v3.6.2";
 
-/** Public URL path for the Disclosure Mirror page */
-export const DISCLOSURE_MIRROR_PATH = `/witness/disclosure/${KERNEL_SHA}`;
+/** Public URL path for The Proof page */
+export const DISCLOSURE_MIRROR_PATH = `/the-proof`;

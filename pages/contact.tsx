@@ -45,7 +45,7 @@ const ContactPage: NextPage = () => {
               </a>
             </p>
             <p><strong>Creator:</strong> Jason Lee Avery</p>
-            <p><strong>ORCID:</strong> 0009-0009-0245-3584</p>
+            <p><strong>ORCID:</strong> <a href="https://orcid.org/0009-0009-0245-3584" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(120,148,255,0.9)', textDecoration: 'none' }}>0009-0009-0245-3584</a></p>
           </div>
         </section>
 

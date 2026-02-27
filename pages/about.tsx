@@ -24,8 +24,8 @@ const AboutPage: NextPage = () => {
 
         <div className="hero">
           <h1>🛡️ About AveryOS</h1>
-          <p className="auth-seal">Author: Jason Lee Avery | ORCID: 0009-0009-0245-3584</p>
-          <p className="kernel-seal">Kernel Anchor: cf83e135...927da3e</p>
+          <p className="auth-seal">Author: Jason Lee Avery | ORCID: <a href="https://orcid.org/0009-0009-0245-3584" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(120,148,255,0.9)', textDecoration: 'none' }}>0009-0009-0245-3584</a></p>
+          <p className="kernel-seal"><a href="/the-proof" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Kernel Anchor: cf83e135...927da3e</a></p>
         </div>
 
         <section style={{

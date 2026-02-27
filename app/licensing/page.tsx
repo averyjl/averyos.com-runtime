@@ -3,9 +3,9 @@ import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
 
 export const metadata: Metadata = {
-  title: "AveryOS Licensing Hub — Master Legal Portal",
+  title: "AveryOS™ Sovereign Integrity License — Licensing Hub",
   description:
-    "AveryOS master legal portal. Full text of the Sovereign Integrity License v1.0, License Enforcement, Retroclaim Log, and Forensic Proof.",
+    "AveryOS™ master legal portal. Full text of the Sovereign Integrity License v1.0, License Enforcement, Retroclaim Log, and Forensic Proof.",
 };
 
 const LICENSE_TEXT = `# Sovereign License — AveryOS Sovereign Integrity License v1.0
@@ -71,7 +71,7 @@ export default function LicensingPage() {
 
       {/* Hero */}
       <section className="hero">
-        <h1>📋 AveryOS Licensing Hub</h1>
+        <h1>📋 AveryOS™ Sovereign Integrity License</h1>
         <p className="auth-seal">Master Legal Portal · Sovereign Integrity License v1.0</p>
         <p style={{ marginTop: "1rem", color: "rgba(238,244,255,0.85)", lineHeight: "1.7" }}>
           This is the central legal portal for all AveryOS™ intellectual property rights, enforcement

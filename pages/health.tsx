@@ -122,7 +122,7 @@ const HealthPage: NextPage = () => {
               📡 Raw JSON Endpoint
             </a>
             <Link href={DISCLOSURE_MIRROR_PATH} className="secondary-link" style={{ fontSize: "0.85rem" }}>
-              🤛🏻 Disclosure Mirror
+              🤛🏻 The Proof
             </Link>
           </div>
         </section>

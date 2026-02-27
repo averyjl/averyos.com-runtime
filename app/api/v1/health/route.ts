@@ -34,7 +34,10 @@ export async function GET() {
       status: 'SOVEREIGN_SYSTEM_ONLINE',
       kernel_version: KERNEL_VERSION,
       d1,
+      d1_last_anchored: new Date().toISOString(),
       kv,
+      kv_last_anchored: new Date().toISOString(),
+      health_last_anchored: new Date().toISOString(),
       usb_salt: 'Local_Only',
     });
   } catch (err: unknown) {
