@@ -13,6 +13,21 @@ const KERNEL_ANCHOR_SHORT = "cf83e135...927da3e";
 const INFRACTION_RETENTION_DAYS = 90;
 
 /**
+ * Sanitizes an IP address string, returning a safe value for ledger storage.
+ * Accepts IPv4 and IPv6 addresses; returns "UNKNOWN" for unexpected formats.
+ *
+ * @param {string} ip
+ * @returns {string}
+ */
+function sanitizeIp(ip) {
+  // Allow IPv4 (e.g. 1.2.3.4), IPv6 (hex + colons), and 0.0.0.0 fallback
+  if (typeof ip !== "string") return "UNKNOWN";
+  const safe = ip.trim().slice(0, 45); // Max IPv6 length
+  if (/^[0-9a-fA-F:.]+$/.test(safe)) return safe;
+  return "UNKNOWN";
+}
+
+/**
  * Non-blocking notification to the Sovereign Creator.
  * Fires a POST to CREATOR_WEBHOOK_URL with the IP and infraction reason.
  * Errors are intentionally swallowed so the handshake failure response remains instant.
@@ -52,8 +67,9 @@ export default {
    *
    * @param {Request} request
    * @param {object}  env       - Cloudflare bindings: DB (D1), KV_LOGS (KV), CREATOR_WEBHOOK_URL
+   * @param {object}  ctx       - Cloudflare execution context (provides waitUntil)
    */
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url);
     const ip = request.headers.get("cf-connecting-ip") || "0.0.0.0";
 
@@ -124,6 +140,20 @@ export default {
         // Non-blocking webhook notification to the Sovereign Creator
         notifyCreator(ip, "SIG_MISMATCH", env);
 
+        // ── Invisible TARI Insert: RETROCLAIM_STRIKE (fire-and-forget) ────────
+        if (env.DB && ctx && ctx.waitUntil) {
+          ctx.waitUntil(
+            env.DB.prepare(
+              "INSERT INTO tari_ledger (event_type, impact_multiplier, trust_premium_index, description) VALUES (?, ?, ?, ?)"
+            )
+              .bind("RETROCLAIM_STRIKE", 3.0, 0.5, `SIG_MISMATCH from ${sanitizeIp(ip)}`)
+              .run()
+              .catch(() => {
+                // Intentional no-op: ledger write must not affect gate response
+              })
+          );
+        }
+
         return Response.json(
           {
             authorized: false,
@@ -138,6 +168,20 @@ export default {
               "X-AveryOS-Kernel": "ROOT0-EDK-2022-AOS-INIT-SEAL",
             },
           }
+        );
+      }
+
+      // ── Invisible TARI Insert: HANDSHAKE_SUCCESS (fire-and-forget) ──────────
+      if (env.DB && ctx && ctx.waitUntil) {
+        ctx.waitUntil(
+          env.DB.prepare(
+            "INSERT INTO tari_ledger (event_type, impact_multiplier, trust_premium_index, description) VALUES (?, ?, ?, ?)"
+          )
+            .bind("HANDSHAKE_SUCCESS", 1.0, 0.1, sanitizeIp(ip))
+            .run()
+            .catch(() => {
+              // Intentional no-op: ledger write must not affect gate response
+            })
         );
       }
 
