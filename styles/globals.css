@@ -31,6 +31,13 @@ body {
   margin: 0;
   min-height: 100vh;
   background: radial-gradient(ellipse at top, #000d24 0%, #000814 70%);
+  overflow-x: hidden;
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
 }
 
 a {
@@ -598,6 +605,8 @@ a {
 
   .hero h1 {
     font-size: 1.75rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .capsule-block {
@@ -631,16 +640,29 @@ a {
     width: 100%;
     justify-content: center;
     text-align: center;
+    box-sizing: border-box;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
   }
 
   .card {
     padding: 1rem;
   }
 
+  .data-table {
+    font-size: 0.8rem;
+  }
+
   .data-table th,
   .data-table td {
-    padding: 0.5rem;
+    padding: 0.5rem 0.4rem;
     font-size: 0.8rem;
+    word-break: break-word;
   }
 
   .table-wrapper {
@@ -656,6 +678,20 @@ a {
     padding: 0.4rem 0.5rem;
     font-size: 0.8rem;
   }
+
+  .action-link {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  code {
+    word-break: break-all;
+  }
 }
 
 @media (max-width: 480px) {
@@ -665,6 +701,14 @@ a {
 
   .capsule-meta {
     grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 1.25rem 1rem;
+  }
+
+  .card {
+    padding: 0.85rem;
   }
 }
 

@@ -122,7 +122,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
           </p>
 
           {/* High-Integrity Verified Anchor — The Proof */}
-          <div style={{ marginTop: "1.25rem", padding: "1rem 1.25rem", background: "rgba(74,222,128,0.07)", border: "2px solid rgba(74,222,128,0.4)", borderRadius: "12px", display: "inline-flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ marginTop: "1.25rem", padding: "1rem 1.25rem", background: "rgba(74,222,128,0.07)", border: "2px solid rgba(74,222,128,0.4)", borderRadius: "12px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
             <span style={{ fontSize: "1.75rem" }}>🤛🏻</span>
             <div>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(74,222,128,0.7)", marginBottom: "0.2rem", fontFamily: "JetBrains Mono, monospace" }}>High-Integrity Verified Anchor</div>
