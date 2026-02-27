@@ -121,9 +121,9 @@ const HealthPage: NextPage = () => {
             <a href="/api/v1/health" target="_blank" rel="noopener noreferrer" className="secondary-link" style={{ fontSize: "0.85rem" }}>
               📡 Raw JSON Endpoint
             </a>
-            <Link href={DISCLOSURE_MIRROR_PATH} className="secondary-link" style={{ fontSize: "0.85rem" }}>
+            <a href={DISCLOSURE_MIRROR_PATH} target="_blank" rel="noopener noreferrer" className="secondary-link" style={{ fontSize: "0.85rem" }}>
               🤛🏻 The Proof
-            </Link>
+            </a>
           </div>
         </section>
 
