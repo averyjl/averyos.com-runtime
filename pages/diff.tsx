@@ -52,7 +52,7 @@ export default function CapsuleDiff() {
           {
             timestamp: "2026-02-15T06:00:00Z",
             capsuleId: "vaultchain-anchor-seal",
-            sha512: "a3f5d2e1b7c94086f2e3d4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
+            sha512: "a3f5d2e1b7c94086f2e3d4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5aaaa",
             label: "Vault Anchor v1",
           },
         ]);
