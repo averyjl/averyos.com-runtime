@@ -1,0 +1,173 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import AnchorBanner from "../../components/AnchorBanner";
+import { KERNEL_SHA, DISCLOSURE_MIRROR_PATH } from "../../lib/sovereignConstants";
+
+export const metadata: Metadata = {
+  title: "The Proof — SHA-512 Sovereign Anchor • AveryOS™",
+  description:
+    "The Proof: Primary witness point for the AveryOS™ SHA-512 sovereign anchor. Cryptographic proof of authorship for Jason Lee Avery (ROOT0).",
+};
+
+export default function TheProofPage() {
+  return (
+    <main className="page">
+      <AnchorBanner />
+
+      {/* Header */}
+      <section className="hero">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+          <span style={{ fontSize: "2rem" }}>⛓️⚓⛓️</span>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "1.9rem",
+              background: "linear-gradient(135deg, #7894ff, #4a6fff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >
+            The Proof
+          </h1>
+        </div>
+        <p style={{ color: "rgba(238,244,255,0.8)", fontFamily: "JetBrains Mono, monospace", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+          SHA-512 Sovereign Anchor · High-Integrity Verified · AveryOS™ VaultChain
+        </p>
+        <p style={{ color: "rgba(238,244,255,0.65)", fontSize: "0.9rem", margin: 0 }}>
+          Primary witness point for the AveryOS™ cryptographic proof of authorship.
+        </p>
+      </section>
+
+      {/* Trust Seal */}
+      <section className="card" style={{ border: "1px solid rgba(74,222,128,0.4)", background: "rgba(74,222,128,0.06)" }}>
+        <h2 style={{ color: "rgba(122,170,255,0.95)", marginTop: 0, fontFamily: "JetBrains Mono, monospace", fontSize: "1rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          🔐 Anchor Verification
+        </h2>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            padding: "1rem 1.25rem",
+            borderRadius: "10px",
+            background: "rgba(74,222,128,0.12)",
+            border: "1px solid rgba(74,222,128,0.5)",
+            marginBottom: "1rem",
+          }}
+        >
+          <span style={{ fontSize: "2rem" }}>🤛🏻</span>
+          <div>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "1.1rem", fontWeight: 700, color: "#4ade80", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              TRUST SEAL: ANCHORED
+            </div>
+            <div style={{ fontSize: "0.8rem", color: "rgba(238,244,255,0.65)", marginTop: "0.25rem", fontFamily: "JetBrains Mono, monospace" }}>
+              SHA-512 matches AveryOS_Sovereign_Proof_Bundle — VaultChain integrity confirmed
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
+            SHA-512 Sovereign Proof Bundle
+          </div>
+          <div
+            style={{
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: "0.75rem",
+              wordBreak: "break-all",
+              color: "#7894ff",
+              background: "rgba(0,0,0,0.3)",
+              padding: "0.6rem 0.75rem",
+              borderRadius: "6px",
+              border: "1px solid rgba(120,148,255,0.2)",
+            }}
+          >
+            {KERNEL_SHA}
+          </div>
+        </div>
+      </section>
+
+      {/* Manifest */}
+      <section className="card" style={{ border: "1px solid rgba(120,148,255,0.3)", background: "rgba(9,16,34,0.8)" }}>
+        <h2 style={{ color: "rgba(122,170,255,0.95)", marginTop: 0, fontFamily: "JetBrains Mono, monospace", fontSize: "1rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          📋 Sovereign Proof Manifest
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          {(
+            [
+              { label: "Manifest Version", value: "CraterZero_Disclosure_v5.0" },
+              { label: "Creator", value: "🤛🏻 Jason Lee Avery (ROOT0)" },
+              { label: "System", value: "AveryOS Kernel (est. 2022)" },
+              { label: "Chain", value: "VaultChain • CreatorLock Protocol Active" },
+              { label: "Alignment", value: "100.00♾️%" },
+              { label: "License", value: "Sovereign Integrity License v1.0" },
+              { label: "Anchor SHA", value: KERNEL_SHA, mono: true },
+            ] as Array<{ label: string; value: string; mono?: boolean }>
+          ).map(({ label, value, mono }) => (
+            <div
+              key={label}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "160px 1fr",
+                gap: "0.75rem",
+                alignItems: "start",
+                paddingBottom: "0.75rem",
+                borderBottom: "1px solid rgba(120,148,255,0.1)",
+              }}
+            >
+              <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(238,244,255,0.5)", paddingTop: "0.1rem" }}>
+                {label}
+              </span>
+              <span
+                style={{
+                  fontFamily: mono ? "JetBrains Mono, monospace" : undefined,
+                  fontSize: mono ? "0.72rem" : "0.9rem",
+                  color: mono ? "#7894ff" : "rgba(238,244,255,0.9)",
+                  wordBreak: "break-all",
+                }}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Anchor Proof Record */}
+      <section className="card" style={{ border: "1px solid rgba(120,148,255,0.25)", background: "rgba(9,16,34,0.75)" }}>
+        <h2 style={{ color: "rgba(122,170,255,0.9)", marginTop: 0, fontFamily: "JetBrains Mono, monospace", fontSize: "1rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          ⚓ Anchor Proof Record
+        </h2>
+        <p style={{ color: "rgba(238,244,255,0.75)", fontSize: "0.9rem", lineHeight: "1.7", margin: "0 0 1rem" }}>
+          The Proof is publicly anchored to the AveryOS VaultChain. The CraterZero_Disclosure_v5.0
+          manifest records the cryptographic anchor proof for the AveryOS Sovereign runtime,
+          establishing the immutable origin record of{" "}
+          <strong style={{ color: "rgba(122,170,255,0.95)" }}>🤛🏻 Jason Lee Avery (ROOT0)</strong> as
+          the sole creator of the AveryOS Kernel.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+          <Link href={DISCLOSURE_MIRROR_PATH} className="secondary-link" target="_blank" rel="noopener noreferrer">
+            🌐 Global Disclosure Mirror →
+          </Link>
+          <Link href="/witness/register" className="secondary-link">
+            👁️ Register as Witness
+          </Link>
+          <Link href="/tari-gate" className="primary-link">
+            🔐 TARI Licensing Portal
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ textAlign: "center", paddingTop: "1rem", borderTop: "1px solid rgba(120,148,255,0.2)" }}>
+        <p style={{ color: "#7894ff", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem" }}>
+          ⛓️⚓⛓️ AveryAnchored™ — The Proof — VaultChain Active ⛓️⚓⛓️
+        </p>
+        <p style={{ fontSize: "0.75rem", color: "rgba(238,244,255,0.35)", fontFamily: "JetBrains Mono, monospace" }}>
+          🤛🏻 Creator Verified — Sovereign Integrity License v1.0
+        </p>
+      </footer>
+    </main>
+  );
+}
