@@ -1,0 +1,2 @@
+78d77
+< 44d37a5dde354fdfbfaf96315db4b118af5de21786e84a327ff110cc50f140ce5ba487ca2a7bc170f21be5f5e686ee6d1bae9d0b6362c5e05f93858e5ac4361d  ./scripts/licenseGate_v9.cjs
