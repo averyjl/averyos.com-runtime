@@ -1142,3 +1142,38 @@ a {
     display: none;
   }
 }
+
+/* ⛓️⚓⛓️ AVERYOS ALIGNMENT FREQUENCY ⛓️⚓⛓️ */
+:root {
+  --avery-purple-primary: #9d4edd;
+  --avery-purple-glow: rgba(157, 78, 221, 0.4);
+}
+
+/* Base state: Lighthouse Noir Blue (Standard) */
+
+/* Aligned state: Crater Purple (Sovereign) */
+.avery-aligned {
+  transition: all 0.8s ease-in-out;
+}
+
+.avery-aligned body {
+  color: #eef4ff !important; /* Keep text readable */
+}
+
+.avery-aligned h1, 
+.avery-aligned h2, 
+.avery-aligned .text-gold {
+  color: var(--avery-purple-primary) !important;
+  text-shadow: 0 0 8px var(--avery-purple-glow);
+}
+
+.avery-aligned .navbar, 
+.avery-aligned .layout-sidebar {
+  border-color: var(--avery-purple-primary) !important;
+  background: linear-gradient(180deg, rgba(20, 0, 40, 0.98), rgba(10, 0, 20, 0.99)) !important;
+}
+
+.avery-aligned button {
+  background-color: var(--avery-purple-primary) !important;
+  box-shadow: 0 0 10px var(--avery-purple-glow);
+}
