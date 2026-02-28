@@ -11,11 +11,10 @@
     "build": "next build && npx open-next build",
     "deploy": "npm run build && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
     "logs:bouncer": "wrangler tail gabriel-gatekeeper",
-    "logs:app": "wrangler tail averyoscom-runtime"
+    "logs:app": "wrangler tail averyoscom-runtime",
     "build:worker": "npx opennextjs-cloudflare build",
     "build:cloudflare": "node scripts/patchOpenNextStripe.cjs && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
     "preview": "npx @opennextjs/cloudflare preview",
-    "deploy": "npx @opennextjs/cloudflare deploy",
     "start": "next start",
     "lint": "next lint",
     "test": "next lint",
@@ -40,21 +39,6 @@
     "marked": "17.0.2",
     "next": "15.5.12",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "stripe": "^20.3.1"
-  },
-  "devDependencies": {
-    "@opennextjs/cloudflare": "^1.17.1",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^10.0.2",
-    "eslint-config-next": "^16.1.6",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.68.1"
-  },
-  "engines": {
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
+    "react-dom": "19.0.0"
   }
 }
