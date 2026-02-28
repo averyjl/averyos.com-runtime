@@ -121,7 +121,7 @@ jobs:
           
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Deploy attempt $i of $MAX_RETRIES..."
-            if npm run deploy -- --env production; then
+            if npx wrangler deploy && npx wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper; then
               echo "✅ Deploy succeeded"
               exit 0
             else
