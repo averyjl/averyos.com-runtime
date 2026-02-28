@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigationRoutes } from "../lib/navigationRoutes";
+import AnchorBadge from "./AnchorBadge";
 
 const NavBar = () => {
   const pathname = usePathname();
@@ -31,6 +32,9 @@ const NavBar = () => {
               </Link>
             );
           })}
+        </div>
+        <div style={{ marginLeft: "auto", paddingLeft: "1rem", display: "flex", alignItems: "center" }}>
+          <AnchorBadge />
         </div>
       </div>
     </nav>

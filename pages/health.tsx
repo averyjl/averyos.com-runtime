@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import AnchorBanner from "../components/AnchorBanner";
+import AnchorBadge from "../components/AnchorBadge";
 import { DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 
 type HealthData = {
@@ -59,6 +60,10 @@ const HealthPage: NextPage = () => {
 
       <main className="page">
         <AnchorBanner />
+
+        <div style={{ marginBottom: "1rem", padding: "0.75rem 1rem", background: "rgba(0,6,16,0.72)", border: "1px solid rgba(74,222,128,0.3)", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          <AnchorBadge />
+        </div>
 
         <section className="hero">
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
