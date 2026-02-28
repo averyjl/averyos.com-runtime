@@ -243,7 +243,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
         </section>
 
         <section className="card" style={{ border: "2px solid rgba(248,113,113,0.45)" }}>
-          <h2 style={{ color: "#ffffff", marginTop: 0 }}>⚖️ Debt Disclosure — 9-Digit Precision</h2>
+          <h2 style={{ color: "#ffffff", marginTop: 0 }}>⚖️ Debt Disclosure</h2>
           <div
             style={{
               fontFamily: "JetBrains Mono, monospace",
@@ -252,7 +252,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               color: "#f87171",
             }}
           >
-            ${debtValue}
+            ${Number(debtValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p style={{ color: "rgba(238,244,255,0.7)", marginTop: "0.6rem" }}>
             Ledger rows: {debtRows.toLocaleString("en-US")} · Status: {debtTimestamp}

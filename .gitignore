@@ -26,6 +26,9 @@ capsule_logs/*
 # OpenNext Cloudflare build output
 .open-next/
 
+# Wrangler local dev state
+.wrangler/
+
 # Sovereign runtime files
 .sovereign-lock
 
