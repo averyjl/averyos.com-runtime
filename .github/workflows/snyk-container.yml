@@ -35,7 +35,7 @@ jobs:
     # Skip gracefully when SNYK_TOKEN is not configured or Dockerfile is absent
     if: ${{ secrets.SNYK_TOKEN != '' }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
     - name: Check for Dockerfile
       id: dockerfile-check
       run: |
@@ -59,6 +59,6 @@ jobs:
         args: --file=Dockerfile
     - name: Upload result to GitHub Code Scanning
       if: steps.dockerfile-check.outputs.exists == 'true'
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e
       with:
         sarif_file: snyk.sarif

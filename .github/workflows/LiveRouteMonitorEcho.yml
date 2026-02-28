@@ -17,7 +17,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - name: 💾 Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: 📦 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -55,7 +55,7 @@ jobs:
 
       - name: 📝 Log Differences to GitHub Issue (if any)
         if: steps.diff.outputs.api_success == 'true' && steps.diff.outputs.has_diff == 'true'
-        uses: peter-evans/create-issue-from-file@v4
+        uses: peter-evans/create-issue-from-file@433e51abf769039ee20ba1293a088ca19d573b7f
         with:
           title: 🔧 Cloudflare Redirect Drift Detected
           content-filepath: diff_output.txt
