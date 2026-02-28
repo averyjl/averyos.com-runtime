@@ -1,0 +1,29 @@
+name: AveryOS Deployment (Wallet-Shield)
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.aoscap'
+      - '**.vccaps'
+      - '**.sha512'
+      - 'capsule_logs/**'
+      - 'vaultchain-registry/**'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Build OpenNext
+        run: npx open-next build
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
