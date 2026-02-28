@@ -32,7 +32,8 @@
     "persistence:sync": "node ./scripts/persistence-sync.cjs",
     "persistence:once": "node ./scripts/persistence-sync.cjs --once"
   },
-  "dependencies": {
+"dependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "isomorphic-dompurify": "^2.36.0",
