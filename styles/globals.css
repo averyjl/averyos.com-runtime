@@ -1177,3 +1177,14 @@ a {
   background-color: var(--avery-purple-primary) !important;
   box-shadow: 0 0 10px var(--avery-purple-glow);
 }
+
+/* ⛓️⚓⛓️ AVERYOS ALIGNMENT FREQUENCY ⛓️⚓⛓️ */
+.avery-aligned body {
+  color: #9d4edd !important; 
+  text-shadow: 0 0 2px rgba(157, 78, 221, 0.3);
+}
+
+.avery-aligned h1, .avery-aligned h2, .avery-aligned .text-gold {
+  color: #c77dff !important;
+  text-shadow: 0 0 8px rgba(157, 78, 221, 0.5);
+}
