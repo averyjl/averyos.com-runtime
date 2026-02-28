@@ -11,7 +11,8 @@
     "build": "next build && npx open-next build",
     "deploy": "npm run build && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
     "logs:bouncer": "wrangler tail gabriel-gatekeeper",
-    "logs:app": "wrangler tail averyoscom-runtime"    "build:worker": "npx opennextjs-cloudflare build",
+    "logs:app": "wrangler tail averyoscom-runtime"
+    "build:worker": "npx opennextjs-cloudflare build",
     "build:cloudflare": "node scripts/patchOpenNextStripe.cjs && npm run capsule:build && npm run capsule:sitemap && npx @opennextjs/cloudflare build",
     "preview": "npx @opennextjs/cloudflare preview",
     "deploy": "npx @opennextjs/cloudflare deploy",
