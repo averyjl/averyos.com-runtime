@@ -34,6 +34,7 @@
   },
 "dependencies": {
     "@opennextjs/cloudflare": "^1.17.1",
+    "stripe": "^17.7.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "isomorphic-dompurify": "^2.36.0",
