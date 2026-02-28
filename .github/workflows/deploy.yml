@@ -1,4 +1,6 @@
 name: AveryOS Deployment (Wallet-Shield)
+permissions:
+  contents: read
 
 on:
   push:
