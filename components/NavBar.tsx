@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigationRoutes } from "../lib/navigationRoutes";
+import AnchorBadge from "./AnchorBadge";
 
 const NavBar = () => {
   const pathname = usePathname();
@@ -14,6 +15,9 @@ const NavBar = () => {
           <span className="navbar-brand-icon">⚓</span>
           <span className="navbar-brand-text">AveryOS</span>
         </Link>
+        <div className="navbar-anchor-badge">
+          <AnchorBadge />
+        </div>
         <div className="navbar-links">
           {navigationRoutes.map((route) => {
             const isActive =
