@@ -33,20 +33,20 @@
     "persistence:once": "node ./scripts/persistence-sync.cjs --once"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.17.1",
-    "stripe": "^20.4.0",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.2.1",
-    "isomorphic-dompurify": "^2.36.0",
+    "@opennextjs/cloudflare": "1.17.1",
+    "stripe": "20.4.0",
+    "express": "5.2.1",
+    "express-rate-limit": "8.2.1",
+    "isomorphic-dompurify": "2.36.0",
     "marked": "17.0.2",
     "next": "15.5.12",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "@types/node": "^22.13.5",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4"
+    "typescript": "5.7.3",
+    "@types/node": "22.13.5",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4"
   }
 }
