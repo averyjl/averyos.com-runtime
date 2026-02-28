@@ -34,3 +34,12 @@ capsule_logs/*
 
 # Generated TAI semantic index (built from Constitution by semanticIndexer.js)
 scripts/sovereign-index.json
+
+# ⛓️⚓⛓️ AveryOS Sovereign Exclusions
+vaultchain-registry/
+.sovereign-lock
+.wrangler/
+.env
+*.aoscap
+*.vccaps
+!*.example
