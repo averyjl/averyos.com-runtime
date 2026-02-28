@@ -9,6 +9,8 @@ import { getForensicHashesFromLedger, type D1Database } from "../../lib/retroact
 import { formatIso9 } from "../../lib/timePrecision";
 import { entityNameToSlug } from "../../lib/entitySlug";
 
+export const dynamic = "force-dynamic";
+
 interface CloudflareEnv {
   DB: D1Database;
 }
