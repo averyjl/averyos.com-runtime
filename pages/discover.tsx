@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
+import FooterBadge from "../components/FooterBadge";
 
 type Capsule = {
   capsuleId: string;
@@ -125,13 +126,19 @@ const DiscoverPage = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: "0.75rem" }}>
             {[
               { label: "⛓️ VaultChain™", href: "/vault/vaultchain-status" },
-              { label: "📜 Licensing", href: "/license" },
+              // "Licensing Hub" → full license portal with text, retroclaim log, and enforcement
+              // "Get a License" → direct Stripe checkout / license registration page
+              { label: "📜 Licensing Hub", href: "/licensing" },
+              { label: "🔐 Get a License", href: "/license" },
+              { label: "💰 TARI Portal", href: "/tari-gate" },
               { label: "✅ Verification", href: "/verify" },
-              { label: "📊 Audit Log", href: "/retroclaim-log" },
               { label: "🧾 Certificates", href: "/certificate" },
               { label: "🔐 Signatures", href: "/sigtrace" },
               { label: "📄 Whitepaper", href: "/whitepaper" },
               { label: "👁️ Witness", href: "/witness/register" },
+              { label: "⚖️ AI Alignment", href: "/ai-alignment" },
+              { label: "🤛🏻 The Proof", href: "/the-proof" },
+              { label: "🔧 Embed Builder", href: "/embedbuilder" },
             ].map((cat) => (
               <Link
                 key={cat.href}
@@ -144,6 +151,8 @@ const DiscoverPage = () => {
             ))}
           </div>
         </section>
+
+        <FooterBadge />
       </main>
     </>
   );
