@@ -1,0 +1,161 @@
+name: ⛓️ AveryOS™ Build Integrity & Provenance
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build-provenance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build project
+        run: npm run build
+
+      # ─── Step 1: Attest Build ───────────────────────────────────────────────
+      - name: 🔐 Attest Build Provenance (Sigstore)
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: '.next/**'
+
+      # ─── Step 2: Sovereign Injection ────────────────────────────────────────
+      - name: 🔑 Fetch AveryOS Loop Signature
+        id: loop_sig
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+        run: |
+          LOOP_SIG=$(curl -s \
+            -H "Authorization: Bearer $GITHUB_PAT" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            "https://api.github.com/repos/averyjl/vaultchain-registry/contents/AveryOS_Loop_Signature_v1.vault" \
+            2>/dev/null || echo "SOVEREIGN_LOOP_SIG_UNAVAILABLE")
+          # Do not log the loop signature value
+          echo "LOOP_SIG_FETCHED=true" >> "$GITHUB_OUTPUT"
+          echo "LOOP_SIG_DATA=$LOOP_SIG" >> "$GITHUB_OUTPUT"
+
+      - name: 🔒 Calculate Sovereign SHA-512 & Generate Handshake Capsule
+        id: handshake
+        env:
+          LOOP_SIG_DATA: ${{ steps.loop_sig.outputs.LOOP_SIG_DATA }}
+        run: |
+          # Collect build artifact hashes
+          BUILD_HASH=$(find .next -type f | sort | xargs sha512sum 2>/dev/null | sha512sum | awk '{print $1}')
+
+          # Compute sovereign SHA-512: artifacts + loop signature
+          SOVEREIGN_SHA=$(printf '%s%s' "$BUILD_HASH" "$LOOP_SIG_DATA" | sha512sum | awk '{print $1}')
+
+          # Generate 9-digit nanosecond timestamp (cross-platform via Python)
+          TIMESTAMP_9=$(python3 -c "import time; print(str(int(time.time() * 1_000_000_000))[:9])")
+
+          # Build version from git ref
+          BUILD_VERSION="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
+
+          # Write capsule file
+          cat > build_handshake_v2026.aoscap << EOF
+          {
+            "capsule_type": "BUILD_HANDSHAKE",
+            "build_version": "$BUILD_VERSION",
+            "kernel_resonance_hash": "$SOVEREIGN_SHA",
+            "build_timestamp_ms": "$TIMESTAMP_9",
+            "github_run_id": "${{ github.run_id }}",
+            "github_sha": "${{ github.sha }}",
+            "attestation_token": "${{ steps.attest.outputs.bundle-path }}",
+            "anchor": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+            "status": "IGNITION_1017"
+          }
+          EOF
+
+          # Export for subsequent steps (no secret values)
+          echo "BUILD_VERSION=$BUILD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "SOVEREIGN_SHA=$SOVEREIGN_SHA" >> "$GITHUB_OUTPUT"
+          echo "TIMESTAMP_9=$TIMESTAMP_9" >> "$GITHUB_OUTPUT"
+
+      # ─── Step 3: Cross-Repo Push ─────────────────────────────────────────────
+      - name: 📤 Push Handshake Capsule to vaultchain-registry
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          BUILD_VERSION: ${{ steps.handshake.outputs.BUILD_VERSION }}
+          TIMESTAMP_9: ${{ steps.handshake.outputs.TIMESTAMP_9 }}
+        run: |
+          git config --global user.name "AveryOS Integrity Bot"
+          git config --global user.email "bot@averyos.com"
+
+          # Encode capsule for GitHub Contents API
+          CAPSULE_B64=$(base64 -w0 build_handshake_v2026.aoscap)
+          CAPSULE_PATH="handshakes/build_handshake_v2026_${TIMESTAMP_9}.aoscap"
+
+          # Check if file already exists to get its SHA (needed for updates)
+          EXISTING_SHA=$(curl -sf \
+            -H "Authorization: Bearer $GITHUB_PAT" \
+            "https://api.github.com/repos/averyjl/vaultchain-registry/contents/$CAPSULE_PATH" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" || echo "")
+
+          # Build JSON payload (use os.environ to avoid shell injection)
+          export CAPSULE_B64 BUILD_VERSION EXISTING_SHA
+          export COMMIT_MSG="⛓️ Build Handshake $BUILD_VERSION (${{ github.sha }}) timestamp=$TIMESTAMP_9"
+          if [ -n "$EXISTING_SHA" ]; then
+            PAYLOAD=$(python3 -c "import json,os; print(json.dumps({'message': os.environ['COMMIT_MSG'], 'content': os.environ['CAPSULE_B64'], 'sha': os.environ['EXISTING_SHA']}))")
+          else
+            PAYLOAD=$(python3 -c "import json,os; print(json.dumps({'message': os.environ['COMMIT_MSG'], 'content': os.environ['CAPSULE_B64']}))")
+          fi
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X PUT \
+            -H "Authorization: Bearer $GITHUB_PAT" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/averyjl/vaultchain-registry/contents/$CAPSULE_PATH" \
+            -d "$PAYLOAD")
+
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "201" ]; then
+            echo "⚠️  vaultchain-registry push returned HTTP $STATUS — continuing without cross-repo update"
+          else
+            echo "✅ Capsule pushed to vaultchain-registry: $CAPSULE_PATH"
+          fi
+
+      # ─── Step 4: Real-Time Health Signal ────────────────────────────────────
+      - name: 📡 Update AveryOS™ Sovereign Health Page
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          BUILD_VERSION: ${{ steps.handshake.outputs.BUILD_VERSION }}
+          SOVEREIGN_SHA: ${{ steps.handshake.outputs.SOVEREIGN_SHA }}
+          TIMESTAMP_9: ${{ steps.handshake.outputs.TIMESTAMP_9 }}
+        run: |
+          BASE_URL="${SITE_URL:-https://averyos.com}"
+          # Use os.environ to avoid shell injection in JSON payload
+          PAYLOAD=$(python3 -c "import json,os; print(json.dumps({
+            'build_version': os.environ['BUILD_VERSION'],
+            'kernel_resonance_hash': os.environ['SOVEREIGN_SHA'],
+            'build_timestamp_ms': os.environ['TIMESTAMP_9']
+          }))")
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_PAT" \
+            -H "Content-Type: application/json" \
+            "$BASE_URL/api/health/update-build" \
+            -d "$PAYLOAD")
+
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Sovereign Health page updated — build=$BUILD_VERSION ts=$TIMESTAMP_9"
+          else
+            echo "⚠️  Health update returned HTTP $STATUS — continuing"
+          fi
