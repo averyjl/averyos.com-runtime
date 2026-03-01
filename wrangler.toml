@@ -62,7 +62,6 @@ id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 [[env.production.kv_namespaces]]
 binding = "AVERYOS_LOGIC_GATES"
 id = "1a5217c91e6c4a568875f2928acb69b9"
-kv_namespaces = [{ binding = "LOGIC_GATES", id = "AVERYOS_LOGIC_GATES" }]
 
 [[env.production.d1_databases]]
 binding = "DB"
