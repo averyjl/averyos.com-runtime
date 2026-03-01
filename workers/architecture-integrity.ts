@@ -58,6 +58,17 @@ export interface Env {
   VAULT_R2: R2Bucket;
 }
 
+/** Cloudflare Scheduled event (subset of the Workers runtime type) */
+interface ScheduledEvent {
+  scheduledTime: number;
+  cron: string;
+}
+
+/** Cloudflare ExecutionContext — used to keep the worker alive past response */
+interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
 /** A single row from the vault_ledger table */
 interface VaultLedgerRow {
   id: number;
@@ -205,6 +216,124 @@ async function writeSessionLog(
     console.error("[integrity-worker] R2 write failed:", err);
     return null;
   }
+}
+
+// ─── Watchdog (shared by scheduled + fetch handlers) ─────────────────────────
+
+/**
+ * runWatchdog — core integrity pulse used by both the Cloudflare Cron Trigger
+ * (scheduled handler) and optionally by the POST /api/v1/integrity-check route.
+ *
+ * 1. Reads the latest vault_ledger row and fetches the live Bitcoin block
+ *    concurrently (via verifyAnchor).
+ * 2. Compares the KV genesis state against the D1 sha512_hash.
+ * 3. Writes a timestamped R2 session log with both the internal SHA-512 and
+ *    the live Bitcoin heartbeat — the "Double-Hash" Sovereign Receipt.
+ * 4. Returns a structured result that callers can log or inspect.
+ */
+async function runWatchdog(
+  env: Env,
+  triggerTs: string
+): Promise<{
+  sovereign_sync_status: "LOCKED_TO_BLOCKCHAIN" | "SOVEREIGN_ONLY_MODE";
+  external_anchor_verified: boolean;
+  global_heartbeat_height: number | null;
+  global_heartbeat_hash: string | null;
+  kernel_anchor_verified: boolean;
+  drift_detected: boolean;
+  r2_session_log_timestamp: string | null;
+  error: string | null;
+}> {
+  // ── 1. Concurrent D1 query + Bitcoin fetch ──────────────────────────────
+  let anchorResult: AnchorResult;
+  try {
+    anchorResult = await verifyAnchor(env.DB, ROOT0_ANCHOR);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      sovereign_sync_status: "SOVEREIGN_ONLY_MODE",
+      external_anchor_verified: false,
+      global_heartbeat_height: null,
+      global_heartbeat_hash: null,
+      kernel_anchor_verified: false,
+      drift_detected: false,
+      r2_session_log_timestamp: null,
+      error: `DB_ERROR: ${message}`,
+    };
+  }
+
+  if (!anchorResult.latestRow) {
+    return {
+      sovereign_sync_status: "SOVEREIGN_ONLY_MODE",
+      external_anchor_verified: false,
+      global_heartbeat_height: null,
+      global_heartbeat_hash: null,
+      kernel_anchor_verified: false,
+      drift_detected: false,
+      r2_session_log_timestamp: null,
+      error: "NO_ANCHOR_RECORD",
+    };
+  }
+
+  const d1Sha = anchorResult.latestRow.sha512_hash.trim().toLowerCase();
+
+  // ── 2. KV drift check ───────────────────────────────────────────────────
+  let kvState: string | null = null;
+  try {
+    kvState = await env.AVERY_KV.get(KV_GENESIS_KEY);
+  } catch {
+    // Non-fatal: log but continue — sovereign SHA is the primary anchor
+    console.warn("[watchdog] KV read failed — skipping drift check");
+  }
+
+  const normalizedKvState = (kvState ?? ROOT0_ANCHOR).trim().toLowerCase();
+  const driftDetected = normalizedKvState !== d1Sha;
+
+  // ── 3. Write R2 "Double-Hash" Sovereign Receipt ─────────────────────────
+  const externalVerified = anchorResult.externalPulse !== null;
+  const sessionPayload = {
+    event: "CRON_WATCHDOG",
+    cron_trigger_ts: triggerTs,
+    kernel_anchor_verified: anchorResult.matched,
+    drift_detected: driftDetected,
+    vault_ledger_sha: d1Sha,
+    kv_genesis_state: normalizedKvState,
+    anchor_label: anchorResult.latestRow.anchor_label,
+    kernel_anchor: ROOT0_ANCHOR,
+    stored_btc_anchor: {
+      block_height: anchorResult.latestRow.btc_block_height,
+      block_hash: anchorResult.latestRow.btc_block_hash,
+    },
+    live_btc_heartbeat: externalVerified
+      ? {
+          source: "blockchain.info",
+          block_height: anchorResult.externalPulse!.height,
+          block_hash: anchorResult.externalPulse!.hash,
+          block_time: new Date(anchorResult.externalPulse!.time * 1000).toISOString(),
+        }
+      : null,
+    sovereign_sync_status: externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE",
+  };
+
+  const r2Ts = await writeSessionLog(env.VAULT_R2, sessionPayload, triggerTs);
+
+  console.log(
+    `[watchdog] ${externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE"}` +
+      ` | btc_height=${anchorResult.externalPulse?.height ?? "N/A"}` +
+      ` | drift=${driftDetected}` +
+      ` | r2=${r2Ts ?? "WRITE_FAILED"}`
+  );
+
+  return {
+    sovereign_sync_status: externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE",
+    external_anchor_verified: externalVerified,
+    global_heartbeat_height: anchorResult.externalPulse?.height ?? null,
+    global_heartbeat_hash: anchorResult.externalPulse?.hash ?? null,
+    kernel_anchor_verified: anchorResult.matched,
+    drift_detected: driftDetected,
+    r2_session_log_timestamp: r2Ts,
+    error: null,
+  };
 }
 
 // ─── Worker export ────────────────────────────────────────────────────────────
@@ -417,4 +546,22 @@ export default {
       },
     });
   },
-} satisfies { fetch(request: Request, env: Env): Promise<Response> };
+
+  /**
+   * Cloudflare Cron Trigger handler — runs on the schedule defined in
+   * wrangler.integrity.toml (default: every hour at :00).
+   *
+   * Executes the full integrity watchdog: D1 vault_ledger query, KV drift
+   * check, live Bitcoin heartbeat fetch, and R2 "Double-Hash" session log.
+   * All work is wrapped in ctx.waitUntil() so Cloudflare keeps the Worker
+   * alive until the R2 write completes even after the cron event resolves.
+   */
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    const triggerTs = new Date(event.scheduledTime).toISOString();
+    console.log(`[watchdog] cron triggered: ${event.cron} at ${triggerTs}`);
+    ctx.waitUntil(runWatchdog(env, triggerTs));
+  },
+} satisfies {
+  fetch(request: Request, env: Env): Promise<Response>;
+  scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void>;
+};

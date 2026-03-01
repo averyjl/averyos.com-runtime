@@ -1,0 +1,173 @@
+name: ⛓️⚓⛓️ Sovereign Integrity Watchdog
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # Every hour at :00 UTC
+  workflow_dispatch:        # Manual trigger for immediate verification
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  integrity-pulse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 📦 Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      # ── Step 1: Call the Hybrid Integrity Check endpoint ──────────────────
+      - name: 🔐 POST /api/v1/integrity-check (Hybrid Sovereign Pulse)
+        id: integrity
+        env:
+          INTEGRITY_WORKER_URL: ${{ secrets.INTEGRITY_WORKER_URL || secrets.SITE_URL }}
+        run: |
+          BASE_URL="${INTEGRITY_WORKER_URL:-https://averyos.com}"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${BASE_URL}/api/v1/integrity-check" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "hash": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+            }')
+
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "http_status=$HTTP_STATUS"   >> "$GITHUB_OUTPUT"
+          echo "response_body<<EOF"          >> "$GITHUB_OUTPUT"
+          echo "$BODY"                       >> "$GITHUB_OUTPUT"
+          echo "EOF"                         >> "$GITHUB_OUTPUT"
+
+          echo "--- Response (HTTP $HTTP_STATUS) ---"
+          echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+
+      # ── Step 2: Parse manifest fields ────────────────────────────────────
+      - name: 🔎 Parse IntegrityManifest
+        id: manifest
+        env:
+          RESPONSE_BODY: ${{ steps.integrity.outputs.response_body }}
+        run: |
+          BODY="$RESPONSE_BODY"
+
+          CREATOR_LOCK=$(echo "$BODY"       | jq -r '.CreatorLock          // "UNKNOWN"')
+          SYNC_STATUS=$(echo "$BODY"        | jq -r '.sovereign_sync_status // "UNKNOWN"')
+          EXT_VERIFIED=$(echo "$BODY"       | jq -r '.external_anchor_verified // false')
+          BTC_HEIGHT=$(echo "$BODY"         | jq -r '.global_heartbeat_height  // "N/A"')
+          BTC_HASH=$(echo "$BODY"           | jq -r '.global_heartbeat_hash    // "N/A"')
+          KERNEL_VERIFIED=$(echo "$BODY"    | jq -r '.kernel_anchor_verified   // false')
+          VAULT_SHA=$(echo "$BODY"          | jq -r '.vault_ledger_sha         // "N/A"')
+          R2_TS=$(echo "$BODY"              | jq -r '.r2_session_log_timestamp  // "N/A"')
+          TIMESTAMP=$(echo "$BODY"          | jq -r '.timestamp                // "N/A"')
+
+          echo "creator_lock=$CREATOR_LOCK"       >> "$GITHUB_OUTPUT"
+          echo "sync_status=$SYNC_STATUS"         >> "$GITHUB_OUTPUT"
+          echo "ext_verified=$EXT_VERIFIED"       >> "$GITHUB_OUTPUT"
+          echo "btc_height=$BTC_HEIGHT"           >> "$GITHUB_OUTPUT"
+          echo "btc_hash=$BTC_HASH"               >> "$GITHUB_OUTPUT"
+          echo "kernel_verified=$KERNEL_VERIFIED" >> "$GITHUB_OUTPUT"
+          echo "vault_sha=$VAULT_SHA"             >> "$GITHUB_OUTPUT"
+          echo "r2_ts=$R2_TS"                     >> "$GITHUB_OUTPUT"
+          echo "timestamp=$TIMESTAMP"             >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "┌─────────────────────────────────────────────────┐"
+          echo "│  ⛓️⚓⛓️  AveryOS™ Sovereign Integrity Pulse      │"
+          echo "├─────────────────────────────────────────────────┤"
+          printf "│  CreatorLock:        %-28s│\n" "$CREATOR_LOCK"
+          printf "│  Sync Status:        %-28s│\n" "$SYNC_STATUS"
+          printf "│  External Verified:  %-28s│\n" "$EXT_VERIFIED"
+          printf "│  Bitcoin Height:     %-28s│\n" "$BTC_HEIGHT"
+          printf "│  Kernel Verified:    %-28s│\n" "$KERNEL_VERIFIED"
+          printf "│  R2 Log Timestamp:   %-28s│\n" "$R2_TS"
+          echo "└─────────────────────────────────────────────────┘"
+
+      # ── Step 3: Write heartbeat log to repo ──────────────────────────────
+      - name: 📝 Append Watchdog Heartbeat to heartbeat.log
+        env:
+          SYNC_STATUS:      ${{ steps.manifest.outputs.sync_status }}
+          BTC_HEIGHT:       ${{ steps.manifest.outputs.btc_height }}
+          BTC_HASH:         ${{ steps.manifest.outputs.btc_hash }}
+          KERNEL_VERIFIED:  ${{ steps.manifest.outputs.kernel_verified }}
+          HTTP_STATUS:      ${{ steps.integrity.outputs.http_status }}
+          TIMESTAMP:        ${{ steps.manifest.outputs.timestamp }}
+        run: |
+          ENTRY="$(date -u +"%Y-%m-%dT%H:%M:%SZ") | http=$HTTP_STATUS | sync=$SYNC_STATUS | btc_height=$BTC_HEIGHT | kernel_verified=$KERNEL_VERIFIED | ts=$TIMESTAMP"
+          echo "$ENTRY" >> heartbeat.log
+
+      # ── Step 4: Commit heartbeat log update ──────────────────────────────
+      - name: 💾 Commit heartbeat.log update
+        run: |
+          git config user.name  "Sovereign Watchdog"
+          git config user.email "bot@averyos.com"
+          git add heartbeat.log
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "⛓️ Sovereign Watchdog pulse $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            git push
+          fi
+
+      # ── Step 5: Open issue if drift or failure detected ───────────────────
+      - name: 🚨 Create Issue on Integrity Failure
+        if: |
+          steps.integrity.outputs.http_status != '200' ||
+          steps.manifest.outputs.sync_status == 'UNKNOWN' ||
+          steps.manifest.outputs.kernel_verified == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTTP_STATUS:     ${{ steps.integrity.outputs.http_status }}
+          SYNC_STATUS:     ${{ steps.manifest.outputs.sync_status }}
+          KERNEL_VERIFIED: ${{ steps.manifest.outputs.kernel_verified }}
+          BTC_HEIGHT:      ${{ steps.manifest.outputs.btc_height }}
+          RESPONSE_BODY:   ${{ steps.integrity.outputs.response_body }}
+          TIMESTAMP:       ${{ steps.manifest.outputs.timestamp }}
+        run: |
+          TITLE="⚠️ Sovereign Integrity Drift Detected — $(date -u +"%Y-%m-%d %H:%M UTC")"
+          BODY="## ⛓️⚓⛓️ AveryOS™ Integrity Watchdog Alert
+
+          **Triggered at:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ### Pulse Result
+          | Field | Value |
+          |---|---|
+          | HTTP Status | \`$HTTP_STATUS\` |
+          | Sync Status | \`$SYNC_STATUS\` |
+          | Kernel Verified | \`$KERNEL_VERIFIED\` |
+          | Bitcoin Height | \`$BTC_HEIGHT\` |
+          | Check Timestamp | \`$TIMESTAMP\` |
+
+          ### Raw Response
+          \`\`\`json
+          $RESPONSE_BODY
+          \`\`\`
+
+          **Action required:** Check vault_ledger D1 record, KV genesis state, and Cloudflare binding health.
+
+          ---
+          🤛🏻 AveryOS™ Sovereign Watchdog · VaultChain™ Active · CreatorLock Protocol™"
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "sovereign-drift,monitoring" \
+            || echo "⚠️ Could not create issue — label may not exist yet, continuing."
+
+      # ── Step 6: Summary ───────────────────────────────────────────────────
+      - name: ✅ Watchdog Summary
+        env:
+          SYNC_STATUS:     ${{ steps.manifest.outputs.sync_status }}
+          BTC_HEIGHT:      ${{ steps.manifest.outputs.btc_height }}
+          EXT_VERIFIED:    ${{ steps.manifest.outputs.ext_verified }}
+          KERNEL_VERIFIED: ${{ steps.manifest.outputs.kernel_verified }}
+          R2_TS:           ${{ steps.manifest.outputs.r2_ts }}
+        run: |
+          if [ "$SYNC_STATUS" = "LOCKED_TO_BLOCKCHAIN" ]; then
+            echo "✅ LOCKED_TO_BLOCKCHAIN — Bitcoin height $BTC_HEIGHT | R2 receipt: $R2_TS"
+          else
+            echo "🔒 SOVEREIGN_ONLY_MODE — external pulse unavailable | kernel verified: $KERNEL_VERIFIED"
+          fi
