@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import AnchorBanner from "../components/AnchorBanner";
 
 const CERTIFICATES = [
@@ -63,19 +64,23 @@ export default function CertificateViewer() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
             <div style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid rgba(120,148,255,0.25)", background: "rgba(9,16,34,0.6)" }}>
-              <img
+              <Image
                 src="/VaultBridge/certificates/averyos-cert-01.png"
                 alt="AveryOS Certificate — Dec 21 2025 05:02"
-                style={{ width: "100%", display: "block", objectFit: "contain" }}
-                loading="eager"
+                width={600}
+                height={400}
+                style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }}
+                priority
               />
             </div>
             <div style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid rgba(120,148,255,0.25)", background: "rgba(9,16,34,0.6)" }}>
-              <img
+              <Image
                 src="/VaultBridge/certificates/averyos-cert-02.png"
                 alt="AveryOS Certificate — Dec 21 2025 05:10"
-                style={{ width: "100%", display: "block", objectFit: "contain" }}
-                loading="eager"
+                width={600}
+                height={400}
+                style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }}
+                priority
               />
             </div>
           </div>
