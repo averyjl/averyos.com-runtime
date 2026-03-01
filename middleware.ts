@@ -1,10 +1,11 @@
-// GabrielOS Edge-Guard v1.3
-// Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger
+// GabrielOS Edge-Guard v1.4
+// Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -42,6 +43,56 @@ const TARI_BILLED_PATHS = new Set([
   "/truth-anchor/",
 ]);
 
+// Paths intercepted by the GabrielOS Legal Tripwire for D1 audit logging
+const GATEKEEPER_AUDIT_PATHS = new Set(['/health', '/evidence-vault']);
+
+interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  run(): Promise<{ success: boolean }>;
+}
+
+interface GatekeeperEnv {
+  DB?: { prepare(query: string): D1PreparedStatement };
+}
+
+/**
+ * GabrielOS Legal Tripwire — fire-and-forget D1 audit insert.
+ * Logs every hit to /health or /evidence-vault into sovereign_audit_logs.
+ * Errors are swallowed so logging failures never block legitimate access.
+ */
+async function logSovereignAudit(request: NextRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+    if (!cfEnv.DB) return;
+
+    const url = new URL(request.url);
+    const ip = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const ua = request.headers.get('user-agent') ?? 'UNKNOWN';
+    const colo = request.headers.get('cf-ray')?.split('-')[1] ?? 'UNKNOWN';
+    const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler/i.test(ua);
+    const timestampNs = Date.now().toString() + '000000';
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO sovereign_audit_logs
+         (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        ip,
+        ua,
+        colo,
+        url.pathname,
+        timestampNs,
+        isCorporate ? 10 : 1
+      )
+      .run();
+  } catch {
+    // Intentional no-op: audit logging must never block request processing
+  }
+}
+
 /**
  * Fire-and-forget call to the TARI™ Billing Engine API route.
  * Records a $1.00 Truth-Packet hit in the Retroclaim Ledger + Stripe.
@@ -70,7 +121,14 @@ function triggerTariBillingEngine(request: NextRequest): void {
   });
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const url = new URL(request.url);
+
+  // GabrielOS Legal Tripwire: fire-and-forget audit log for protected paths
+  if (GATEKEEPER_AUDIT_PATHS.has(url.pathname)) {
+    logSovereignAudit(request).catch(() => {});
+  }
+
   const userAgent = request.headers.get('User-Agent') || '';
   const vaultChainPulse = request.headers.get('X-VaultChain-Pulse');
 
@@ -101,7 +159,7 @@ export function middleware(request: NextRequest) {
 
   // 4. TARI™ BILLING: For AI Anchor Feed / Truth-Anchor pages, allow bots through
   // so they ingest the sovereign content, while logging a $1.00 Truth-Packet hit.
-  if (hasAIPattern && TARI_BILLED_PATHS.has(new URL(request.url).pathname)) {
+  if (hasAIPattern && TARI_BILLED_PATHS.has(url.pathname)) {
     triggerTariBillingEngine(request);
     return NextResponse.next();
   }
