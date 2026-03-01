@@ -1,0 +1,2 @@
+20a21
+> 1172379e7919bcf128540ccd681cb4337589f4b9335e0370c84f301e508a61fcac601dcecae3f1b0cdd2a1bebbab61eb1826817c63856ec03d5444e17ababd6f  ./.github/workflows/njsscan.yml
