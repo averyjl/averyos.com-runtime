@@ -72,7 +72,7 @@ const AboutPage: NextPage = () => {
             borderLeft: '4px solid rgba(120, 148, 255, 0.6)'
           }}>
             <p style={{ margin: 0, fontStyle: 'italic' }}>
-              "Truth is not a suggestion; it is a coordinate system." ⛓️⚓⛓️
+              &quot;Truth is not a suggestion; it is a coordinate system.&quot; ⛓️⚓⛓️
             </p>
           </div>
         </section>

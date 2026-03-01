@@ -104,9 +104,6 @@ const VaultchainStatusPage: NextPage = () => {
         <meta name="description" content="Live VaultChain sovereign monitoring dashboard — capsule integrity, alignment status, and transaction feed." />
         <meta property="og:title" content="VaultChain Status • AveryOS" />
         <meta property="og:type" content="website" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
       </Head>
 
       <main className="page">

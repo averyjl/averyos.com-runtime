@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import AnchorBanner from "../components/AnchorBanner";
 
 const CERTIFICATES = [
@@ -137,13 +138,13 @@ export default function CertificateViewer() {
               >
                 🔍 Verify on VaultChain
               </a>
-              <a
+              <Link
                 href="/diff"
                 className="secondary-link"
                 style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
               >
                 📊 Compare SHA Snapshot
-              </a>
+              </Link>
             </div>
           </section>
         ))}
@@ -162,8 +163,8 @@ export default function CertificateViewer() {
           </ul>
           <p style={{ color: "rgba(238,244,255,0.7)", fontSize: "0.9rem", marginTop: "0.75rem" }}>
             To verify a certificate, compare its SHA-512 hash using the{" "}
-            <a href="/diff" style={{ color: "rgba(120,148,255,0.9)" }}>Capsule Diff tool</a> or the{" "}
-            <a href="/verify" style={{ color: "rgba(120,148,255,0.9)" }}>Verify page</a>.
+            <Link href="/diff" style={{ color: "rgba(120,148,255,0.9)" }}>Capsule Diff tool</Link> or the{" "}
+            <Link href="/verify" style={{ color: "rgba(120,148,255,0.9)" }}>Verify page</Link>.
           </p>
         </section>
       </main>

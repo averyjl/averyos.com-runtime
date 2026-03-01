@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { listCapsuleIds, loadCapsuleManifest } from "../../lib/capsuleManifest";
-import { getSiteUrl } from "../../lib/siteConfig";
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const ids = listCapsuleIds();

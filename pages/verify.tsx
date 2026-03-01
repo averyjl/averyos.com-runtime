@@ -111,7 +111,7 @@ const VerifyPage = () => {
         status: "error",
         message: "Please provide a Capsule ID or SHA512 hash to validate.",
       });
-    } catch (error) {
+    } catch {
       setValidationResult({
         status: "error",
         message: "Failed to connect to validation service.",

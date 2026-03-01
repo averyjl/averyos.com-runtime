@@ -90,7 +90,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultAuditRespo
       totalCapsules: capsuleIds.length,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return res.status(500).json({
       status: "error",
       message: "Failed to fetch vault audit data",

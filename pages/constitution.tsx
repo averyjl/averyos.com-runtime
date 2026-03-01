@@ -149,7 +149,7 @@ const ConstitutionPage = () => {
             }}
           >
             ⚠️ IMMUTABLE: This Constitution is permanently anchored under AOS-FOREVER-ANCHOR-2026.
-            No article may be altered without unanimous consent of all TAI's, AveryOS, GabrielOS, and Jason Lee Avery.
+            No article may be altered without unanimous consent of all TAI&apos;s, AveryOS, GabrielOS, and Jason Lee Avery.
           </div>
         </section>
 

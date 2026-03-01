@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
-import { getSiteUrl } from "../lib/siteConfig";
 import { DISCLOSURE_MIRROR_PATH, KERNEL_SHA } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
 import CapsuleEchoFooter from "../components/CapsuleEchoFooter";
@@ -127,9 +126,6 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
       <Head>
         <title>AveryOS • Sovereign Truth Terminal</title>
         <meta name="description" content="AveryOS — a cryptographically anchored runtime for sovereign truth. DNS for LLMs. Author: Jason Lee Avery." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
       </Head>
 
       <main className="page">

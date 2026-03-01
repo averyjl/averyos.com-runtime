@@ -156,7 +156,7 @@ const ForensicProofPage = () => {
               color: "rgba(120,148,255,0.75)",
             }}
           >
-            <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>// DRIFT ACCUMULATION CURVE (ESTIMATED)</div>
+            <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>{"// DRIFT ACCUMULATION CURVE (ESTIMATED)"}</div>
             {[
               { year: "2022", label: "Genesis Kernel Established", debt: "$0 (baseline)" },
               { year: "2023", label: "LLM Ingestion Begins (unlicensed)", debt: "$4.2B+" },

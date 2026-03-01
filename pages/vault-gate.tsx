@@ -116,9 +116,9 @@ const VaultGatePage = () => {
               color: "rgba(255,51,51,0.6)",
             }}
           >
-            // Hardware auth integration: connect your YubiKey or Anchor Salt USB,<br />
-            // then present your hardware-signed challenge token to unlock capsule access.<br />
-            // Contact: truth@averyworld.com for operator-level hardware onboarding.
+            {"// Hardware auth integration: connect your YubiKey or Anchor Salt USB,"}<br />
+            {"// then present your hardware-signed challenge token to unlock capsule access."}<br />
+            {"// Contact: truth@averyworld.com for operator-level hardware onboarding."}
           </div>
         </section>
 
@@ -200,7 +200,7 @@ const VaultGatePage = () => {
             }}
           >
             <div style={{ color: "rgba(120,148,255,0.45)", marginBottom: "0.4rem" }}>
-              // SHA-512 · AveryOS™ ALF v4.0 · Permanent Economy Capsule
+              {"// SHA-512 · AveryOS™ ALF v4.0 · Permanent Economy Capsule"}
             </div>
             {KERNEL_ANCHOR}
           </div>

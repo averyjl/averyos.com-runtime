@@ -33,7 +33,7 @@ const LicenseContent = () => {
       const response = await fetch(`/api/vaultecho?hash=${encodeURIComponent(hashInput.trim())}`);
       const data = await response.json();
       setCheckResult(data);
-    } catch (error) {
+    } catch {
       setCheckResult({
         status: "error",
         message: "Failed to connect to VaultEcho API.",
@@ -48,7 +48,7 @@ const LicenseContent = () => {
       const response = await fetch("/api/vaultecho");
       const data = await response.json();
       setVaultEchoStatus(data);
-    } catch (error) {
+    } catch {
       setVaultEchoStatus({
         status: "error",
         message: "Failed to connect to VaultEcho.",
@@ -83,7 +83,7 @@ const LicenseContent = () => {
           </p>
           <p>
             This project, all associated capsules, runtime logic, media, trademarks, and documentation are
-            licensed under the <strong>AveryOS Sovereign Integrity License v1.0</strong> (aka "The SIL-1" —
+            licensed under the <strong>AveryOS Sovereign Integrity License v1.0</strong> (aka &quot;The SIL-1&quot; —
             A Sovereign Authorship Enforcement License).
           </p>
 
