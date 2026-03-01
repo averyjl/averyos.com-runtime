@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AnchorBanner from "../../components/AnchorBanner";
+import SovereignAuditStream from "../../src/components/Sovereign/SovereignAuditStream";
 
 interface HealthStatus {
   build_version: string;
@@ -331,6 +332,26 @@ export default function SovereignHealthPage() {
           </section>
         </>
       )}
+
+      {/* Sovereign Audit Stream */}
+      <section
+        style={{
+          marginBottom: "1.75rem",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.68rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            color: "#FFD700",
+            marginBottom: "0.75rem",
+          }}
+        >
+          🛡️ Legal Tripwire · Sovereign Audit Stream
+        </div>
+        <SovereignAuditStream />
+      </section>
 
       {/* Footer */}
       <footer
