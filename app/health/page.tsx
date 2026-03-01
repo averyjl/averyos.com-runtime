@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AnchorBanner from "../../components/AnchorBanner";
 import SovereignAuditStream from "../../src/components/Sovereign/SovereignAuditStream";
+import SovereignSettlementHandshake from "../../src/components/Sovereign/SovereignSettlementHandshake";
 
 interface HealthStatus {
   build_version: string;
@@ -22,10 +23,30 @@ const BG_DARK = "#060a06";
 const BG_PANEL = "rgba(0,20,0,0.75)";
 const FONT_MONO = "JetBrains Mono, Courier New, monospace";
 
+const THREAT_POLL_INTERVAL_MS = 5000;
+
 export default function SovereignHealthPage() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [threatLevel, setThreatLevel] = useState<number>(0);
+
+  // Poll threat level every 5 s; intercept if >= 5
+  useEffect(() => {
+    const checkThreat = () => {
+      fetch("/api/v1/threat-level", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((data: { threat_level?: number }) => {
+          setThreatLevel(data.threat_level ?? 0);
+        })
+        .catch(() => {
+          console.warn("[threat-level] poll failed");
+        });
+    };
+    checkThreat();
+    const interval = setInterval(checkThreat, THREAT_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     fetch("/api/v1/health-status")
@@ -68,6 +89,23 @@ export default function SovereignHealthPage() {
     >
       <AnchorBanner />
 
+      {/* Corporate Amnesty Intercept: block all panels when threat_level >= 5 */}
+      {threatLevel >= 5 ? (
+        <div
+          style={{
+            minHeight: "60vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            paddingTop: "2rem",
+          }}
+        >
+          <SovereignSettlementHandshake
+            threatLevel={threatLevel}
+          />
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <header
         style={{
@@ -352,6 +390,8 @@ export default function SovereignHealthPage() {
         </div>
         <SovereignAuditStream />
       </section>
+        </>
+      )}
 
       {/* Footer */}
       <footer
