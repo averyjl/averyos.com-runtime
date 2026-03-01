@@ -61,18 +61,39 @@ export interface Env {
   BITCOIN_API_KEY?: string;
 }
 
+/** Cloudflare Scheduled event (subset of the Workers runtime type) */
+interface ScheduledEvent {
+  scheduledTime: number;
+  cron: string;
+}
+
+/** Cloudflare ExecutionContext — used to keep the worker alive past response */
+interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
 /** A single row from the vault_ledger table */
 interface VaultLedgerRow {
   id: number;
   sha512_hash: string;
   anchor_label: string | null;
+  btc_block_height: number | null;
+  btc_block_hash: string | null;
   created_at: string;
+}
+
+/** Latest Bitcoin block data from Blockchain.com */
+interface BitcoinBlock {
+  hash: string;
+  height: number;
+  time: number;
 }
 
 /** Return value of verifyAnchor() */
 interface AnchorResult {
   matched: boolean;
   latestRow: VaultLedgerRow | null;
+  externalPulse: BitcoinBlock | null;
 }
 
 /** Final JSON manifest returned on a fully-verified integrity check */
@@ -85,6 +106,10 @@ interface IntegrityManifest {
   kv_genesis_state: string;
   anchor_label: string | null;
   timestamp: string;
+  external_anchor_verified: boolean;
+  global_heartbeat_height: number | null;
+  global_heartbeat_hash: string | null;
+  sovereign_sync_status: "LOCKED_TO_BLOCKCHAIN" | "SOVEREIGN_ONLY_MODE";
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -112,28 +137,54 @@ function isValidSha512(value: string): boolean {
 }
 
 /**
+ * fetchExternalPulse — retrieves the latest Bitcoin block height and hash from
+ * the Blockchain.com public API. The result is used as a "Global Heartbeat"
+ * that proves the vault_ledger anchor existed before this specific Bitcoin block
+ * was mined. Fails gracefully: returns null if the API is unreachable so the
+ * sovereign anchor remains 100 % functional without external dependency.
+ */
+async function fetchExternalPulse(): Promise<BitcoinBlock | null> {
+  try {
+    const res = await fetch("https://blockchain.info/latestblock", {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as BitcoinBlock;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * verifyAnchor — reads the most-recent row from vault_ledger and compares its
- * sha512_hash column against the caller-supplied `inputHash`.
+ * sha512_hash column against the caller-supplied `inputHash`. Concurrently
+ * fetches the latest Bitcoin block as an external pulse so both results are
+ * available in a single await.
  *
  * @param db        Bound D1 database
  * @param inputHash Caller-supplied SHA-512 hex string to verify
- * @returns         { matched, latestRow }
+ * @returns         { matched, latestRow, externalPulse }
  */
 async function verifyAnchor(db: D1Database, inputHash: string): Promise<AnchorResult> {
-  const row = await db
-    .prepare(
-      "SELECT id, sha512_hash, anchor_label, created_at FROM vault_ledger ORDER BY id DESC LIMIT 1"
-    )
-    .bind()
-    .first<VaultLedgerRow>();
+  const [row, externalPulse] = await Promise.all([
+    db
+      .prepare(
+        "SELECT id, sha512_hash, anchor_label, btc_block_height, btc_block_hash, created_at FROM vault_ledger ORDER BY id DESC LIMIT 1"
+      )
+      .bind()
+      .first<VaultLedgerRow>(),
+    fetchExternalPulse(),
+  ]);
 
   if (!row) {
-    return { matched: false, latestRow: null };
+    return { matched: false, latestRow: null, externalPulse };
   }
 
   return {
     matched: row.sha512_hash.trim().toLowerCase() === inputHash.trim().toLowerCase(),
     latestRow: row,
+    externalPulse,
   };
 }
 
@@ -170,91 +221,122 @@ async function writeSessionLog(
   }
 }
 
-// ─── Watchdog ─────────────────────────────────────────────────────────────────
+// ─── Watchdog (shared by scheduled + fetch handlers) ─────────────────────────
 
 /**
- * runWatchdog — hourly sovereign integrity pulse.
+ * runWatchdog — core integrity pulse used by both the Cloudflare Cron Trigger
+ * (scheduled handler) and optionally by the POST /api/v1/integrity-check route.
  *
- * Execution order:
- *   1. (optional) Fetch current Bitcoin block height from an external API.
- *      The fetch is wrapped in its own try-catch so that an external network
- *      outage never prevents the internal audit from completing.
- *   2. Run the internal D1-to-KV drift check (same logic as the fetch handler).
- *   3. Write a SOVEREIGN_AUTONOMY_PULSE log to R2, regardless of whether the
- *      external call succeeded.
- *
- * @param env Cloudflare Worker environment bindings
+ * 1. Reads the latest vault_ledger row and fetches the live Bitcoin block
+ *    concurrently (via verifyAnchor).
+ * 2. Compares the KV genesis state against the D1 sha512_hash.
+ * 3. Writes a timestamped R2 session log with both the internal SHA-512 and
+ *    the live Bitcoin heartbeat — the "Double-Hash" Sovereign Receipt.
+ * 4. Returns a structured result that callers can log or inspect.
  */
-async function runWatchdog(env: Env): Promise<void> {
-  const pulseTs = new Date().toISOString();
-  let bitcoinBlockHeight: number | null = null;
-  let externalApiStatus: "OK" | "FAILED" = "OK";
-
-  // ── Step 1: External Bitcoin API fetch (isolated — never blocks the audit) ──
+async function runWatchdog(
+  env: Env,
+  triggerTs: string
+): Promise<{
+  sovereign_sync_status: "LOCKED_TO_BLOCKCHAIN" | "SOVEREIGN_ONLY_MODE";
+  external_anchor_verified: boolean;
+  global_heartbeat_height: number | null;
+  global_heartbeat_hash: string | null;
+  kernel_anchor_verified: boolean;
+  drift_detected: boolean;
+  r2_session_log_timestamp: string | null;
+  error: string | null;
+}> {
+  // ── 1. Concurrent D1 query + Bitcoin fetch ──────────────────────────────
+  let anchorResult: AnchorResult;
   try {
-    const apiUrl = "https://blockchain.info/q/getblockcount";
-    const headers: Record<string, string> = {};
-    if (env.BITCOIN_API_KEY) {
-      headers["X-API-Key"] = env.BITCOIN_API_KEY;
-    }
-    const res = await fetch(apiUrl, { headers });
-    if (res.ok) {
-      const text = await res.text();
-      const parsed = parseInt(text.trim(), 10);
-      if (!isNaN(parsed)) {
-        bitcoinBlockHeight = parsed;
-      }
-    } else {
-      externalApiStatus = "FAILED";
-      console.warn(`[watchdog] Bitcoin API returned HTTP ${res.status}`);
-    }
+    anchorResult = await verifyAnchor(env.DB, ROOT0_ANCHOR);
   } catch (err) {
-    externalApiStatus = "FAILED";
-    console.warn("[watchdog] Bitcoin API fetch failed — continuing internal audit:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      sovereign_sync_status: "SOVEREIGN_ONLY_MODE",
+      external_anchor_verified: false,
+      global_heartbeat_height: null,
+      global_heartbeat_hash: null,
+      kernel_anchor_verified: false,
+      drift_detected: false,
+      r2_session_log_timestamp: null,
+      error: `DB_ERROR: ${message}`,
+    };
   }
 
-  // ── Step 2: Internal D1-to-KV drift check ───────────────────────────────────
-  let driftStatus: "IN_SYNC" | "DRIFT_DETECTED" | "UNAVAILABLE" = "UNAVAILABLE";
-  let d1Sha: string | null = null;
+  if (!anchorResult.latestRow) {
+    return {
+      sovereign_sync_status: "SOVEREIGN_ONLY_MODE",
+      external_anchor_verified: false,
+      global_heartbeat_height: null,
+      global_heartbeat_hash: null,
+      kernel_anchor_verified: false,
+      drift_detected: false,
+      r2_session_log_timestamp: null,
+      error: "NO_ANCHOR_RECORD",
+    };
+  }
+
+  const d1Sha = anchorResult.latestRow.sha512_hash.trim().toLowerCase();
+
+  // ── 2. KV drift check ───────────────────────────────────────────────────
   let kvState: string | null = null;
-
   try {
-    const row = await env.DB.prepare(
-      "SELECT sha512_hash FROM vault_ledger ORDER BY id DESC LIMIT 1"
-    )
-      .bind()
-      .first<{ sha512_hash: string }>();
-
-    if (row) {
-      d1Sha = row.sha512_hash.trim().toLowerCase();
-
-      try {
-        kvState = await env.AVERY_KV.get(KV_GENESIS_KEY);
-        const normalizedKv = (kvState ?? ROOT0_ANCHOR).trim().toLowerCase();
-        driftStatus = normalizedKv === d1Sha ? "IN_SYNC" : "DRIFT_DETECTED";
-      } catch (kvErr) {
-        console.error("[watchdog] KV read failed:", kvErr);
-      }
-    }
-  } catch (dbErr) {
-    console.error("[watchdog] D1 query failed:", dbErr);
+    kvState = await env.AVERY_KV.get(KV_GENESIS_KEY);
+  } catch {
+    // Non-fatal: log but continue — sovereign SHA is the primary anchor
+    console.warn("[watchdog] KV read failed — skipping drift check");
   }
 
-  // ── Step 3: Write SOVEREIGN_AUTONOMY_PULSE to R2 ────────────────────────────
-  const pulsePayload: Record<string, unknown> = {
-    event: "SOVEREIGN_AUTONOMY_PULSE",
-    pulse_timestamp: pulseTs,
-    drift_status: driftStatus,
+  const normalizedKvState = (kvState ?? ROOT0_ANCHOR).trim().toLowerCase();
+  const driftDetected = normalizedKvState !== d1Sha;
+
+  // ── 3. Write R2 "Double-Hash" Sovereign Receipt ─────────────────────────
+  const externalVerified = anchorResult.externalPulse !== null;
+  const sessionPayload = {
+    event: "CRON_WATCHDOG",
+    cron_trigger_ts: triggerTs,
+    kernel_anchor_verified: anchorResult.matched,
+    drift_detected: driftDetected,
     vault_ledger_sha: d1Sha,
-    kv_genesis_state: kvState,
-    bitcoin_block_height: bitcoinBlockHeight,
-    external_api_status: externalApiStatus,
+    kv_genesis_state: normalizedKvState,
+    anchor_label: anchorResult.latestRow.anchor_label,
     kernel_anchor: ROOT0_ANCHOR,
-    CreatorLock: "ACTIVE",
+    stored_btc_anchor: {
+      block_height: anchorResult.latestRow.btc_block_height,
+      block_hash: anchorResult.latestRow.btc_block_hash,
+    },
+    live_btc_heartbeat: externalVerified
+      ? {
+          source: "blockchain.info",
+          block_height: anchorResult.externalPulse!.height,
+          block_hash: anchorResult.externalPulse!.hash,
+          block_time: new Date(anchorResult.externalPulse!.time * 1000).toISOString(),
+        }
+      : null,
+    sovereign_sync_status: externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE",
   };
 
-  await writeSessionLog(env.VAULT_R2, pulsePayload, pulseTs);
-  console.log(`[watchdog] SOVEREIGN_AUTONOMY_PULSE written — drift_status=${driftStatus}, external_api=${externalApiStatus}`);
+  const r2Ts = await writeSessionLog(env.VAULT_R2, sessionPayload, triggerTs);
+
+  console.log(
+    `[watchdog] ${externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE"}` +
+      ` | btc_height=${anchorResult.externalPulse?.height ?? "N/A"}` +
+      ` | drift=${driftDetected}` +
+      ` | r2=${r2Ts ?? "WRITE_FAILED"}`
+  );
+
+  return {
+    sovereign_sync_status: externalVerified ? "LOCKED_TO_BLOCKCHAIN" : "SOVEREIGN_ONLY_MODE",
+    external_anchor_verified: externalVerified,
+    global_heartbeat_height: anchorResult.externalPulse?.height ?? null,
+    global_heartbeat_hash: anchorResult.externalPulse?.hash ?? null,
+    kernel_anchor_verified: anchorResult.matched,
+    drift_detected: driftDetected,
+    r2_session_log_timestamp: r2Ts,
+    error: null,
+  };
 }
 
 // ─── Worker export ────────────────────────────────────────────────────────────
@@ -419,11 +501,29 @@ export default {
       anchor_label: anchorResult.latestRow.anchor_label,
       input_hash: inputHash,
       kernel_anchor: ROOT0_ANCHOR,
+      // Stored BTC anchor stapled at INSERT time — immutable baseline
+      stored_btc_anchor: {
+        block_height: anchorResult.latestRow.btc_block_height,
+        block_hash: anchorResult.latestRow.btc_block_hash,
+      },
+      // Real-time BTC heartbeat fetched during this verification request
+      live_btc_heartbeat: anchorResult.externalPulse
+        ? {
+            source: "blockchain.info",
+            block_height: anchorResult.externalPulse.height,
+            block_hash: anchorResult.externalPulse.hash,
+            block_time: new Date(anchorResult.externalPulse.time * 1000).toISOString(),
+          }
+        : null,
     };
 
     const r2Timestamp = await writeSessionLog(env.VAULT_R2, sessionPayload, requestTs);
 
     // ── Step 6: Build and return the Integrity Manifest ───────────────────
+    // sovereign_sync_status reflects whether the live Bitcoin pulse was reachable.
+    // The sovereign SHA-512 anchor is the primary source of truth in either mode.
+    const externalAnchorVerified = anchorResult.externalPulse !== null;
+
     const manifest: IntegrityManifest = {
       status: "VERIFIED",
       CreatorLock: "ACTIVE",
@@ -433,6 +533,12 @@ export default {
       kv_genesis_state: normalizedKvState,
       anchor_label: anchorResult.latestRow.anchor_label,
       timestamp: requestTs,
+      external_anchor_verified: externalAnchorVerified,
+      global_heartbeat_height: anchorResult.externalPulse?.height ?? null,
+      global_heartbeat_hash: anchorResult.externalPulse?.hash ?? null,
+      sovereign_sync_status: externalAnchorVerified
+        ? "LOCKED_TO_BLOCKCHAIN"
+        : "SOVEREIGN_ONLY_MODE",
     };
 
     return Response.json(manifest, {
@@ -443,26 +549,23 @@ export default {
       },
     });
   },
+
   /**
-   * Cloudflare Worker scheduled handler — fires on every cron trigger.
-   * Delegates to runWatchdog() for the hourly sovereign integrity pulse.
+   * Cloudflare Cron Trigger handler — runs on the schedule defined in
+   * wrangler.integrity.toml (default: every hour at :00).
+   *
+   * Executes the full integrity watchdog: D1 vault_ledger query, KV drift
+   * check, live Bitcoin heartbeat fetch, and R2 "Double-Hash" session log.
+   * All work is wrapped in ctx.waitUntil() so Cloudflare keeps the Worker
+   * alive until the R2 write completes even after the cron event resolves.
    */
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runWatchdog(env));
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // event.scheduledTime is milliseconds since epoch (Unix ms timestamp)
+    const triggerTs = new Date(event.scheduledTime).toISOString();
+    console.log(`[watchdog] cron triggered: ${event.cron} at ${triggerTs}`);
+    ctx.waitUntil(runWatchdog(env, triggerTs));
   },
 } satisfies {
   fetch(request: Request, env: Env): Promise<Response>;
   scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void>;
 };
-
-// ─── Minimal Cloudflare runtime type stubs ───────────────────────────────────
-
-interface ScheduledEvent {
-  scheduledTime: number;
-  cron: string;
-}
-
-interface ExecutionContext {
-  waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
-}

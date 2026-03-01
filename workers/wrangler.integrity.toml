@@ -1,64 +1,67 @@
-# ⛓️⚓⛓️  AveryOS™ Architecture Integrity Worker — Wrangler Configuration
+# wrangler.integrity.toml
+# Standalone Cloudflare Worker config for the AveryOS™ Architecture Integrity Worker.
 #
-# This file configures the standalone Cloudflare Worker that runs the hourly
-# sovereign integrity pulse for the AveryOS™ system.
+# Deploy:   npx wrangler deploy --config workers/wrangler.integrity.toml
+# Tail logs: npx wrangler tail --config workers/wrangler.integrity.toml
 #
-# To deploy this worker separately:
-#   npx wrangler deploy --config workers/wrangler.integrity.toml --env production
-#
-# ─── Required Secrets ────────────────────────────────────────────────────────
-#
-# Before deploying, store the Bitcoin Watchdog API key as a Cloudflare Worker
-# secret so the hourly pulse can verify the current Bitcoin block height:
-#
-#   npx wrangler secret put BITCOIN_API_KEY --env production
-#
-# The secret is accessed at runtime via `env.BITCOIN_API_KEY` inside
-# runWatchdog() and is NEVER logged or exposed in responses.
-# ─────────────────────────────────────────────────────────────────────────────
+# This worker runs independently of the main Next.js Cloudflare Worker.
+# It shares the same D1 database, KV namespace, and R2 bucket as the main app.
 
-name = "averyos-integrity-worker"
-account_id = "374875d33ef47a741a129bd5e716abff"
-compatibility_date = "2026-02-05"
-main = "architecture-integrity.ts"
+name            = "averyos-integrity-worker"
+main            = "workers/architecture-integrity.ts"
+compatibility_date  = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
-legacy_env = false
+account_id      = "374875d33ef47a741a129bd5e716abff"
 
-# ─── Cron Triggers ───────────────────────────────────────────────────────────
-# Fires the scheduled() handler (runWatchdog) at the top of every hour.
+# ── Cron Trigger ─────────────────────────────────────────────────────────────
+# Fires the `scheduled` handler every hour at :00 UTC.
+# Adjust the cron expression to change frequency, e.g.:
+#   "*/30 * * * *"  — every 30 minutes
+#   "0 * * * *"     — every hour (default)
+#   "0 0 * * *"     — daily at midnight UTC
 [triggers]
 crons = ["0 * * * *"]
 
-# ─── KV Namespace ────────────────────────────────────────────────────────────
+# ── Cloudflare Observability ─────────────────────────────────────────────────
+[observability]
+enabled           = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled           = true
+head_sampling_rate = 1
+persist           = true
+invocation_logs   = true
+
+# ── Bindings ─────────────────────────────────────────────────────────────────
+# Shares resources with the main averyoscom-runtime worker.
+
+[[d1_databases]]
+binding       = "DB"
+database_name = "averyos_kernel_db"
+database_id   = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+
 [[kv_namespaces]]
 binding = "AVERY_KV"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
+id      = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
-# ─── D1 Database ─────────────────────────────────────────────────────────────
-[[d1_databases]]
-binding = "DB"
-database_name = "averyos_kernel_db"
-database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
-
-# ─── R2 Bucket ───────────────────────────────────────────────────────────────
 [[r2_buckets]]
-binding = "VAULT_R2"
+binding     = "VAULT_R2"
 bucket_name = "cloudflare-managed-42f4b874"
 
-# ─── Production Environment ──────────────────────────────────────────────────
+# ── Production environment overrides ─────────────────────────────────────────
 [env.production]
 workers_dev = false
-vars = { SITE_URL = "https://averyos.com" }
+
+[[env.production.d1_databases]]
+binding       = "DB"
+database_name = "averyos_kernel_db"
+database_id   = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
 
 [[env.production.kv_namespaces]]
 binding = "AVERY_KV"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "averyos_kernel_db"
-database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+id      = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
 [[env.production.r2_buckets]]
-binding = "VAULT_R2"
+binding     = "VAULT_R2"
 bucket_name = "cloudflare-managed-42f4b874"
