@@ -126,6 +126,8 @@ const DiscoverPage = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: "0.75rem" }}>
             {[
               { label: "⛓️ VaultChain™", href: "/vault/vaultchain-status" },
+              // "Licensing Hub" → full license portal with text, retroclaim log, and enforcement
+              // "Get a License" → direct Stripe checkout / license registration page
               { label: "📜 Licensing Hub", href: "/licensing" },
               { label: "🔐 Get a License", href: "/license" },
               { label: "💰 TARI Portal", href: "/tari-gate" },

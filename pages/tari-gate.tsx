@@ -130,7 +130,7 @@ const TariGatePage = () => {
                 <tr>
                   <td><span style={{ color: G, fontWeight: 700 }}>Personal</span></td>
                   <td>Individual, non-commercial human reading — <strong>license still required</strong></td>
-                  <td>Free License (registration required at <Link href="/license" style={{ color: G }}>/license</Link>)</td>
+                  <td>Free License (registration required — visit <Link href="/license" style={{ color: G }}>the license registration page</Link>)</td>
                   <td>N/A</td>
                 </tr>
                 <tr>
