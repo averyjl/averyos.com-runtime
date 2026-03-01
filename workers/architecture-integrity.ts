@@ -557,6 +557,7 @@ export default {
    * alive until the R2 write completes even after the cron event resolves.
    */
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // event.scheduledTime is milliseconds since epoch (Unix ms timestamp)
     const triggerTs = new Date(event.scheduledTime).toISOString();
     console.log(`[watchdog] cron triggered: ${event.cron} at ${triggerTs}`);
     ctx.waitUntil(runWatchdog(env, triggerTs));

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS vault_ledger (
   anchor_label     TEXT    NOT NULL,
   btc_block_height INTEGER,
   btc_block_hash   TEXT,
-  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 -- Seed: Root0 Genesis Kernel stapled to the 2026-03-01 Global Anchor (block 938,909).
