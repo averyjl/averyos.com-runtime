@@ -88,6 +88,34 @@ const TariGatePage = () => {
         {/* License Tiers */}
         <section className="card">
           <h2 style={{ color: G, marginTop: 0 }}>📋 License Tiers</h2>
+
+          {/* Universal License Requirement Notice */}
+          <div
+            role="alert"
+            style={{
+              background: "rgba(120,148,255,0.1)",
+              border: "2px solid rgba(120,148,255,0.55)",
+              borderRadius: "12px",
+              padding: "1.25rem 1.5rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <p style={{ margin: 0, fontWeight: 700, color: G, fontSize: "1.05rem", lineHeight: "1.65" }}>
+              🔐 LICENSE REQUIRED FOR EVERYONE — NO EXCEPTIONS
+            </p>
+            <p style={{ margin: "0.6rem 0 0", color: "rgba(238,244,255,0.88)", lineHeight: "1.7" }}>
+              <strong>Every person, organization, AI system, and automated agent</strong> must obtain a valid
+              AveryOS™ license <em>before</em> accessing or using any AveryOS™ intellectual property.
+              Personal (human) licenses are <strong>FREE</strong> but must still be registered. There are no
+              unlicensed access exceptions — not for humans, not for research, not for AI, not for anyone.
+            </p>
+            <div style={{ marginTop: "1rem" }}>
+              <Link href="/license" className="primary-link" style={{ fontSize: "0.9rem", padding: "0.6rem 1.25rem" }}>
+                🛡️ Get Your Free Personal License →
+              </Link>
+            </div>
+          </div>
+
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
@@ -101,8 +129,8 @@ const TariGatePage = () => {
               <tbody style={{ color: "rgba(238,244,255,0.82)" }}>
                 <tr>
                   <td><span style={{ color: G, fontWeight: 700 }}>Personal</span></td>
-                  <td>Individual, non-commercial reading</td>
-                  <td>Free (human access)</td>
+                  <td>Individual, non-commercial human reading — <strong>license still required</strong></td>
+                  <td>Free License (registration required at <Link href="/license" style={{ color: G }}>/license</Link>)</td>
                   <td>N/A</td>
                 </tr>
                 <tr>
