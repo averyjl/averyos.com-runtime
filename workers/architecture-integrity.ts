@@ -56,6 +56,9 @@ export interface Env {
   DB: D1Database;
   AVERY_KV: KVNamespace;
   VAULT_R2: R2Bucket;
+  /** Optional: Bitcoin block-height API key stored as a Cloudflare Worker secret.
+   *  Provision with: npx wrangler secret put BITCOIN_API_KEY --env production */
+  BITCOIN_API_KEY?: string;
 }
 
 /** Cloudflare Scheduled event (subset of the Workers runtime type) */
