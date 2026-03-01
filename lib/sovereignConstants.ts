@@ -7,3 +7,6 @@ export const KERNEL_VERSION = "v3.6.2";
 
 /** Full public URL for The Proof — SHA-512 Sovereign Anchor disclosure */
 export const DISCLOSURE_MIRROR_PATH = `https://averyos.com/witness/disclosure/${KERNEL_SHA}`;
+
+/** Ollama local node sync status value indicating an active sovereign node */
+export const OLLAMA_SYNC_STATUS_ACTIVE = "LOCAL_OLLAMA_ACTIVE";
