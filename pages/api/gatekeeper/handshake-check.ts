@@ -1,11 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+interface RequestWithContext extends NextApiRequest {
+  context?: { env?: { DB?: D1Database } };
+}
+
 /**
  * ⛓️⚓⛓️ AveryOS Physical Handshake Verification
  * Queries D1 sync_logs for recent Hardware Signature events.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const db = (req as any).context?.env?.DB;
+  const db = (req as RequestWithContext).context?.env?.DB;
 
   if (!db) {
     return res.status(500).json({ status: "UNANCHORED", reason: "DB_MISSING" });
@@ -33,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(200).json({ status: "DRIFT_DETECTED", label: "PLATFORM_ONLY" });
-  } catch (error) {
+  } catch {
     return res.status(500).json({ status: "ERROR", message: "VAULTCHAIN_OFFLINE" });
   }
 }

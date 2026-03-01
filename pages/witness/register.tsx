@@ -30,7 +30,7 @@ const WitnessRegisterPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, statement, shaWitness }),
       });
-      const data = await res.json();
+      await res.json();
       if (!res.ok) {
         showToast("error", "Handshake Drift");
       } else {

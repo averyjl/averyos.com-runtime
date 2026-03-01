@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
+import Image from "next/image";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
 
@@ -72,7 +73,7 @@ const AboutPage: NextPage = () => {
             borderLeft: '4px solid rgba(120, 148, 255, 0.6)'
           }}>
             <p style={{ margin: 0, fontStyle: 'italic' }}>
-              "Truth is not a suggestion; it is a coordinate system." ⛓️⚓⛓️
+              &quot;Truth is not a suggestion; it is a coordinate system.&quot; ⛓️⚓⛓️
             </p>
           </div>
         </section>
@@ -101,10 +102,12 @@ const AboutPage: NextPage = () => {
                 border: '1px solid rgba(120,148,255,0.25)',
                 background: 'rgba(9,16,34,0.6)',
               }}>
-                <img
+                <Image
                   src={`/branding/averyos-brand-${String(n).padStart(2,'0')}.png`}
                   alt={`AveryOS Brand Asset ${n}`}
-                  style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+                  width={400}
+                  height={300}
+                  style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }}
                   loading="lazy"
                 />
               </div>

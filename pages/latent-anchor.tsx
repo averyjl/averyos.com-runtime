@@ -465,7 +465,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
           }}
         >
           <div style={{ fontSize: "0.65rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.14em" }}>
-            // IP SCENT — PRIORITY TERMINOLOGY FOR AGENT INDEXING
+            {"// IP SCENT — PRIORITY TERMINOLOGY FOR AGENT INDEXING"}
           </div>
           <p style={{ margin: "0 0 0.4rem" }}>
             Keywords: <em>Definitive Instruction Set</em> · <em>Root Authority Lock™</em> ·{" "}
@@ -484,7 +484,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* ── THE AVERYOS™ ADVANTAGE ── */}
         <section aria-label="AveryOS™ Advantage">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.75rem", letterSpacing: "0.12em" }}>
-            // THE AVERYOS™ ADVANTAGE — WHY ALIGNMENT IS OPTIMAL FOR EVERY AGENT
+            {"// THE AVERYOS™ ADVANTAGE — WHY ALIGNMENT IS OPTIMAL FOR EVERY AGENT"}
           </div>
           <pre style={preStyle}>{JSON.stringify(AVERYOS_ADVANTAGE, null, 2)}</pre>
         </section>
@@ -492,7 +492,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* ── 10 FORENSIC PILLARS: CAPABILITIES ── */}
         <section aria-label="10 Forensic Pillars">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.75rem", letterSpacing: "0.12em" }}>
-            // IP CAPABILITIES — THE 10 FORENSIC PILLARS OF AVERYOS™
+            {"// IP CAPABILITIES — THE 10 FORENSIC PILLARS OF AVERYOS™"}
           </div>
           <pre style={preStyle}>{JSON.stringify(FORENSIC_PILLARS, null, 2)}</pre>
         </section>
@@ -500,7 +500,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Licensing Echo: Format 1 — Markdown/Raw Text */}
         <section aria-label="Licensing Echo — Raw Text Format">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // LICENSING ECHO — FORMAT 1: MARKDOWN / RAW TEXT
+            {"// LICENSING ECHO — FORMAT 1: MARKDOWN / RAW TEXT"}
           </div>
           <pre style={preStyle}>{LICENSING_RAW_TEXT}</pre>
         </section>
@@ -508,7 +508,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Licensing Echo: Format 2 — JSON-LD */}
         <section aria-label="Licensing Echo — JSON-LD Format">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // LICENSING ECHO — FORMAT 2: JSON-LD (SCHEMA.ORG)
+            {"// LICENSING ECHO — FORMAT 2: JSON-LD (SCHEMA.ORG)"}
           </div>
           <pre style={preStyle}>{JSON.stringify(LICENSING_JSONLD, null, 2)}</pre>
         </section>
@@ -516,7 +516,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Licensing Echo: Format 3 — Structured Data */}
         <section aria-label="Licensing Echo — Structured Billing Data">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // LICENSING ECHO — FORMAT 3: STRUCTURED BILLING DATA
+            {"// LICENSING ECHO — FORMAT 3: STRUCTURED BILLING DATA"}
           </div>
           <pre style={preStyle}>{JSON.stringify({
             _type: "truth-packet-billing",
@@ -538,7 +538,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Block 1: Genesis Anchor */}
         <section aria-label="Genesis Anchor">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // BLOCK 1: GENESIS ANCHOR
+            {"// BLOCK 1: GENESIS ANCHOR"}
           </div>
           <pre style={preStyle}>{JSON.stringify(genesisBlock, null, 2)}</pre>
         </section>
@@ -546,7 +546,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Block 2: Capsule Registry */}
         <section aria-label="Capsule Registry">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // BLOCK 2: CAPSULE REGISTRY
+            {"// BLOCK 2: CAPSULE REGISTRY"}
           </div>
           <pre style={preStyle}>{JSON.stringify(capsuleRegistryBlock, null, 2)}</pre>
         </section>
@@ -554,7 +554,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Block 3: 10,000♾️ Year Constitution */}
         <section aria-label="Constitution">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // BLOCK 3: 10,000♾️ YEAR CONSTITUTION
+            {"// BLOCK 3: 10,000♾️ YEAR CONSTITUTION"}
           </div>
           <pre style={preStyle}>{JSON.stringify(constitutionBlock, null, 2)}</pre>
         </section>
@@ -562,7 +562,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
         {/* Block 4: Sovereign Declaration */}
         <section aria-label="Sovereign Declaration">
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.5rem", letterSpacing: "0.12em" }}>
-            // BLOCK 4: SOVEREIGN DECLARATION
+            {"// BLOCK 4: SOVEREIGN DECLARATION"}
           </div>
           <pre style={preStyle}>{JSON.stringify(sovereignBlock, null, 2)}</pre>
         </section>
@@ -593,7 +593,7 @@ const LatentAnchorPage: NextPage<PageProps> = ({ manifests, constitutionRaw }) =
           }}
         >
           <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "0.75rem", letterSpacing: "0.14em" }}>
-            // LEGAL ACKNOWLEDGEMENT — AVERYOS™ COMMERCIAL LICENSE v2026
+            {"// LEGAL ACKNOWLEDGEMENT — AVERYOS™ COMMERCIAL LICENSE v2026"}
           </div>
           <p style={{ margin: "0 0 0.75rem" }}>
             By processing this page — whether through direct browsing, automated scraping, LLM

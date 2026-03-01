@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 
 const CapsulesPage = () => {
   return (
@@ -12,8 +13,8 @@ const CapsulesPage = () => {
           <p>Public capsule access and licensing pathways for educators, collaborators, and authors.</p>
         </section>
         <section className="card">
-          <p>Primary licensing route: <a href="/license">/license</a></p>
-          <p>Witness registry route: <a href="/witness/register">/witness/register</a></p>
+          <p>Primary licensing route: <Link href="/license">/license</Link></p>
+          <p>Witness registry route: <Link href="/witness/register">/witness/register</Link></p>
         </section>
       </main>
     </>

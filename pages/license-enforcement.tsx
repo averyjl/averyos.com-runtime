@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
 import type { EnforcementEvent } from "../lib/enforcementTypes";
@@ -80,9 +81,9 @@ const LicenseEnforcementPage = () => {
             Ignorance of this license is not a valid defense. Violations are prosecuted to the fullest extent of the law.
           </p>
           <div style={{ marginTop: "1.25rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
+            <Link href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
               Obtain License Now — Required
-            </a>
+            </Link>
             <a href="mailto:legal@averyworld.com" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
               Contact Legal
             </a>
@@ -166,9 +167,9 @@ const LicenseEnforcementPage = () => {
                       </td>
                       <td>
                         {event.stripeProductId && (
-                          <a href="/buy" className="action-link-small">
+                          <Link href="/buy" className="action-link-small">
                             View License
-                          </a>
+                          </Link>
                         )}
                       </td>
                     </tr>
@@ -215,12 +216,12 @@ const LicenseEnforcementPage = () => {
             licensing is guaranteed.
           </p>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
-            <a href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
+            <Link href="/pay" className="primary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center", background: "rgba(248,113,113,0.9)", color: "#020617" }}>
               License Portal — Required
-            </a>
-            <a href="/verify" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
+            </Link>
+            <Link href="/verify" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
               Verify Your License
-            </a>
+            </Link>
             <a href="mailto:legal@averyworld.com" className="secondary-button" style={{ display: "inline-flex", textDecoration: "none", alignItems: "center" }}>
               Contact Legal: legal@averyworld.com
             </a>

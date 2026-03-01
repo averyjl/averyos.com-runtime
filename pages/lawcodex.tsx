@@ -12,12 +12,6 @@ import FooterBadge from "../components/FooterBadge";
 const AOS_FOREVER_ANCHOR_SHA512 =
   "db2be5ce566d16c50ffb00b45b04bef303df43c2d696b712b1899e2bdd0aee79e1188c1a4fbee23b02370922d7f1ab520471acd9e05860b18ddf1dc25aea7375";
 
-/**
- * AveryOS Sovereign Proof Bundle — genesis kernel anchor SHA.
- */
-const SOVEREIGN_PROOF_BUNDLE =
-  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
-
 const G = "#ffffff";
 
 const LawCodexPage = () => {

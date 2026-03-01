@@ -2,6 +2,7 @@ import type { NextPage } from "next";
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import AnchorBanner from "../../components/AnchorBanner";
 
 type VaultTransaction = {
@@ -104,9 +105,6 @@ const VaultchainStatusPage: NextPage = () => {
         <meta name="description" content="Live VaultChain sovereign monitoring dashboard — capsule integrity, alignment status, and transaction feed." />
         <meta property="og:title" content="VaultChain Status • AveryOS" />
         <meta property="og:type" content="website" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
       </Head>
 
       <main className="page">
@@ -166,10 +164,13 @@ const VaultchainStatusPage: NextPage = () => {
             ].map((item) => (
               <div key={item.badge} style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "0.85rem", color: "rgba(238,244,255,0.7)", minWidth: "140px", flex: "1 1 140px" }}>{item.label}</span>
-                <img
+                <Image
                   src={`https://github.com/averyjl/averyos.com-runtime/actions/workflows/${item.badge}/badge.svg`}
                   alt={item.label}
-                  style={{ height: "20px", borderRadius: "3px" }}
+                  width={130}
+                  height={20}
+                  unoptimized
+                  style={{ height: "20px", width: "auto", borderRadius: "3px" }}
                 />
               </div>
             ))}

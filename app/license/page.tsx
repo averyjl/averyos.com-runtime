@@ -153,13 +153,13 @@ export default function LicensePage() {
 
       {/* VaultEcho Test Transaction */}
       <div style={{ textAlign: "center", padding: "1rem 0" }}>
-        <a
+        <Link
           href="/api/vaultecho"
           className="secondary-link"
           style={{ fontSize: "0.85rem", padding: "0.5rem 1rem", opacity: 0.7 }}
         >
           🔬 Test Transaction (TruthAnchor Verification)
-        </a>
+        </Link>
       </div>
     </main>
   );

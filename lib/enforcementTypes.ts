@@ -59,7 +59,7 @@ export interface EvidenceBundle {
     detectedAt: string;
     sourceUrl?: string;
     checksumMatch: boolean;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   };
   
   /** Link to voluntary licensing option */
