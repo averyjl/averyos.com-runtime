@@ -63,6 +63,8 @@ interface VaultLedgerRow {
   id: number;
   sha512_hash: string;
   anchor_label: string | null;
+  btc_block_height: number | null;
+  btc_block_hash: string | null;
   created_at: string;
 }
 
@@ -90,9 +92,10 @@ interface IntegrityManifest {
   kv_genesis_state: string;
   anchor_label: string | null;
   timestamp: string;
-  external_anchor_height: number | null;
-  external_anchor_sha: string | null;
-  hybrid_sync_status: boolean;
+  external_anchor_verified: boolean;
+  global_heartbeat_height: number | null;
+  global_heartbeat_hash: string | null;
+  sovereign_sync_status: "LOCKED_TO_BLOCKCHAIN" | "SOVEREIGN_ONLY_MODE";
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -153,7 +156,7 @@ async function verifyAnchor(db: D1Database, inputHash: string): Promise<AnchorRe
   const [row, externalPulse] = await Promise.all([
     db
       .prepare(
-        "SELECT id, sha512_hash, anchor_label, created_at FROM vault_ledger ORDER BY id DESC LIMIT 1"
+        "SELECT id, sha512_hash, anchor_label, btc_block_height, btc_block_hash, created_at FROM vault_ledger ORDER BY id DESC LIMIT 1"
       )
       .bind()
       .first<VaultLedgerRow>(),
@@ -366,7 +369,13 @@ export default {
       anchor_label: anchorResult.latestRow.anchor_label,
       input_hash: inputHash,
       kernel_anchor: ROOT0_ANCHOR,
-      external_anchor: anchorResult.externalPulse
+      // Stored BTC anchor stapled at INSERT time — immutable baseline
+      stored_btc_anchor: {
+        block_height: anchorResult.latestRow.btc_block_height,
+        block_hash: anchorResult.latestRow.btc_block_hash,
+      },
+      // Real-time BTC heartbeat fetched during this verification request
+      live_btc_heartbeat: anchorResult.externalPulse
         ? {
             source: "blockchain.info",
             block_height: anchorResult.externalPulse.height,
@@ -379,9 +388,9 @@ export default {
     const r2Timestamp = await writeSessionLog(env.VAULT_R2, sessionPayload, requestTs);
 
     // ── Step 6: Build and return the Integrity Manifest ───────────────────
-    // hybrid_sync_status: true when the vault_ledger anchor is paired with a
-    // live Bitcoin block hash, confirming sovereign + global consensus alignment.
-    const hybridSyncStatus = anchorResult.externalPulse !== null;
+    // sovereign_sync_status reflects whether the live Bitcoin pulse was reachable.
+    // The sovereign SHA-512 anchor is the primary source of truth in either mode.
+    const externalAnchorVerified = anchorResult.externalPulse !== null;
 
     const manifest: IntegrityManifest = {
       status: "VERIFIED",
@@ -392,9 +401,12 @@ export default {
       kv_genesis_state: normalizedKvState,
       anchor_label: anchorResult.latestRow.anchor_label,
       timestamp: requestTs,
-      external_anchor_height: anchorResult.externalPulse?.height ?? null,
-      external_anchor_sha: anchorResult.externalPulse?.hash ?? null,
-      hybrid_sync_status: hybridSyncStatus,
+      external_anchor_verified: externalAnchorVerified,
+      global_heartbeat_height: anchorResult.externalPulse?.height ?? null,
+      global_heartbeat_hash: anchorResult.externalPulse?.hash ?? null,
+      sovereign_sync_status: externalAnchorVerified
+        ? "LOCKED_TO_BLOCKCHAIN"
+        : "SOVEREIGN_ONLY_MODE",
     };
 
     return Response.json(manifest, {
