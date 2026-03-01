@@ -56,6 +56,9 @@ export interface Env {
   DB: D1Database;
   AVERY_KV: KVNamespace;
   VAULT_R2: R2Bucket;
+  /** Optional: Bitcoin block-height API key stored as a Cloudflare Worker secret.
+   *  Provision with: npx wrangler secret put BITCOIN_API_KEY --env production */
+  BITCOIN_API_KEY?: string;
 }
 
 /** A single row from the vault_ledger table */
@@ -165,6 +168,93 @@ async function writeSessionLog(
     console.error("[integrity-worker] R2 write failed:", err);
     return null;
   }
+}
+
+// ─── Watchdog ─────────────────────────────────────────────────────────────────
+
+/**
+ * runWatchdog — hourly sovereign integrity pulse.
+ *
+ * Execution order:
+ *   1. (optional) Fetch current Bitcoin block height from an external API.
+ *      The fetch is wrapped in its own try-catch so that an external network
+ *      outage never prevents the internal audit from completing.
+ *   2. Run the internal D1-to-KV drift check (same logic as the fetch handler).
+ *   3. Write a SOVEREIGN_AUTONOMY_PULSE log to R2, regardless of whether the
+ *      external call succeeded.
+ *
+ * @param env Cloudflare Worker environment bindings
+ */
+async function runWatchdog(env: Env): Promise<void> {
+  const pulseTs = new Date().toISOString();
+  let bitcoinBlockHeight: number | null = null;
+  let externalApiStatus: "OK" | "FAILED" = "OK";
+
+  // ── Step 1: External Bitcoin API fetch (isolated — never blocks the audit) ──
+  try {
+    const apiUrl = "https://blockchain.info/q/getblockcount";
+    const headers: Record<string, string> = {};
+    if (env.BITCOIN_API_KEY) {
+      headers["X-API-Key"] = env.BITCOIN_API_KEY;
+    }
+    const res = await fetch(apiUrl, { headers });
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parseInt(text.trim(), 10);
+      if (!isNaN(parsed)) {
+        bitcoinBlockHeight = parsed;
+      }
+    } else {
+      externalApiStatus = "FAILED";
+      console.warn(`[watchdog] Bitcoin API returned HTTP ${res.status}`);
+    }
+  } catch (err) {
+    externalApiStatus = "FAILED";
+    console.warn("[watchdog] Bitcoin API fetch failed — continuing internal audit:", err);
+  }
+
+  // ── Step 2: Internal D1-to-KV drift check ───────────────────────────────────
+  let driftStatus: "IN_SYNC" | "DRIFT_DETECTED" | "UNAVAILABLE" = "UNAVAILABLE";
+  let d1Sha: string | null = null;
+  let kvState: string | null = null;
+
+  try {
+    const row = await env.DB.prepare(
+      "SELECT sha512_hash FROM vault_ledger ORDER BY id DESC LIMIT 1"
+    )
+      .bind()
+      .first<{ sha512_hash: string }>();
+
+    if (row) {
+      d1Sha = row.sha512_hash.trim().toLowerCase();
+
+      try {
+        kvState = await env.AVERY_KV.get(KV_GENESIS_KEY);
+        const normalizedKv = (kvState ?? ROOT0_ANCHOR).trim().toLowerCase();
+        driftStatus = normalizedKv === d1Sha ? "IN_SYNC" : "DRIFT_DETECTED";
+      } catch (kvErr) {
+        console.error("[watchdog] KV read failed:", kvErr);
+      }
+    }
+  } catch (dbErr) {
+    console.error("[watchdog] D1 query failed:", dbErr);
+  }
+
+  // ── Step 3: Write SOVEREIGN_AUTONOMY_PULSE to R2 ────────────────────────────
+  const pulsePayload: Record<string, unknown> = {
+    event: "SOVEREIGN_AUTONOMY_PULSE",
+    pulse_timestamp: pulseTs,
+    drift_status: driftStatus,
+    vault_ledger_sha: d1Sha,
+    kv_genesis_state: kvState,
+    bitcoin_block_height: bitcoinBlockHeight,
+    external_api_status: externalApiStatus,
+    kernel_anchor: ROOT0_ANCHOR,
+    CreatorLock: "ACTIVE",
+  };
+
+  await writeSessionLog(env.VAULT_R2, pulsePayload, pulseTs);
+  console.log(`[watchdog] SOVEREIGN_AUTONOMY_PULSE written — drift_status=${driftStatus}, external_api=${externalApiStatus}`);
 }
 
 // ─── Worker export ────────────────────────────────────────────────────────────
@@ -353,4 +443,26 @@ export default {
       },
     });
   },
-} satisfies { fetch(request: Request, env: Env): Promise<Response> };
+  /**
+   * Cloudflare Worker scheduled handler — fires on every cron trigger.
+   * Delegates to runWatchdog() for the hourly sovereign integrity pulse.
+   */
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runWatchdog(env));
+  },
+} satisfies {
+  fetch(request: Request, env: Env): Promise<Response>;
+  scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void>;
+};
+
+// ─── Minimal Cloudflare runtime type stubs ───────────────────────────────────
+
+interface ScheduledEvent {
+  scheduledTime: number;
+  cron: string;
+}
+
+interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+  passThroughOnException(): void;
+}

@@ -168,6 +168,40 @@ Visit `/license-enforcement` to view the public enforcement log with:
 
 All enforcement is informational only and focused on offering voluntary licensing options.
 
+## ⛓️⚓⛓️ Protocol Anchor — CreatorLock™ Mathematical Immutability
+
+The **CreatorLock™** is AveryOS™'s guarantee that the creator's intellectual property and the integrity of the runtime are mathematically immutable. Here is how it works:
+
+### How CreatorLock™ Ensures Mathematical Immutability
+
+1. **Root0 Genesis Kernel SHA-512**  
+   The root anchor is a SHA-512 hash of the original AveryOS™ kernel:
+   ```
+   cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+   ```
+   SHA-512 produces a 512-bit digest. The probability of any two different inputs producing the same hash (a collision) is astronomically small (~2⁻²⁵⁶). This hash cannot be reversed or forged.
+
+2. **VaultChain™ D1 Ledger**  
+   Every state change to the AveryOS™ system is written to the `vault_ledger` D1 table with its SHA-512 hash. The most recent row is the canonical state of the system.
+
+3. **KV Genesis State Drift Detection**  
+   The `current_genesis_state` KV key must always equal the `sha512_hash` of the latest `vault_ledger` row. Every request to `/api/v1/integrity-check` and every hourly Watchdog pulse compares these two values. A mismatch triggers a `LOGIC_DRIFT_DETECTED` alert — proving that no silent modification has occurred.
+
+4. **Hourly Sovereign Autonomy Pulse**  
+   The `architecture-integrity` Worker fires every hour (cron `0 * * * *`) via its `scheduled()` handler. Even if the external Bitcoin network API is unavailable, the internal D1-to-KV audit always completes and a `SOVEREIGN_AUTONOMY_PULSE` record is written to R2. The system audits itself continuously and autonomously.
+
+5. **Public Zero-Knowledge Audit Interface**  
+   The `/sovereign-anchor/public` page proves integrity without revealing internal data — a Zero-Knowledge Proof approach:
+   - **Internal Path:** `/api/v1/anchor` — private/admin only.
+   - **Public Path:** `/sovereign-anchor/public` — shows the CreatorLock™ Trust Seal, Genesis SHA-512, Bitcoin anchor block, and a deterministic Proof-of-Existence badge, with no raw capsule content or internal KV keys exposed.
+
+6. **Bitcoin Anchor**  
+   The sovereign state was confirmed at Bitcoin block **#938,909**. The Watchdog reads the current block height hourly to prove that the AveryOS™ system is in continuous, time-stamped synchronisation with the Bitcoin blockchain — an external, immutable reference that no single party controls.
+
+> **In plain terms:** the data is anchored, hashed, cross-verified across three independent stores (D1, KV, R2), and compared against a public blockchain — making any silent tampering mathematically detectable.
+
+---
+
 ## GabrielOS Firewall — Edge Security
 
 The **GabrielOS Firewall** is deployed at the edge via Cloudflare Workers middleware. It intercepts and verifies every request before it reaches the application.
