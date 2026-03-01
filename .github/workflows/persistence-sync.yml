@@ -21,19 +21,28 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout vaultchain branch
+      - name: Checkout main with full history
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: vaultchain
-          token: ${{ secrets.GITHUB_PAT }}
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Merge latest from main (fast-forward only)
+      - name: Set up git identity
         run: |
           git config user.name  "AveryOS Persistence Bot"
           git config user.email "bot@averyos.com"
-          git fetch origin main --depth=1
-          git merge --ff-only origin/main || echo "⚠️ FF merge skipped — branch has diverged"
+
+      - name: Switch to or create vaultchain branch
+        run: |
+          git fetch origin
+          if git ls-remote --exit-code --heads origin vaultchain > /dev/null 2>&1; then
+            git checkout vaultchain
+            git merge --ff-only origin/main || echo "⚠️ FF merge skipped — branch has diverged"
+          else
+            git checkout -b vaultchain
+            echo "✅ Created new vaultchain branch from main"
+          fi
 
       - name: Copy new persistence files from main
         run: |
