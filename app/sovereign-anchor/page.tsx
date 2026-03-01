@@ -497,14 +497,14 @@ export default function SovereignAnchorPage() {
                 Every capsule submitted to{" "}
                 <code style={{ color: GOLD }}>POST /api/v1/anchor</code> is immediately
                 fingerprinted in-process using the native{" "}
-                <code style={{ color: GOLD }}>crypto.subtle.digest(&#39;SHA-512&#39;, …)</code>{" "}
+                <code style={{ color: GOLD }}>{`crypto.subtle.digest('SHA-512', …)`}</code>{" "}
                 Web Crypto API — no external dependency required.
               </p>
               <p style={{ margin: "0 0 0.75rem" }}>
                 <strong style={{ color: GREEN }}>2. Global Heartbeat (Bitcoin):</strong>{" "}
                 The latest Bitcoin block height and SHA-256 block hash are fetched from{" "}
                 <code style={{ color: GOLD }}>blockchain.info</code> and appended to each
-                capsule&#39;s metadata as a &ldquo;Global Heartbeat&rdquo;. This proves the capsule
+                {" "}capsule&apos;s metadata as a &quot;Global Heartbeat&quot;. This proves the capsule
                 existed at a specific point in global consensus time.
               </p>
               <p style={{ margin: "0 0 0.75rem" }}>
@@ -516,7 +516,7 @@ export default function SovereignAnchorPage() {
               <p style={{ margin: 0 }}>
                 <strong style={{ color: GREEN }}>4. Integrity Verification:</strong>{" "}
                 Any capsule can be re-verified at any time via{" "}
-                <code style={{ color: GOLD }}>GET /api/v1/verify/&#123;hash&#125;</code>.
+                <code style={{ color: GOLD }}>{`GET /api/v1/verify/{hash}`}</code>.
                 The system re-computes the SHA-512 from the stored payload and confirms it
                 matches the key — providing cryptographic proof of immutability.
               </p>
