@@ -25,6 +25,12 @@ export const AnchorBadge = () => {
             color: "#4ade80",
             glow: "0 0 10px #4ade80",
           });
+        } else if (data.label === "PLATFORM_ONLY") {
+          setStatus({
+            label: "⛓️⚓⛓️ VAULTCHAIN™: ACTIVE",
+            color: "#4ade80",
+            glow: "0 0 8px rgba(74,222,128,0.6)",
+          });
         } else {
           setStatus({
             label: "⚠️ PLATFORM DRIFT DETECTED",

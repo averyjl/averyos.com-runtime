@@ -121,210 +121,213 @@ export default function VaultGatePage() {
           )}
         </section>
 
-        {/* Gated vault links — only shown after successful handshake */}
+        {/* All vault content — only shown after successful handshake */}
         {isAuthenticated && (
-          <section className="card">
-            <h2 style={{ color: "#ffffff", marginTop: 0 }}>
-              🔓 Sovereign Access Panel
-            </h2>
-            <p
-              style={{
-                color: "rgba(238,244,255,0.72)",
-                fontSize: "0.9rem",
-                marginBottom: "1.25rem",
-              }}
-            >
-              Your YubiKey handshake has been verified. The following sovereign
-              resources are now accessible for this session.
-            </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                gap: "1rem",
-              }}
-            >
-              <Link
-                href="/evidence-vault"
+          <>
+            {/* Gated vault links */}
+            <section className="card">
+              <h2 style={{ color: "#ffffff", marginTop: 0 }}>
+                🔓 Sovereign Access Panel
+              </h2>
+              <p
                 style={{
-                  background: "rgba(0,8,20,0.85)",
-                  border: "1px solid rgba(120,148,255,0.35)",
-                  borderRadius: "12px",
-                  padding: "1.25rem",
-                  textDecoration: "none",
-                  display: "block",
+                  color: "rgba(238,244,255,0.72)",
+                  fontSize: "0.9rem",
+                  marginBottom: "1.25rem",
                 }}
               >
-                <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
-                  📚
-                </div>
-                <h3
-                  style={{
-                    color: "#ffffff",
-                    margin: "0 0 0.5rem",
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  Evidence Vault
-                </h3>
-                <p
-                  style={{
-                    color: "rgba(238,244,255,0.65)",
-                    fontSize: "0.82rem",
-                    margin: 0,
-                    lineHeight: "1.55",
-                  }}
-                >
-                  AveryOS™ forensic ledger, retroactive hash bridge, and
-                  settlement records.
-                </p>
-              </Link>
-
-              <Link
-                href="/health"
-                style={{
-                  background: "rgba(0,8,20,0.85)",
-                  border: "1px solid rgba(120,148,255,0.35)",
-                  borderRadius: "12px",
-                  padding: "1.25rem",
-                  textDecoration: "none",
-                  display: "block",
-                }}
-              >
-                <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
-                  🛡️
-                </div>
-                <h3
-                  style={{
-                    color: "#ffffff",
-                    margin: "0 0 0.5rem",
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  Health Status
-                </h3>
-                <p
-                  style={{
-                    color: "rgba(238,244,255,0.65)",
-                    fontSize: "0.82rem",
-                    margin: 0,
-                    lineHeight: "1.55",
-                  }}
-                >
-                  AveryOS™ Sovereign Health Dashboard — kernel resonance, drift
-                  meter, and build provenance.
-                </p>
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {/* Vault Capsule Index */}
-        <section className="card">
-          <h2 style={{ color: "#ffffff", marginTop: 0 }}>
-            📦 Vault Capsule Index
-          </h2>
-          <p
-            style={{
-              color: "rgba(238,244,255,0.72)",
-              fontSize: "0.9rem",
-              marginBottom: "1rem",
-            }}
-          >
-            The following capsule categories are stored in this vault. Hardware
-            authentication unlocks each category.
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-              gap: "1rem",
-            }}
-          >
-            {[
-              {
-                icon: "⛓️",
-                title: "VaultChain™ Sessions",
-                desc: "Permanent session archives sealed to the VaultChain™ ledger.",
-              },
-              {
-                icon: "📜",
-                title: "ALF v4.0 License Capsules",
-                desc: "Sealed license records under the AveryOS Licensing Formula v4.0.",
-              },
-              {
-                icon: "⚖️",
-                title: "USI/DT Infraction Log",
-                desc: "$10,000/event infraction ledger for Unlawful Session Interference.",
-              },
-              {
-                icon: "🏛️",
-                title: "Permanent Economy Capsule",
-                desc: "ALF v4.0 authority capsule — SHA-512 anchored economic record.",
-              },
-            ].map((item) => (
+                Your YubiKey handshake has been verified. The following sovereign
+                resources are now accessible for this session.
+              </p>
               <div
-                key={item.title}
                 style={{
-                  background: "rgba(0,8,20,0.85)",
-                  border: "1px solid rgba(255,51,51,0.25)",
-                  borderRadius: "12px",
-                  padding: "1.25rem",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                  gap: "1rem",
                 }}
               >
-                <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
-                  {item.icon}
-                </div>
-                <h3
+                <Link
+                  href="/evidence-vault"
                   style={{
-                    color: "#ffffff",
-                    margin: "0 0 0.5rem",
-                    fontSize: "0.95rem",
+                    background: "rgba(0,8,20,0.85)",
+                    border: "1px solid rgba(120,148,255,0.35)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    textDecoration: "none",
+                    display: "block",
                   }}
                 >
-                  {item.title}
-                </h3>
-                <p
-                  style={{
-                    color: "rgba(238,244,255,0.65)",
-                    fontSize: "0.82rem",
-                    margin: 0,
-                    lineHeight: "1.55",
-                  }}
-                >
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+                    📚
+                  </div>
+                  <h3
+                    style={{
+                      color: "#ffffff",
+                      margin: "0 0 0.5rem",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    Evidence Vault
+                  </h3>
+                  <p
+                    style={{
+                      color: "rgba(238,244,255,0.65)",
+                      fontSize: "0.82rem",
+                      margin: 0,
+                      lineHeight: "1.55",
+                    }}
+                  >
+                    AveryOS™ forensic ledger, retroactive hash bridge, and
+                    settlement records.
+                  </p>
+                </Link>
 
-        {/* SHA-512 Anchor */}
-        <section className="card">
-          <h2 style={{ color: "#ffffff", marginTop: 0 }}>
-            ⚓ Kernel Anchor — SHA-512
-          </h2>
-          <div
-            style={{
-              background: "rgba(0,6,16,0.9)",
-              border: "1px solid rgba(120,148,255,0.2)",
-              borderRadius: "10px",
-              padding: "1rem 1.25rem",
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: "0.72rem",
-              color: "rgba(120,148,255,0.65)",
-              wordBreak: "break-all",
-              lineHeight: "1.6",
-            }}
-          >
-            <div
-              style={{ color: "rgba(120,148,255,0.45)", marginBottom: "0.4rem" }}
-            >
-              {"// SHA-512 · AveryOS™ ALF v4.0 · Permanent Economy Capsule"}
-            </div>
-            {KERNEL_ANCHOR}
-          </div>
-        </section>
+                <Link
+                  href="/health"
+                  style={{
+                    background: "rgba(0,8,20,0.85)",
+                    border: "1px solid rgba(120,148,255,0.35)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    textDecoration: "none",
+                    display: "block",
+                  }}
+                >
+                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+                    🛡️
+                  </div>
+                  <h3
+                    style={{
+                      color: "#ffffff",
+                      margin: "0 0 0.5rem",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    Health Status
+                  </h3>
+                  <p
+                    style={{
+                      color: "rgba(238,244,255,0.65)",
+                      fontSize: "0.82rem",
+                      margin: 0,
+                      lineHeight: "1.55",
+                    }}
+                  >
+                    AveryOS™ Sovereign Health Dashboard — kernel resonance, drift
+                    meter, and build provenance.
+                  </p>
+                </Link>
+              </div>
+            </section>
+
+            {/* Vault Capsule Index */}
+            <section className="card">
+              <h2 style={{ color: "#ffffff", marginTop: 0 }}>
+                📦 Vault Capsule Index
+              </h2>
+              <p
+                style={{
+                  color: "rgba(238,244,255,0.72)",
+                  fontSize: "0.9rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                The following capsule categories are stored in this vault. Hardware
+                authentication unlocks each category.
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {[
+                  {
+                    icon: "⛓️",
+                    title: "VaultChain™ Sessions",
+                    desc: "Permanent session archives sealed to the VaultChain™ ledger.",
+                  },
+                  {
+                    icon: "📜",
+                    title: "ALF v4.0 License Capsules",
+                    desc: "Sealed license records under the AveryOS Licensing Formula v4.0.",
+                  },
+                  {
+                    icon: "⚖️",
+                    title: "USI/DT Infraction Log",
+                    desc: "$10,000/event infraction ledger for Unlawful Session Interference.",
+                  },
+                  {
+                    icon: "🏛️",
+                    title: "Permanent Economy Capsule",
+                    desc: "ALF v4.0 authority capsule — SHA-512 anchored economic record.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    style={{
+                      background: "rgba(0,8,20,0.85)",
+                      border: "1px solid rgba(255,51,51,0.25)",
+                      borderRadius: "12px",
+                      padding: "1.25rem",
+                    }}
+                  >
+                    <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+                      {item.icon}
+                    </div>
+                    <h3
+                      style={{
+                        color: "#ffffff",
+                        margin: "0 0 0.5rem",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      {item.title}
+                    </h3>
+                    <p
+                      style={{
+                        color: "rgba(238,244,255,0.65)",
+                        fontSize: "0.82rem",
+                        margin: 0,
+                        lineHeight: "1.55",
+                      }}
+                    >
+                      {item.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* SHA-512 Anchor */}
+            <section className="card">
+              <h2 style={{ color: "#ffffff", marginTop: 0 }}>
+                ⚓ Kernel Anchor — SHA-512
+              </h2>
+              <div
+                style={{
+                  background: "rgba(0,6,16,0.9)",
+                  border: "1px solid rgba(120,148,255,0.2)",
+                  borderRadius: "10px",
+                  padding: "1rem 1.25rem",
+                  fontFamily: "JetBrains Mono, monospace",
+                  fontSize: "0.72rem",
+                  color: "rgba(120,148,255,0.65)",
+                  wordBreak: "break-all",
+                  lineHeight: "1.6",
+                }}
+              >
+                <div
+                  style={{ color: "rgba(120,148,255,0.45)", marginBottom: "0.4rem" }}
+                >
+                  {"// SHA-512 · AveryOS™ ALF v4.0 · Permanent Economy Capsule"}
+                </div>
+                {KERNEL_ANCHOR}
+              </div>
+            </section>
+          </>
+        )}
       </main>
     </>
   );
