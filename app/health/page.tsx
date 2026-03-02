@@ -43,7 +43,7 @@ export default function SovereignHealthPage() {
     } catch {
       router.replace("/vault-gate");
     }
-  }, [router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll threat level every 5 s; intercept if >= 5
   useEffect(() => {
