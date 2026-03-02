@@ -58,10 +58,6 @@ custom_domain = true
 pattern = "www.averyos.com"
 custom_domain = true
 
-[[routes]]
-pattern = "www.averyos.com"
-custom_domain = true
-
 [env.production]
 workers_dev = false
 vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1", NODE_VERSION = "22" }
