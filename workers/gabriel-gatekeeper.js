@@ -31,7 +31,7 @@ async function saltTimestampNs(tsNs, blockchainApiKey) {
 
 export default {
   async fetch(request, env) {
-    const { DB, GITHUB_PAT, VAULT_PASSPHRASE, BLOCKCHAIN_API_KEY } = env;
+    const { DB, GITHUB_PAT, VAULT_PASSPHRASE, BITCOIN_API_KEY } = env;
     const url = new URL(request.url);
 
     // ── 1. GITHUB WEBHOOK — Commit Logging ──────────────────────────────────
@@ -41,7 +41,7 @@ export default {
         if (payload.repository?.full_name !== REPO_FULL_NAME) {
           return new Response("USI_DETECTED", { status: 403 });
         }
-        const tsNs = await saltTimestampNs(Date.now().toString(), BLOCKCHAIN_API_KEY);
+        const tsNs = await saltTimestampNs(Date.now().toString(), BITCOIN_API_KEY);
         await DB.prepare(
           "INSERT INTO vaultchain_ledger (timestamp, event, sha, status) VALUES (?, ?, ?, ?)"
         )
@@ -59,7 +59,7 @@ export default {
       if (authHeader !== `Bearer ${GITHUB_PAT}`) {
         return new Response("USI_DETECTED", { status: 403 });
       }
-      const tsNs = await saltTimestampNs(Date.now().toString(), BLOCKCHAIN_API_KEY);
+      const tsNs = await saltTimestampNs(Date.now().toString(), BITCOIN_API_KEY);
       await DB.prepare(
         "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
       )
@@ -103,7 +103,7 @@ export default {
           { status: 401 }
         );
       }
-      const tsNs = await saltTimestampNs(Date.now().toString(), BLOCKCHAIN_API_KEY);
+      const tsNs = await saltTimestampNs(Date.now().toString(), BITCOIN_API_KEY);
       await DB.prepare(
         "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
       )
