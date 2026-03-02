@@ -86,7 +86,7 @@ database_name = "averyos_kernel_db"
 database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
 
 [[routes]]
-pattern = "://anchor.averyos.com"
+pattern = "anchor.averyos.com"
 custom_domain = true
 
 [[env.production.routes]]
