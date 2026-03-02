@@ -5,8 +5,8 @@ main = ".open-next/worker.js"
 compatibility_flags = ["nodejs_compat"]
 # legacy_env = false uses the service-environments PUT endpoint (/workers/services/{name}/environments/{env})
 # instead of the Workers Versions API (/workers/scripts/{name}/versions).
-# The Versions API requires `Workers KV Storage: Edit` permission on the API token when KV bindings are present.
-# Remove this line and add `Workers KV Storage: Edit` to the CLOUDFLARE_API_TOKEN to use gradual deployments.
+# The service-environments endpoint requires `Workers KV Storage: Edit` permission on the API token when KV
+# bindings are present. Ensure CLOUDFLARE_API_TOKEN includes `Workers KV Storage: Edit`.
 legacy_env = false
 
 [assets]
