@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AnchorBanner from "../../components/AnchorBanner";
 import SovereignAuditStream from "../../src/components/Sovereign/SovereignAuditStream";
 import SovereignSettlementHandshake from "../../src/components/Sovereign/SovereignSettlementHandshake";
@@ -26,10 +27,23 @@ const FONT_MONO = "JetBrains Mono, Courier New, monospace";
 const THREAT_POLL_INTERVAL_MS = 5000;
 
 export default function SovereignHealthPage() {
+  const router = useRouter();
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [threatLevel, setThreatLevel] = useState<number>(0);
+
+  // Gate: require sovereign_handshake in sessionStorage
+  useEffect(() => {
+    try {
+      const token = sessionStorage.getItem("sovereign_handshake");
+      if (!token) {
+        router.replace("/vault-gate");
+      }
+    } catch {
+      router.replace("/vault-gate");
+    }
+  }, [router]);
 
   // Poll threat level every 5 s; intercept if >= 5
   useEffect(() => {

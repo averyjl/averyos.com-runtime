@@ -11,6 +11,7 @@ interface D1Database {
 interface CloudflareEnv {
   DB: D1Database;
   GITHUB_PAT?: string;
+  BLOCKCHAIN_API_KEY?: string;
 }
 
 const SHA512_REGEX = /^[a-fA-F0-9]{128}$/;
@@ -65,6 +66,27 @@ export async function POST(request: Request) {
 
     const updated_at = new Date().toISOString();
 
+    // Apply Bitcoin block height as a salt to the build_timestamp_ms (9-digit entropy field)
+    let salted_timestamp_ms = build_timestamp_ms;
+    if (cfEnv.BLOCKCHAIN_API_KEY) {
+      try {
+        const btcRes = await fetch(
+          "https://api.blockcypher.com/v1/btc/main",
+          { headers: { Authorization: `Bearer ${cfEnv.BLOCKCHAIN_API_KEY}` } }
+        );
+        if (btcRes.ok) {
+          const btcData = (await btcRes.json()) as { height?: number };
+          const blockHeight = btcData.height ?? 0;
+          // XOR the base timestamp with the block height and keep it 9 digits
+          const salted =
+            (parseInt(build_timestamp_ms, 10) ^ blockHeight) % 1_000_000_000;
+          salted_timestamp_ms = String(Math.abs(salted)).padStart(9, "0");
+        }
+      } catch {
+        // Salt is best-effort; proceed with original timestamp on failure
+      }
+    }
+
     // Ensure kernel_metadata table exists
     await cfEnv.DB.exec(`
       CREATE TABLE IF NOT EXISTS kernel_metadata (
@@ -86,13 +108,13 @@ export async function POST(request: Request) {
       await cfEnv.DB.prepare(
         'UPDATE kernel_metadata SET build_version = ?, kernel_resonance_hash = ?, build_timestamp_ms = ?, updated_at = ? WHERE id = ?'
       )
-        .bind(build_version, kernel_resonance_hash, build_timestamp_ms, updated_at, existing.id)
+        .bind(build_version, kernel_resonance_hash, salted_timestamp_ms, updated_at, existing.id)
         .run();
     } else {
       await cfEnv.DB.prepare(
         'INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at) VALUES (?, ?, ?, 0, ?)'
       )
-        .bind(build_version, kernel_resonance_hash, build_timestamp_ms, updated_at)
+        .bind(build_version, kernel_resonance_hash, salted_timestamp_ms, updated_at)
         .run();
     }
 
@@ -101,7 +123,7 @@ export async function POST(request: Request) {
       message: 'Build provenance anchored',
       build_version,
       kernel_resonance_hash,
-      build_timestamp_ms,
+      build_timestamp_ms: salted_timestamp_ms,
       updated_at,
     });
   } catch (err: unknown) {
