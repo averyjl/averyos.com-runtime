@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AnchorBanner from "../../components/AnchorBanner";
 
 // ─── API response types ───────────────────────────────────────────────────────
@@ -136,24 +137,52 @@ function StatCard({ icon, label, value, dim }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SovereignAnchorPage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [anchorStatus, setAnchorStatus]       = useState<AnchorStatus | null>(null);
   const [integrityStatus, setIntegrityStatus] = useState<IntegrityStatus | null>(null);
   const [loading, setLoading]                 = useState(true);
   const [anchorErr, setAnchorErr]             = useState<string | null>(null);
 
+  // Auth gate — check sessionStorage before rendering any content
   useEffect(() => {
+    try {
+      const token = sessionStorage.getItem("sovereign_handshake");
+      if (!token) {
+        setIsAuthenticated(false);
+        router.replace("/evidence-vault/login");
+      } else {
+        setIsAuthenticated(true);
+      }
+    } catch {
+      setIsAuthenticated(false);
+      router.replace("/evidence-vault/login");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     Promise.all([
       fetch("/api/v1/anchor-status",    { cache: "no-store" }).then(r => r.json()),
       fetch("/api/v1/integrity-status", { cache: "no-store" }).then(r => r.json()),
     ]).then(([anchor, integrity]) => {
-      setAnchorStatus(anchor as AnchorStatus);
-      setIntegrityStatus(integrity as IntegrityStatus);
+      const anchorData = anchor as AnchorStatus & { error?: string; detail?: string };
+      const integrityData = integrity as IntegrityStatus & { error?: string; detail?: string };
+      if (anchorData.error || integrityData.error) {
+        setAnchorErr(anchorData.detail ?? integrityData.detail ?? anchorData.error ?? integrityData.error ?? "API error");
+      } else {
+        setAnchorStatus(anchorData);
+        setIntegrityStatus(integrityData);
+      }
       setLoading(false);
     }).catch((err: Error) => {
       setAnchorErr(err.message);
       setLoading(false);
     });
-  }, []);
+  }, [isAuthenticated]);
+
+  // Show nothing until auth check completes (prevents content flash)
+  if (isAuthenticated === null) return null;
 
   const lock    = integrityStatus?.creator_lock ?? "UNKNOWN";
   const lockOk  = lock === "ACTIVE";
