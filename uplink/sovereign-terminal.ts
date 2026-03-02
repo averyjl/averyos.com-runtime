@@ -40,7 +40,7 @@ import * as readline from "readline";
 
 const ANCHOR_URL   = process.env.AVERYOS_ANCHOR_URL   ?? "https://averyos.com";
 const ANCHOR_TOKEN = process.env.AVERYOS_ANCHOR_TOKEN ?? "";
-const SALT_PATH    = process.env.AVERY_SALT_PATH       ?? "/mnt/.averyos-anchor-salt.aossalt";
+const SALT_PATH    = process.env.AVERY_SALT_PATH       ?? "D:\\averyos-anchor-salt.aossalt";
 const OLLAMA_URL   = process.env.OLLAMA_URL            ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL          ?? "llama3";
 
