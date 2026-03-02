@@ -8,6 +8,8 @@ compatibility_flags = ["nodejs_compat"]
 # The Versions API requires `Workers KV Storage: Edit` permission on the API token when KV bindings are present.
 # Remove this line and add `Workers KV Storage: Edit` to the CLOUDFLARE_API_TOKEN to use gradual deployments.
 legacy_env = false
+routes = [
+  { pattern = "://anchor.averyos.com", custom_domain = true }
 
 [assets]
 binding = "ASSETS"
@@ -52,6 +54,10 @@ head_sampling_rate = 1
 
 [[routes]]
 pattern = "averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.averyos.com"
 custom_domain = true
 
 [[routes]]
