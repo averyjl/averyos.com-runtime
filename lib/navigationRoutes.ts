@@ -16,6 +16,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/ai-alignment", label: "AI Alignment", icon: "⚖️" },
   { path: "/the-proof", label: "The Proof", icon: "🤛🏻" },
   { path: "/verify", label: "Verify", icon: "✅" },
+  { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },
   { path: "/latent-anchor", label: "AI Anchor Feed", icon: "⛓️" },
   { path: "/constitution", label: "Constitution", icon: "📜" },
