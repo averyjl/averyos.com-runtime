@@ -59,6 +59,9 @@ export interface Env {
   /** Optional: Bitcoin block-height API key stored as a Cloudflare Worker secret.
    *  Provision with: npx wrangler secret put BITCOIN_API_KEY --env production */
   BITCOIN_API_KEY?: string;
+  /** Optional: Bearer token required by POST /api/v1/anchor/build and /api/v1/anchor/seal.
+   *  Provision with: npx wrangler secret put AVERYOS_ANCHOR_TOKEN */
+  AVERYOS_ANCHOR_TOKEN?: string;
 }
 
 /** Cloudflare Scheduled event (subset of the Workers runtime type) */
@@ -339,21 +342,155 @@ async function runWatchdog(
   };
 }
 
+// ─── Sovereign Build helpers ──────────────────────────────────────────────────
+
+/** A row from the sovereign_builds table */
+interface SovereignBuildRow {
+  id: number;
+  artifact_hash: string;
+}
+
+/**
+ * handleAnchorBuild — registers a new build record in the sovereign_builds table.
+ * Called by GitHub Actions via POST /api/v1/anchor/build.
+ */
+async function handleAnchorBuild(request: Request, env: Env, requestTs: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return Response.json({ error: "METHOD_NOT_ALLOWED" }, { status: 405 });
+  }
+
+  // Optional auth check
+  const auth = request.headers.get("Authorization") ?? "";
+  if (env.AVERYOS_ANCHOR_TOKEN && auth !== `Bearer ${env.AVERYOS_ANCHOR_TOKEN}`) {
+    return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "MALFORMED_JSON" }, { status: 400 });
+  }
+
+  const repoName     = typeof body.repo_name     === "string" ? body.repo_name     : "";
+  const commitSha    = typeof body.commit_sha    === "string" ? body.commit_sha    : "";
+  const artifactHash = typeof body.artifact_hash === "string" ? body.artifact_hash : "";
+  const provenanceData = typeof body.provenance_data === "string" ? body.provenance_data : null;
+
+  if (!repoName || !commitSha || !artifactHash) {
+    return Response.json(
+      { error: "MISSING_FIELDS", detail: "repo_name, commit_sha, and artifact_hash are required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await env.DB.prepare(
+      `INSERT INTO sovereign_builds (repo_name, commit_sha, artifact_hash, provenance_data, registered_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(repoName, commitSha, artifactHash, provenanceData, requestTs).run();
+
+    return Response.json({
+      status: "REGISTERED",
+      repo_name: repoName,
+      commit_sha: commitSha,
+      artifact_hash: artifactHash,
+      registered_at: requestTs,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: "DB_ERROR", detail: message }, { status: 500 });
+  }
+}
+
+/**
+ * handleAnchorSeal — applies a hardware (YubiKey/USB) signature to a pending build,
+ * locking it to the Bitcoin blockchain. Called by the local uplink terminal.
+ */
+async function handleAnchorSeal(request: Request, env: Env, requestTs: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return Response.json({ error: "METHOD_NOT_ALLOWED" }, { status: 405 });
+  }
+
+  const auth = request.headers.get("Authorization") ?? "";
+  if (env.AVERYOS_ANCHOR_TOKEN && auth !== `Bearer ${env.AVERYOS_ANCHOR_TOKEN}`) {
+    return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "MALFORMED_JSON" }, { status: 400 });
+  }
+
+  const artifactHash       = typeof body.artifact_hash       === "string" ? body.artifact_hash       : "";
+  const hardwareSignature  = typeof body.hardware_signature  === "string" ? body.hardware_signature  : "";
+
+  if (!artifactHash || !hardwareSignature) {
+    return Response.json(
+      { error: "MISSING_FIELDS", detail: "artifact_hash and hardware_signature are required" },
+      { status: 400 }
+    );
+  }
+
+  // Find the pending build
+  const row = (await env.DB.prepare(
+    "SELECT id, artifact_hash FROM sovereign_builds WHERE artifact_hash = ? AND hardware_signature IS NULL ORDER BY id DESC LIMIT 1"
+  ).bind(artifactHash).first<SovereignBuildRow>()) as SovereignBuildRow | null;
+
+  if (!row) {
+    return Response.json(
+      { error: "BUILD_NOT_FOUND", detail: "No pending build found for this artifact_hash" },
+      { status: 404 }
+    );
+  }
+
+  // Fetch BTC height for the seal timestamp
+  const externalPulse = await fetchExternalPulse();
+  const btcHeight     = externalPulse?.height ?? null;
+
+  await env.DB.prepare(
+    "UPDATE sovereign_builds SET hardware_signature = ?, btc_anchor_height = ?, sealed_at = ? WHERE id = ?"
+  ).bind(hardwareSignature, btcHeight, requestTs, row.id).run();
+
+  return Response.json({
+    status:            "SEALED",
+    build_id:          row.id,
+    artifact_hash:     artifactHash,
+    btc_anchor_height: btcHeight,
+    sealed_at:         requestTs,
+    creator_lock:      "ACTIVE",
+  });
+}
+
 // ─── Worker export ────────────────────────────────────────────────────────────
 
 export default {
   /**
    * Cloudflare Worker fetch handler.
    *
-   * Only accepts:
+   * Routes (all require POST):
    *   POST /api/v1/integrity-check  — run the full integrity verification
+   *   POST /api/v1/anchor/build     — register a CI/CD build (called by GitHub Actions)
+   *   POST /api/v1/anchor/seal      — apply hardware seal (called by local uplink terminal)
    *
-   * All other routes return 404.
+   * All other routes or methods return 404 / 405.
    */
   async fetch(request: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(request.url);
     /** Single authoritative timestamp for this entire request lifecycle */
     const requestTs = new Date().toISOString();
+
+    // ── Route dispatch ─────────────────────────────────────────────────────
+
+    if (pathname === "/api/v1/anchor/build") {
+      return handleAnchorBuild(request, env, requestTs);
+    }
+
+    if (pathname === "/api/v1/anchor/seal") {
+      return handleAnchorSeal(request, env, requestTs);
+    }
 
     // ── Route guard ────────────────────────────────────────────────────────
     if (pathname !== "/api/v1/integrity-check") {
