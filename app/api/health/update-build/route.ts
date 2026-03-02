@@ -77,10 +77,11 @@ export async function POST(request: Request) {
         if (btcRes.ok) {
           const btcData = (await btcRes.json()) as { height?: number };
           const blockHeight = btcData.height ?? 0;
-          // XOR the base timestamp with the block height and keep it 9 digits
+          // Use BigInt XOR to avoid 32-bit integer truncation, then keep 9 digits
           const salted =
-            (parseInt(build_timestamp_ms, 10) ^ blockHeight) % 1_000_000_000;
-          salted_timestamp_ms = String(Math.abs(salted)).padStart(9, "0");
+            (BigInt(build_timestamp_ms) ^ BigInt(blockHeight)) %
+            BigInt(1_000_000_000);
+          salted_timestamp_ms = String(salted).padStart(9, "0");
         }
       } catch {
         // Salt is best-effort; proceed with original timestamp on failure

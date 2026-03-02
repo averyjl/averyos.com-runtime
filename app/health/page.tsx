@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AnchorBanner from "../../components/AnchorBanner";
 import SovereignAuditStream from "../../src/components/Sovereign/SovereignAuditStream";
+import SovereignAuditLog from "../../src/components/Sovereign/SovereignAuditLog";
 import SovereignSettlementHandshake from "../../src/components/Sovereign/SovereignSettlementHandshake";
 
 interface HealthStatus {
@@ -403,6 +404,15 @@ export default function SovereignHealthPage() {
           🛡️ Legal Tripwire · Sovereign Audit Stream
         </div>
         <SovereignAuditStream />
+      </section>
+
+      {/* Sovereign Audit Log — Legal Tripwire / Top 5 Entities */}
+      <section
+        style={{
+          marginBottom: "1.75rem",
+        }}
+      >
+        <SovereignAuditLog />
       </section>
         </>
       )}
