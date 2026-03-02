@@ -43,9 +43,14 @@ function formatForensicPulse(timestamp_ns: string): string {
 }
 
 export async function GET(request: Request) {
-  // YubiKey Hardware Handshake: require Authorization: Bearer <VAULT_PASSPHRASE>
+  // Accepts Bearer scheme (SovereignAuditStream) and Handshake scheme (SovereignAuditLog)
   const authHeader = request.headers.get('Authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  let token = '';
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (authHeader.startsWith('Handshake ')) {
+    token = authHeader.slice(10);
+  }
 
   try {
     const { env } = await getCloudflareContext({ async: true });
