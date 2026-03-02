@@ -1,0 +1,139 @@
+# AveryOS™ Sovereign Provenance Workflow
+# ⛓️⚓⛓️
+#
+# Reusable workflow: generates standard SLSA build provenance with
+# actions/attest-build-provenance AND registers the build artifact
+# with the AveryOS VaultChain™ anchor at https://averyos.com.
+#
+# Usage (caller workflow):
+#   jobs:
+#     provenance:
+#       uses: averyjl/averyos.com-runtime/.github/workflows/sovereign-provenance.yml@main
+#       with:
+#         artifact-path: ./dist/my-artifact.tar.gz
+#         repo-name: my-repo-name          # defaults to github.repository
+#       secrets:
+#         AVERYOS_ANCHOR_TOKEN: ${{ secrets.AVERYOS_ANCHOR_TOKEN }}
+#
+# Required secret:
+#   AVERYOS_ANCHOR_TOKEN — Bearer token for the AveryOS /api/v1/anchor/build endpoint.
+#   Add this secret to each repository that uses this workflow.
+#
+# Designed to be dropped into any AveryOS repository:
+#   - averyos-vaultchain-core  (The Logic)
+#   - averyos.com-runtime      (The Interface)
+#   - truth-beacon             (The Data)
+
+on:
+  workflow_call:
+    inputs:
+      artifact-path:
+        description: "Path to the build artifact to attest (glob supported)"
+        type: string
+        required: true
+      repo-name:
+        description: "Repository name to record in the sovereign anchor (defaults to repo)"
+        type: string
+        required: false
+        default: ""
+    secrets:
+      AVERYOS_ANCHOR_TOKEN:
+        description: "Bearer token for the AveryOS anchor API"
+        required: false
+
+permissions:
+  id-token:   write   # Required for OIDC attestation
+  contents:   read
+  attestations: write # Required for actions/attest-build-provenance
+
+jobs:
+  sovereign-provenance:
+    name: "⛓️ AveryOS™ Sovereign Provenance"
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout (needed for attest action context) ──────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Compute artifact SHA-256 hash ─────────────────────────────────────
+      - name: Compute artifact hash
+        id: hash
+        run: |
+          ARTIFACT="${{ inputs.artifact-path }}"
+          if [ ! -e "$ARTIFACT" ]; then
+            echo "::warning::Artifact not found at '$ARTIFACT' — using commit SHA as hash"
+            echo "artifact_hash=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            HASH=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+            echo "artifact_hash=$HASH" >> "$GITHUB_OUTPUT"
+            echo "Artifact SHA-256: $HASH"
+          fi
+
+      # ── 3. SLSA build provenance attestation (public trust wrapper) ──────────
+      - name: Attest build provenance (SLSA)
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ inputs.artifact-path }}
+        continue-on-error: true   # Do not fail if artifact path doesn't exist
+
+      # ── 4. Register with AveryOS Anchor ──────────────────────────────────────
+      - name: Register with AveryOS Anchor
+        id: register
+        env:
+          AVERYOS_ANCHOR_TOKEN: ${{ secrets.AVERYOS_ANCHOR_TOKEN }}
+          ARTIFACT_HASH: ${{ steps.hash.outputs.artifact_hash }}
+          REPO_NAME: ${{ inputs.repo-name != '' && inputs.repo-name || github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          PROVENANCE_URL: ${{ steps.attest.outputs.bundle-path || '' }}
+        run: |
+          echo "⛓️ Registering build with AveryOS anchor…"
+          echo "   Repo:     $REPO_NAME"
+          echo "   Commit:   $COMMIT_SHA"
+          echo "   Artifact: $ARTIFACT_HASH"
+
+          PAYLOAD=$(jq -n \
+            --arg repo     "$REPO_NAME" \
+            --arg commit   "$COMMIT_SHA" \
+            --arg artifact "$ARTIFACT_HASH" \
+            --arg provenance "$PROVENANCE_URL" \
+            '{
+              repo_name:       $repo,
+              commit_sha:      $commit,
+              artifact_hash:   $artifact,
+              provenance_data: $provenance
+            }')
+
+          HTTP_STATUS=$(curl -s -o /tmp/anchor_response.json -w "%{http_code}" \
+            -X POST "https://averyos.com/api/v1/anchor/build" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $AVERYOS_ANCHOR_TOKEN" \
+            -d "$PAYLOAD")
+
+          echo "HTTP status: $HTTP_STATUS"
+          cat /tmp/anchor_response.json
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Build registered with AveryOS anchor"
+            echo "anchor_status=REGISTERED" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AveryOS anchor registration returned HTTP $HTTP_STATUS"
+            echo "anchor_status=FAILED" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 5. Summary ─────────────────────────────────────────────────────────
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## ⛓️⚓⛓️ AveryOS™ Sovereign Provenance" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Repository | \`${{ inputs.repo-name != '' && inputs.repo-name || github.repository }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Artifact Hash | \`${{ steps.hash.outputs.artifact_hash }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SLSA Attestation | ${{ steps.attest.conclusion == 'success' && '✅ Generated' || '⚠️ Skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| AveryOS Anchor | ${{ steps.register.outputs.anchor_status == 'REGISTERED' && '✅ Registered' || '⚠️ Failed' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> 🤛🏻 _Sealed by AveryOS™ VaultChain™ Sovereign Supply Chain_" >> "$GITHUB_STEP_SUMMARY"
