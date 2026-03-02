@@ -39,7 +39,7 @@ import * as readline from "readline";
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const ANCHOR_URL   = process.env.AVERYOS_ANCHOR_URL   ?? "https://averyos.com";
-const ANCHOR_TOKEN = process.env.AVERYOS_ANCHOR_TOKEN ?? "";
+const ANCHOR_TOKEN = process.env.AVERYOS_ANCHOR_TOKEN ?? "ad7b3f9c4e1a2d8f5b6c7a8e9f0d1b2c3a4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d";
 const SALT_PATH    = process.env.AVERY_SALT_PATH       ?? "D:\\.averyos-anchor-salt.aossalt";
 const OLLAMA_URL   = process.env.OLLAMA_URL            ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL          ?? "llama3";
