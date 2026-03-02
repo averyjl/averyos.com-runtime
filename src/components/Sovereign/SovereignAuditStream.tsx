@@ -24,14 +24,9 @@ export default function SovereignAuditStream() {
   const [flashIds, setFlashIds] = useState<Set<number>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Restore cached passphrase from sessionStorage on mount
+  // Initialize component state on mount
   useEffect(() => {
-    try {
-      const cached = sessionStorage.getItem("sovereign_handshake");
-      if (cached) setToken(cached);
-    } catch {
-      // sessionStorage unavailable
-    }
+    // Intentionally do not restore any passphrase or token from storage
   }, []);
 
   const fetchStream = useCallback(
@@ -44,11 +39,6 @@ export default function SovereignAuditStream() {
         if (res.status === 401) {
           setToken(null);
           setConnected(false);
-          try {
-            sessionStorage.removeItem("sovereign_handshake");
-          } catch {
-            // ignore
-          }
           return;
         }
         const data = (await res.json()) as AuditStreamEntry[];
@@ -87,11 +77,6 @@ export default function SovereignAuditStream() {
     e.preventDefault();
     const trimmed = passphrase.trim();
     if (!trimmed) return;
-    try {
-      sessionStorage.setItem("sovereign_handshake", trimmed);
-    } catch {
-      // ignore
-    }
     setAuthError(null);
     setToken(trimmed);
   };
