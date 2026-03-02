@@ -3,8 +3,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 interface D1Database {
   prepare(query: string): {
     bind(...args: unknown[]): { run(): Promise<{ success: boolean }> };
+    run(): Promise<{ success: boolean }>;
   };
-  exec(query: string): Promise<unknown>;
 }
 
 interface CloudflareEnv {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const cfEnv = env as unknown as CloudflareEnv;
 
     // Ensure witness_registry table exists
-    await cfEnv.DB.exec(`
+    await cfEnv.DB.prepare(`
       CREATE TABLE IF NOT EXISTS witness_registry (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         statement   TEXT NOT NULL,
         sha_witness TEXT NOT NULL
       )
-    `);
+    `).run();
 
     const timestamp = new Date().toISOString();
 

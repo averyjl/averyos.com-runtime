@@ -345,10 +345,32 @@ export default function SovereignHealthPage() {
             <tbody>
               {([
                 ["CreatorLock™ Status", <span key="cl" style={{ color: lockOk ? GREEN : RED, fontWeight: 700 }}>{integrity.creator_lock}</span>],
-                ["Kernel Anchor Verified", <span key="kav" style={{ color: integrity.kernel_anchor_verified ? GREEN : RED }}>{integrity.kernel_anchor_verified ? "✅ YES" : "⚠️ NO"}</span>],
-                ["Drift Detected", <span key="dd" style={{ color: integrity.drift_detected ? RED : GREEN }}>{integrity.drift_detected ? "⚠️ YES" : "✅ NO"}</span>],
+                ["Kernel Anchor Verified",
+                  <span key="kav">
+                    <span style={{ color: integrity.kernel_anchor_verified ? GREEN : RED }}>
+                      {integrity.kernel_anchor_verified ? "✅ YES" : "⚠️ NO"}
+                    </span>
+                    {!integrity.kernel_anchor_verified && (
+                      <span style={{ color: DIM_GREEN, fontSize: "0.7rem", display: "block", marginTop: "0.25rem" }}>
+                        vault_ledger SHA-512 differs from Root0 genesis anchor — capsule anchors exist beyond genesis (expected)
+                      </span>
+                    )}
+                  </span>
+                ],
+                ["Drift Detected",
+                  <span key="dd">
+                    <span style={{ color: integrity.drift_detected ? RED : GREEN }}>
+                      {integrity.drift_detected ? "⚠️ YES — reconciliation required" : "✅ NO"}
+                    </span>
+                    {integrity.drift_detected && (
+                      <span style={{ color: RED, fontSize: "0.7rem", display: "block", marginTop: "0.25rem" }}>
+                        KV genesis state does not match vault_ledger SHA-512 — CreatorLock™ integrity violation
+                      </span>
+                    )}
+                  </span>
+                ],
                 ["Genesis BTC Block Height", (integrity.stored_btc_block_height ?? 938909).toLocaleString()],
-                ["Live BTC Block Height", liveHeight?.toLocaleString() ?? "—"],
+                ["Live BTC Block Height", liveHeight?.toLocaleString() ?? <span key="lbh" style={{ color: DIM_GREEN }}>— (heartbeat API unreachable)</span>],
                 ["KV Genesis State", truncate(integrity.kv_genesis_state, 20)],
                 ["Queried At", fmtTs(integrity.queried_at)],
               ] as [string, React.ReactNode][]).map(([label, value]) => (
