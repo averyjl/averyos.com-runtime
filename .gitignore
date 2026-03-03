@@ -41,5 +41,8 @@ vaultchain-registry/
 .wrangler/
 .env
 *.aoscap
+*.aoskey
+*.aosvault
+*.aosmem
 *.vccaps
 !*.example

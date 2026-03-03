@@ -32,17 +32,28 @@
  * Author: Jason Lee Avery (ROOT0) — AveryOS™ Sovereign Supply Chain
  */
 
-import * as crypto from "crypto";
-import * as fs from "fs";
-import * as readline from "readline";
+import 'dotenv/config'; 
+import { config } from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import axios from 'axios';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
+import * as readline from 'readline';
 
+// ⚓ Define __dirname for ESM Scope
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 🤛🏻 Explicitly load the .env from the ROOT directory (one level up from /uplink)
+config({ path: path.join(process.cwd(), '.env'), override: true });
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-const ANCHOR_URL   = process.env.AVERYOS_ANCHOR_URL   ?? "https://averyos.com";
+const ANCHOR_URL   = process.env.AVERYOS_ANCHOR_URL   ?? "";
 const ANCHOR_TOKEN = process.env.AVERYOS_ANCHOR_TOKEN ?? "";
-const SALT_PATH    = process.env.AVERY_SALT_PATH       ?? "D:\\.averyos-anchor-salt.aossalt";
-const OLLAMA_URL   = process.env.OLLAMA_URL            ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL          ?? "llama3";
+const SALT_PATH    = process.env.AVERY_SALT_PATH       ?? "";
+const OLLAMA_URL   = process.env.OLLAMA_URL            ?? "";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL          ?? "";
 
 const POLL_INTERVAL_MS  = 30_000; // 30 s between Ollama polls
 const SEAL_INTERVAL_MS  = 60_000; // 60 s between seal sweeps
