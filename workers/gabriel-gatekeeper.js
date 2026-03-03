@@ -8,24 +8,26 @@ const GENESIS_ANCHOR =
 const REPO_FULL_NAME = "averyjl/averyos.com-runtime";
 
 /**
- * Salt a nanosecond timestamp with the current Bitcoin block height.
+ * Salt a nanosecond timestamp with the current Bitcoin block height and
+ * return both the salted timestamp and the raw block height for use as a
+ * "Block-Time Reference" in audit logs.
  * Uses Authorization header (not query param) to avoid key exposure in logs.
- * Returns the original string on any failure — salt is best-effort.
+ * Returns the original timestamp and null height on any failure — salt is best-effort.
  */
 async function saltTimestampNs(tsNs, blockchainApiKey) {
-  if (!blockchainApiKey) return tsNs;
+  if (!blockchainApiKey) return { ts: tsNs, blockHeight: null };
   try {
     const res = await fetch("https://api.blockcypher.com/v1/btc/main", {
       headers: { Authorization: `Bearer ${blockchainApiKey}` },
     });
-    if (!res.ok) return tsNs;
+    if (!res.ok) return { ts: tsNs, blockHeight: null };
     const data = await res.json();
     const height = data.height ?? 0;
     // XOR with block height; keep result as 9-digit string
     const salted = (BigInt(tsNs) ^ BigInt(height)) % BigInt(1_000_000_000);
-    return String(salted).padStart(9, "0");
+    return { ts: String(salted).padStart(9, "0"), blockHeight: height };
   } catch {
-    return tsNs;
+    return { ts: tsNs, blockHeight: null };
   }
 }
 
@@ -45,7 +47,7 @@ export default {
         await DB.prepare(
           "INSERT INTO vaultchain_ledger (timestamp, event, sha, status) VALUES (?, ?, ?, ?)"
         )
-          .bind(tsNs, "GITHUB_COMMIT", payload.after, "SEALED")
+          .bind(tsNs.ts, "GITHUB_COMMIT", payload.after, "SEALED")
           .run();
         return new Response("ANCHORED", { status: 200 });
       } catch (err) {
@@ -63,7 +65,7 @@ export default {
       await DB.prepare(
         "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
       )
-        .bind("HARDWARE_PERSISTENCE_SYNC", tsNs, GENESIS_ANCHOR)
+        .bind("HARDWARE_PERSISTENCE_SYNC", tsNs.ts, GENESIS_ANCHOR)
         .run();
       return new Response("⛓️⚓⛓️ SYNC_LOCKED", { status: 200 });
     }
@@ -107,12 +109,13 @@ export default {
       await DB.prepare(
         "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
       )
-        .bind("ALF_V4_LICENSE_VERIFY", tsNs, GENESIS_ANCHOR)
+        .bind("ALF_V4_LICENSE_VERIFY", tsNs.ts, GENESIS_ANCHOR)
         .run();
       return Response.json({
         status: "ALF_LICENSE_VALID",
         kernel_anchor: GENESIS_ANCHOR,
-        timestamp_ns: tsNs,
+        timestamp_ns: tsNs.ts,
+        block_ref: tsNs.blockHeight,
       });
     }
 

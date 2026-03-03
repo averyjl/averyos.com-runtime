@@ -124,6 +124,13 @@ function triggerTariBillingEngine(request: NextRequest): void {
 export async function middleware(request: NextRequest) {
   const url = new URL(request.url);
 
+  // Attach Link: header to robots.txt so crawlers can discover the Licensing Portal
+  if (url.pathname === '/robots.txt') {
+    const response = NextResponse.next();
+    response.headers.set('Link', '<https://averyos.com/licensing>; rel="license"');
+    return response;
+  }
+
   // GabrielOS Legal Tripwire: fire-and-forget audit log for protected paths
   if (GATEKEEPER_AUDIT_PATHS.has(url.pathname)) {
     logSovereignAudit(request).catch(() => {});
