@@ -16,6 +16,22 @@ interface AuditStreamEntry {
   threat_level: number | null;
 }
 
+const CORPORATE_CRAWLER_PATTERNS: { pattern: RegExp; label: string }[] = [
+  { pattern: /microsoft|bingbot|msnbot/i, label: "MICROSOFT" },
+  { pattern: /google(bot)?|googlebot/i, label: "GOOGLE" },
+  { pattern: /meta|facebookexternalhit|facebot/i, label: "META" },
+  { pattern: /amazon|aws|alexa/i, label: "AMAZON" },
+  { pattern: /apple|applebot/i, label: "APPLE" },
+];
+
+function detectCorporateCrawler(entry: AuditStreamEntry): string | null {
+  const haystack = [entry.user_agent ?? "", entry.event_type].join(" ");
+  for (const { pattern, label } of CORPORATE_CRAWLER_PATTERNS) {
+    if (pattern.test(haystack)) return label;
+  }
+  return null;
+}
+
 interface InfrastructureAccessStreamProps {
   isAuthenticated: boolean;
 }
@@ -205,6 +221,22 @@ function AccessStreamInner() {
                   | {entry.ip_address}
                   {entry.geo_location ? ` | ${entry.geo_location}` : ""}
                 </span>{" "}
+                {crawlerLabel && (
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      padding: "0 0.3rem",
+                      borderRadius: "2px",
+                      background: "rgba(255,0,0,0.2)",
+                      border: "1px solid #FF0000",
+                      color: "#FF0000",
+                      fontWeight: 700,
+                      marginRight: "0.25rem",
+                    }}
+                  >
+                    ⚠️ {crawlerLabel}
+                  </span>
+                )}
                 <span
                   style={{
                     fontSize: "0.62rem",
