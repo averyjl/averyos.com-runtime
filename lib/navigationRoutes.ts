@@ -10,6 +10,7 @@ export type NavigationRoute = {
 };
 
 export const navigationRoutes: NavigationRoute[] = [
+  { path: "/whitepaper", label: "Whitepaper", icon: "📖" },
   { path: "/license", label: "License", icon: "🔐" },
   { path: "/licensing", label: "Licensing Hub", icon: "📋" },
   { path: "/tari-gate", label: "TARI Portal", icon: "💰" },

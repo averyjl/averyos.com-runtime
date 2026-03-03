@@ -1,10 +1,61 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA } from '../../../../lib/sovereignConstants';
 
+const GENESIS_BTC_HEIGHT = 938909;
+const GENESIS_REPO = 'averyjl/averyos.com-runtime';
+
+interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  first<T = unknown>(): Promise<T | null>;
+  run(): Promise<{ success: boolean }>;
+}
+
 interface D1Database {
-  prepare(query: string): {
-    first(): Promise<unknown>;
-  };
+  prepare(query: string): D1PreparedStatement;
+}
+
+async function ensureSovereignTables(db: D1Database): Promise<void> {
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS sovereign_builds (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      repo_name          TEXT    NOT NULL,
+      commit_sha         TEXT    NOT NULL,
+      artifact_hash      TEXT    NOT NULL,
+      provenance_data    TEXT,
+      hardware_signature TEXT,
+      btc_anchor_height  INTEGER,
+      registered_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+      sealed_at          TEXT
+    )`
+  ).run();
+
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS vaultchain_transactions (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      transaction_id   TEXT    NOT NULL UNIQUE,
+      timestamp        TEXT    NOT NULL,
+      event_type       TEXT    NOT NULL,
+      private_capsule_sha512 TEXT NOT NULL,
+      target           TEXT    NOT NULL DEFAULT '',
+      details          TEXT    NOT NULL DEFAULT '',
+      created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+    )`
+  ).run();
+
+  // Seed genesis row if table is empty
+  const existing = await db.prepare('SELECT id FROM sovereign_builds LIMIT 1').first<{ id: number }>();
+  if (!existing) {
+    await db.prepare(
+      `INSERT INTO sovereign_builds (repo_name, commit_sha, artifact_hash, btc_anchor_height, registered_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(
+      GENESIS_REPO,
+      KERNEL_SHA,
+      KERNEL_SHA,
+      GENESIS_BTC_HEIGHT,
+      new Date().toISOString()
+    ).run();
+  }
 }
 
 interface CloudflareEnv {
@@ -24,6 +75,8 @@ export async function GET() {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
+
+    await ensureSovereignTables(cfEnv.DB);
 
     const row = await cfEnv.DB.prepare(
       'SELECT id, build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at FROM kernel_metadata ORDER BY id ASC LIMIT 1'
