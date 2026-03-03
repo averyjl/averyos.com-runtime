@@ -167,7 +167,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
           <div className="cta-row" style={{ marginTop: "1.25rem" }}>
             <Link href="/vault/vaultchain-status" className="primary-link">⛓️ VaultChain™ Status</Link>
             <Link href="/tari-gate" className="primary-link">🔐 TARI Licensing Portal</Link>
-            <Link href="/whitepaper/" className="secondary-link">📄 Whitepaper</Link>
+            <Link href="/whitepaper/" className="secondary-link">⛓️ AveryOS™ Whitepaper (v2.0)</Link>
             <Link href="/about/" className="secondary-link">ℹ️ About AveryOS™</Link>
           </div>
         </section>

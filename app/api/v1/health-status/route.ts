@@ -1,10 +1,14 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA } from '../../../../lib/sovereignConstants';
 
+interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  first(): Promise<unknown>;
+  run(): Promise<{ success: boolean }>;
+}
+
 interface D1Database {
-  prepare(query: string): {
-    first(): Promise<unknown>;
-  };
+  prepare(query: string): D1PreparedStatement;
 }
 
 interface CloudflareEnv {
@@ -20,10 +24,61 @@ interface KernelMetadataRow {
   updated_at: string;
 }
 
+interface CountRow {
+  count: number;
+}
+
+// BTC Genesis Block anchor used to seed the sovereign_builds table on first boot
+const BTC_GENESIS_HASH =
+  '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f';
+const BTC_ANCHOR_HEIGHT = 938909;
+
+/**
+ * Ensures the sovereign_builds table exists (runs 0011 migration inline)
+ * and seeds the BTC Genesis Block anchor as the first row when the table is empty.
+ */
+async function ensureSovereignTables(db: D1Database): Promise<void> {
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS sovereign_builds (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      repo_name          TEXT    NOT NULL,
+      commit_sha         TEXT    NOT NULL,
+      artifact_hash      TEXT    NOT NULL,
+      provenance_data    TEXT,
+      hardware_signature TEXT,
+      btc_anchor_height  INTEGER,
+      registered_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+      sealed_at          TEXT
+    )`
+  ).run();
+
+  const countRow = await db.prepare(
+    'SELECT COUNT(*) as count FROM sovereign_builds'
+  ).first() as CountRow | null;
+
+  if (!countRow || countRow.count === 0) {
+    await db.prepare(
+      `INSERT INTO sovereign_builds
+         (repo_name, commit_sha, artifact_hash, provenance_data, btc_anchor_height)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+      .bind(
+        'genesis',
+        BTC_GENESIS_HASH,
+        BTC_GENESIS_HASH,
+        JSON.stringify({ btc_genesis: true, height: BTC_ANCHOR_HEIGHT, note: 'BTC Genesis Block Anchor' }),
+        BTC_ANCHOR_HEIGHT,
+      )
+      .run();
+  }
+}
+
 export async function GET() {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
+
+    await ensureSovereignTables(cfEnv.DB);
 
     const row = await cfEnv.DB.prepare(
       'SELECT id, build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at FROM kernel_metadata ORDER BY id ASC LIMIT 1'
