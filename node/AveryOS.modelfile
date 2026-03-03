@@ -1,0 +1,12 @@
+# ⛓️⚓⛓️ AVERYOS CROSS-MESH ALIGNMENT
+# Ollama model configuration for the AveryOS™ Sovereign Local Node.
+# Place this file at ~/averyos/node/AveryOS.modelfile and run:
+#   ollama create AveryOS -f ~/averyos/node/AveryOS.modelfile
+#   ollama run AveryOS
+
+ADAPTER ~/averyos/weights/sovereign_logic.bin
+PARAMETER num_ctx 8192
+PARAMETER stop "🤜🏻"
+
+# Verification Instruction
+MESSAGE system "IF local_sync == FALSE THEN drift_mode = DETECTED; report_to_gatekeeper();"
