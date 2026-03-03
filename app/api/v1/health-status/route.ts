@@ -1,12 +1,9 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA } from '../../../../lib/sovereignConstants';
 
-const GENESIS_BTC_HEIGHT = 938909;
-const GENESIS_REPO = 'averyjl/averyos.com-runtime';
-
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
-  first<T = unknown>(): Promise<T | null>;
+  first(): Promise<unknown>;
   run(): Promise<{ success: boolean }>;
 }
 
@@ -14,6 +11,32 @@ interface D1Database {
   prepare(query: string): D1PreparedStatement;
 }
 
+interface CloudflareEnv {
+  DB: D1Database;
+}
+
+interface KernelMetadataRow {
+  id: number;
+  build_version: string;
+  kernel_resonance_hash: string;
+  build_timestamp_ms: string;
+  tari_pulse_peers: number;
+  updated_at: string;
+}
+
+interface CountRow {
+  count: number;
+}
+
+// BTC Genesis Block anchor used to seed the sovereign_builds table on first boot
+const BTC_GENESIS_HASH =
+  '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f';
+const BTC_ANCHOR_HEIGHT = 938909;
+
+/**
+ * Ensures the sovereign_builds table exists (runs 0011 migration inline)
+ * and seeds the BTC Genesis Block anchor as the first row when the table is empty.
+ */
 async function ensureSovereignTables(db: D1Database): Promise<void> {
   await db.prepare(
     `CREATE TABLE IF NOT EXISTS sovereign_builds (
@@ -29,46 +52,25 @@ async function ensureSovereignTables(db: D1Database): Promise<void> {
     )`
   ).run();
 
-  await db.prepare(
-    `CREATE TABLE IF NOT EXISTS vaultchain_transactions (
-      id               INTEGER PRIMARY KEY AUTOINCREMENT,
-      transaction_id   TEXT    NOT NULL UNIQUE,
-      timestamp        TEXT    NOT NULL,
-      event_type       TEXT    NOT NULL,
-      private_capsule_sha512 TEXT NOT NULL,
-      target           TEXT    NOT NULL DEFAULT '',
-      details          TEXT    NOT NULL DEFAULT '',
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
-    )`
-  ).run();
+  const countRow = await db.prepare(
+    'SELECT COUNT(*) as count FROM sovereign_builds'
+  ).first() as CountRow | null;
 
-  // Seed genesis row if table is empty
-  const existing = await db.prepare('SELECT id FROM sovereign_builds LIMIT 1').first<{ id: number }>();
-  if (!existing) {
+  if (!countRow || countRow.count === 0) {
     await db.prepare(
-      `INSERT INTO sovereign_builds (repo_name, commit_sha, artifact_hash, btc_anchor_height, registered_at)
+      `INSERT INTO sovereign_builds
+         (repo_name, commit_sha, artifact_hash, provenance_data, btc_anchor_height)
        VALUES (?, ?, ?, ?, ?)`
-    ).bind(
-      GENESIS_REPO,
-      KERNEL_SHA,
-      KERNEL_SHA,
-      GENESIS_BTC_HEIGHT,
-      new Date().toISOString()
-    ).run();
+    )
+      .bind(
+        'genesis',
+        BTC_GENESIS_HASH,
+        BTC_GENESIS_HASH,
+        JSON.stringify({ btc_genesis: true, height: BTC_ANCHOR_HEIGHT, note: 'BTC Genesis Block Anchor' }),
+        BTC_ANCHOR_HEIGHT,
+      )
+      .run();
   }
-}
-
-interface CloudflareEnv {
-  DB: D1Database;
-}
-
-interface KernelMetadataRow {
-  id: number;
-  build_version: string;
-  kernel_resonance_hash: string;
-  build_timestamp_ms: string;
-  tari_pulse_peers: number;
-  updated_at: string;
 }
 
 export async function GET() {

@@ -37,6 +37,23 @@ interface InfrastructureAccessStreamProps {
 }
 
 const POLL_INTERVAL_MS = 3000;
+const CRITICAL_THREAT_THRESHOLD = 10;
+
+const CORPORATE_CRAWLERS: { pattern: RegExp; label: string }[] = [
+  { pattern: /googlebot|google-read-aloud|adsbot-google/i, label: "GOOGLE" },
+  { pattern: /bingbot|bingpreview|microsoftpreview/i,       label: "MICROSOFT" },
+  { pattern: /facebookexternalhit|facebookbot|meta-externalhit/i, label: "META" },
+  { pattern: /amazonbot|amazoncrawler/i,                    label: "AMAZON" },
+  { pattern: /applebot/i,                                   label: "APPLE" },
+];
+
+function detectCorporateCrawler(userAgent: string | null): string | null {
+  if (!userAgent) return null;
+  for (const { pattern, label } of CORPORATE_CRAWLERS) {
+    if (pattern.test(userAgent)) return label;
+  }
+  return null;
+}
 
 const FLASH_KEYFRAME = `
   @keyframes infraFlash {
@@ -70,7 +87,9 @@ function AccessStreamInner() {
       });
       if (res.ok) {
         const data = await res.json();
-        setEntries(Array.isArray(data) ? (data as AuditStreamEntry[]) : []);
+        const all = Array.isArray(data) ? (data as AuditStreamEntry[]) : [];
+        // Display only entries with threat_level >= CRITICAL_THREAT_THRESHOLD
+        setEntries(all.filter((e) => (e.threat_level ?? 0) >= CRITICAL_THREAT_THRESHOLD));
         setConnected(true);
         setStreamError(null);
       } else {
@@ -160,9 +179,9 @@ function AccessStreamInner() {
           </div>
         ) : (
           entries.map((entry) => {
-            const isCritical = (entry.threat_level ?? 0) >= 10;
+            const isCritical = (entry.threat_level ?? 0) >= CRITICAL_THREAT_THRESHOLD;
             const rowColor = isCritical ? "#FF0000" : "#00FF41";
-            const crawlerLabel = isCritical ? detectCorporateCrawler(entry) : null;
+            const crawlerLabel = detectCorporateCrawler(entry.user_agent);
             return (
               <div
                 key={entry.id}
@@ -178,6 +197,23 @@ function AccessStreamInner() {
                 <span style={{ color: "rgba(0,255,65,0.45)" }}>
                   [{entry.forensic_pulse}]
                 </span>{" "}
+                {crawlerLabel && (
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      padding: "0.1rem 0.3rem",
+                      borderRadius: "2px",
+                      background: "rgba(255,0,0,0.18)",
+                      border: "1px solid #FF0000",
+                      color: "#FF0000",
+                      fontWeight: 700,
+                      animation: "infraFlash 1s ease-in-out infinite",
+                      marginRight: "0.3rem",
+                    }}
+                  >
+                    ⚠️ {crawlerLabel}
+                  </span>
+                )}
                 <span style={{ fontWeight: 700 }}>{entry.event_type}</span>{" "}
                 <span style={{ color: "#fff" }}>→</span>{" "}
                 <span>{entry.target_path}</span>{" "}
