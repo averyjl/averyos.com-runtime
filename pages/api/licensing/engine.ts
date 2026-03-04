@@ -151,7 +151,7 @@ async function logStripetruthPacket(
     return null;
   }
 
-  const stripe = new Stripe(stripeKey, { apiVersion: "2026-01-28.clover" });
+  const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
 
   const createParams: Stripe.PaymentIntentCreateParams = {
     amount: TRUTH_PACKET_AMOUNT_CENTS,
