@@ -33,5 +33,4 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️" },
-  { path: "/whitepaper", label: "Whitepaper", icon: "📖" },
 ];

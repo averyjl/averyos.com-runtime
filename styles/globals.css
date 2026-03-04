@@ -692,6 +692,51 @@ a {
   code {
     word-break: break-all;
   }
+
+  /* Inline-styled page sections (contact, about, etc.) */
+  .page section[style],
+  .page article[style] {
+    padding: 1.25rem !important;
+  }
+
+  /* Forms: inputs, textareas, buttons */
+  input,
+  textarea,
+  select {
+    font-size: 1rem; /* prevents iOS zoom on focus */
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Truthforce / whitepaper content */
+  .truthforce-content {
+    padding: 1.25rem !important;
+    font-size: 0.95rem;
+  }
+
+  .truthforce-content h1 {
+    font-size: 1.5rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .truthforce-content h2 {
+    font-size: 1.2rem;
+    word-break: break-word;
+  }
+
+  /* Long monospace strings (SHA hashes) */
+  .truthforce-content code,
+  .truthforce-content pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.78rem;
+  }
+
+  /* Capsule marketplace grid */
+  .capsule-marketplace-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -709,6 +754,16 @@ a {
 
   .card {
     padding: 0.85rem;
+  }
+
+  /* Inline-styled sections need extra reduction on very small screens */
+  .page section[style],
+  .page article[style] {
+    padding: 1rem !important;
+  }
+
+  .truthforce-content {
+    padding: 1rem !important;
   }
 }
 
