@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       `INSERT INTO sovereign_alignments
          (target_ip, bundle_id, stripe_session_id, tari_liability_cents,
           status, certificate_sha512, issued_at, expires_at, kernel_sha, kernel_version)
-       VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(stripe_session_id) DO UPDATE SET
          status = 'ACTIVE',
          certificate_sha512 = excluded.certificate_sha512,
@@ -144,6 +144,7 @@ export async function POST(request: Request) {
         bundleId,
         sessionId,
         tariLiabilityCents,
+        "ACTIVE",
         certSha512,
         issuedAt,
         expiresAt,
