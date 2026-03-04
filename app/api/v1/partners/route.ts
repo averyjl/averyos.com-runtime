@@ -24,6 +24,8 @@ export interface PartnerRow {
   status: string;
 }
 
+const MAX_PARTNERS_PER_REQUEST = 100;
+
 /**
  * GET /api/v1/partners
  * Returns all ACTIVE sovereign alignment records for the Partner Directory.
@@ -39,7 +41,7 @@ export async function GET() {
        FROM sovereign_alignments
        WHERE status = 'ACTIVE'
        ORDER BY aligned_at DESC
-       LIMIT 100`,
+       LIMIT ${MAX_PARTNERS_PER_REQUEST}`,
     ).all<PartnerRow>();
 
     return Response.json({ partners: results });

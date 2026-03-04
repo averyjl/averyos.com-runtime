@@ -1,4 +1,4 @@
-import { KERNEL_SHA } from './sovereignConstants';
+import { KERNEL_SHA, DEFAULT_TARI_REFERENCE } from './sovereignConstants';
 
 const DEFAULT_SITE_URL =
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SITE_URL) ||
@@ -53,7 +53,7 @@ export async function generateAlignmentCertificate(
   options: CertificateOptions,
 ): Promise<GeneratedCertificate> {
   const { partnerId, partnerName, settlementId } = options;
-  const tariReference = options.tariReference ?? 'TARI-SETTLE-1017-001';
+  const tariReference = options.tariReference ?? DEFAULT_TARI_REFERENCE;
   const timestamp = options.timestamp ?? new Date().toISOString();
   const validUntil =
     options.validUntil ??

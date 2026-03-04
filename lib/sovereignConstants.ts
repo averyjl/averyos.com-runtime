@@ -20,3 +20,6 @@ export type AlignmentType = typeof ALIGNMENT_TYPE_CORPORATE | typeof ALIGNMENT_T
 export const BADGE_STATUS_ACTIVE = "ACTIVE" as const;
 export const BADGE_STATUS_REVOKED = "REVOKED" as const;
 export type BadgeStatus = typeof BADGE_STATUS_ACTIVE | typeof BADGE_STATUS_REVOKED;
+
+/** Default TARI™ settlement reference prefix for Sovereign Alignment Certificates */
+export const DEFAULT_TARI_REFERENCE = "TARI-SETTLE-1017-001";

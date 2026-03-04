@@ -9,6 +9,8 @@ const MONO = "JetBrains Mono, monospace";
 /** PoW difficulty: solution hash must begin with this many zero nibbles (hex chars). */
 const POW_DIFFICULTY = 4;
 const ENTRY_FEE_BASE = 1017;
+/** Maximum nonce attempts before giving up on the current puzzle. */
+const MAX_POW_ATTEMPTS = 2_000_000;
 
 type PoWStatus =
   | "idle"
@@ -168,8 +170,8 @@ export default function PoWGatewayPage() {
         await new Promise<void>((r) => setTimeout(r, 0));
       }
 
-      // Safety cap: stop after 2M attempts (~20M virtual cycles)
-      if (attempt > 2_000_000) {
+      // Safety cap: stop after MAX_POW_ATTEMPTS (~20M virtual cycles)
+      if (attempt > MAX_POW_ATTEMPTS) {
         setStatus("error");
         setErrorMsg("PoW puzzle exceeded maximum attempts. Please refresh and try again.");
         solveRef.current = false;
