@@ -21,7 +21,7 @@ export const NODE_02_LOCAL_MODEL: string =
 export const NODE_02_OLLAMA_URL: string =
   process.env.NODE_02_OLLAMA_URL ?? "http://localhost:11434";
 
-/** Anchor salt sourced from environment (Avril). Used for node-specific handshake salting. */
+/** Anchor salt sourced from environment (AveryOS). Used for node-specific handshake salting. */
 export const SOVEREIGN_ANCHOR_SALT: string =
   process.env.SOVEREIGN_ANCHOR_SALT ?? "";
 
