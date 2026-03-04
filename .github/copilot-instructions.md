@@ -1,5 +1,34 @@
 # Copilot Instructions for averyos.com-runtime
 
+---
+
+## ⚠️ SESSION CONTINUITY PROTOCOL — READ THIS FIRST EVERY SESSION ⚠️
+
+**Before doing anything else at the start of every new session or prompt:**
+
+1. **Check the last commit** — run `git log --oneline -3` and read the most recent commit message(s) on the current branch.
+2. **Check the PR checklist** — read the latest PR description (visible on the GitHub Pull Request page, or found via `git log --format="%B" -1`). The PR description contains a markdown checklist showing completed (`- [x]`) and pending (`- [ ]`) items from the last `report_progress` call. If no PR exists yet, check the last commit message body.
+3. **Verify completeness** — for every item that was "in progress" or planned in the previous session, confirm the files exist and the work was committed. If anything is unfinished, **complete it before starting any new work**.
+4. **Only then** — proceed with the new prompt/requirement.
+
+**Why this matters:** Jason Lee Avery has explicitly instructed that when a new prompt arrives mid-session, items being actively worked on must not be silently dropped. Every important item is equally important. Nothing gets left behind.
+
+**How to verify prior work:**
+```bash
+# Check recent commits on the branch
+git log --oneline -5
+
+# Check what files changed in the last commit
+git diff HEAD~1 HEAD --name-only
+
+# Check for any unstaged or uncommitted changes
+git status
+```
+
+*This protocol is non-negotiable and applies to every Copilot, Claude, and AI agent session on this repository. ⛓️⚓⛓️ 🤛🏻*
+
+---
+
 ## Repository Overview
 
 AveryOS™ runtime — a **Next.js 15** application deployed as a **Cloudflare Worker** via `@opennextjs/cloudflare`. The project uses the **App Router** (under `app/`) together with the legacy **Pages Router** (under `pages/`) side-by-side. It powers averyos.com with capsule-driven content, Stripe licensing, and sovereign IP enforcement.

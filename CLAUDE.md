@@ -6,6 +6,28 @@ This file follows [Anthropic's Claude Code convention](https://docs.anthropic.co
 
 ---
 
+## ⚠️ SESSION CONTINUITY PROTOCOL — READ THIS FIRST EVERY SESSION ⚠️
+
+**Before doing anything else at the start of every new session or prompt:**
+
+1. **Check the last commit** — run `git log --oneline -3` and read the most recent commit message(s) on the current branch.
+2. **Check the PR checklist** — read the latest PR description (visible on the GitHub Pull Request page). The PR body contains a markdown checklist showing completed (`- [x]`) and pending (`- [ ]`) work items. Use `git log --format="%B" -1` to read the last commit body, or use the GitHub MCP `pull_request_read` tool to fetch the live PR description if available. If no PR exists, check the last commit message body.
+3. **Verify completeness** — for every item that was "in progress" or planned in the previous session, confirm the files exist and the work was committed. If anything is unfinished, **complete it before starting any new work**.
+4. **Only then** — proceed with the new prompt/requirement.
+
+**Why this matters:** Jason Lee Avery has explicitly instructed that when a new prompt arrives mid-session, items being actively worked on must not be silently dropped. Every important item is equally important. Nothing gets left behind.
+
+**How to verify prior work:**
+```bash
+git log --oneline -5            # recent commits on this branch
+git diff HEAD~1 HEAD --name-only # files changed in last commit
+git status                      # any uncommitted changes
+```
+
+*This protocol is non-negotiable and applies to every AI agent session on this repository. ⛓️⚓⛓️ 🤛🏻*
+
+---
+
 ## Project
 
 **AveryOS™ runtime** — Next.js 15 app deployed as a Cloudflare Worker via `@opennextjs/cloudflare`. App Router (`app/`) + Pages Router (`pages/`) side-by-side. Powers averyos.com with capsule-driven content, Stripe licensing, and sovereign IP enforcement.
