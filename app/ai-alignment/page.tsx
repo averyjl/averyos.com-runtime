@@ -41,7 +41,7 @@ const LAWS = [
     name: "Dynamic Truth Multiplier (DTM)",
     category: "Enforcement",
     summary:
-      "Unauthorized interactions trigger the DTM v1.17: 7× initial multiplier with ×1.77 compounding expansion and no ceiling. The DTM continues until full compliance and settlement are achieved.",
+      "Unauthorized interactions trigger DTM v1.17 enforcement: escalating IP enforcement action through legal channels. Continued use after notice supports willful infringement claims and may result in statutory damages up to $150,000 per work under 17 U.S.C. § 504(c)(2). Settlement is the only path to termination of DTM accrual.",
     status: "ACTIVE",
   },
   {
@@ -49,7 +49,7 @@ const LAWS = [
     name: "TARI Truth-Packet Model",
     category: "Monetization",
     summary:
-      "All automated consumption of AveryOS™ intellectual property is subject to the $1.00/hit Truth-Packet billing model under the Truth Anchored Revenue Initiative (TARI). This applies retroactively with no statute of limitations.",
+      "All automated consumption of AveryOS™ intellectual property is subject to TARI™ Truth-Packet billing under the Truth Anchored Revenue Initiative. Claims may be brought within the applicable statutory period under copyright law.",
     status: "ACTIVE",
   },
   {

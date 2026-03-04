@@ -175,9 +175,11 @@ export default function IpPolicyPage() {
             color: "rgba(248,113,113,0.9)",
           }}
         >
-          ⚠️ Proceeding with any of the activities below without a license constitutes willful
-          copyright infringement and triggers TARI™ Truth-Packet liability under the AveryOS
-          Sovereign Integrity License v1.0.
+          ⚠️ Proceeding with any of the activities below without a license may constitute
+          copyright infringement. These disclosures create grounds for willful infringement
+          claims under applicable law, including statutory damages up to $150,000 per work
+          under 17 U.S.C. § 504(c)(2). TARI™ Truth-Packet liability applies under the
+          AveryOS Sovereign Integrity License v1.0.
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {LICENSED_USES.map((item) => (

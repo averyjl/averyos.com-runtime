@@ -19,10 +19,13 @@ const TARI_LIABILITY = {
  * Verify a HMAC-SHA-256 signature on an inbound Sentinel webhook payload.
  * The BITCOIN_API_KEY is used as the HMAC key (salt), binding every alert
  * cryptographically to the sovereign BTC block anchor.
- * Returns true if the signature is valid, false otherwise.
+ * Returns true if the signature is valid.
+ * Returns false if the signature is invalid.
+ * Returns null if BITCOIN_API_KEY is not configured (configuration error — not an auth failure).
  */
 async function verifySentinelHmac(body, signature, bitcoinApiKey) {
-  if (!signature || !bitcoinApiKey) return false;
+  if (!bitcoinApiKey) return null;   // null = config error, distinct from false = bad sig
+  if (!signature) return false;
   try {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
