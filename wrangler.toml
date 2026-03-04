@@ -18,6 +18,13 @@ NODE_VERSION = "22"
 SITE_URL = "https://averyos.com"
 NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/"
 NEXT_TELEMETRY_DISABLED = "1"
+# Sovereign node labels (non-secret identifiers — real values set via Cloudflare secret store)
+NODE_01_LABEL = "Phone Node (NODE_01)"
+NODE_02_LABEL = "PC Node (NODE_02)"
+# DNS zone for TXT anchor verification
+CLOUDFLARE_DNS_ZONE = "averyos.com"
+# GoldenLockArtifact merkle root — used for runtime integrity assertion
+GOLDEN_LOCK_MERKLE_ROOT = "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe"
 
 [[kv_namespaces]]
 binding = "KV_LOGS"

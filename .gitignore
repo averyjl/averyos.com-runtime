@@ -52,3 +52,19 @@ SKC_*.json
 SST_*.json
 Casey*
 casey*
+# Private lock files (sovereign cold-storage — keep off-repo)
+KC.lock.json
+SKC.lock.json
+SKC-lock.json
+SST.lock.json
+ClockGate*.json
+clock_gate*.json
+# Private capsule key/vault files
+*.aoskey
+*.aosvault
+*.aosmem
+*.vccaps
+# Local sovereign node config (PC / phone / anchor salt)
+.sovereign-nodes.json
+.anchor-salt
+sovereign-nodes.local.*

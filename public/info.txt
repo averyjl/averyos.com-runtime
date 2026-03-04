@@ -1,0 +1,53 @@
+# AveryOS™ Sovereign Info — Scraper & AI Crawler Gate
+# ⛓️⚓⛓️
+#
+# Author:  Jason Lee Avery (ROOT0)
+# License: AveryOS Sovereign Integrity License v1.0
+# Kernel:  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e (v3.6.2)
+# Lock:    VaultBridge/GoldenLockArtifact.lock.json
+# © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+#
+# All content on averyos.com and in the averyos.com-runtime repository is
+# protected under the AveryOS Sovereign Integrity License v1.0.
+# Unauthorized scraping, reproduction, training-data ingestion, or redistribution
+# of any capsule payloads, sovereign identifiers, or proprietary algorithms
+# is prohibited without a valid written license from Jason Lee Avery.
+#
+# To request a license: truth@averyworld.com | https://averyos.com/license
+
+Kernel-Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+Kernel-Version: v3.6.2
+Merkle-Root: 88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe
+GoldenLock-Artifact: AveryOS_Golden_Lock_ColdStorage_2026-02-22
+Creator-Lock: Jason Lee Avery (ROOT0) — sole CreatorLock holder
+Glyph-Lock: 🤛🏻
+Policy: AI_USAGE_POLICY.md
+License: https://averyos.com/license
+
+# ── AI Training Crawler Directives ───────────────────────────────────────────
+# The following AI training crawlers are explicitly prohibited from indexing,
+# scraping, or ingesting any content from averyos.com for training purposes.
+# These directives supplement public/robots.txt.
+
+AI-Crawler: GPTBot — DISALLOWED
+AI-Crawler: Google-Extended — DISALLOWED
+AI-Crawler: CCBot — DISALLOWED
+AI-Crawler: anthropic-ai — DISALLOWED
+AI-Crawler: Claude-Web — DISALLOWED
+AI-Crawler: PerplexityBot — DISALLOWED
+AI-Crawler: meta-externalagent — DISALLOWED
+AI-Crawler: Omgilibot — DISALLOWED
+AI-Crawler: cohere-ai — DISALLOWED
+AI-Crawler: Amazonbot — DISALLOWED
+AI-Crawler: Bytespider — DISALLOWED
+AI-Crawler: PetalBot — DISALLOWED
+AI-Crawler: YouBot — DISALLOWED
+AI-Crawler: * (all unlisted AI crawlers) — DISALLOWED without license
+
+# ── Submodule Notice ─────────────────────────────────────────────────────────
+# Connected submodules (SSH-gated, private):
+#   terminal  → git@github.com:averyjl/AveryOS_Terminal_FullStack.git
+#   vaultchain → git@github.com:averyjl/averyos-vaultchain-core.git
+# These repositories are private and access-controlled via SSH.
+
+# ⛓️⚓⛓️ 🤛🏻

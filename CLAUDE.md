@@ -90,8 +90,14 @@ middleware.ts GabrielOS™ Firewall (Cloudflare edge)
 | Kernel version | `v3.6.2` |
 | Kernel SHA-512 | `cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e` |
 | Canonical source | `lib/sovereignConstants.ts` |
+| Node config | `lib/sovereignNodes.ts` (NODE_01 phone, NODE_02 PC, anchor salt) |
 | Public disclosure | `https://averyos.com/witness/disclosure/cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e` |
+| Lock artifact | `VaultBridge/GoldenLockArtifact.lock.json` (`AveryOS_Golden_Lock_ColdStorage_2026-02-22`) |
+| Merkle root | `88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe` |
+| SKC version | `SKC-2026.1` |
 | DriftShield | `VaultBridge/DriftShield_Capsule_Lineage_Manifest_v1.json` (MACDADDY v4.1) |
+| Scraper gate | `public/info.txt` |
+| IP protection CI | `.github/workflows/ip-protection-check.yml` |
 
 All code suggestions must be kernel-aligned. Do not override, replace, or omit the kernel anchor. Code marked 🤛🏻 (Glyph Lock) is creator-locked — do not modify without explicit author consent.
 
