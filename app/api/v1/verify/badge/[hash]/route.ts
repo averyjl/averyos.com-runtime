@@ -1,112 +1,81 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { BADGE_STATUS_ACTIVE } from '../../../../lib/sovereignConstants';
 
-interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  first<T = unknown>(): Promise<T | null>;
-  run(): Promise<{ success: boolean }>;
+interface D1Result {
+  partner_id: string;
+  email: string;
+  alignment_type: string;
+  aligned_at: string;
+  status: string;
 }
 
 interface D1Database {
-  prepare(query: string): D1PreparedStatement;
+  prepare(query: string): {
+    bind(...args: unknown[]): {
+      first<T = unknown>(): Promise<T | null>;
+    };
+  };
 }
 
 interface CloudflareEnv {
   DB: D1Database;
 }
 
-interface AlignmentRecord {
-  partner_id: string;
-  origin_domain: string;
-  badge_hash: string;
-}
-
 interface RouteParams {
   params: Promise<{ hash: string }>;
 }
 
-/** CORS headers — badge verification is open-public so any partner site can call it. */
-const CORS_HEADERS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-/** Strip leading protocol and normalise www. prefix for domain comparison. */
-function normalizeDomain(raw: string): string {
-  return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-}
-
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
-}
-
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(_request: Request, { params }: RouteParams) {
   const { hash } = await params;
 
   if (!hash || !/^[a-fA-F0-9]{128}$/.test(hash)) {
     return Response.json(
       { error: 'INVALID_HASH', detail: 'Hash must be a 128-character SHA-512 hex string' },
-      { status: 400, headers: CORS_HEADERS },
+      { status: 400 },
     );
-  }
-
-  // Extract the presenting domain from the Referer header for domain-lock check
-  const refererHeader = request.headers.get('Referer') ?? '';
-  let refererDomain = '';
-  try {
-    if (refererHeader) {
-      refererDomain = normalizeDomain(new URL(refererHeader).hostname);
-    }
-  } catch {
-    // malformed Referer — leave refererDomain empty; verification will fail
   }
 
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    // Ensure table exists (idempotent bootstrap)
-    await cfEnv.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS sovereign_alignments (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-        partner_id   TEXT NOT NULL,
-        origin_domain TEXT NOT NULL,
-        badge_hash   TEXT NOT NULL UNIQUE,
-        created_at   TEXT NOT NULL DEFAULT (datetime('now'))
-      )`,
-    ).run();
-
-    const record = await cfEnv.DB.prepare(
-      'SELECT partner_id, origin_domain, badge_hash FROM sovereign_alignments WHERE badge_hash = ?',
+    const row = await cfEnv.DB.prepare(
+      'SELECT partner_id, email, alignment_type, aligned_at, status FROM sovereign_alignments WHERE badge_hash = ? LIMIT 1',
     )
       .bind(hash)
-      .first<AlignmentRecord>();
+      .first<D1Result>();
 
-    if (!record) {
+    if (!row) {
       return Response.json(
-        { error: 'BADGE_NOT_FOUND', detail: 'No alignment record found for this badge hash' },
-        { status: 404, headers: CORS_HEADERS },
+        { error: 'NOT_FOUND', detail: 'No alignment found for this badge hash' },
+        { status: 404 },
       );
     }
 
-    const storedDomain = normalizeDomain(record.origin_domain);
-    const domainMatch = storedDomain === refererDomain;
+    if (row.status !== BADGE_STATUS_ACTIVE) {
+      return Response.json(
+        {
+          resonance: 'REVOKED',
+          badge_hash: hash,
+          partner_id: row.partner_id,
+          alignment_type: row.alignment_type,
+          aligned_at: row.aligned_at,
+          status: row.status,
+        },
+        { status: 410 },
+      );
+    }
 
-    return Response.json(
-      {
-        status: domainMatch ? 'BADGE_VERIFIED' : 'DOMAIN_MISMATCH',
-        partner_id: record.partner_id,
-        origin_domain: record.origin_domain,
-        referer_domain: refererDomain || null,
-        domain_locked: domainMatch,
-      },
-      { headers: CORS_HEADERS },
-    );
+    return Response.json({
+      resonance: 'VERIFIED',
+      badge_hash: hash,
+      partner_id: row.partner_id,
+      alignment_type: row.alignment_type,
+      aligned_at: row.aligned_at,
+      status: row.status,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: 'BADGE_VERIFY_ERROR', detail: message },
-      { status: 500, headers: CORS_HEADERS },
-    );
+    return Response.json({ error: 'RESONANCE_CHECK_ERROR', detail: message }, { status: 500 });
   }
 }

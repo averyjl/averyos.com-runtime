@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { KERNEL_SHA } from "../../../lib/sovereignConstants";
+import { KERNEL_SHA, ALIGNMENT_TYPE_CORPORATE, ALIGNMENT_TYPE_INDIVIDUAL, type AlignmentType } from "../../../lib/sovereignConstants";
 
 const TOS_TEXT = `AveryOS™ Constitution (v2026) — Terms of Service
 
@@ -39,8 +39,12 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
   const [tosScrolled, setTosScrolled] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [alignmentType, setAlignmentType] = useState<AlignmentType | null>(null);
 
-  const CORPORATE_EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@(?!gmail\.|yahoo\.|hotmail\.|outlook\.|icloud\.|proton\.|aol\.)[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  const PERSONAL_DOMAIN_RE = /^[a-zA-Z0-9._%+\-]+@(gmail|yahoo|hotmail|outlook|icloud|proton|aol|msn|live|me|mac|googlemail)\./i;
+
+  const getAlignmentType = (addr: string): AlignmentType =>
+    PERSONAL_DOMAIN_RE.test(addr) ? ALIGNMENT_TYPE_INDIVIDUAL : ALIGNMENT_TYPE_CORPORATE;
 
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
@@ -53,8 +57,8 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
     e.preventDefault();
     setEmailError("");
 
-    if (!CORPORATE_EMAIL_RE.test(email)) {
-      setEmailError("A verified corporate email address is required (personal addresses not accepted).");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("A valid email address is required.");
       return;
     }
     if (!tosScrolled) {
@@ -66,6 +70,8 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
       return;
     }
 
+    const type = getAlignmentType(email);
+    setAlignmentType(type);
     setSubmitted(true);
     if (onAccepted) onAccepted(email);
   };
@@ -77,7 +83,8 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
         <h3 style={{ color: "#7894ff", margin: "0 0 0.5rem" }}>Access Granted</h3>
         <p style={{ color: "rgba(238,244,255,0.8)", margin: 0 }}>
           ToS accepted by <strong style={{ color: "#ffffff" }}>{email}</strong>.<br />
-          Your corporate identity is verified and anchored to the AveryOS™ Kernel.
+          Alignment type: <strong style={{ color: alignmentType === ALIGNMENT_TYPE_CORPORATE ? "#7894ff" : "#98d8a0" }}>{alignmentType}</strong><br />
+          Your identity is verified and anchored to the AveryOS™ Kernel.
         </p>
       </div>
     );
@@ -86,11 +93,12 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
   return (
     <div style={{ border: "1px solid rgba(120,148,255,0.3)", borderRadius: "8px", padding: "1.5rem", background: "rgba(0,0,0,0.3)" }}>
       <h3 style={{ color: "#7894ff", marginTop: 0 }}>
-        🔐 AveryOS™ Enterprise License Portal
+        🔐 AveryOS™ Sovereign License Portal
       </h3>
       <p style={{ color: "rgba(238,244,255,0.8)", fontSize: "0.9rem", lineHeight: "1.6" }}>
         Access to AveryOS™ Technical Solidification documents requires acceptance of the
-        AveryOS™ Constitution (v2026) and verification of your corporate identity.
+        AveryOS™ Constitution (v2026). All identities welcome — corporate and individual
+        alignments are both recognized and anchored to the Root0 Kernel.
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -131,14 +139,14 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
             htmlFor="lp-email"
             style={{ display: "block", color: "rgba(238,244,255,0.7)", fontSize: "0.8rem", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.08em" }}
           >
-            Corporate Email / Identity
+            Email / Identity
           </label>
           <input
             id="lp-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@yourcompany.com"
+            placeholder="you@example.com"
             required
             style={{
               width: "100%",
@@ -168,7 +176,7 @@ export default function LicensePortal({ onAccepted }: LicensePortalProps) {
             htmlFor="lp-accept"
             style={{ color: tosScrolled ? "rgba(238,244,255,0.85)" : "rgba(238,244,255,0.4)", fontSize: "0.85rem", lineHeight: "1.5", cursor: tosScrolled ? "pointer" : "not-allowed" }}
           >
-            I have read and accept the AveryOS™ Constitution (v2026) Terms of Service on behalf of my organization.
+            I have read and accept the AveryOS™ Constitution (v2026) Terms of Service.
           </label>
         </div>
 

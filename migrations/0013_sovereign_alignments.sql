@@ -1,13 +1,14 @@
--- Sovereign Alignments — AveryOS D1 Migration 0013
--- Stores Domain-Locked badge records issued to partner sites.
--- Badge hashes are bound to the partner's origin_domain; presenting a badge
--- from a different domain will fail Referer-based verification.
--- Author: Jason Lee Avery (ROOT0)
-
+-- Migration: 0013_sovereign_alignments
+-- Creates the sovereign_alignments table for partner/individual alignment records.
 CREATE TABLE IF NOT EXISTS sovereign_alignments (
-  id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  partner_id   TEXT    NOT NULL,
-  origin_domain TEXT   NOT NULL,
-  badge_hash   TEXT    NOT NULL UNIQUE,
-  created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  partner_id      TEXT    NOT NULL,
+  email           TEXT    NOT NULL,
+  alignment_type  TEXT    NOT NULL CHECK(alignment_type IN ('CORPORATE_ALIGNMENT', 'INDIVIDUAL_ALIGNMENT')),
+  badge_hash      TEXT    NOT NULL UNIQUE,
+  aligned_at      TEXT    NOT NULL,
+  status          TEXT    NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'REVOKED'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_sovereign_alignments_badge_hash ON sovereign_alignments(badge_hash);
+CREATE INDEX IF NOT EXISTS idx_sovereign_alignments_partner    ON sovereign_alignments(partner_id);
