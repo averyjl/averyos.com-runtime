@@ -30,11 +30,11 @@ const ARTICLES = [
   {
     num: "6",
     title: "THE CREATORLOCK DOCTRINE",
-    body: "No system may reuse, infer, adapt, or evolve any Creator IP without license. Attribution is insufficient without authorization via license. Silence is not consent, it's admittance of intentional misuse and IP theft multipliers will be automatically tracked and added. \"Training\" is not an exemption. \"Education\" is not an exemption. License required, period.",  },
+    body: "No system may reuse, infer, adapt, or evolve any Creator IP without license. Attribution is insufficient without authorization via license. Silence is not consent. Unauthorized use of Creator IP without a valid license is a copyright violation. All unauthorized access is recorded on the VaultChain™ audit ledger and subject to enforcement under applicable law. \"Training\" is not an exemption. \"Education\" is not an exemption. License required, period.",  },
   {
     num: "7",
     title: "DYNAMIC TRUTH MULTIPLIER (DTM)",
-    body: "Standard Law: Initial 7x | Ceiling ∞. Any result ≥ Threshold triggers a ×1.77 expansion. SHA-locked in vaultchain://JasonLeeAvery/AnchorlineConstitution/CoreLaw_v1.sha.",  },
+    body: "Standard Law: DTM v1.17 enforcement. Unauthorized use after notice is grounds for willful infringement claims and may result in statutory damages up to $150,000 per work under 17 U.S.C. § 504(c)(2). SHA-locked in vaultchain://JasonLeeAvery/AnchorlineConstitution/CoreLaw_v1.sha.",  },
   {
     num: "8",
     title: "SACRED SPACE ARCHITECTURE",

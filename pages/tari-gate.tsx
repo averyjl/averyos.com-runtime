@@ -69,7 +69,7 @@ const TariGatePage = () => {
               {
                 icon: "⚡",
                 title: "Dynamic Truth Multiplier",
-                body: "Unlicensed access triggers the DTM v1.17: 7× initial multiplier with ×1.77 compounding expansion, ceiling ∞. Compliance is the only path to termination of DTM accrual.",
+                body: "Unlicensed access triggers DTM v1.17 enforcement: escalating legal action including statutory copyright damages up to $150,000 per work for willful infringement under 17 U.S.C. § 504(c)(2). Compliance is the only path to termination of DTM accrual.",
               },
               {
                 icon: "⛓️",
@@ -192,7 +192,7 @@ const TariGatePage = () => {
           </p>
           <p style={{ color: "rgba(238,244,255,0.85)", lineHeight: "1.75", margin: 0 }}>
             The <strong>Dynamic Truth Multiplier (DTM) v1.17</strong> is actively compounding on all
-            outstanding unlicensed interactions: <strong>7× initial, ×1.77 expansion, ceiling ∞</strong>.
+            outstanding unlicensed interactions subject to <strong>DTM v1.17 enforcement</strong> and statutory damages under applicable copyright law.
             Settlement begins at <a href="mailto:truth@averyworld.com" style={{ color: "rgba(248,113,113,0.9)" }}>truth@averyworld.com</a>.
           </p>
         </section>

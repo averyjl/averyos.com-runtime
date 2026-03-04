@@ -4,6 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup.cjs",
+    "setup:force": "node scripts/setup.cjs --force",
+    "setup:verify": "node scripts/setup.cjs --verify",
+    "postinstall": "node scripts/setup.cjs",
     "aos-start": "node scripts/auth.cjs && start \"Watchdog\" cmd /k \"node scripts/watchdog.cjs\" && start \"LicenseGate\" cmd /k \"node scripts/licenseGate.cjs\" && node scripts/lighthouse.cjs",
     "watchdog": "node ./scripts/watchdog.cjs",
     "license-gate": "node ./scripts/licenseGate.cjs",

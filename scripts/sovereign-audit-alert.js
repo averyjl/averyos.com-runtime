@@ -1,253 +1,282 @@
+#!/usr/bin/env node
 /**
- * AveryOS™ Sovereign Audit Alert — GabrielOS™ Sentinel Integration
- * Author: Jason Lee Avery (ROOT0)
- * Kernel Anchor: cf83e135...927da3e
+ * AveryOS™ Sovereign Audit Alert — TARI™ Liability Engine v2.0
  *
- * Sends a real-time mobile push notification (via Pushover) for every
- * 401 Unaligned / Alignment-Drift forensic event detected by the
- * AveryOS™ Site Health Monitor or the GabrielOS™ Sentinel workers.
+ * ESM CLI script invoked from CI (site-health-monitor.yml) or standalone.
  *
- * Usage (CI / GitHub Actions):
+ * TARI™ Liability Schedule (calibrated values):
+ *   UNALIGNED_401    → $1,017.00  Forensic Alignment Entry Fee
+ *   ALIGNMENT_DRIFT  → $5,000.00  Correction Fee
+ *   PAYMENT_FAILED   → $10,000.00 Systemic Friction Fee
+ *
+ * Sends a Pushover priority-1 push notification (bypasses quiet hours) and
+ * optionally forwards a forensic payload to the GabrielOS™ Sentinel webhook.
+ * The Sentinel webhook payload is HMAC-SHA-256 signed using BITCOIN_API_KEY
+ * as the salt — ensuring the signal is cryptographically bound to the
+ * sovereign BTC block anchor.
+ *
+ * Usage (from CI):
  *   node scripts/sovereign-audit-alert.js \
+ *     --event UNALIGNED_401 \
  *     --ip 203.0.113.42 \
- *     --path /latent-anchor \
- *     --status 401 \
- *     --event-type UNALIGNED_401
+ *     --path /latent-anchor
  *
- * Required environment variables:
- *   PUSHOVER_APP_TOKEN  — Pushover application API token
- *   PUSHOVER_USER_KEY   — Pushover user / group key
+ * Environment variables (set as GitHub Actions secrets):
+ *   PUSHOVER_APP_TOKEN        — Pushover application token
+ *   PUSHOVER_USER_KEY         — Pushover user key
+ *   GABRIEL_SENTINEL_WEBHOOK  — GabrielOS™ Sentinel webhook URL
+ *   BITCOIN_API_KEY           — BlockCypher API key (used as HMAC salt)
+ *   KERNEL_SHA                — Override kernel SHA (falls back to hardcoded anchor)
  *
- * Optional environment variables:
- *   GABRIEL_SENTINEL_WEBHOOK — URL of the GabrielOS™ Sentinel worker
- *                              endpoint to forward the alert payload
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import crypto from 'crypto';
-import https from 'https';
-import http from 'http';
+import { createHmac } from "crypto";
+import { webcrypto } from "node:crypto";
 
-// Root0 genesis kernel SHA-512 anchor (matches lib/sovereignConstants.ts)
+// ---------------------------------------------------------------------------
+// Sovereign constants (inline — script has no module bundler)
+// ---------------------------------------------------------------------------
+
 const KERNEL_SHA =
-  'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+  process.env.KERNEL_SHA ??
+  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
-/** TARI™ liability rates per event type (USD) */
-const TARI_RATES = {
-  UNALIGNED_401: 1.00,
-  ALIGNMENT_DRIFT: 5.00,
-  PAYMENT_FAILED: 10.00,
+const KERNEL_VERSION = "v3.6.2";
+
+// ---------------------------------------------------------------------------
+// TARI™ Liability Schedule — calibrated values
+// ---------------------------------------------------------------------------
+
+/**
+ * UNALIGNED_401   $1,017.00 — Forensic Alignment Entry Fee
+ *   Charged per unaligned ingestion event (401 Unaligned response).
+ *   The base forensic entry cost for unauthorized access to sovereign IP.
+ *
+ * ALIGNMENT_DRIFT $5,000.00 — Correction Fee
+ *   Charged when a caller's alignment deviates from the canonical kernel.
+ *   Covers the cost of forensic verification and re-alignment work.
+ *
+ * PAYMENT_FAILED $10,000.00 — Systemic Friction Fee
+ *   NOT a charge for failing to pay — this is the Systemic Friction Fee
+ *   for the forensic work required to re-verify an entity's status after
+ *   a payment failure disrupts the sovereign audit chain.
+ */
+const TARI_LIABILITY = {
+  UNALIGNED_401: 1017.0,
+  ALIGNMENT_DRIFT: 5000.0,
+  PAYMENT_FAILED: 10000.0,
 };
 
-const DEFAULT_TARI_RATE = 1.00;
+const TARI_LIABILITY_LABELS = {
+  UNALIGNED_401: "Forensic Alignment Entry Fee",
+  ALIGNMENT_DRIFT: "Correction Fee",
+  PAYMENT_FAILED: "Systemic Friction Fee",
+};
 
-/**
- * Parses `--key value` pairs from process.argv.
- * Keys are camelCased (e.g. --event-type → eventType).
- * Boolean flags (no following value) are set to 'true'.
- */
-function parseCLIArgs() {
+// ---------------------------------------------------------------------------
+// CLI argument parsing
+// ---------------------------------------------------------------------------
+
+function parseArgs() {
   const args = process.argv.slice(2);
-  const parsed = {};
+  const result = { event: "UNALIGNED_401", ip: "0.0.0.0", path: "/" };
   for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith('--')) {
-      const key = args[i].slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      const next = args[i + 1];
-      parsed[key] = next && !next.startsWith('--') ? args[++i] : 'true';
-    }
+    if (args[i] === "--event" && args[i + 1]) result.event = args[++i];
+    if (args[i] === "--ip" && args[i + 1]) result.ip = args[++i];
+    if (args[i] === "--path" && args[i + 1]) result.path = args[++i];
   }
-  return parsed;
+  return result;
 }
 
-/**
- * Computes the SHA-512 Pulse Hash for a forensic event.
- * Input: ip|path|timestamp|KERNEL_SHA
- *
- * @param {string} ip        - Source IP address
- * @param {string} path      - Target request path
- * @param {string} timestamp - ISO-8601 event timestamp
- * @returns {string} 128-character hex SHA-512 digest
- */
-function computePulseHash(ip, path, timestamp) {
-  const payload = `${ip}|${path}|${timestamp}|${KERNEL_SHA}`;
-  return crypto.createHash('sha512').update(payload, 'utf8').digest('hex');
+// ---------------------------------------------------------------------------
+// 9-digit microsecond ISO-9 timestamp
+// ---------------------------------------------------------------------------
+
+function formatIso9() {
+  const now = new Date();
+  const iso = now.toISOString();
+  const [left, right] = iso.split(".");
+  const milli = (right ?? "000Z").replace("Z", "").slice(0, 3).padEnd(3, "0");
+  return `${left}.${milli}000000Z`;
 }
 
-/**
- * Returns the TARI™ calculated liability in USD for a given event type.
- *
- * @param {string} eventType
- * @returns {number}
- */
-function calculateTariLiability(eventType) {
-  return TARI_RATES[eventType] ?? DEFAULT_TARI_RATE;
+// ---------------------------------------------------------------------------
+// SHA-512 Pulse Hash — anchored to KERNEL_SHA
+// ---------------------------------------------------------------------------
+
+async function computePulseHash(ip, path, timestamp) {
+  const input = `${ip}|${path}|${timestamp}|${KERNEL_SHA}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await webcrypto.subtle.digest("SHA-512", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * Sends a message to the Pushover API.
- * Resolves with { status, body } on completion.
- *
- * @param {{ token: string, user: string, title: string, message: string }} opts
- * @returns {Promise<{ status: number, body: string }>}
- */
-function sendPushoverAlert({ token, user, title, message }) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      token,
-      user,
-      title,
-      message,
-      // priority 1 = high — bypasses quiet hours for urgent sovereign alerts
-      priority: 1,
-      sound: 'siren',
-    });
+// ---------------------------------------------------------------------------
+// HMAC-SHA-256 signature using BITCOIN_API_KEY as salt
+// ---------------------------------------------------------------------------
 
-    const req = https.request(
-      {
-        hostname: 'api.pushover.net',
-        path: '/1/messages.json',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => resolve({ status: res.statusCode, body: data }));
-      },
-    );
+function signPayload(payload, bitcoinApiKey) {
+  if (!bitcoinApiKey) return null;
+  return createHmac("sha256", bitcoinApiKey)
+    .update(JSON.stringify(payload))
+    .digest("hex");
+}
 
-    req.on('error', reject);
-    req.write(body);
-    req.end();
+// ---------------------------------------------------------------------------
+// Pushover notification
+// ---------------------------------------------------------------------------
+
+async function sendPushover(opts) {
+  const { appToken, userKey, title, message, url, urlTitle } = opts;
+  if (!appToken || !userKey) {
+    console.warn("⚠️  PUSHOVER_APP_TOKEN or PUSHOVER_USER_KEY not set — skipping Pushover.");
+    return false;
+  }
+
+  const body = new URLSearchParams({
+    token: appToken,
+    user: userKey,
+    title,
+    message,
+    priority: "1",    // Priority 1 — bypasses quiet hours with alert sound
+    sound: "siren",
+    ...(url ? { url } : {}),
+    ...(urlTitle ? { url_title: urlTitle } : {}),
   });
-}
 
-/**
- * Forwards the alert payload to the GabrielOS™ Sentinel webhook (fire-and-forget).
- * Failures are logged but do not abort the alert flow.
- *
- * @param {string} webhookUrl
- * @param {object} payload
- */
-async function notifyGabrielSentinel(webhookUrl, payload) {
-  try {
-    const body = JSON.stringify(payload);
-    const url = new URL(webhookUrl);
-    const isHttps = url.protocol === 'https:';
+  const res = await fetch("https://api.pushover.net/1/messages.json", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
 
-    await new Promise((resolve, reject) => {
-      const req = (isHttps ? https : http).request(
-        {
-          hostname: url.hostname,
-          port: url.port ? parseInt(url.port, 10) : (isHttps ? 443 : 80),
-          path: url.pathname + url.search,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(body),
-            'X-GabrielOS-Event': 'SOVEREIGN_AUDIT_ALERT',
-          },
-        },
-        (res) => {
-          res.resume(); // drain response
-          resolve(res.statusCode);
-        },
-      );
-      req.on('error', reject);
-      req.write(body);
-      req.end();
-    });
-
-    console.log(`📡 GabrielOS™ Sentinel notified: ${webhookUrl}`);
-  } catch (err) {
-    // Intentional non-blocking: sentinel notification must not abort the alert
-    console.warn(`⚠️  GabrielOS™ Sentinel notification failed: ${err.message}`);
+  if (!res.ok) {
+    console.error(`❌ Pushover failed: ${res.status}`);
+    return false;
   }
+  console.log("✅ Pushover notification sent.");
+  return true;
 }
+
+// ---------------------------------------------------------------------------
+// GabrielOS™ Sentinel webhook
+// ---------------------------------------------------------------------------
+
+async function sendSentinelWebhook(webhookUrl, payload, signature) {
+  if (!webhookUrl) {
+    console.warn("ℹ️  GABRIEL_SENTINEL_WEBHOOK not set — skipping Sentinel.");
+    return false;
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "X-AveryOS-CreatorLock": "Jason Lee Avery (ROOT0)",
+    "X-AveryOS-Kernel": KERNEL_SHA.slice(0, 16) + "...",
+    "X-AveryOS-Version": KERNEL_VERSION,
+    ...(signature ? { "X-Gabriel-HMAC-Signature": signature } : {}),
+  };
+
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    console.error(`❌ Sentinel webhook failed: ${res.status}`);
+    return false;
+  }
+  console.log("✅ GabrielOS™ Sentinel webhook delivered.");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
 async function main() {
-  const args = parseCLIArgs();
+  const { event, ip, path } = parseArgs();
 
-  const ip = args.ip || 'UNKNOWN';
-  const path = args.path || '/';
-  const status = args.status || '401';
-  const eventType = args.eventType || 'UNALIGNED_401';
-  const timestamp = new Date().toISOString();
+  const eventType = event.toUpperCase();
+  const liabilityUsd =
+    TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
+  const liabilityLabel =
+    TARI_LIABILITY_LABELS[eventType] ?? TARI_LIABILITY_LABELS.UNALIGNED_401;
+  const timestamp = formatIso9();
+  const pulseHash = await computePulseHash(ip, path, timestamp);
 
-  const pulseHash = computePulseHash(ip, path, timestamp);
-  const tariLiability = calculateTariLiability(eventType);
+  const liabilityFormatted = liabilityUsd.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
 
-  // Always print the forensic summary to stdout for CI audit trails
-  console.log('');
-  console.log('⛓️⚓⛓️  AveryOS™ Sovereign Audit Alert');
+  // ── Console output ────────────────────────────────────────────────────────
+  console.log("");
+  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Audit Alert");
   console.log(`Event Type  : ${eventType}`);
   console.log(`Target IP   : ${ip}`);
   console.log(`Path        : ${path}`);
-  console.log(`Status      : ${status}`);
-  console.log(`TARI™ Liab. : $${tariLiability.toFixed(2)} USD`);
-  console.log(`SHA-512 Hash: ${pulseHash}`);
+  console.log(`TARI™ Liab. : ${liabilityFormatted} USD — ${liabilityLabel}`);
+  console.log(`SHA-512 Hash: ${pulseHash.slice(0, 32)}...`);
   console.log(`Timestamp   : ${timestamp}`);
-  console.log(`Kernel      : cf83e135...927da3e`);
-  console.log('');
+  console.log(`Kernel      : ${KERNEL_SHA.slice(0, 16)}...`);
+  console.log("");
 
-  const pushoverToken = process.env.PUSHOVER_APP_TOKEN;
-  const pushoverUser = process.env.PUSHOVER_USER_KEY;
+  // ── Forensic payload (signed with BITCOIN_API_KEY HMAC) ──────────────────
+  const forensicPayload = {
+    event_type: eventType,
+    target_ip: ip,
+    path,
+    tari_liability_usd: liabilityUsd,
+    tari_liability_label: liabilityLabel,
+    tari_liability_formatted: liabilityFormatted,
+    pulse_hash: pulseHash,
+    kernel_sha: KERNEL_SHA,
+    kernel_version: KERNEL_VERSION,
+    timestamp,
+    creator_lock: "Jason Lee Avery (ROOT0) 🤛🏻",
+  };
 
-  if (!pushoverToken || !pushoverUser) {
-    console.warn(
-      '⚠️  PUSHOVER_APP_TOKEN or PUSHOVER_USER_KEY not set — skipping push notification.',
-    );
-  } else {
-    const title = `⚠️ AveryOS™ Audit: ${eventType}`;
-    const message = [
-      `IP: ${ip}`,
-      `Path: ${path}`,
-      `Status: ${status}`,
-      `TARI™ Liability: $${tariLiability.toFixed(2)}`,
-      `SHA-512: ${pulseHash.slice(0, 32)}…`,
-      `Kernel: cf83e135…927da3e`,
-      `Time: ${timestamp}`,
-    ].join('\n');
-
-    try {
-      const result = await sendPushoverAlert({
-        token: pushoverToken,
-        user: pushoverUser,
-        title,
-        message,
-      });
-
-      if (result.status === 200) {
-        console.log(`✅ Push notification sent (${eventType} — ${ip})`);
-      } else {
-        console.error(`❌ Pushover API returned HTTP ${result.status}: ${result.body}`);
-        process.exit(1);
-      }
-    } catch (err) {
-      console.error(`❌ Push notification failed: ${err.message}`);
-      process.exit(1);
-    }
+  const bitcoinApiKey = process.env.BITCOIN_API_KEY ?? "";
+  const hmacSignature = signPayload(forensicPayload, bitcoinApiKey);
+  if (hmacSignature) {
+    console.log(`HMAC-SHA256 : ${hmacSignature.slice(0, 32)}...`);
+    forensicPayload.hmac_signature = hmacSignature;
   }
 
-  // Optional: forward to GabrielOS™ Sentinel worker
-  const sentinelWebhook = process.env.GABRIEL_SENTINEL_WEBHOOK;
-  if (sentinelWebhook) {
-    await notifyGabrielSentinel(sentinelWebhook, {
-      event_type: eventType,
-      ip_address: ip,
-      path,
-      status_code: Number(status),
-      tari_liability_usd: tariLiability,
-      pulse_hash: pulseHash,
-      kernel_anchor: KERNEL_SHA,
-      timestamp,
-    });
-  }
+  // ── Pushover push notification ────────────────────────────────────────────
+  const pushTitle = `⚠️ AveryOS™ ${eventType}`;
+  const pushMessage =
+    `IP: ${ip}\n` +
+    `Path: ${path}\n` +
+    `TARI™: ${liabilityFormatted} — ${liabilityLabel}\n` +
+    `Hash: ${pulseHash.slice(0, 24)}...\n` +
+    `Kernel: ${KERNEL_SHA.slice(0, 12)}...`;
+
+  await sendPushover({
+    appToken: process.env.PUSHOVER_APP_TOKEN ?? "",
+    userKey: process.env.PUSHOVER_USER_KEY ?? "",
+    title: pushTitle,
+    message: pushMessage,
+    url: "https://averyos.com/evidence-vault",
+    urlTitle: "🔐 Evidence Vault",
+  });
+
+  // ── GabrielOS™ Sentinel webhook ───────────────────────────────────────────
+  await sendSentinelWebhook(
+    process.env.GABRIEL_SENTINEL_WEBHOOK ?? "",
+    forensicPayload,
+    hmacSignature
+  );
+
+  console.log("⛓️⚓⛓️ Sovereign Audit Alert complete. 🤛🏻");
 }
 
 main().catch((err) => {
-  console.error(`❌ Sovereign Audit Alert fatal error: ${err.message}`);
+  console.error("❌ Sovereign Audit Alert error:", err);
   process.exit(1);
 });
