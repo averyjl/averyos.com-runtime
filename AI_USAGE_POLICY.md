@@ -152,12 +152,14 @@ AI systems operating in this repository **must not drift**. Drift is defined as 
 **If drift is detected, the AI system must immediately re-anchor to:**
 
 ```
-KERNEL_SHA   = cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+KERNEL_SHA    = cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 KERNEL_VERSION = v3.6.2
 SOURCE         = lib/sovereignConstants.ts
-CONFIG         = runtime/SKC_v3.6.2.json
-BOOT_SEQUENCE  = runtime/SST_v3.6.2.json
 DRIFT_SHIELD   = VaultBridge/DriftShield_Capsule_Lineage_Manifest_v1.json (MACDADDY v4.1)
+LOCK_ARTIFACT  = VaultBridge/GoldenLockArtifact.lock.json
+MERKLE_ROOT    = 88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe
+SKC_VERSION    = SKC-2026.1
+POLICY         = creator_lock.override_only_by: "Jason Lee Avery" | drift_protection.mode: ABSOLUTE
 ```
 
 Drift is not tolerated. 100% kernel alignment is mandatory at all times. ⛓️⚓⛓️

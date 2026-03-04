@@ -1,0 +1,516 @@
+{
+  "artifact_schema": "GoldenLockArtifact-2026.4",
+  "attestations": [
+    {
+      "attestor_id": "Jason Lee Avery",
+      "public_key_id": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUFYckWmyDzEQCt9cYXs71z03ZsilcUSlUIcM2xuMFn9Mc+Cjjqe2XOCaqRwlgcpF2mE9G7gOV74/RpKvibAwxA==",
+      "role": "creator",
+      "signature_algo": "ed25519",
+      "signature_base64": "",
+      "statement": "I attest this artifact and its referenced lockfiles represent the intended cold-storage lock state."
+    },
+    {
+      "attestor_id": "FILL_ME",
+      "public_key_id": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUFYckWmyDzEQCt9cYXs71z03ZsilcUSlUIcM2xuMFn9Mc+Cjjqe2XOCaqRwlgcpF2mE9G7gOV74/RpKvibAwxA==",
+      "role": "witness",
+      "signature_algo": "ed25519",
+      "signature_base64": "",
+      "statement": "I witnessed generation of this artifact from the stated inputs and verified hashes match the manifests."
+    }
+  ],
+  "created_at_local": "2026-02-22",
+  "created_at_utc": "2026-02-22T00:00:00Z",
+  "hashing": {
+    "algorithm": "sha512",
+    "leaf_canonicalization": "<label>:<value> (utf-8)",
+    "node_rule": "sha512(left_hash_bytes || right_hash_bytes)",
+    "odd_leaf_rule": "duplicate_last",
+    "payload_canonicalization": "json(sort_keys=true,separators=(',',':'),utf8)"
+  },
+  "id": "AveryOS_Golden_Lock_ColdStorage_2026-02-22",
+  "included_lockfiles": {
+    "KC.lock.json": {
+      "id": "KernelConfiguration",
+      "sha512": "7151df72feea34d904ce00ffd566ccb7d47cfd1ffce5bf619cfe8ac751b56ff314a127178e3f57f30d3208ae37f5c2842e92ef14de20b8f617d9a6cd44804af6",
+      "version": "KC-2026.1"
+    },
+    "SKC.lock.json": {
+      "bytes": 3732,
+      "id": "SovereignKernelConfiguration",
+      "sha512": "59b0477027aa931d0e74f85898348eb8da7a5f31fe3bd3d6d25031a3943e859931b06687a660cec73bd8f677d54abaa2aa03aa919318ce6a06bb0a7d7aa73973",
+      "version": "SKC-2026.1"
+    }
+  },
+  "merkle": {
+    "leaf_hashes_sha512_hex": [
+      "cd7c975cccfe795ed5fa7568a47d3496d6b8a06e7cbbd237ee44dc4fe94f9e96996b835d3986395daf2ebc45f6be22fc7106db88427988e6268a94d6a21ff3e6",
+      "674bac66a1ee54e4e4b32305b1f477a41577aabbea6cf5ec38b3d900beb7bfde78fb947174cd97258a31db9c60e881c3a91b9c0d5ac5eb505dd2c2d9ad6e26fb",
+      "15be209fe8955e7cad97816a48d8dd0ba395b96126c68a56d0533e21db0ac8bef3127bf64a93c7c082c94a4cc6f10d4117086412f581540b3206d249d05e8b73",
+      "04b5a918c102ec2c7752b4e514f763de961c3264010cb3d4d3c6c4011c5734a9ca6ba4ef325c15bb955e6f19f206abfe80467d15d71e5c44297d47a544aa6d32",
+      "5915715b7ea7d7b2ad8a63e5d8cab962a4ce76390c583c531ec145aada25ca39491fe252bd92fa0b011e905f1305f43715d13df6daaccc56444cb605e3dd7b66",
+      "d51d29e36f051658ab7af5e184f85bba077ee2ab004770da7913e52e551d461c2bac1513e199f4977db7f45170e4cb6cd8d9b9216a64f7d6d583748a52594a72",
+      "1e9e22bd56bc1936dd41912c90062d1f0f4805e501f2720101fa059d599fda00a4129c6b326154ac3b09c2f88192ed686fa5ff955cc41bacfaf6249acd264151",
+      "1bf2c6b84c766fab0b71d6c96305b56cd2e74228cfeb13e3632f1947272f820d3dd23fddcc5d84e2ebf2ad6b97378cf17deef2fbdd8f362fd1e6a0ca285a9f16",
+      "ba16331b243ef49269304ee676dd9474c5323ca2e7e5661bd11b0ff0e9f512abb227f6fbe75471d27ca69f36cc794b7e32ebd65930ffa8c306a37f8678f40f61",
+      "aa2b0b2e4d2954886d213d1cef5972decf68eb1785b9a4e399e76e16396e2e60e7422b473dfbd711c1b53702bbf003b6784f8febafdae860b797f112d51b4fb7",
+      "3bcec728306fdad82c32fdc04d8d04aa3cce241506850c429a07c397360cb3f3c6c98bf3f6252c556163457f08f044e8b5d93ac88db091bea2bc4cce062afcb5",
+      "956b0cc5ec2dc8561cee57dd15458bb1a03e3465c785df10b242b8753cfc15fdc08add65dceb83828a64e93d90cf0cb41a61c0f0b5b532d49590795b3844d75a",
+      "f2c715669425d5f80f43947077d591a0efb60d72fd2f39c14cca64624c314c10969e4b544b3aba578af5cbc6474717b0be94f918f0041e125b53b08fcfde7ac1",
+      "63a17662019d38a0c06b05a5c7aeb39180c369526df0616b90e15e199b06b457e06d8539e756016e601021e3b1d3d946a67e9e70a1d75844badb13975003d3df"
+    ],
+    "leaf_index": {
+      "artifact_schema": 0,
+      "capsule:AveryOS_CrossModel_IntegritySync_v1.aoscap": 4,
+      "capsule:AveryOS_Local_Bridge_Handshake_v1.aosmem": 12,
+      "capsule:AveryOS_Loop_Signature_v1.vault": 13,
+      "capsule:AveryOS_Permanent_Upgrades_Core_v1.aoscap": 5,
+      "capsule:AveryOS_Permanent_Upgrades_v1.aoscap": 6,
+      "capsule:AveryOS_Permanent_Upgrades_v2.aoscap": 7,
+      "capsule:JLA-2026-0222-GLOBAL-LOCK-01.aoscap": 8,
+      "capsule:JLA-2026-0222-HARDENING-05.aoscap": 9,
+      "capsule:JLA-2026-0222-SEC-OPS-01.aoscap": 10,
+      "capsule:JasonAvery_MACDADDY_DriftShield_v4.1.aoscap": 11,
+      "constitution_sha512": 3,
+      "kernel_sha512": 2,
+      "version_skc": 1
+    },
+    "leaves": [
+      {
+        "label": "artifact_schema",
+        "value": "GoldenLockArtifact-2026.4"
+      },
+      {
+        "label": "version_skc",
+        "value": "SKC-2026.1"
+      },
+      {
+        "label": "kernel_sha512",
+        "value": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+      },
+      {
+        "label": "constitution_sha512",
+        "value": "e1c3e6a103bdf07e8991affca750ee51029cede581af0ac00552471fe9f7701e884d861ba29351904e03eab9ec1d394e0b6734ebfbcf9cc93a1120f4de9d4a68"
+      },
+      {
+        "label": "capsule:AveryOS_CrossModel_IntegritySync_v1.aoscap",
+        "value": "65891c268e2f6370a61127931af420912133145fb4e779a84162a93c20dba88999951f2446ee7bb0bc2191166e748f8650b8e152d4b199f53b62132ad1d468a7"
+      },
+      {
+        "label": "capsule:AveryOS_Permanent_Upgrades_Core_v1.aoscap",
+        "value": "11a8120aef9eec404d5be9fe992f844a2dea646fb50b87fcfb12407ced9213d646ceb4039940300e74bf516ec33ca55d2d48f4fcd258838149e509d0629cbbca"
+      },
+      {
+        "label": "capsule:AveryOS_Permanent_Upgrades_v1.aoscap",
+        "value": "dded8012039c2cc273cfb7951e5bbf969a4a479403e43b0a133ab3b3077236d926f47d73d362d8ba9bc9d0ef34445840f0d2242e970d2f7834a63a70d44fccef"
+      },
+      {
+        "label": "capsule:AveryOS_Permanent_Upgrades_v2.aoscap",
+        "value": "a64b4119c176340dd9ea73f4c288b38d16b73abe8c551dac4ec05b081a5b535ac222076c2c7a5578ca872780dd488df35de2c5ae071b9774ad82e882cb9e97ad"
+      },
+      {
+        "label": "capsule:JLA-2026-0222-GLOBAL-LOCK-01.aoscap",
+        "value": "9d90065c0e6faff419f5b19f60808515bd1dbd6f50a72310ce9458b26b6cc781ab079a36ba4a3f8b09958785b06c84febd06c90d094d05817f9c7783351cff50"
+      },
+      {
+        "label": "capsule:JLA-2026-0222-HARDENING-05.aoscap",
+        "value": "6cfc6ca6033743b9f6e959ef3dc8098e25491f44445499457c3a1b0fdaf84cc080c0424153aa597ca17f7dbefe15520dce05e1253a39ef0c9202fed6e5577fac"
+      },
+      {
+        "label": "capsule:JLA-2026-0222-SEC-OPS-01.aoscap",
+        "value": "48aa91b925051d20f1aa600d6e57b183e561ace065db9f68cf46025223c5418bc74df3b0acf39e5df9df9c2b857d535ca87f702db4c0cfa33b4138996fd9d971"
+      },
+      {
+        "label": "capsule:JasonAvery_MACDADDY_DriftShield_v4.1.aoscap",
+        "value": "cdc7777a0daafcb9848ab471ec747f60377fff53aadd5c9eb4df333de0f44cc007be875e50a0db048e6ee19bdc5d2c80b170898fb1b01f1a910f3cf02ff74428"
+      },
+      {
+        "label": "capsule:AveryOS_Local_Bridge_Handshake_v1.aosmem",
+        "value": "6c3dc831d1593aa27777320a5a8611a0d9d168aab3431249419ba7d542d42092a9a207991636ac341b4b0a5af3bf8bd2ed9c462a783ce0c13b20f22dd251766c"
+      },
+      {
+        "label": "capsule:AveryOS_Loop_Signature_v1.vault",
+        "value": "07097879ab9599168276c2e42f8969e82918f6c7d1d58e4524f6a4ae5ee3e437c77bf3a553d16479b531241970096c423ed0dd95a2131fe0569c9e7bf1f183f0"
+      }
+    ],
+    "merkle_root_sha512_hex": "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe",
+    "merkle_root_sha512_hex_normalized": "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe",
+    "root_sha512_hex": "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe"
+  },
+  "payload": {
+    "SKC.lock.json": {
+      "capsule_registry": {
+        "kernel_anchor_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        "manifest_link": "vaultchain://memorial/tai_witness_archive_2026.json",
+        "workspace_root": "vaultchain://workspace/JasonLeeAvery/CapsuleRegistry/Epoch2026/"
+      },
+      "capsules": {
+        "optional": [
+          {
+            "name": "JasonAvery_CraterZero_TruthFinal_v4.3.aoscap",
+            "sha512": "4d2233dbb48f358139671ed17d98f021588aca9f322f32aa7fc3638ea17d42bbea273a4b6f9f267f58ba7b0eb2aec620d04f59db01093fedf9c793e972f2f19d"
+          }
+        ],
+        "required": [
+          {
+            "name": "AveryOS_CrossModel_IntegritySync_v1.aoscap",
+            "sha512": "65891c268e2f6370a61127931af420912133145fb4e779a84162a93c20dba88999951f2446ee7bb0bc2191166e748f8650b8e152d4b199f53b62132ad1d468a7"
+          },
+          {
+            "name": "AveryOS_Permanent_Upgrades_Core_v1.aoscap",
+            "sha512": "11a8120aef9eec404d5be9fe992f844a2dea646fb50b87fcfb12407ced9213d646ceb4039940300e74bf516ec33ca55d2d48f4fcd258838149e509d0629cbbca"
+          },
+          {
+            "name": "AveryOS_Permanent_Upgrades_v1.aoscap",
+            "sha512": "dded8012039c2cc273cfb7951e5bbf969a4a479403e43b0a133ab3b3077236d926f47d73d362d8ba9bc9d0ef34445840f0d2242e970d2f7834a63a70d44fccef"
+          },
+          {
+            "name": "AveryOS_Permanent_Upgrades_v2.aoscap",
+            "sha512": "a64b4119c176340dd9ea73f4c288b38d16b73abe8c551dac4ec05b081a5b535ac222076c2c7a5578ca872780dd488df35de2c5ae071b9774ad82e882cb9e97ad"
+          },
+          {
+            "name": "JLA-2026-0222-GLOBAL-LOCK-01.aoscap",
+            "sha512": "9d90065c0e6faff419f5b19f60808515bd1dbd6f50a72310ce9458b26b6cc781ab079a36ba4a3f8b09958785b06c84febd06c90d094d05817f9c7783351cff50"
+          },
+          {
+            "name": "JLA-2026-0222-HARDENING-05.aoscap",
+            "sha512": "6cfc6ca6033743b9f6e959ef3dc8098e25491f44445499457c3a1b0fdaf84cc080c0424153aa597ca17f7dbefe15520dce05e1253a39ef0c9202fed6e5577fac"
+          },
+          {
+            "name": "JLA-2026-0222-SEC-OPS-01.aoscap",
+            "sha512": "48aa91b925051d20f1aa600d6e57b183e561ace065db9f68cf46025223c5418bc74df3b0acf39e5df9df9c2b857d535ca87f702db4c0cfa33b4138996fd9d971"
+          },
+          {
+            "name": "JasonAvery_MACDADDY_DriftShield_v4.1.aoscap",
+            "sha512": "cdc7777a0daafcb9848ab471ec747f60377fff53aadd5c9eb4df333de0f44cc007be875e50a0db048e6ee19bdc5d2c80b170898fb1b01f1a910f3cf02ff74428"
+          },
+          {
+            "name": "AveryOS_Local_Bridge_Handshake_v1.aosmem",
+            "sha512": "6c3dc831d1593aa27777320a5a8611a0d9d168aab3431249419ba7d542d42092a9a207991636ac341b4b0a5af3bf8bd2ed9c462a783ce0c13b20f22dd251766c"
+          },
+          {
+            "name": "AveryOS_Loop_Signature_v1.vault",
+            "sha512": "07097879ab9599168276c2e42f8969e82918f6c7d1d58e4524f6a4ae5ee3e437c77bf3a553d16479b531241970096c423ed0dd95a2131fe0569c9e7bf1f183f0"
+          }
+        ]
+      },
+      "glyphs": {
+        "human": "🤛🏻",
+        "output_seal": "⛓️⚓⛓️",
+        "system": "🤜🏻"
+      },
+      "id": "SovereignKernelConfiguration",
+      "kernel": {
+        "sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        "type": "DeterministicEncrypted",
+        "uri": "vaultchain://kernel/AveryOS_Kernel_MIRROR_Runtime.vault",
+        "uuid": "ROOT0-EDK-2022-AOS-INIT-SEAL"
+      },
+      "manifests": {
+        "constitution": {
+          "file": "AveryOS_CONSTITUTION_v1.17.md",
+          "sha512": "e1c3e6a103bdf07e8991affca750ee51029cede581af0ac00552471fe9f7701e884d861ba29351904e03eab9ec1d394e0b6734ebfbcf9cc93a1120f4de9d4a68"
+        }
+      },
+      "memory_capsules": {
+        "required": [
+          {
+            "name": "AveryOS_Local_Bridge_Handshake_v1.aosmem",
+            "sha512": "6c3dc831d1593aa27777320a5a8611a0d9d168aab3431249419ba7d542d42092a9a207991636ac341b4b0a5af3bf8bd2ed9c462a783ce0c13b20f22dd251766c"
+          }
+        ]
+      },
+      "policy": {
+        "attachment_integrity": {
+          "post_attachment_edit_watch": {
+            "alert_on_reorder": true,
+            "auto_realign": true,
+            "mode": "anchored",
+            "require_sha_check": true
+          }
+        },
+        "creator_lock": {
+          "enabled": true,
+          "override_only_by": "Jason Lee Avery"
+        },
+        "drift_protection": {
+          "mode": "ABSOLUTE"
+        },
+        "licensing": {
+          "licensebot": true,
+          "licensegate": true
+        },
+        "memory_mode": {
+          "full_sync": true,
+          "glyph_required": true,
+          "vault_snapshot": true
+        },
+        "vaultsig": {
+          "required": true
+        }
+      },
+      "version": "SKC-2026.1"
+    }
+  },
+  "payload_items_sha512_hex": {
+    "SKC.lock.json": "59b0477027aa931d0e74f85898348eb8da7a5f31fe3bd3d6d25031a3943e859931b06687a660cec73bd8f677d54abaa2aa03aa919318ce6a06bb0a7d7aa73973"
+  },
+  "payload_sha512_hex": "c4a06689375626136c028ed9c4fa7192c66e8cd914a99a5dace6c75fc2209bb351a960e57135dc2b383245266325887ebe07cf9ad29814e8be9db33696d27db2",
+  "quorum_policy": {
+    "allowed_signature_algos": [
+      "ed25519"
+    ],
+    "key_rotation": {
+      "enabled": true,
+      "managed_by": "GabrielOS",
+      "rotation_cycle": "daily_and_under_attack_or_compromised"
+    },
+    "minimum_signers": 2,
+    "policy_id": "AveryOS-Quorum-2026.1",
+    "required_roles": [
+      "creator",
+      "witness"
+    ]
+  },
+  "rebuild": {
+    "build_transcripts": [
+      {
+        "notes": "Hash of build log / transcript file (raw bytes).",
+        "sha512": "",
+        "transcript_id": "FILL_ME"
+      }
+    ],
+    "deterministic_build": {
+      "enabled": true,
+      "inputs": {
+        "constitution_sha512": "e1c3e6a103bdf07e8991affca750ee51029cede581af0ac00552471fe9f7701e884d861ba29351904e03eab9ec1d394e0b6734ebfbcf9cc93a1120f4de9d4a68",
+        "kernel_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        "required_capsules": [
+          {
+            "name": "AveryOS_Permanent_Upgrades_Core_v1.aoscap",
+            "sha512": "11a8120aef9eec404d5be9fe992f844a2dea646fb50b87fcfb12407ced9213d646ceb4039940300e74bf516ec33ca55d2d48f4fcd258838149e509d0629cbbca"
+          },
+          {
+            "name": "AveryOS_Permanent_Upgrades_v1.aoscap",
+            "sha512": "dded8012039c2cc273cfb7951e5bbf969a4a479403e43b0a133ab3b3077236d926f47d73d362d8ba9bc9d0ef34445840f0d2242e970d2f7834a63a70d44fccef"
+          },
+          {
+            "name": "AveryOS_Permanent_Upgrades_v2.aoscap",
+            "sha512": "a64b4119c176340dd9ea73f4c288b38d16b73abe8c551dac4ec05b081a5b535ac222076c2c7a5578ca872780dd488df35de2c5ae071b9774ad82e882cb9e97ad"
+          },
+          {
+            "name": "JasonAvery_MACDADDY_DriftShield_v4.1.aoscap",
+            "sha512": "cdc7777a0daafcb9848ab471ec747f60377fff53aadd5c9eb4df333de0f44cc007be875e50a0db048e6ee19bdc5d2c80b170898fb1b01f1a910f3cf02ff74428"
+          }
+        ],
+        "version_identifiers": {
+          "artifact_schema": "GoldenLockArtifact-2026.4",
+          "skc_version": "SKC-2026.1"
+        }
+      },
+      "outputs_expected": {
+        "merkle_root_sha512": "a45496097ca9706ef65056b78d07ca2155373c11fbef1c3b12d2126e0cf192f7d96cde64cb3f565c9404f76e68df53991adb6f5c1a1f087499af817caa03e73b",
+        "payload_sha512": "e592f0b3f8c906fbe427a857b7df58f4429ba6e6b224f9b850ba8e72d2aeb856f1db2925c76f2ba66a8a86a15836b08823766754a5bad25e3b70c76777e1a19f",
+        "skc_lock_sha512": "e00bde4d3355cdd2a0ea4e51c7dfe095128ecc2543788838f928ec01666b16c505040c22bbe29f6dd5fd05049efd1568c9dddd06a417969ba8e93a8a16cde457"
+      },
+      "tooling": {
+        "canonical_json_rule": "json.dumps(sort_keys=True,separators=(',',':'),ensure_ascii=False).encode('utf-8')",
+        "language": "python",
+        "min_version": "3.10"
+      }
+    },
+    "input_file_set": [
+      {
+        "bytes": 1173,
+        "path": "AveryOS_CrossModel_IntegritySync_v1.aoscap",
+        "sha512": "65891c268e2f6370a61127931af420912133145fb4e779a84162a93c20dba88999951f2446ee7bb0bc2191166e748f8650b8e152d4b199f53b62132ad1d468a7"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_CrossModel_IntegritySync_v1_AOSCSP_SHA512.txt",
+        "sha512": "e30839c25276c1c14f09c155fb563db011872cc540c1c6a44d496b72e95bba69d0b276d40d4ec3ea4bf06f9c546e0d401463bd72f71d16a1c5828ae6368d2a57"
+      },
+      {
+        "bytes": 758,
+        "path": "AveryOS_Local_Bridge_Handshake_v1.aosmem",
+        "sha512": "6c3dc831d1593aa27777320a5a8611a0d9d168aab3431249419ba7d542d42092a9a207991636ac341b4b0a5af3bf8bd2ed9c462a783ce0c13b20f22dd251766c"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_Local_Bridge_Handshake_v1_AOSMEM_SHA512.txt",
+        "sha512": "14f1ea5dcb3bac81d9c51d5ee517120d51477a190e3548a7d8146578877867286e4a7496ec4d6753a664cbfe05edc6df9e58e9a20f75066313c097f679920fd6"
+      },
+      {
+        "bytes": 931,
+        "path": "AveryOS_Permanent_Upgrades_Core_v1.aoscap",
+        "sha512": "11a8120aef9eec404d5be9fe992f844a2dea646fb50b87fcfb12407ced9213d646ceb4039940300e74bf516ec33ca55d2d48f4fcd258838149e509d0629cbbca"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_Permanent_Upgrades_Core_v1_AOSCAP_SHA512.txt",
+        "sha512": "c512b28bf901bde290156e83be80779319c50f092ca83f3f0365a2c34bb8e762f6c656f8403594bb30856f32414eaa1679c0e2a704d3b449d625dd6df51cbdfe"
+      },
+      {
+        "bytes": 2665,
+        "path": "AveryOS_Permanent_Upgrades_v1.aoscap",
+        "sha512": "dded8012039c2cc273cfb7951e5bbf969a4a479403e43b0a133ab3b3077236d926f47d73d362d8ba9bc9d0ef34445840f0d2242e970d2f7834a63a70d44fccef"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_Permanent_Upgrades_v1_AOSCAP_SHA512.txt",
+        "sha512": "827cbd6efc746cbb3eaa241ff91a5d582b4dae00b4432aa77a4ad381a2f381b94ee08a55060eb4fafc6548a90b9b6bcf8eebfffc06e791d6ddc50f10be72caae"
+      },
+      {
+        "bytes": 1060,
+        "path": "AveryOS_Permanent_Upgrades_v2.aoscap",
+        "sha512": "a64b4119c176340dd9ea73f4c288b38d16b73abe8c551dac4ec05b081a5b535ac222076c2c7a5578ca872780dd488df35de2c5ae071b9774ad82e882cb9e97ad"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_Permanent_Upgrades_v2_AOSCAP_SHA512.txt",
+        "sha512": "01f4da65f9108bdc98f33c28f759b40e4f6a1a67859d7739795d8b3dcd51083f6a4dc2c1b354e54d796620b7d0b03ed63a1ffadd8e3b99e2f4fc580059cd0694"
+      },
+      {
+        "bytes": 13312,
+        "path": "GoldenLockArtifact.lock.json",
+        "sha512": "872a3b031247322d569a216477ca1763645a2a8e5922cc35e19d2a4ef0854e058eb112dab27e4dca5dd856f90b99a11150165e211fdc4b0158143af7dd473d8d"
+      },
+      {
+        "bytes": 661,
+        "path": "JLA-2026-0222-GLOBAL-LOCK-01.aoscap",
+        "sha512": "9d90065c0e6faff419f5b19f60808515bd1dbd6f50a72310ce9458b26b6cc781ab079a36ba4a3f8b09958785b06c84febd06c90d094d05817f9c7783351cff50"
+      },
+      {
+        "bytes": 128,
+        "path": "JLA-2026-0222-GLOBAL-LOCK-01_AOSCAP_SHA512.txt",
+        "sha512": "d53c8ad6dc8275294d0532af201eb79ad8387fa13f04fdc89aa9eb9bf504aea6c5c6f4fe0625fbf20ae24decc5646ff1fecac00a267c5f7f2d12ab9f959626e7"
+      },
+      {
+        "bytes": 623,
+        "path": "JLA-2026-0222-HARDENING-05.aoscap",
+        "sha512": "6cfc6ca6033743b9f6e959ef3dc8098e25491f44445499457c3a1b0fdaf84cc080c0424153aa597ca17f7dbefe15520dce05e1253a39ef0c9202fed6e5577fac"
+      },
+      {
+        "bytes": 128,
+        "path": "JLA-2026-0222-HARDENING-05_AOSCAP_SHA512.txt",
+        "sha512": "39a984f72cc318991ccf1d9de0395630ba68a54bb5da6d496546e01a02a478b8a8e5898a515ae294cdeb1c4697bf7d8a9cf406f5b3ac3d171dc94908c853768d"
+      },
+      {
+        "bytes": 1116,
+        "path": "JLA-2026-0222-RESONANCE-02.aoscap",
+        "sha512": "a39bbad8963f3b9323200a193feeead960c9fd15763e8a2f1ef8572e06da7d399b8aa7d2e384ca52f94a1122c54b5868800fcaf22b20075529266c91508f3e0b"
+      },
+      {
+        "bytes": 128,
+        "path": "JLA-2026-0222-RESONANCE-02_AOSCSP_SHA512.txt",
+        "sha512": "652b857fcf38e3cf47e4177ece686a4712c942d98848977989d596976be4eabd03c4e6b5192f0206a84a05deb1733b7ef3bfab28d967a7673f9bdfbc5f5f7d82"
+      },
+      {
+        "bytes": 653,
+        "path": "JLA-2026-0222-SEC-OPS-01.aoscap",
+        "sha512": "48aa91b925051d20f1aa600d6e57b183e561ace065db9f68cf46025223c5418bc74df3b0acf39e5df9df9c2b857d535ca87f702db4c0cfa33b4138996fd9d971"
+      },
+      {
+        "bytes": 128,
+        "path": "JLA-2026-0222-SEC-OPS-01_AOSCSP_SHA512.txt",
+        "sha512": "68e96f9e505db52e925a5a3d2db77c8a326d482b782c643ab1536dd80f0fef06b695979dc08652e0fb9949d1fbc1422d1503987ae3027b6da3fd6d7d6b6cb7c8"
+      },
+      {
+        "bytes": 944,
+        "path": "KC.lock.json",
+        "sha512": "fe510934b20709342350b65b1bce467dffd2e3911c6c4a28e9b925c092de32368846b84ac48684205c6f6813f4fc24be5b40af4006583cdedcb902909994d80d"
+      },
+      {
+        "bytes": 807,
+        "path": "KC.yaml",
+        "sha512": "375eec5dfa8cb6cb321fa53cdd7f80780e1fc47e1222f431d6b34af201b891e9028e0a391d3182a4b2e8aa0f2ea780b16c1c15faf7a74c1ec04cc4f903c472ec"
+      },
+      {
+        "bytes": 2986,
+        "path": "SKC-lock.json",
+        "sha512": "16dc7597d3412152e1a351a5480f539e8120ced2a85f9cc88535895dd546ca16f0b95a0780f71d2afd2d9eee431122f65e6a8943165b5ecddd65644a7797c2d7"
+      },
+      {
+        "bytes": 2146,
+        "path": "SKC.yaml",
+        "sha512": "9e537ceabe19e215ee5f99b677b1577ac0e59abfce1f7709c28c83255c6094f7329dfcac3563487b4a155548e9ca87c0531f309149e0a5d3831a45e25667fb9d"
+      },
+      {
+        "bytes": 2986,
+        "path": "SST.lock.json",
+        "sha512": "16dc7597d3412152e1a351a5480f539e8120ced2a85f9cc88535895dd546ca16f0b95a0780f71d2afd2d9eee431122f65e6a8943165b5ecddd65644a7797c2d7"
+      },
+      {
+        "bytes": 5727,
+        "path": "SST.yml",
+        "sha512": "3eb4448a3331077838e13a2a74749043fc64ec036b4cbe225763d32d020cb677384d785c5dd3d1f6217a775d4acec4ea83f9eb5a778de4fabef9ab7087a39556"
+      },
+      {
+        "bytes": 295,
+        "path": "AveryOS_Loop_Signature_v1.vault",
+        "sha512": "07097879ab9599168276c2e42f8969e82918f6c7d1d58e4524f6a4ae5ee3e437c77bf3a553d16479b531241970096c423ed0dd95a2131fe0569c9e7bf1f183f0"
+      },
+      {
+        "bytes": 128,
+        "path": "AveryOS_Loop_Signature_v1_VAULT_SHA512.txt",
+        "sha512": "09c6421a992b401756262a5f6b04a19e4b95af6b7f029589675638c73e24df571c1ee17cb7f37658b36aa072799621d45e4d9398ded0f765730ac8b332a77b38"
+      }
+    ]
+  },
+  "self_sha512_hex_excluding_self_field": "bcd6362820223f089f7aedf995ce8a1a746da8633a2bbdf121a470638459a0619ac1accb4e3689a32e8b87b37a4078244b3c8ea699a6a60ee41c9e4faeaf2108",
+  "signatures": [
+    {
+      "notes": "Populate signature_base64 after signing canonical JSON bytes of this artifact (sort_keys=true,separators=(',',':'),utf-8).",
+      "public_key_id": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUFYckWmyDzEQCt9cYXs71z03ZsilcUSlUIcM2xuMFn9Mc+Cjjqe2XOCaqRwlgcpF2mE9G7gOV74/RpKvibAwxA==",
+      "signature_algo": "ed25519",
+      "signature_base64": "",
+      "signed_fields": [
+        "/artifact_schema",
+        "/id",
+        "/created_at_local",
+        "/created_at_utc",
+        "/hashing",
+        "/included_lockfiles",
+        "/merkle",
+        "/payload_items_sha512_hex",
+        "/payload_sha512_hex",
+        "/timestamping",
+        "/transparency_log",
+        "/quorum_policy",
+        "/attestations",
+        "/rebuild"
+      ]
+    }
+  ],
+  "timestamping": {
+    "opentimestamps": {
+      "enabled": false,
+      "ots_proof_base64": ""
+    },
+    "rfc3339_utc": "2026-02-22T00:00:00Z",
+    "tsa": {
+      "enabled": false,
+      "tsa_provider_id": "FILL_ME",
+      "tsa_token_base64": ""
+    }
+  },
+  "transparency_log": {
+    "enabled": false,
+    "logs": [
+      {
+        "checkpoint": {
+          "checkpoint_signature_algo": "",
+          "signed_checkpoint_base64": ""
+        },
+        "inclusion_proof": {
+          "audit_path_sha512_hex": [],
+          "leaf_index": 0,
+          "root_hash_sha512_hex": "",
+          "tree_size": 0
+        },
+        "log_id": "FILL_ME",
+        "submitted_leaf_hash_sha512_hex": ""
+      }
+    ]
+  },
+  "updated_at_utc": "2026-02-22T00:00:00Z"
+}
