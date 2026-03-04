@@ -24,13 +24,29 @@ interface RouteParams {
   params: Promise<{ hash: string }>;
 }
 
+/** CORS headers — badge verification is open-public so any partner site can call it. */
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+/** Strip leading protocol and normalise www. prefix for domain comparison. */
+function normalizeDomain(raw: string): string {
+  return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+}
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function GET(request: Request, { params }: RouteParams) {
   const { hash } = await params;
 
   if (!hash || !/^[a-fA-F0-9]{128}$/.test(hash)) {
     return Response.json(
       { error: 'INVALID_HASH', detail: 'Hash must be a 128-character SHA-512 hex string' },
-      { status: 400 },
+      { status: 400, headers: CORS_HEADERS },
     );
   }
 
@@ -39,7 +55,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   let refererDomain = '';
   try {
     if (refererHeader) {
-      refererDomain = new URL(refererHeader).hostname.replace(/^www\./, '');
+      refererDomain = normalizeDomain(new URL(refererHeader).hostname);
     }
   } catch {
     // malformed Referer — leave refererDomain empty; verification will fail
@@ -69,24 +85,28 @@ export async function GET(request: Request, { params }: RouteParams) {
     if (!record) {
       return Response.json(
         { error: 'BADGE_NOT_FOUND', detail: 'No alignment record found for this badge hash' },
-        { status: 404 },
+        { status: 404, headers: CORS_HEADERS },
       );
     }
 
-    // Normalise stored domain the same way as the Referer domain
-    const storedDomain = record.origin_domain.replace(/^www\./, '').replace(/^https?:\/\//, '');
-
+    const storedDomain = normalizeDomain(record.origin_domain);
     const domainMatch = storedDomain === refererDomain;
 
-    return Response.json({
-      status: domainMatch ? 'BADGE_VERIFIED' : 'DOMAIN_MISMATCH',
-      partner_id: record.partner_id,
-      origin_domain: record.origin_domain,
-      referer_domain: refererDomain || null,
-      domain_locked: domainMatch,
-    });
+    return Response.json(
+      {
+        status: domainMatch ? 'BADGE_VERIFIED' : 'DOMAIN_MISMATCH',
+        partner_id: record.partner_id,
+        origin_domain: record.origin_domain,
+        referer_domain: refererDomain || null,
+        domain_locked: domainMatch,
+      },
+      { headers: CORS_HEADERS },
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'BADGE_VERIFY_ERROR', detail: message }, { status: 500 });
+    return Response.json(
+      { error: 'BADGE_VERIFY_ERROR', detail: message },
+      { status: 500, headers: CORS_HEADERS },
+    );
   }
 }

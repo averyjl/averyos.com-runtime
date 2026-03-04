@@ -1,5 +1,6 @@
 import type { GetStaticProps, NextPage } from "next";
 import Head from "next/head";
+import { useEffect } from "react";
 import TruthforcePage from "../components/TruthforcePage";
 import { loadMarkdownAsHtml } from "../lib/markdown";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
@@ -15,6 +16,21 @@ const WHITEPAPER_DESCRIPTION =
   `Root0 Kernel ${KERNEL_VERSION} | SHA-512 Anchor: ${KERNEL_SHA}`;
 
 const WhitepaperPage: NextPage<PageProps> = ({ content }) => {
+  useEffect(() => {
+    // 9-digit value representing microseconds elapsed since page load (rolls over after ~17 min)
+    const tsUs = String(Math.floor(performance.now() * 1000)).padStart(9, "0").slice(-9);
+    fetch("/api/v1/audit-stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "WHITEPAPER_READ_RECEIPT",
+        timestamp_ns: tsUs,
+      }),
+    }).catch(() => {
+      // best-effort; do not surface errors to the reader
+    });
+  }, []);
+
   return (
     <>
       <Head>
@@ -24,6 +40,7 @@ const WhitepaperPage: NextPage<PageProps> = ({ content }) => {
         <meta key="og:description" property="og:description" content={WHITEPAPER_DESCRIPTION} />
         <meta key="averyos:kernel-sha" name="averyos:kernel-sha" content={KERNEL_SHA} />
         <meta key="averyos:kernel-version" name="averyos:kernel-version" content={KERNEL_VERSION} />
+        <link rel="canonical" href="https://averyos.com/whitepaper" />
       </Head>
       <TruthforcePage
         title={WHITEPAPER_TITLE}

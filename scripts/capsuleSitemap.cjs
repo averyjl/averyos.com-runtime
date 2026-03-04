@@ -32,7 +32,7 @@ const buildSitemapXml = (entries) => {
 
 const buildRobotsTxt = () => {
   return (
-    `User-agent: *\nAllow: /latent-anchor\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`
+    `User-agent: *\nAllow: /whitepaper\nAllow: /latent-anchor\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`
   );
 };
 
@@ -72,6 +72,7 @@ const loadRegistryCapsules = () => {
 
 const main = () => {
   const staticUrls = [
+    { loc: `${siteUrl}/whitepaper`, lastmod: null },
     { loc: `${siteUrl}/latent-anchor`, lastmod: null },
     { loc: `${siteUrl}/lawcodex`, lastmod: null },
     { loc: `${siteUrl}/tari-gate`, lastmod: null },

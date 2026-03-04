@@ -103,3 +103,75 @@ export async function GET(request: Request) {
     return Response.json({ error: 'AUDIT_STREAM_ERROR', detail: message }, { status: 500 });
   }
 }
+
+/**
+ * Public POST — accepts anonymous read receipts (no auth required).
+ * Only the event types in ALLOWED_PUBLIC_EVENTS are accepted.
+ * User-Agent is taken from the request header for reliability.
+ */
+const ALLOWED_PUBLIC_EVENTS = new Set(['WHITEPAPER_READ_RECEIPT']);
+
+export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: 'MALFORMED_JSON' }, { status: 400 });
+  }
+
+  if (typeof body !== 'object' || body === null || !('event_type' in body)) {
+    return Response.json({ error: 'MISSING_EVENT_TYPE' }, { status: 400 });
+  }
+
+  const { event_type, timestamp_ns } = body as Record<string, unknown>;
+
+  if (typeof event_type !== 'string' || !ALLOWED_PUBLIC_EVENTS.has(event_type)) {
+    return Response.json({ error: 'UNKNOWN_EVENT_TYPE' }, { status: 400 });
+  }
+
+  // Use the real request User-Agent — more reliable than client-supplied body field
+  const userAgent = (request.headers.get('User-Agent') ?? '').slice(0, 512);
+
+  // Accept a 9-digit client microsecond timestamp if provided, otherwise fall back to server ms
+  const timestampValue =
+    typeof timestamp_ns === 'string' && /^\d{1,19}$/.test(timestamp_ns)
+      ? timestamp_ns
+      : String(Date.now());
+
+  // Derive client IP from Cloudflare header, falling back to X-Forwarded-For
+  const ipAddress =
+    request.headers.get('CF-Connecting-IP') ??
+    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ??
+    'unknown';
+
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as CloudflareEnv;
+
+    await cfEnv.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS sovereign_audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        ip_address TEXT NOT NULL,
+        user_agent TEXT,
+        geo_location TEXT,
+        target_path TEXT NOT NULL,
+        timestamp_ns TEXT NOT NULL,
+        threat_level INTEGER DEFAULT 1
+      )`,
+    ).run();
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO sovereign_audit_logs
+        (event_type, ip_address, user_agent, target_path, timestamp_ns, threat_level)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(event_type, ipAddress, userAgent || null, '/whitepaper', timestampValue, 1)
+      .run();
+
+    return Response.json({ status: 'RECEIPT_ANCHORED' }, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: 'RECEIPT_ERROR', detail: message }, { status: 500 });
+  }
+}

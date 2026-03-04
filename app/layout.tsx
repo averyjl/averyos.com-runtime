@@ -6,38 +6,56 @@ import FooterBadge from "../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 import "../styles/globals.css";
 
+/** Abbreviated form: first 8 + last 4 hex chars of the 128-char SHA-512 */
+const KERNEL_SHA_SHORT = `${KERNEL_SHA.slice(0, 8)}...${KERNEL_SHA.slice(-4)}`;
+
+/** Bitcoin block height at which the Sovereign Anchor was verified */
+const BTC_ANCHOR_BLOCK = "938,909";
+
 export const metadata: Metadata = {
   title: {
-    default: "AveryOS™ — Sovereign Runtime",
+    default: "AveryOS™ | Truth-Anchored Intelligence™",
     template: "%s • AveryOS™",
   },
   description:
-    "AveryOS™ is a Sovereign Operating Framework authored by Jason Lee Avery. " +
-    "Truth-Locked capsule execution, creator-owned licensing, and zero-drift runtime enforcement. " +
-    `Root0 Kernel ${KERNEL_VERSION} | SHA-512 Anchor: ${KERNEL_SHA}`,
+    `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
+    `Root0 Anchor: ${KERNEL_SHA_SHORT}. Genesis Block: ${BTC_ANCHOR_BLOCK}.`,
   metadataBase: new URL("https://averyos.com"),
   openGraph: {
     type: "website",
-    siteName: "AveryOS™",
-    title: "AveryOS™ — Sovereign Runtime",
+    siteName: "AveryOS™ Witness Ledger",
+    title: "AveryOS™ Sovereign Kernel",
     description:
-      "AveryOS™ Sovereign Operating Framework — Truth-Locked capsule execution. " +
-      `Root0 Kernel ${KERNEL_VERSION} | SHA-512: ${KERNEL_SHA}`,
+      `Establishing 1,017-Notch Resolution for global AI infrastructure. ` +
+      `Verified at BTC Block ${BTC_ANCHOR_BLOCK}.`,
     url: "https://averyos.com",
   },
   twitter: {
     card: "summary",
-    title: "AveryOS™ — Sovereign Runtime",
+    title: "AveryOS™ Sovereign Kernel",
     description:
-      `AveryOS™ Root0 Kernel ${KERNEL_VERSION} | SHA-512 Anchor: ${KERNEL_SHA}`,
+      `AveryOS: Deterministic, Non-Probabilistic Anchored AI. ` +
+      `Root0 Anchor: ${KERNEL_SHA_SHORT}. BTC Block ${BTC_ANCHOR_BLOCK}.`,
   },
   other: {
-    "averyos:kernel-sha": KERNEL_SHA,
+    "averyos-kernel-root": KERNEL_SHA,
     "averyos:kernel-version": KERNEL_VERSION,
   },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "AveryOS™",
+    alternateName: "Truth-Anchored Intelligence™",
+    url: "https://averyos.com",
+    description:
+      `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
+      `Root0 Anchor: ${KERNEL_SHA_SHORT}. Genesis Block: ${BTC_ANCHOR_BLOCK}.`,
+    identifier: KERNEL_SHA,
+  };
+
   return (
     <html lang="en">
       <head>
@@ -47,6 +65,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body>
