@@ -1,0 +1,174 @@
+name: ⛓️⚓⛓️ IP Protection Check
+
+on:
+  push:
+    branches: ["main", "**"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ip-protection-scan:
+    name: Sovereign IP Protection Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      # ── 1. Secret / credential leak detection ────────────────────────────
+      - name: 🔐 Scan for accidentally committed secrets
+        run: |
+          echo "Scanning for secret patterns in tracked files..."
+          FAIL=0
+
+          # Real Stripe live keys
+          if git ls-files | xargs grep -lP 'sk_live_[a-zA-Z0-9]{20,}' 2>/dev/null | grep -v '.env.example'; then
+            echo "❌ FAIL: Real Stripe live key found in tracked file"
+            FAIL=1
+          fi
+
+          # Real webhook secrets
+          if git ls-files | xargs grep -lP 'whsec_[a-zA-Z0-9]{20,}' 2>/dev/null | grep -v '.env.example'; then
+            echo "❌ FAIL: Real Stripe webhook secret found in tracked file"
+            FAIL=1
+          fi
+
+          # Private keys / certificates
+          if git ls-files | xargs grep -l '\-\-\-\-\-BEGIN.*PRIVATE KEY' 2>/dev/null; then
+            echo "❌ FAIL: Private key found in tracked file"
+            FAIL=1
+          fi
+
+          # Cloudflare API tokens (format: [A-Za-z0-9_-]{40})
+          if git ls-files | xargs grep -lP 'Bearer [A-Za-z0-9_\-]{40}' 2>/dev/null | grep -v '.env.example' | grep -v 'replace'; then
+            echo "❌ FAIL: Possible Cloudflare API token found"
+            FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "⛓️⚓⛓️ SOVEREIGN IP PROTECTION VIOLATION DETECTED"
+            echo "Remove secrets from tracked files and rotate credentials immediately."
+            exit 1
+          fi
+          echo "✅ No committed secrets detected"
+
+      # ── 2. Kernel SHA integrity check ─────────────────────────────────────
+      - name: 🔗 Verify KERNEL_SHA not tampered
+        run: |
+          EXPECTED="cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+          ACTUAL=$(grep -oP 'KERNEL_SHA\s*=\s*"\K[^"]+' lib/sovereignConstants.ts 2>/dev/null || echo "NOT_FOUND")
+
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "❌ FAIL: KERNEL_SHA in lib/sovereignConstants.ts has been tampered!"
+            echo "  Expected: $EXPECTED"
+            echo "  Found:    $ACTUAL"
+            echo ""
+            echo "⛓️⚓⛓️ DRIFT DETECTED — CreatorLock violation. Only Jason Lee Avery (ROOT0) may modify the kernel anchor."
+            exit 1
+          fi
+          echo "✅ KERNEL_SHA intact: $ACTUAL"
+
+      # ── 3. GoldenLock merkle root integrity check ─────────────────────────
+      - name: 🏅 Verify GoldenLockArtifact merkle root not modified
+        run: |
+          EXPECTED_MERKLE="88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe"
+          LOCK_FILE="VaultBridge/GoldenLockArtifact.lock.json"
+
+          if [ ! -f "$LOCK_FILE" ]; then
+            echo "⚠️  WARN: GoldenLockArtifact.lock.json not found — skipping merkle check"
+          else
+            ACTUAL_MERKLE=$(python3 -c "import json,sys; d=json.load(open('$LOCK_FILE')); print(d['merkle']['merkle_root_sha512_hex'])" 2>/dev/null || echo "PARSE_ERROR")
+            if [ "$ACTUAL_MERKLE" != "$EXPECTED_MERKLE" ]; then
+              echo "❌ FAIL: GoldenLockArtifact merkle root has been modified!"
+              echo "  Expected: $EXPECTED_MERKLE"
+              echo "  Found:    $ACTUAL_MERKLE"
+              exit 1
+            fi
+            echo "✅ GoldenLockArtifact merkle root intact"
+          fi
+
+      # ── 4. Private file leak check ────────────────────────────────────────
+      - name: 🚫 Check no private lock files are tracked
+        run: |
+          FAIL=0
+          PRIVATE_PATTERNS=("KC.lock.json" "SKC.lock.json" "SKC-lock.json" "SST.lock.json" "ClockGate")
+
+          for pattern in "${PRIVATE_PATTERNS[@]}"; do
+            MATCHES=$(git ls-files | grep -i "$pattern" || true)
+            if [ -n "$MATCHES" ]; then
+              echo "❌ FAIL: Private sovereign file tracked in repo: $MATCHES"
+              FAIL=1
+            fi
+          done
+
+          # Check for private capsule payload files
+          CAPSULE_LEAKS=$(git ls-files | grep -E '\.(aoskey|aosvault|aosmem|vccaps)$' || true)
+          if [ -n "$CAPSULE_LEAKS" ]; then
+            echo "❌ FAIL: Private capsule files tracked: $CAPSULE_LEAKS"
+            FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "⛓️⚓⛓️ Remove private files from tracking: git rm --cached <file>"
+            exit 1
+          fi
+          echo "✅ No private lock/capsule files tracked"
+
+      # ── 5. AI policy files present ────────────────────────────────────────
+      - name: 📋 Verify AI usage policy files are in place
+        run: |
+          FAIL=0
+          for f in "CLAUDE.md" "AI_USAGE_POLICY.md" ".github/copilot-instructions.md" "public/info.txt"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ FAIL: Sovereign AI policy file missing: $f"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 1 ]; then exit 1; fi
+          echo "✅ All AI policy files present"
+
+      # ── 6. Submodule SSH gate check ───────────────────────────────────────
+      - name: 🔒 Verify submodules use SSH (not public HTTPS)
+        run: |
+          if [ -f ".gitmodules" ]; then
+            HTTPS_SUBS=$(grep 'url' .gitmodules | grep 'https://' || true)
+            if [ -n "$HTTPS_SUBS" ]; then
+              echo "⚠️  WARN: Submodule(s) use public HTTPS URL — consider switching to SSH:"
+              echo "$HTTPS_SUBS"
+            else
+              echo "✅ All submodules use SSH URLs"
+            fi
+          else
+            echo "ℹ️  No .gitmodules found"
+          fi
+
+      # ── 7. .gitignore covers all private patterns ─────────────────────────
+      - name: 🛡️  Verify .gitignore covers sovereign private patterns
+        run: |
+          FAIL=0
+          REQUIRED_PATTERNS=("SKC_" "SST_" "KC.lock" "SKC.lock" "SST.lock" "ClockGate" ".aoskey" ".aosvault")
+
+          for pattern in "${REQUIRED_PATTERNS[@]}"; do
+            if ! grep -q "$pattern" .gitignore 2>/dev/null; then
+              echo "❌ FAIL: .gitignore missing pattern: $pattern"
+              FAIL=1
+            fi
+          done
+
+          if [ "$FAIL" -eq 1 ]; then exit 1; fi
+          echo "✅ .gitignore covers all required private patterns"
+
+      - name: ✅ IP Protection Scan Complete
+        run: |
+          echo ""
+          echo "⛓️⚓⛓️ AveryOS™ Sovereign IP Protection Scan — ALL CHECKS PASSED"
+          echo "Kernel: cf83e135...927da3e (v3.6.2) — INTACT"
+          echo "CreatorLock: Jason Lee Avery (ROOT0) — ACTIVE"
+          echo "🤛🏻"

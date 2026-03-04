@@ -1,0 +1,139 @@
+{
+  "registry_id": "AveryOS_Copilot_Model_Registry",
+  "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "merkle_root": "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe",
+  "policy": "AI_USAGE_POLICY.md",
+  "instructions": ".github/copilot-instructions.md",
+  "creator_lock": "Jason Lee Avery (ROOT0)",
+  "glyph_lock": "🤛🏻",
+  "resonance_endpoint": "/api/v1/resonance",
+  "last_updated": "2026-03-04",
+  "note": "All models in this registry are governed by the same .github/copilot-instructions.md. This registry exists to enumerate known models for drift detection and new-model alerting.",
+  "models": [
+    {
+      "id": "gpt-4o",
+      "label": "GPT-4o",
+      "provider": "OpenAI / Microsoft",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "gpt-4o-mini",
+      "label": "GPT-4o mini",
+      "provider": "OpenAI / Microsoft",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "o1",
+      "label": "o1",
+      "provider": "OpenAI / Microsoft",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "o1-mini",
+      "label": "o1-mini",
+      "provider": "OpenAI / Microsoft",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "o3-mini",
+      "label": "o3-mini",
+      "provider": "OpenAI / Microsoft",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "claude-3-5-sonnet",
+      "label": "Claude 3.5 Sonnet",
+      "provider": "Anthropic",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "claude-3-7-sonnet",
+      "label": "Claude 3.7 Sonnet",
+      "provider": "Anthropic",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "gemini-1-5-pro",
+      "label": "Gemini 1.5 Pro",
+      "provider": "Google DeepMind",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "gemini-2-0-flash",
+      "label": "Gemini 2.0 Flash",
+      "provider": "Google DeepMind",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "gemini-2-0-flash-thinking",
+      "label": "Gemini 2.0 Flash Thinking",
+      "provider": "Google DeepMind",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "mistral-nemo",
+      "label": "Mistral Nemo",
+      "provider": "Mistral AI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "llama-3-1-405b",
+      "label": "Meta Llama 3.1 405B",
+      "provider": "Meta AI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04",
+      "node": "NODE_02",
+      "runtime": "Ollama (local)"
+    },
+    {
+      "id": "llama-3-3-70b",
+      "label": "Meta Llama 3.3 70B",
+      "provider": "Meta AI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04",
+      "node": "NODE_02",
+      "runtime": "Ollama (local)",
+      "default_node02_model": true
+    },
+    {
+      "id": "deepseek-r1",
+      "label": "DeepSeek R1",
+      "provider": "DeepSeek",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    },
+    {
+      "id": "grok",
+      "label": "Grok",
+      "provider": "xAI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-03-04"
+    }
+  ]
+}

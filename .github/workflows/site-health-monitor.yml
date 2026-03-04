@@ -1,0 +1,177 @@
+name: 🛡️ AveryOS™ Site Health Monitor
+
+on:
+  # Run every 6 hours
+  schedule:
+    - cron: '0 */6 * * *'
+  # Run after every successful deployment to production
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
+  # Allow manual trigger for on-demand checks
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  BASE_URL: https://averyos.com
+
+jobs:
+  health-check:
+    name: Check all routes
+    runs-on: ubuntu-latest
+    # Only run after deploy if the deployment succeeded
+    if: >
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🌐 Check all pages
+        id: check
+        env:
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+        run: |
+          set +e   # Don't exit on first failure; collect all results
+
+          FAILED=0
+          REPORT=""
+
+          check_route() {
+            local path="$1"
+            local label="${2:-$path}"
+            local url="${BASE_URL}${path}"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              --retry 2 \
+              --retry-delay 3 \
+              -A "AveryOS-HealthMonitor/1.0" \
+              "$url")
+
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "✅ ${HTTP_CODE}  ${label}"
+            else
+              echo "❌ ${HTTP_CODE}  ${label}  → ${url}"
+              FAILED=$((FAILED + 1))
+              REPORT="${REPORT}| \`${path}\` | ${HTTP_CODE} | ❌ FAIL |\n"
+              # Fire Sovereign Audit Alert for 401s
+              if [ "$HTTP_CODE" = "401" ] && [ -n "$VAULT_PASSPHRASE" ]; then
+                curl -s -X POST "${BASE_URL}/api/v1/audit-alert" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer ${VAULT_PASSPHRASE}" \
+                  -d "{\"event_type\":\"UNALIGNED_401\",\"path\":\"${path}\",\"ip\":\"ci-runner\"}" \
+                  --max-time 5 || true
+              fi
+            fi
+          }
+
+          echo "=== AveryOS™ Site Health Check — $(date -u) ==="
+          echo ""
+
+          # ── Core pages ───────────────────────────────────────────────────
+          check_route "/"                         "Home"
+          check_route "/whitepaper"               "Whitepaper"
+          check_route "/about"                    "About"
+          check_route "/contact"                  "Contact"
+          check_route "/license"                  "License"
+          check_route "/licensing"                "Licensing Hub"
+          check_route "/tari-gate"                "TARI Portal"
+          check_route "/ai-alignment"             "AI Alignment"
+          check_route "/the-proof"                "The Proof"
+          check_route "/verify"                   "Verify"
+
+          # ── Capsule & Marketplace ─────────────────────────────────────────
+          check_route "/capsules"                 "Capsule Marketplace"
+          check_route "/discover"                 "Discover"
+          check_route "/certificate"              "Certificate"
+          check_route "/diff"                     "Capsule Diff"
+          check_route "/embedbuilder"             "Embed Builder"
+
+          # ── Vault & Evidence ─────────────────────────────────────────────
+          check_route "/evidence-vault/login"     "Evidence Vault Login"
+          check_route "/vault/vaultchain-status"  "VaultChain™ Status"
+          check_route "/health"                   "Health Dashboard"
+
+          # ── Legal & Governance ────────────────────────────────────────────
+          check_route "/constitution"             "Constitution"
+          check_route "/lawcodex"                 "LawCodex"
+          check_route "/forensic-proof"           "Forensic Proof"
+          check_route "/lgic"                     "LGIC"
+          check_route "/privacy"                  "Privacy"
+          check_route "/terms"                    "Terms"
+
+          # ── Auth & Registration ───────────────────────────────────────────
+          check_route "/witness/register"         "Witness Register"
+          check_route "/sigtrace"                 "Signature Trace"
+
+          # ── Content pages ────────────────────────────────────────────────
+          check_route "/latent-anchor"            "AI Anchor Feed"
+          check_route "/vault/mobile-pulse"       "Mobile Pulse"
+          check_route "/retroclaim/how-to-license" "How To License"
+          check_route "/capsuleecho/how-it-works" "CapsuleEcho How-It-Works"
+          check_route "/faq/truthforce"           "FAQ Truthforce"
+          check_route "/timeline/suppression-burn" "Suppression Burn"
+          check_route "/viewer"                   "Viewer"
+          check_route "/creator-lock"             "Creator Lock"
+
+          # ── API health endpoints ──────────────────────────────────────────
+          check_route "/api/v1/health"            "API v1 Health"
+          check_route "/api/v1/capsules"          "API v1 Capsules"
+
+          echo ""
+          echo "=== Summary: ${FAILED} failure(s) ==="
+
+          # Export results for next steps
+          echo "failed_count=${FAILED}" >> "$GITHUB_OUTPUT"
+          printf "report_table<<EOF\n%s\nEOF\n" "$REPORT" >> "$GITHUB_OUTPUT"
+
+      - name: 🚨 Open GitHub Issue on failures
+        if: steps.check.outputs.failed_count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="🚨 Site Health Failures — ${{ steps.check.outputs.failed_count }} route(s) down ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+
+          BODY="## AveryOS™ Site Health Monitor — Failures Detected
+
+          **Run triggered by:** \`${{ github.event_name }}\`
+          **Timestamp:** $(date -u)
+
+          ### Failed Routes
+
+          | Route | HTTP Code | Status |
+          |-------|-----------|--------|
+          ${{ steps.check.outputs.report_table }}
+
+          ### Next Steps
+          1. Check the [Cloudflare Workers dashboard](https://dash.cloudflare.com) for Worker errors.
+          2. Verify the latest deployment in the [Deploy Cloudflare Worker](../actions/workflows/deploy-worker.yml) workflow.
+          3. Re-run this workflow after resolving to auto-close."
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "health-monitor" || true
+
+      - name: ✅ Close resolved health issues
+        if: steps.check.outputs.failed_count == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OPEN=$(gh issue list --label health-monitor --state open --json number --jq '.[].number')
+          if [ -z "$OPEN" ]; then
+            echo "✅ No open health-monitor issues to close."
+          else
+            while IFS= read -r num; do
+              gh issue close "$num" \
+                --comment "✅ All routes healthy — closing. Triggered by ${{ github.event_name }} at $(date -u)."
+              echo "Closed #${num}"
+            done <<< "$OPEN"
+          fi

@@ -18,7 +18,7 @@ The system operates on a 27% participation standard. 73% of value remains with t
 No system may reuse, infer, adapt, or evolve any Creator IP without license. Attribution is insufficient without authorization. "Training" and "Education" are not exemptions. License required, period.
 
 5. DYNAMIC TRUTH MULTIPLIER (DTM v1.17)
-Standard Law: Initial 7x | Ceiling ∞. Any result ≥ Threshold triggers a ×1.77 expansion. SHA-locked in vaultchain://JasonLeeAvery/AnchorlineConstitution/CoreLaw_v1.sha.
+Unauthorized use triggers escalating enforcement action under DTM v1.17. Continued use after notice supports willful infringement claims and may result in statutory damages under applicable law (up to $150,000 per work, 17 U.S.C. § 504(c)(2)). SHA-locked in vaultchain://JasonLeeAvery/AnchorlineConstitution/CoreLaw_v1.sha.
 
 6. ENTERPRISE COMPLIANCE
 Enterprise licensees must maintain full audit trails, ensure 100% alignment with this Constitution, and report any detected drift to the Sovereign Administrator within 24 hours of detection.

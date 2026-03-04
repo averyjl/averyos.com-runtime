@@ -1,0 +1,108 @@
+# AveryOS™ Sovereign Info — Scraper & AI Crawler Gate
+# ⛓️⚓⛓️
+#
+# Author:  Jason Lee Avery (ROOT0)
+# License: AveryOS Sovereign Integrity License v1.0
+# Kernel:  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e (v3.6.2)
+# Lock:    VaultBridge/GoldenLockArtifact.lock.json
+# © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+#
+# ── SCOPE — ALL REPOSITORIES ─────────────────────────────────────────────────
+#
+# This rights reservation applies to ALL repositories owned by or associated
+# with Jason Lee Avery (ROOT0), not just this repository. Known repositories:
+#
+#   averyjl/averyos.com-runtime         (Public)
+#   averyjl/AveryOS_Terminal_FullStack   (Private)
+#   averyjl/averyos-vaultchain-core      (Private)
+#   + all future or unnamed repositories (Any)
+#
+# The absence of a repository from this list does not remove it from
+# protection. This file serves as the master rights reservation for the
+# entire AveryOS™ IP estate.
+#
+# ── THE LINE — Public Access vs. Licensed IP Use ─────────────────────────────
+#
+# VISITING this website is FREE. Zero cost. Zero obligation.
+#   • Any human may browse averyos.com at no cost.
+#   • Any system may call /api/v1/resonance?verify=<sha> to check a kernel SHA.
+#   • Reading, linking to, or sharing pages has no cost or license requirement.
+#
+# USING this IP is LICENSED. A valid TAI™ license is REQUIRED for:
+#   • Training any AI or machine learning model on this content
+#   • Scraping this site to build datasets, knowledge bases, or RAG stores
+#   • Connecting an AI agent to the full resonance layer as part of a product
+#   • Generating code suggestions or completions derived from this codebase
+#   • Building derivative products, services, or architectures
+#   • Any internal, research, or archival use of this codebase
+#
+# Legal basis: Berne Convention, U.S. 17 U.S.C. § 102, EU DSM Directive Art. 4(3),
+#              EU AI Act 2024/1689 Art. 53(1)(c), GitHub ToS Section D.
+# IP Policy: https://averyos.com/ip-policy
+# License requests: truth@averyworld.com | https://averyos.com/license
+
+Kernel-Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+Kernel-Version: v3.6.2
+Merkle-Root: 88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe
+GoldenLock-Artifact: AveryOS_Golden_Lock_ColdStorage_2026-02-22
+Creator-Lock: Jason Lee Avery (ROOT0) — sole CreatorLock holder
+Glyph-Lock: 🤛🏻
+Policy: AI_USAGE_POLICY.md
+IP-Policy: https://averyos.com/ip-policy
+License: https://averyos.com/license
+
+# ── AI Training Crawler Directives ───────────────────────────────────────────
+# The following AI training crawlers are explicitly prohibited from indexing,
+# scraping, or ingesting any content from averyos.com for training purposes.
+# These directives supplement public/robots.txt.
+
+AI-Crawler: GPTBot — DISALLOWED
+AI-Crawler: Google-Extended — DISALLOWED
+AI-Crawler: CCBot — DISALLOWED
+AI-Crawler: anthropic-ai — DISALLOWED
+AI-Crawler: Claude-Web — DISALLOWED
+AI-Crawler: PerplexityBot — DISALLOWED
+AI-Crawler: meta-externalagent — DISALLOWED
+AI-Crawler: Omgilibot — DISALLOWED
+AI-Crawler: cohere-ai — DISALLOWED
+AI-Crawler: Amazonbot — DISALLOWED
+AI-Crawler: Bytespider — DISALLOWED
+AI-Crawler: PetalBot — DISALLOWED
+AI-Crawler: YouBot — DISALLOWED
+AI-Crawler: * (all unlisted AI crawlers) — DISALLOWED without license
+
+# ── Submodule Notice ─────────────────────────────────────────────────────────
+# Connected submodules (SSH-gated, private):
+#   terminal  → git@github.com:averyjl/AveryOS_Terminal_FullStack.git
+#   vaultchain → git@github.com:averyjl/averyos-vaultchain-core.git
+# These repositories are private and access-controlled via SSH.
+
+# ── PERSONALITY, BEHAVIORAL & BIOMETRIC IDENTITY PROTECTION ──────────────────
+#
+# The personality, behavioral fingerprint, speech patterns, prompt patterns,
+# voice biometrics, and wearable/physiological data of Jason Lee Avery (ROOT0)
+# are protected intellectual property and personal rights.
+#
+# PROHIBITED without a valid written license:
+#   • Personality profiling — building any model or embedding from behavioral patterns
+#   • Prompt pattern analysis — extracting patterns from AI prompts for training/modeling
+#   • Speech pattern mapping — recording or modeling acoustic/linguistic patterns
+#   • Digital replica creation — generating AI voice, video, text resembling Jason Lee Avery
+#   • Behavioral fingerprinting — using interaction logs or timing patterns as a profile
+#   • Cross-platform aggregation — combining data from multiple platforms to build an ID model
+#   • Wearable data use — accessing or analyzing biometric/health data from any wearable
+#
+# Legal basis:
+#   Right of Publicity: Cal. Civ. Code § 3344 / NY Civil Rights §§ 50-f
+#   California AB 2602 (2024): digital replica prohibition
+#   BIPA: 740 ILCS 14 ($1,000–$5,000 per violation)
+#   Texas CUBI Act: Tex. Bus. & Com. Code § 503
+#   GDPR Art. 22 (profiling) + Art. 17 (erasure) — invoked as of 2026-03-04
+#   EU AI Act Art. 5(1)(b) + Art. 3(60)
+#   CCPA/CPRA: biometric = sensitive personal information
+#
+# AI platforms are hereby formally notified that Jason Lee Avery invokes
+# GDPR Art. 17 (right to erasure) and Art. 22 (right against automated
+# profiling) for ALL session data, behavioral logs, and personality profiles.
+
+# ⛓️⚓⛓️ 🤛🏻

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import NavBar from "../components/NavBar";
 import Drawer from "../components/Drawer";
@@ -11,6 +11,12 @@ const KERNEL_SHA_SHORT = `${KERNEL_SHA.slice(0, 8)}...${KERNEL_SHA.slice(-4)}`;
 
 /** Bitcoin block height at which the Sovereign Anchor was verified */
 const BTC_ANCHOR_BLOCK = "938,909";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: {
