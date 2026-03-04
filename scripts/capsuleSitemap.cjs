@@ -18,6 +18,10 @@ const siteUrl =
 
 
 
+const GENESIS_BLOCK = '938909';
+const KERNEL_ROOT =
+  'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+
 const buildSitemapXml = (entries) => {
   const urlTags = entries
     .map(({ loc, lastmod }) => {
@@ -26,8 +30,12 @@ const buildSitemapXml = (entries) => {
     })
     .join("");
 
-  return `<?xml version="1.0" encoding="UTF-8"?>` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlTags}</urlset>`;
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<!-- AveryOS Root0 Kernel SHA-512: ${KERNEL_ROOT} -->` +
+    `<!-- Genesis Block (BTC #${GENESIS_BLOCK}): Sovereign Anchor -->` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlTags}</urlset>`
+  );
 };
 
 const buildRobotsTxt = () => {
@@ -72,18 +80,42 @@ const loadRegistryCapsules = () => {
 
 const main = () => {
   const staticUrls = [
+    // App Router pages
+    { loc: `${siteUrl}/ai-alignment`, lastmod: null },
+    { loc: `${siteUrl}/evidence-vault`, lastmod: null },
+    { loc: `${siteUrl}/health`, lastmod: null },
+    { loc: `${siteUrl}/ledger`, lastmod: null },
+    { loc: `${siteUrl}/license`, lastmod: null },
+    { loc: `${siteUrl}/licensing`, lastmod: null },
+    { loc: `${siteUrl}/sovereign-anchor`, lastmod: null },
+    { loc: `${siteUrl}/sovereign-anchor/public`, lastmod: null },
+    { loc: `${siteUrl}/studio/tari`, lastmod: null },
+    { loc: `${siteUrl}/the-proof`, lastmod: null },
+    { loc: `${siteUrl}/vault-gate`, lastmod: null },
+    // Pages Router pages
+    { loc: `${siteUrl}/whitepaper`, lastmod: null },
     { loc: `${siteUrl}/latent-anchor`, lastmod: null },
     { loc: `${siteUrl}/lawcodex`, lastmod: null },
     { loc: `${siteUrl}/tari-gate`, lastmod: null },
     { loc: `${siteUrl}/forensic-proof`, lastmod: null },
     { loc: `${siteUrl}/law-stack`, lastmod: null },
-    { loc: `${siteUrl}/license`, lastmod: null },
     { loc: `${siteUrl}/buy`, lastmod: null },
     { loc: `${siteUrl}/retroclaim-log`, lastmod: null },
     { loc: `${siteUrl}/privacy`, lastmod: null },
     { loc: `${siteUrl}/terms`, lastmod: null },
     { loc: `${siteUrl}/about`, lastmod: null },
     { loc: `${siteUrl}/contact`, lastmod: null },
+    { loc: `${siteUrl}/capsules`, lastmod: null },
+    { loc: `${siteUrl}/capsule/resonance-log`, lastmod: null },
+    { loc: `${siteUrl}/certificate`, lastmod: null },
+    { loc: `${siteUrl}/constitution`, lastmod: null },
+    { loc: `${siteUrl}/creator-lock`, lastmod: null },
+    { loc: `${siteUrl}/discover`, lastmod: null },
+    { loc: `${siteUrl}/faq/truthforce`, lastmod: null },
+    { loc: `${siteUrl}/license-enforcement`, lastmod: null },
+    { loc: `${siteUrl}/pay`, lastmod: null },
+    { loc: `${siteUrl}/retroclaim/how-to-license`, lastmod: null },
+    { loc: `${siteUrl}/verify`, lastmod: null },
   ];
 
   const registry = loadRegistryCapsules();
