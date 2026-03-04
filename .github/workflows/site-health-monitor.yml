@@ -40,6 +40,8 @@ jobs:
 
           FAILED=0
           REPORT=""
+          UNALIGNED_401_COUNT=0
+          UNALIGNED_401_EVENTS=""
 
           check_route() {
             local path="$1"
@@ -59,6 +61,12 @@ jobs:
               echo "❌ ${HTTP_CODE}  ${label}  → ${url}"
               FAILED=$((FAILED + 1))
               REPORT="${REPORT}| \`${path}\` | ${HTTP_CODE} | ❌ FAIL |\n"
+              # Track 401 Unaligned events separately for Sovereign Audit Alert
+              if [ "$HTTP_CODE" = "401" ]; then
+                UNALIGNED_401_COUNT=$((UNALIGNED_401_COUNT + 1))
+                # Format: path,status — pipe-separated list for the alert step
+                UNALIGNED_401_EVENTS="${UNALIGNED_401_EVENTS}${path},${HTTP_CODE}|"
+              fi
             fi
           }
 
@@ -121,6 +129,28 @@ jobs:
           # Export results for next steps
           echo "failed_count=${FAILED}" >> "$GITHUB_OUTPUT"
           printf "report_table<<EOF\n%s\nEOF\n" "$REPORT" >> "$GITHUB_OUTPUT"
+          echo "unaligned_401_count=${UNALIGNED_401_COUNT}" >> "$GITHUB_OUTPUT"
+          printf "unaligned_401_events<<EOF\n%s\nEOF\n" "${UNALIGNED_401_EVENTS%|}" >> "$GITHUB_OUTPUT"
+
+      - name: 🚨 Sovereign Audit Alert — 401 Unaligned Events
+        if: steps.check.outputs.unaligned_401_count != '0'
+        env:
+          PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+          GABRIEL_SENTINEL_WEBHOOK: ${{ secrets.GABRIEL_SENTINEL_WEBHOOK }}
+        run: |
+          echo "🔔 Dispatching Sovereign Audit Alerts for ${{ steps.check.outputs.unaligned_401_count }} UNALIGNED_401 event(s)..."
+          IFS='|' read -ra EVENTS <<< "${{ steps.check.outputs.unaligned_401_events }}"
+          for event in "${EVENTS[@]}"; do
+            [ -z "$event" ] && continue
+            path=$(echo "$event" | cut -d',' -f1)
+            status=$(echo "$event" | cut -d',' -f2)
+            node scripts/sovereign-audit-alert.js \
+              --ip "HEALTH_MONITOR" \
+              --path "$path" \
+              --status "$status" \
+              --event-type UNALIGNED_401 || true
+          done
 
       - name: 🚨 Open GitHub Issue on failures
         if: steps.check.outputs.failed_count != '0'
