@@ -90,7 +90,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(500).json({ error: "Stripe secret key not configured" });
   }
 
-  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2026-01-28.clover" });
+  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2026-02-25.clover" });
 
   const sig = req.headers["stripe-signature"] as string | undefined;
   if (!sig) {
