@@ -22,7 +22,10 @@ export function readMarkdownContent(contentPath: string): string {
  * Converts markdown content to HTML
  */
 export function markdownToHtml(markdown: string): string {
-  return marked(markdown) as string;
+  // Pass async: false to get a guaranteed synchronous string return.
+  // marked v5+ returns string | Promise<string> by default; the async: false
+  // overload narrows the return to string and prevents "[object Promise]" 500s.
+  return marked(markdown, { async: false });
 }
 
 /**
