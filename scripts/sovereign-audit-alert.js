@@ -32,6 +32,7 @@
  */
 
 import { createHmac } from "crypto";
+import { webcrypto } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -108,7 +109,7 @@ async function computePulseHash(ip, path, timestamp) {
   const input = `${ip}|${path}|${timestamp}|${KERNEL_SHA}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  const hashBuffer = await webcrypto.subtle.digest("SHA-512", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }

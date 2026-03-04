@@ -56,6 +56,27 @@ export function evaluateTaiAccess(
   vaultPassphrase: string,
   taiLicenseKey: string
 ): TaiGateResult {
+  // ── Constant-time comparison helper ───────────────────────────────────────
+  // Prevents timing side-channel attacks that could allow brute-forcing secrets
+  // character-by-character. Returns true only when both strings are equal in
+  // length and content, evaluated in constant time.
+  function safeEqual(a: string, b: string): boolean {
+    if (!a || !b) return false;
+    const enc = new TextEncoder();
+    const aBytes = enc.encode(a);
+    const bBytes = enc.encode(b);
+    if (aBytes.length !== bBytes.length) {
+      // Run through bytes anyway to keep time constant regardless of length
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      let diff = 0;
+      for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ 0;
+      return false;
+    }
+    let diff = 0;
+    for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+    return diff === 0;
+  }
+
   // ── Tier 1: Internal sovereign passphrase ─────────────────────────────────
   const authHeader = headers.get("authorization") ?? "";
   let bearerToken = "";
@@ -65,7 +86,7 @@ export function evaluateTaiAccess(
     bearerToken = authHeader.slice(10).trim();
   }
 
-  if (vaultPassphrase && bearerToken === vaultPassphrase) {
+  if (vaultPassphrase && safeEqual(bearerToken, vaultPassphrase)) {
     return {
       tier: "VAULT_PASSPHRASE",
       fullAccess: true,
@@ -80,7 +101,7 @@ export function evaluateTaiAccess(
   //  license registry, but a single env secret is the minimal-change approach.)
   const submittedKey = headers.get(TAI_LICENSE_HEADER)?.trim() ?? "";
 
-  if (taiLicenseKey && submittedKey === taiLicenseKey) {
+  if (taiLicenseKey && safeEqual(submittedKey, taiLicenseKey)) {
     return {
       tier: "TAI_LICENSED",
       fullAccess: true,
@@ -88,12 +109,13 @@ export function evaluateTaiAccess(
     };
   }
 
-  // Submitted a key but it is wrong — treat as failed auth attempt (not public)
+  // Submitted a key but it is wrong — return a generic message regardless of
+  // whether the key was absent or mismatched to prevent key enumeration.
   if (submittedKey) {
     return {
       tier: "PUBLIC",
       fullAccess: false,
-      reason: "INVALID_TAI_LICENSE_KEY — key was submitted but does not match. Request a valid license at https://averyos.com/license",
+      reason: "AUTH_FAILED — key not recognized. Request a valid TAI™ license at https://averyos.com/license",
     };
   }
 

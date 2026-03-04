@@ -40,7 +40,7 @@ const LICENSED_USES = [
   {
     act: "Summarizing or indexing this content for retrieval",
     detail:
-      "Indexing, caching, summarising, or embedding site content in any search engine, vector database, or retrieval-augmented generation (RAG) system.",
+      "Indexing, caching, summarizing, or embedding site content in any search engine, vector database, or retrieval-augmented generation (RAG) system.",
   },
   {
     act: "Code completion or suggestion from this codebase",

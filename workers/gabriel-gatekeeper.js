@@ -264,7 +264,7 @@ export default {
             tari_liability_usd REAL,
             pulse_hash TEXT
           )`
-        ).first();
+        ).run();
 
         await DB.prepare(
           `INSERT INTO sovereign_audit_logs
