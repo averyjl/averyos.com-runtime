@@ -19,6 +19,9 @@ import { execSync } from "child_process";
 import { webcrypto } from "node:crypto";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -181,6 +184,98 @@ function computeTariLiability(rows) {
 }
 
 // ---------------------------------------------------------------------------
+// Generate Settlement Notice letter from docs/legal/Settlement_Letter_Template.md
+// ---------------------------------------------------------------------------
+
+function generateSettlementLetter({
+  bundle,
+  rows,
+  tariTotal,
+  tariFormatted,
+  tariBreakdown,
+  pulseHash,
+  timestamp,
+  btcBlockHeight,
+  outputDir,
+  safeIp,
+}) {
+  const templatePath = path.resolve(
+    __dirname,
+    "../docs/legal/Settlement_Letter_Template.md"
+  );
+
+  if (!fs.existsSync(templatePath)) {
+    console.warn(
+      `⚠️  Settlement Letter Template not found: ${templatePath} — skipping letter generation.`
+    );
+    return null;
+  }
+
+  // Build TARI™ breakdown summary
+  const tariBreakdownLines = Object.entries(tariBreakdown)
+    .map(([eventType, amount]) => {
+      const label = TARI_LIABILITY_LABELS[eventType] ?? eventType;
+      const formatted = amount.toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+      });
+      return `  ${eventType}: ${formatted} (${label})`;
+    })
+    .join("\n");
+
+  // Build event types summary from audit log rows
+  const eventTypeCounts = {};
+  for (const row of rows) {
+    const et = String(row.event_type ?? "UNKNOWN");
+    eventTypeCounts[et] = (eventTypeCounts[et] ?? 0) + 1;
+  }
+  const eventTypesSummary = Object.entries(eventTypeCounts)
+    .map(([et, count]) => `  ${et}: ${count} event(s)`)
+    .join("\n") || "  No events recorded (minimum liability applied)";
+
+  // Extract date from ISO timestamp (YYYY-MM-DD)
+  const date = timestamp.slice(0, 10);
+
+  // Statutory infringement base (always $10,000)
+  const statutoryBase = 10000.0;
+  const totalLiability = tariTotal + statutoryBase;
+  const totalLiabilityFormatted = totalLiability.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
+
+  // Entry fee formatted
+  const entryFeeFormatted = TARI_LIABILITY.UNALIGNED_401.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
+
+  let letter = fs.readFileSync(templatePath, "utf-8");
+
+  letter = letter
+    .replaceAll("[PULSE_SHA_512]", pulseHash)
+    .replaceAll("[TIMESTAMP]", timestamp)
+    .replaceAll("[BTC_BLOCK_HEIGHT]", btcBlockHeight !== null ? String(btcBlockHeight) : "unavailable")
+    .replaceAll("[BUNDLE_ID]", bundle.CapsuleID)
+    .replaceAll("[DATE]", date)
+    .replaceAll("[TARGET_IP]", bundle.TargetIP)
+    .replaceAll("[AUDIT_LOG_COUNT]", String(rows.length))
+    .replaceAll("[EVENT_TYPES_SUMMARY]", eventTypesSummary)
+    .replaceAll("[ENTRY_FEE_USD]", entryFeeFormatted)
+    .replaceAll("[TOTAL_LIABILITY_USD]", totalLiabilityFormatted)
+    .replaceAll("[TARI_BREAKDOWN]", tariBreakdownLines)
+    .replaceAll("[ORGANIZATION]", "[Identify from IP WHOIS]");
+
+  const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
+  const settlementFilePath = path.join(outputDir, settlementFileName);
+  fs.writeFileSync(settlementFilePath, letter, "utf-8");
+  return settlementFilePath;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -290,8 +385,25 @@ async function main() {
   const filePath = path.join(outputDir, fileName);
   fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), "utf-8");
 
+  // 7. Generate Settlement Notice letter from template
+  const settlementPath = generateSettlementLetter({
+    bundle,
+    rows,
+    tariTotal,
+    tariFormatted,
+    tariBreakdown,
+    pulseHash,
+    timestamp,
+    btcBlockHeight,
+    outputDir,
+    safeIp,
+  });
+
   console.log("");
   console.log(`✅ Evidence bundle written: ${filePath}`);
+  if (settlementPath) {
+    console.log(`✅ Settlement letter written: ${settlementPath}`);
+  }
   console.log(`   TARI™ Liability  : ${tariFormatted} USD`);
   console.log(`   Audit Rows       : ${rows.length}`);
   console.log(`   BTC Block Height : ${btcBlockHeight ?? "unavailable"}`);
