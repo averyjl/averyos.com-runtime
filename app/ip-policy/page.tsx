@@ -44,9 +44,9 @@ const LICENSED_USES = [
       "Indexing, caching, summarizing, or embedding site content in any search engine, vector database, or retrieval-augmented generation (RAG) system.",
   },
   {
-    act: "Code completion or suggestion from this codebase",
+    act: "Code completion or suggestion from any Jason Lee Avery repository",
     detail:
-      "Using patterns, structures, or logic from the averyos.com-runtime repository to generate code suggestions in any IDE plugin, AI assistant, or code generation tool.",
+      "Using patterns, structures, or logic from any Jason Lee Avery repository (including but not limited to averyos.com-runtime, AveryOS_Terminal_FullStack, and averyos-vaultchain-core) to generate code suggestions in any IDE plugin, AI assistant, or code generation tool.",
   },
   {
     act: "Building derivative products or services",
@@ -68,7 +68,7 @@ const LICENSED_USES = [
 const LEGAL_BASIS = [
   {
     heading: "Berne Convention (181+ member states)",
-    body: "Copyright arises automatically upon creation, without registration. All content in this repository, on averyos.com, AND submitted to any AI platform account is protected in every signatory nation from the moment it is written.",
+    body: "Copyright arises automatically upon creation, without registration. All content in all Jason Lee Avery repositories, on averyos.com, AND submitted to any AI platform account is protected in every signatory nation from the moment it is written — including private repositories, archived repositories, and any future repositories.",
   },
   {
     heading: "U.S. Copyright Act, 17 U.S.C. § 102 — Fixation in AI Platform Systems",
@@ -93,6 +93,28 @@ const LEGAL_BASIS = [
   {
     heading: "DMCA, 17 U.S.C. § 512",
     body: "Unauthorized use may result in a formal DMCA takedown notice filed with any hosting provider, platform, or service.",
+  },
+];
+
+const ALL_REPOS: { name: string; url?: string; visibility: string }[] = [
+  {
+    name: "averyos.com-runtime",
+    url: "https://github.com/averyjl/averyos.com-runtime",
+    visibility: "Public",
+  },
+  {
+    name: "AveryOS_Terminal_FullStack",
+    url: "https://github.com/averyjl/AveryOS_Terminal_FullStack",
+    visibility: "Private",
+  },
+  {
+    name: "averyos-vaultchain-core",
+    url: "https://github.com/averyjl/averyos-vaultchain-core",
+    visibility: "Private",
+  },
+  {
+    name: "Any future or unnamed repository",
+    visibility: "Any",
   },
 ];
 
@@ -262,6 +284,114 @@ export default function IpPolicyPage() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── All Repositories ── */}
+      <section
+        className="card"
+        style={{ border: "1px solid rgba(120,148,255,0.35)" }}
+      >
+        <h2 style={{ color: "rgba(120,148,255,0.9)", marginTop: 0 }}>
+          📦 This Policy Covers ALL Jason Lee Avery Repositories
+        </h2>
+        <p style={{ color: "rgba(238,244,255,0.85)", lineHeight: "1.75", marginBottom: "1rem" }}>
+          This IP policy is{" "}
+          <strong style={{ color: "#ffffff" }}>not limited to averyos.com or any single repository.</strong>{" "}
+          It covers every repository owned by or associated with Jason Lee Avery (ROOT0) on any
+          code-hosting platform — whether public, private, or archived — past, present, and future.
+        </p>
+        <div style={{ overflowX: "auto", marginBottom: "1.25rem" }}>
+          <table
+            role="table"
+            aria-label="Jason Lee Avery repositories covered by this IP policy"
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}
+          >
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(120,148,255,0.2)" }}>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", color: "rgba(120,148,255,0.85)", fontWeight: 600 }}>
+                  Repository
+                </th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "center", color: "rgba(120,148,255,0.85)", fontWeight: 600 }}>
+                  Visibility
+                </th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "center", color: "rgba(120,148,255,0.85)", fontWeight: 600 }}>
+                  Covered
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {ALL_REPOS.map((repo) => (
+                <tr
+                  key={repo.name}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <td style={{ padding: "0.6rem 0.75rem", verticalAlign: "middle" }}>
+                    {repo.url ? (
+                      <a
+                        href={repo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${repo.name} (${repo.visibility}) on GitHub`}
+                        style={{
+                          color: "rgba(120,148,255,0.85)",
+                          fontFamily: "JetBrains Mono, monospace",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {repo.name}
+                      </a>
+                    ) : (
+                      <span
+                        style={{
+                          color: "rgba(238,244,255,0.6)",
+                          fontFamily: "JetBrains Mono, monospace",
+                          fontSize: "0.85rem",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {repo.name}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "rgba(238,244,255,0.65)", fontSize: "0.85rem" }}>
+                    {repo.visibility}
+                  </td>
+                  <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "#4ade80", fontSize: "1.1rem" }}>
+                    ✅
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            background: "rgba(120,148,255,0.06)",
+            border: "1px solid rgba(120,148,255,0.2)",
+            borderRadius: "6px",
+            fontSize: "0.88rem",
+            color: "rgba(238,244,255,0.75)",
+            lineHeight: "1.7",
+          }}
+        >
+          <strong style={{ color: "rgba(120,148,255,0.9)" }}>ℹ️ Note:</strong>{" "}
+          The absence of a repository from the table above does not remove it from this
+          policy&apos;s protection. All repositories containing code, documentation,
+          configuration, or other content authored by Jason Lee Avery are protected under
+          the{" "}
+          <strong>AveryOS Sovereign Integrity License v1.0</strong> and covered by the
+          machine-readable rights reservations published in{" "}
+          <code style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.82rem", background: "rgba(120,148,255,0.08)", padding: "0.1rem 0.35rem", borderRadius: "3px" }}>
+            public/robots.txt
+          </code>{" "}
+          and{" "}
+          <code style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.82rem", background: "rgba(120,148,255,0.08)", padding: "0.1rem 0.35rem", borderRadius: "3px" }}>
+            public/info.txt
+          </code>
+          {" "}in this repository, which serve as the master rights reservation for the
+          entire AveryOS™ IP estate.
         </div>
       </section>
 

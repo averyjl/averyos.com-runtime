@@ -7,6 +7,20 @@
 # Lock:    VaultBridge/GoldenLockArtifact.lock.json
 # © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
 #
+# ── SCOPE — ALL REPOSITORIES ─────────────────────────────────────────────────
+#
+# This rights reservation applies to ALL repositories owned by or associated
+# with Jason Lee Avery (ROOT0), not just this repository. Known repositories:
+#
+#   averyjl/averyos.com-runtime         (Public)
+#   averyjl/AveryOS_Terminal_FullStack   (Private)
+#   averyjl/averyos-vaultchain-core      (Private)
+#   + all future or unnamed repositories (Any)
+#
+# The absence of a repository from this list does not remove it from
+# protection. This file serves as the master rights reservation for the
+# entire AveryOS™ IP estate.
+#
 # ── THE LINE — Public Access vs. Licensed IP Use ─────────────────────────────
 #
 # VISITING this website is FREE. Zero cost. Zero obligation.
