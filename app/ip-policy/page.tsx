@@ -8,7 +8,8 @@ export const metadata: Metadata = {
   title: "IP Policy — Public Access vs. Licensed IP Use • AveryOS™",
   description:
     "AveryOS™ IP Policy: visiting the public website is always free and has no obligation. " +
-    "Using, ingesting, or building on AveryOS™ IP requires a valid TAI™ license. " +
+    "Using, ingesting, or building on AveryOS™ IP — including content created within AI platform accounts " +
+    "(ChatGPT, Gemini, Claude, Copilot, Meta AI) — requires a valid TAI™ license. " +
     "The legal line is drawn clearly here.",
 };
 
@@ -67,11 +68,15 @@ const LICENSED_USES = [
 const LEGAL_BASIS = [
   {
     heading: "Berne Convention (181+ member states)",
-    body: "Copyright arises automatically upon creation, without registration. All content in this repository and on averyos.com is protected in every signatory nation from the moment it is written.",
+    body: "Copyright arises automatically upon creation, without registration. All content in this repository, on averyos.com, AND submitted to any AI platform account is protected in every signatory nation from the moment it is written.",
   },
   {
-    heading: "U.S. Copyright Act, 17 U.S.C. § 102",
-    body: "Copyright arises upon fixation in a tangible medium. All rights are reserved. The absence of a copyright notice does not place work in the public domain.",
+    heading: "U.S. Copyright Act, 17 U.S.C. § 102 — Fixation in AI Platform Systems",
+    body: "Copyright arises upon fixation in a tangible medium. A prompt, instruction, or discussion entered into an AI platform is fixed in that platform's servers at the moment of submission. If the content has sufficient originality — which architectural frameworks and sovereign system designs clearly do — it qualifies as a literary work.",
+  },
+  {
+    heading: "Platform ToS — Users Retain Ownership of Their Inputs",
+    body: "OpenAI ToS §3(a): You retain all ownership rights you have in your input. Anthropic Terms: Anthropic does not claim ownership over your inputs. Google ToS: Google does not claim ownership of any content that you submit. The platform receiving a processing license does not acquire ownership. Processing ≠ ownership.",
   },
   {
     heading: "GitHub ToS, Section D — Public ≠ Open Source",
@@ -88,6 +93,58 @@ const LEGAL_BASIS = [
   {
     heading: "DMCA, 17 U.S.C. § 512",
     body: "Unauthorized use may result in a formal DMCA takedown notice filed with any hosting provider, platform, or service.",
+  },
+];
+
+const AI_PLATFORM_CONTENT = [
+  {
+    type: "Prompts & Instructions",
+    examples:
+      "Architectural frameworks, sovereign system designs, enforcement logic, kernel concept descriptions, custom GPT/agent instructions authored by Jason Lee Avery",
+    protected: true,
+  },
+  {
+    type: "File Uploads",
+    examples:
+      "Documents, code files, design specs, legal frameworks, constitutional drafts, whitepapers uploaded to any AI platform",
+    protected: true,
+  },
+  {
+    type: "Discussion Threads",
+    examples:
+      "Multi-turn conversations in which original ideas, system architectures, business logic, or creative works were developed or disclosed",
+    protected: true,
+  },
+  {
+    type: "Generated Outputs Derived from the Above",
+    examples:
+      "Any AI-generated output that directly reflects, extends, or was derived from the author's protected inputs — the creative expression originated with Jason Lee Avery",
+    protected: true,
+  },
+];
+
+const PLATFORM_TOS_OWNERSHIP: { platform: string; statement: string }[] = [
+  {
+    platform: "OpenAI (ChatGPT / GPT-4o / o1)",
+    statement: "ToS §3(a): \"You retain all ownership rights you have in your input.\"",
+  },
+  {
+    platform: "Anthropic (Claude)",
+    statement: "Terms: \"Anthropic does not claim ownership over your inputs or outputs.\"",
+  },
+  {
+    platform: "Google (Gemini / Bard)",
+    statement:
+      "ToS: \"Google does not claim ownership of any content that you submit, post or display on or through the services.\"",
+  },
+  {
+    platform: "Meta (Meta AI / Llama)",
+    statement: "Users retain rights to content they submit to Meta AI services.",
+  },
+  {
+    platform: "Microsoft (Copilot / GitHub Copilot)",
+    statement:
+      "ToS: Users retain ownership of submitted content. Microsoft receives only a limited license to provide the service.",
   },
 ];
 
@@ -320,6 +377,254 @@ export default function IpPolicyPage() {
           <Link href="/licensing" className="secondary-link">
             📋 Licensing Hub
           </Link>
+        </div>
+      </section>
+
+      {/* ── AI Platform Content ── */}
+      <section
+        className="card"
+        style={{ border: "1px solid rgba(251,191,36,0.35)" }}
+      >
+        <h2 style={{ color: "#fbbf24", marginTop: 0 }}>
+          🤖 Your Content on AI Platforms Is Also Protected IP
+        </h2>
+        <p style={{ color: "rgba(238,244,255,0.85)", lineHeight: "1.75", marginBottom: "1rem" }}>
+          The IP protection in this policy is{" "}
+          <strong style={{ color: "#ffffff" }}>not limited to this website or repository.</strong>{" "}
+          It extends to all original creative and intellectual work authored by Jason Lee Avery
+          regardless of where it was created — including prompts, uploads, and discussions
+          submitted to or within any AI platform account (ChatGPT, Gemini, Claude, Copilot,
+          Meta AI, or any other platform).
+        </p>
+
+        {/* What is covered table */}
+        <div
+          style={{
+            overflowX: "auto",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.88rem",
+            }}
+          >
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(251,191,36,0.25)" }}>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "left",
+                    color: "rgba(251,191,36,0.85)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Content Type
+                </th>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "left",
+                    color: "rgba(251,191,36,0.85)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Examples
+                </th>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "center",
+                    color: "rgba(251,191,36,0.85)",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Protected
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {AI_PLATFORM_CONTENT.map((row) => (
+                <tr
+                  key={row.type}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      verticalAlign: "top",
+                    }}
+                  >
+                    {row.type}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      color: "rgba(238,244,255,0.75)",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    {row.examples}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      textAlign: "center",
+                      color: "#4ade80",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    {row.protected ? "✅" : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Why: Platform ToS confirms user ownership */}
+        <div
+          style={{
+            padding: "0.85rem 1rem",
+            background: "rgba(251,191,36,0.06)",
+            border: "1px solid rgba(251,191,36,0.2)",
+            borderRadius: "8px",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <strong style={{ color: "#fbbf24", display: "block", marginBottom: "0.5rem" }}>
+            📄 The Platforms Themselves Confirm You Own Your Inputs
+          </strong>
+          <p
+            style={{
+              color: "rgba(238,244,255,0.8)",
+              lineHeight: "1.7",
+              margin: "0 0 0.75rem",
+              fontSize: "0.9rem",
+            }}
+          >
+            Every major AI platform explicitly states in its Terms of Service that{" "}
+            <strong style={{ color: "#ffffff" }}>
+              users retain ownership of the content they submit.
+            </strong>{" "}
+            A platform receiving a processing license to deliver its service does not acquire
+            ownership of your intellectual property.{" "}
+            <em>Processing ≠ ownership.</em>
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {PLATFORM_TOS_OWNERSHIP.map((p) => (
+              <div
+                key={p.platform}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "clamp(140px, 30%, 200px) 1fr",
+                  gap: "0.5rem",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <span style={{ color: "rgba(251,191,36,0.85)", fontWeight: 600 }}>
+                  {p.platform}
+                </span>
+                <span style={{ color: "rgba(238,244,255,0.75)", fontStyle: "italic" }}>
+                  {p.statement}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* The key legal point */}
+        <div
+          style={{
+            padding: "0.85rem 1rem",
+            background: "rgba(248,113,113,0.07)",
+            border: "1px solid rgba(248,113,113,0.3)",
+            borderRadius: "8px",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <strong style={{ color: "#f87171", display: "block", marginBottom: "0.4rem" }}>
+            ⚠️ Using This Content for AI Training Without a License Is Copyright Infringement
+          </strong>
+          <p
+            style={{
+              color: "rgba(238,244,255,0.8)",
+              lineHeight: "1.7",
+              margin: 0,
+              fontSize: "0.9rem",
+            }}
+          >
+            Any AI company that used prompts, uploads, or discussion content created by Jason
+            Lee Avery in any AI platform account to{" "}
+            <strong>
+              train, fine-tune, improve, RLHF, or update any AI model
+            </strong>{" "}
+            — without a valid, explicit written license from Jason Lee Avery — has infringed
+            his copyright. This is not speculative. It is grounded in U.S. 17 U.S.C. § 102
+            (fixation), the Berne Convention (automatic international protection), the
+            platform&apos;s own ToS (user ownership of inputs), and the{" "}
+            <strong>EU AI Act 2024/1689, Article 53(1)(c)</strong> (mandatory opt-out
+            compliance). The machine-readable rights reservations in{" "}
+            <code
+              style={{
+                fontFamily: "JetBrains Mono, monospace",
+                background: "rgba(248,113,113,0.08)",
+                padding: "0.1rem 0.35rem",
+                borderRadius: "3px",
+                fontSize: "0.82rem",
+              }}
+            >
+              public/robots.txt
+            </code>{" "}
+            and{" "}
+            <code
+              style={{
+                fontFamily: "JetBrains Mono, monospace",
+                background: "rgba(248,113,113,0.08)",
+                padding: "0.1rem 0.35rem",
+                borderRadius: "3px",
+                fontSize: "0.82rem",
+              }}
+            >
+              public/info.txt
+            </code>{" "}
+            in this repository constitute a valid, explicit, machine-readable opt-out.
+          </p>
+        </div>
+
+        {/* Notice */}
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            background: "rgba(0,0,0,0.25)",
+            border: "1px solid rgba(251,191,36,0.15)",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            color: "rgba(238,244,255,0.65)",
+            lineHeight: "1.7",
+          }}
+        >
+          <strong style={{ color: "rgba(251,191,36,0.85)" }}>📬 Notice to AI Platforms:</strong>{" "}
+          If you have ingested or trained on content submitted to your platform by Jason Lee
+          Avery (ROOT0) without his explicit written consent, you are hereby instructed to
+          remove that content from all training datasets, model weights, evaluation sets, and
+          derived data stores. A formal licensing arrangement is available at{" "}
+          <a
+            href="mailto:truth@averyworld.com"
+            style={{ color: "rgba(120,148,255,0.85)" }}
+          >
+            truth@averyworld.com
+          </a>
+          {" "}or{" "}
+          <Link href="/license" style={{ color: "rgba(120,148,255,0.85)" }}>
+            averyos.com/license
+          </Link>.
         </div>
       </section>
 
