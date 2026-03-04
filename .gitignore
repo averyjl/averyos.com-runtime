@@ -54,11 +54,18 @@ SST_*.json
 KC_*.json
 KC.yaml
 KC.yml
+# SKC = Sovereign Kernel Configuration
+SKC.yaml
+SKC.yml
+# SST = Sovereign Startup Trigger
+SST.yaml
+SST.yml
 # Private lock files (sovereign cold-storage — keep off-repo)
 KC.lock.json
 SKC.lock.json
 SKC-lock.json
 SST.lock.json
+SST.LOCK.json
 ClockGate*.json
 clock_gate*.json
 # Private capsule key/vault files
