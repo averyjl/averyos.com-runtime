@@ -19,4 +19,14 @@ jobs:
       - name: Verify Codebase Integrity
         run: node scripts/forgeMeshProofKit.cjs
       - name: Sync Sovereign Reflection
-        run: git push origin main
+        run: |
+          git config user.name "AveryOS Sovereign Bot"
+          git config user.email "bot@averyos.com"
+          git add capsule_logs/
+          if git diff --cached --quiet; then
+            echo "No new artifacts to commit."
+          else
+            git commit -m "⚓ Sovereign Sync: MeshProofKit $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          fi
+          git pull --rebase origin main
+          git push origin main

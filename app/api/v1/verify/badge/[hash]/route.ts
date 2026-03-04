@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { BADGE_STATUS_ACTIVE } from '../../../../lib/sovereignConstants';
+import { BADGE_STATUS_ACTIVE } from '../../../../../../lib/sovereignConstants';
 
 interface D1Result {
   partner_id: string;

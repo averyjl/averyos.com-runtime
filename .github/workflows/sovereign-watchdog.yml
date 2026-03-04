@@ -54,15 +54,29 @@ jobs:
         run: |
           BODY="$RESPONSE_BODY"
 
-          CREATOR_LOCK=$(echo "$BODY"       | jq -r '.CreatorLock          // "UNKNOWN"')
-          SYNC_STATUS=$(echo "$BODY"        | jq -r '.sovereign_sync_status // "UNKNOWN"')
-          EXT_VERIFIED=$(echo "$BODY"       | jq -r '.external_anchor_verified // false')
-          BTC_HEIGHT=$(echo "$BODY"         | jq -r '.global_heartbeat_height  // "N/A"')
-          BTC_HASH=$(echo "$BODY"           | jq -r '.global_heartbeat_hash    // "N/A"')
-          KERNEL_VERIFIED=$(echo "$BODY"    | jq -r '.kernel_anchor_verified   // false')
-          VAULT_SHA=$(echo "$BODY"          | jq -r '.vault_ledger_sha         // "N/A"')
-          R2_TS=$(echo "$BODY"              | jq -r '.r2_session_log_timestamp  // "N/A"')
-          TIMESTAMP=$(echo "$BODY"          | jq -r '.timestamp                // "N/A"')
+          # Guard: if response is not valid JSON (e.g. Cloudflare HTML challenge), default all fields
+          if ! echo "$BODY" | jq . >/dev/null 2>&1; then
+            echo "⚠️ Non-JSON response received — API may be rate-limited or returning an error page"
+            CREATOR_LOCK="UNKNOWN"
+            SYNC_STATUS="UNKNOWN"
+            EXT_VERIFIED="false"
+            BTC_HEIGHT="N/A"
+            BTC_HASH="N/A"
+            KERNEL_VERIFIED="false"
+            VAULT_SHA="N/A"
+            R2_TS="N/A"
+            TIMESTAMP="N/A"
+          else
+            CREATOR_LOCK=$(echo "$BODY"       | jq -r '.CreatorLock          // "UNKNOWN"')
+            SYNC_STATUS=$(echo "$BODY"        | jq -r '.sovereign_sync_status // "UNKNOWN"')
+            EXT_VERIFIED=$(echo "$BODY"       | jq -r '.external_anchor_verified // false')
+            BTC_HEIGHT=$(echo "$BODY"         | jq -r '.global_heartbeat_height  // "N/A"')
+            BTC_HASH=$(echo "$BODY"           | jq -r '.global_heartbeat_hash    // "N/A"')
+            KERNEL_VERIFIED=$(echo "$BODY"    | jq -r '.kernel_anchor_verified   // false')
+            VAULT_SHA=$(echo "$BODY"          | jq -r '.vault_ledger_sha         // "N/A"')
+            R2_TS=$(echo "$BODY"              | jq -r '.r2_session_log_timestamp  // "N/A"')
+            TIMESTAMP=$(echo "$BODY"          | jq -r '.timestamp                // "N/A"')
+          fi
 
           echo "creator_lock=$CREATOR_LOCK"       >> "$GITHUB_OUTPUT"
           echo "sync_status=$SYNC_STATUS"         >> "$GITHUB_OUTPUT"
