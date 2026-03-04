@@ -70,3 +70,27 @@ clock_gate*.json
 .sovereign-nodes.json
 .anchor-salt
 sovereign-nodes.local.*
+
+# ── Runtime-generated logs — never commit individual log files ────────────────
+# Keep directory structure via .gitkeep; ignore all generated content.
+logs/pulse/*.json
+logs/persistence/*.json
+logs/persistence/*.txt
+logs/persistence/*.log
+
+# Root-level SHA snapshot log (generated at runtime; VaultBridge/sha_snapshot.log
+# is the intentional sovereign public log — that one is tracked intentionally)
+/sha_snapshot.log
+
+# ── Database backups — private, never commit ──────────────────────────────────
+# Backups contain hardware identifiers and internal table data.
+# Store in an encrypted vault (1Password / Cloudflare R2 private bucket).
+backups/*.sql
+backups/*.db
+backups/*.sqlite
+
+# ── Sovereign runtime state pointers — private ───────────────────────────────
+# CurrentVaultHead tracks the live head of the vault — runtime state, not source.
+CurrentVaultHead.aoscap
+VaultHead.aoscap
+VaultHead*.aoscap
