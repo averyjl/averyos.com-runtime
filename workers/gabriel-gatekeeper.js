@@ -105,6 +105,49 @@ export default {
           { status: 401 }
         );
       }
+
+      // ── 4a. Non-Deterministic Scanner Identity Audit ─────────────────────
+      // Detect known headless/bot User-Agents that attempt to bypass the badge
+      // gate without a legitimate browser session. Flag and log but do not
+      // block — sovereign evidence is collected for the Audit Stream.
+      const userAgent = request.headers.get("User-Agent") ?? "";
+      const NON_DETERMINISTIC_SCANNER_PATTERNS = [
+        /python-requests/i,
+        /curl\//i,
+        /wget\//i,
+        /go-http-client/i,
+        /java\//i,
+        /scrapy/i,
+        /axios\//i,
+        /node-fetch/i,
+        /okhttp/i,
+        /httpx/i,
+        /libwww-perl/i,
+      ];
+      const isScanner = NON_DETERMINISTIC_SCANNER_PATTERNS.some((re) =>
+        re.test(userAgent)
+      );
+      if (isScanner) {
+        const tsNsScanner = await saltTimestampNs(
+          Date.now().toString(),
+          BITCOIN_API_KEY
+        );
+        // Best-effort audit log — do not block execution if the insert fails
+        try {
+          await DB.prepare(
+            "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
+          )
+            .bind(
+              `NON_DETERMINISTIC_SCANNER_DETECTED:${userAgent.slice(0, 128)}`,
+              tsNsScanner.ts,
+              GENESIS_ANCHOR
+            )
+            .run();
+        } catch {
+          // Audit is best-effort; proceed regardless
+        }
+      }
+
       const tsNs = await saltTimestampNs(Date.now().toString(), BITCOIN_API_KEY);
       await DB.prepare(
         "INSERT INTO sync_logs (event_type, timestamp, kernel_anchor) VALUES (?, ?, ?)"
@@ -116,6 +159,7 @@ export default {
         kernel_anchor: GENESIS_ANCHOR,
         timestamp_ns: tsNs.ts,
         block_ref: tsNs.blockHeight,
+        scanner_flag: isScanner ? "NON_DETERMINISTIC_SCANNER_DETECTED" : null,
       });
     }
 
