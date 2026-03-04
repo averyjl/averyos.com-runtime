@@ -1,25 +1,28 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { BADGE_STATUS_ACTIVE } from '../../../../../lib/sovereignConstants';
 
-interface Capsule {
-  data: unknown;
-  timestamp?: string;
-  metadata?: Record<string, unknown>;
+interface D1PreparedStatement {
+  bind(...args: unknown[]): { first<T = unknown>(): Promise<T | null> };
 }
 
-interface KVNamespace {
-  get(key: string): Promise<string | null>;
+interface D1Database {
+  prepare(query: string): D1PreparedStatement;
 }
 
 interface CloudflareEnv {
-  ANCHOR_STORE: KVNamespace;
+  DB: D1Database;
 }
 
-async function sha512Hex(value: unknown): Promise<string> {
-  const encoded = new TextEncoder().encode(JSON.stringify(value));
-  const hashBuffer = await crypto.subtle.digest('SHA-512', encoded);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+interface AlignmentRow {
+  partner_id: string;
+  partner_name: string | null;
+  email: string;
+  alignment_type: string;
+  settlement_id: string | null;
+  tari_reference: string | null;
+  valid_until: string | null;
+  aligned_at: string;
+  status: string;
 }
 
 interface RouteParams {
@@ -40,28 +43,79 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    const raw = await cfEnv.ANCHOR_STORE.get(hash);
-    if (!raw) {
-      return Response.json({ error: 'NOT_FOUND', detail: 'No capsule found for this hash' }, { status: 404 });
+    // Check both alignment_hash (certificate) and badge_hash (legacy badge)
+    const row = await cfEnv.DB.prepare(
+      `SELECT partner_id, partner_name, email, alignment_type, settlement_id,
+              tari_reference, valid_until, aligned_at, status
+       FROM sovereign_alignments
+       WHERE alignment_hash = ? OR badge_hash = ?
+       LIMIT 1`,
+    )
+      .bind(hash, hash)
+      .first<AlignmentRow>();
+
+    if (!row) {
+      return Response.json(
+        {
+          resonance: 'DRIFT_ALERT',
+          alignment_hash: hash,
+          detail:
+            'No sovereign alignment found for this hash. Certificate unknown or not yet issued.',
+        },
+        { status: 404 },
+      );
     }
 
-    let capsule: Capsule;
-    try {
-      capsule = JSON.parse(raw) as Capsule;
-    } catch {
-      return Response.json({ error: 'CORRUPT_CAPSULE', detail: 'Stored capsule is not valid JSON' }, { status: 500 });
+    if (row.status !== BADGE_STATUS_ACTIVE) {
+      return Response.json(
+        {
+          resonance: 'DRIFT_ALERT',
+          alignment_hash: hash,
+          partner_id: row.partner_id,
+          partner_name: row.partner_name,
+          alignment_type: row.alignment_type,
+          aligned_at: row.aligned_at,
+          status: row.status,
+          detail:
+            'Alignment certificate has been revoked. Entity is no longer in sovereign alignment.',
+        },
+        { status: 410 },
+      );
     }
 
-    // Re-derive fingerprint from the canonical payload fields to prove integrity
-    const recomputed = await sha512Hex({ data: capsule.data, timestamp: capsule.timestamp });
-    const intact = recomputed === hash;
+    // Check certificate expiry when valid_until is set
+    if (row.valid_until) {
+      const expiry = new Date(row.valid_until);
+      if (!isNaN(expiry.getTime()) && expiry < new Date()) {
+        return Response.json(
+          {
+            resonance: 'DRIFT_ALERT',
+            alignment_hash: hash,
+            partner_id: row.partner_id,
+            partner_name: row.partner_name,
+            alignment_type: row.alignment_type,
+            valid_until: row.valid_until,
+            detail:
+              'Alignment certificate has expired. Entity must renew their TARI™ settlement.',
+          },
+          { status: 410 },
+        );
+      }
+    }
 
     return Response.json({
-      status: intact ? 'INTEGRITY_VERIFIED' : 'INTEGRITY_FAILED',
-      requested_hash: hash,
-      recomputed_sha512: recomputed,
-      intact,
-      capsule,
+      resonance: 'HIGH_FIDELITY_SUCCESS',
+      alignment_hash: hash,
+      partner_id: row.partner_id,
+      partner_name: row.partner_name,
+      email: row.email,
+      alignment_type: row.alignment_type,
+      settlement_id: row.settlement_id,
+      tari_reference: row.tari_reference,
+      valid_until: row.valid_until,
+      aligned_at: row.aligned_at,
+      status: row.status,
+      verified_at: new Date().toISOString(),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
