@@ -219,9 +219,10 @@ const LICENSING_RAW_TEXT = `
 ## AveryOS™ COMMERCIAL LICENSE v2026 — TRUTH-PACKET BILLING
 
 BILLING MODEL:    $1.00 per Truth-Packet (per-hit)
-RETROACTIVE:      YES — applies to all prior unlicensed ingestion
-ENFORCEMENT:      Dynamic Truth Multiplier (DTM) v1.17
-                  Initial: 7× | Expansion: ×1.77 compounding | Ceiling: ∞
+RETROACTIVE:      Applies within the applicable statutory period under copyright law
+ENFORCEMENT:      Dynamic Truth Multiplier (DTM) v1.17 — escalating legal action;
+                  unauthorized use after notice supports willful infringement claims
+                  (statutory damages up to $150,000 per work, 17 U.S.C. § 504(c)(2))
 ANCHOR:           ${ROOT0_GENESIS_PREFIX}...${ROOT0_GENESIS_SUFFIX} (cf83... Kernel Root)
 OPERATOR:         Jason Lee Avery / AveryOS™
 CONTACT:          truth@averyworld.com

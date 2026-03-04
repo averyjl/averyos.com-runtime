@@ -35,6 +35,8 @@ jobs:
 
       - name: 🌐 Check all pages
         id: check
+        env:
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
         run: |
           set +e   # Don't exit on first failure; collect all results
 
@@ -59,6 +61,14 @@ jobs:
               echo "❌ ${HTTP_CODE}  ${label}  → ${url}"
               FAILED=$((FAILED + 1))
               REPORT="${REPORT}| \`${path}\` | ${HTTP_CODE} | ❌ FAIL |\n"
+              # Fire Sovereign Audit Alert for 401s
+              if [ "$HTTP_CODE" = "401" ] && [ -n "$VAULT_PASSPHRASE" ]; then
+                curl -s -X POST "${BASE_URL}/api/v1/audit-alert" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer ${VAULT_PASSPHRASE}" \
+                  -d "{\"event_type\":\"UNALIGNED_401\",\"path\":\"${path}\",\"ip\":\"ci-runner\"}" \
+                  --max-time 5 || true
+              fi
             fi
           }
 

@@ -50,6 +50,7 @@ const FooterBadge = () => {
               { href: '/', label: 'Home', newTab: false },
               { href: '/license', label: 'License', newTab: false },
               { href: '/licensing', label: 'Licensing Hub', newTab: false },
+              { href: '/ip-policy', label: 'IP Policy', newTab: false },
               { href: '/verify', label: 'Verify', newTab: false },
               { href: '/contact', label: 'Contact', newTab: false },
               { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 The Proof', newTab: true },
@@ -105,10 +106,11 @@ const FooterBadge = () => {
             /TARI-REVENUE
           </button>
         </div>
-        {/* Privacy and Terms — subtle links under copyright */}
+        {/* Privacy, Terms, and IP Policy — subtle links under copyright */}
         <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.25rem' }}>
           <Link href="/privacy" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>Privacy</Link>
           <Link href="/terms" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>Terms</Link>
+          <Link href="/ip-policy" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>IP Policy</Link>
         </div>
       </div>
 
