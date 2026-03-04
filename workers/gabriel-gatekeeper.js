@@ -1,11 +1,51 @@
-// GabrielOS™ Gabriel Kernel v1.5 — Sovereign Gatekeeper
-// Status: UNIFIED | Auth: Crater-Root | ALF v4.0
-// Consolidates: GitHub webhook ledger, hardware sync, YubiKey challenge, ALF enforcement
+// GabrielOS™ Gabriel Kernel v1.6 — Sovereign Gatekeeper
+// Status: UNIFIED | Auth: Crater-Root | ALF v4.0 | Sentinel Webhook v1.0
+// Consolidates: GitHub webhook ledger, hardware sync, YubiKey challenge, ALF enforcement,
+//               GabrielOS™ Sentinel audit-alert ingestion
 
 const GENESIS_ANCHOR =
   "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
 const REPO_FULL_NAME = "averyjl/averyos.com-runtime";
+
+// TARI™ Liability Schedule — calibrated values (v2.0)
+const TARI_LIABILITY = {
+  UNALIGNED_401:   1017.00,   // Forensic Alignment Entry Fee
+  ALIGNMENT_DRIFT: 5000.00,   // Correction Fee
+  PAYMENT_FAILED:  10000.00,  // Systemic Friction Fee
+};
+
+/**
+ * Verify a HMAC-SHA-256 signature on an inbound Sentinel webhook payload.
+ * The BITCOIN_API_KEY is used as the HMAC key (salt), binding every alert
+ * cryptographically to the sovereign BTC block anchor.
+ * Returns true if the signature is valid, false otherwise.
+ */
+async function verifySentinelHmac(body, signature, bitcoinApiKey) {
+  if (!signature || !bitcoinApiKey) return false;
+  try {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(bitcoinApiKey),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    // Decode the hex signature sent by sovereign-audit-alert.js
+    const sigBytes = new Uint8Array(
+      signature.match(/.{1,2}/g).map((b) => parseInt(b, 16))
+    );
+    return await crypto.subtle.verify(
+      "HMAC",
+      keyMaterial,
+      sigBytes,
+      enc.encode(body)
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Salt a nanosecond timestamp with the current Bitcoin block height and
@@ -33,7 +73,7 @@ async function saltTimestampNs(tsNs, blockchainApiKey) {
 
 export default {
   async fetch(request, env) {
-    const { DB, GITHUB_PAT, VAULT_PASSPHRASE, BITCOIN_API_KEY } = env;
+    const { DB, GITHUB_PAT, VAULT_PASSPHRASE, BITCOIN_API_KEY, GABRIEL_SENTINEL_WEBHOOK } = env;
     const url = new URL(request.url);
 
     // ── 1. GITHUB WEBHOOK — Commit Logging ──────────────────────────────────
@@ -163,7 +203,97 @@ export default {
       });
     }
 
+    // ── 5. GABRIEL SENTINEL WEBHOOK — Ingest Sovereign Audit Alerts ─────────
+    // Receives forensic TARI™ audit alerts from scripts/sovereign-audit-alert.js
+    // and from the site-health-monitor CI workflow.
+    // Payload is HMAC-SHA-256 verified using BITCOIN_API_KEY as the salt.
+    if (request.method === "POST" && url.pathname === "/webhook/sentinel") {
+      // Verify this Worker is the intended recipient
+      if (!GABRIEL_SENTINEL_WEBHOOK) {
+        return Response.json(
+          { error: "SENTINEL_NOT_CONFIGURED" },
+          { status: 503 }
+        );
+      }
+
+      const rawBody = await request.text();
+      const signature = request.headers.get("X-Gabriel-HMAC-Signature") ?? "";
+
+      // Verify HMAC signature — reject unverified payloads
+      const sigValid = await verifySentinelHmac(rawBody, signature, BITCOIN_API_KEY ?? "");
+      if (!sigValid) {
+        return Response.json(
+          {
+            error: "SENTINEL_HMAC_INVALID",
+            detail: "Payload signature does not match. Ensure BITCOIN_API_KEY is set correctly.",
+          },
+          { status: 401 }
+        );
+      }
+
+      let payload;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        return Response.json({ error: "INVALID_JSON" }, { status: 400 });
+      }
+
+      const eventType = (payload.event_type ?? "UNKNOWN").toUpperCase();
+      const targetIp = payload.target_ip ?? "0.0.0.0";
+      const alertPath = payload.path ?? "/";
+      const liabilityUsd =
+        TARI_LIABILITY[eventType] ?? payload.tari_liability_usd ?? 0;
+      const pulseHash = payload.pulse_hash ?? "";
+      const tsNs = await saltTimestampNs(Date.now().toString(), BITCOIN_API_KEY);
+
+      // Persist to D1 sovereign audit log
+      try {
+        await DB.prepare(
+          `CREATE TABLE IF NOT EXISTS sovereign_audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            user_agent TEXT,
+            geo_location TEXT,
+            target_path TEXT NOT NULL,
+            timestamp_ns TEXT NOT NULL,
+            threat_level INTEGER,
+            tari_liability_usd REAL,
+            pulse_hash TEXT
+          )`
+        ).first();
+
+        await DB.prepare(
+          `INSERT INTO sovereign_audit_logs
+           (event_type, ip_address, target_path, timestamp_ns, threat_level, tari_liability_usd, pulse_hash)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(
+            eventType,
+            targetIp,
+            alertPath,
+            tsNs.ts,
+            eventType === "PAYMENT_FAILED" ? 9 : eventType === "ALIGNMENT_DRIFT" ? 8 : 7,
+            liabilityUsd,
+            pulseHash
+          )
+          .run();
+      } catch (dbErr) {
+        // Log the error but still return success — sentinel delivery is primary
+        console.error("D1 insert failed:", dbErr?.message ?? dbErr);
+      }
+
+      return Response.json({
+        status: "SENTINEL_RECEIVED",
+        event_type: eventType,
+        tari_liability_usd: liabilityUsd,
+        timestamp_ns: tsNs.ts,
+        block_ref: tsNs.blockHeight,
+        kernel_anchor: GENESIS_ANCHOR.slice(0, 16) + "...",
+      });
+    }
+
     // ── DEFAULT ──────────────────────────────────────────────────────────────
-    return new Response("GabrielOS™ Kernel v1.5 Active. ⛓️⚓⛓️");
+    return new Response("GabrielOS™ Kernel v1.6 Active. ⛓️⚓⛓️");
   },
 };

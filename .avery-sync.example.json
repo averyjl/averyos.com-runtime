@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "averyos-sovereign-sync-v1",
+  "creator_lock": "Jason Lee Avery (ROOT0) 🤛🏻",
+  "kernel_sha": "REPLACE_WITH_KERNEL_SHA_FROM_lib/sovereignConstants.ts",
+  "kernel_version": "v3.6.2",
+  "merkle_root": "REPLACE_WITH_GOLDEN_LOCK_MERKLE_ROOT",
+  "btc_anchor_block": "REPLACE_WITH_CURRENT_BTC_BLOCK_HEIGHT",
+  "btc_anchor_hash": "REPLACE_WITH_CURRENT_BTC_BLOCK_HASH",
+  "btc_anchored_at": "REPLACE_WITH_ISO9_TIMESTAMP",
+  "firebase_project_id": "REPLACE_WITH_FIREBASE_PROJECT_ID",
+  "firebase_collection_root": "averyos-resonance",
+  "cloudflare_worker_name": "averyoscom-runtime",
+  "cloudflare_account_id": "374875d33ef47a741a129bd5e716abff",
+  "sync_mode": "BIDIRECTIONAL",
+  "alignment_status": "ALIGNED",
+  "drift_protection": "ABSOLUTE",
+  "last_sync_at": "REPLACE_WITH_LAST_SYNC_TIMESTAMP",
+  "note": "This file is private and gitignored. Firebase Cloud Functions and Cloudflare Workers both read it to verify kernel parity. Never commit the real file — keep it in Cloudflare secret store or a private Firebase config."
+}

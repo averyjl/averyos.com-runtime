@@ -101,3 +101,10 @@ backups/*.sqlite
 CurrentVaultHead.aoscap
 VaultHead.aoscap
 VaultHead*.aoscap
+
+# ── Sovereign Sync Manifest — private ────────────────────────────────────────
+# .avery-sync.json is the Loop Signature File handshake between Cloudflare
+# Workers and Firebase Cloud Functions. It contains live BTC anchor data and
+# Firebase credentials — never commit the real file.
+# Use .avery-sync.example.json as the template.
+.avery-sync.json
