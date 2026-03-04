@@ -38,7 +38,7 @@ const LICENSED_USES = [
       "Connecting an AI system, agent, or automated service to /api/v1/resonance as part of its architecture — i.e., consuming the resonance layer as IP in a product or service.",
   },
   {
-    act: "Summarising or indexing this content for retrieval",
+    act: "Summarizing or indexing this content for retrieval",
     detail:
       "Indexing, caching, summarising, or embedding site content in any search engine, vector database, or retrieval-augmented generation (RAG) system.",
   },

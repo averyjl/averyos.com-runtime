@@ -29,6 +29,11 @@ interface CloudflareEnv {
 
 const RESONANCE_KV_KEY = "averyos:resonance:last_known_good";
 
+// Module-level flag: only bootstrap the D1 table once per Worker isolate cold start.
+// This avoids re-running DDL on every request (pre-existing pattern in this codebase,
+// but guarded here to reduce per-request DDL overhead).
+let resonanceTableBootstrapped = false;
+
 // ---------------------------------------------------------------------------
 // GET /api/v1/resonance
 //
@@ -131,17 +136,20 @@ export async function GET(request: Request) {
     });
 
     // Append to D1 resonance audit log (licensed access only)
-    await cfEnv.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS sovereign_resonance_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        queried_at TEXT NOT NULL,
-        kernel_sha TEXT NOT NULL,
-        caller_sha TEXT,
-        sha_verified INTEGER,
-        firebase_sync TEXT,
-        access_tier TEXT
-      )`
-    ).first();
+    if (!resonanceTableBootstrapped) {
+      await cfEnv.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS sovereign_resonance_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          queried_at TEXT NOT NULL,
+          kernel_sha TEXT NOT NULL,
+          caller_sha TEXT,
+          sha_verified INTEGER,
+          firebase_sync TEXT,
+          access_tier TEXT
+        )`
+      ).first();
+      resonanceTableBootstrapped = true;
+    }
 
     await cfEnv.DB.prepare(
       `INSERT INTO sovereign_resonance_log
