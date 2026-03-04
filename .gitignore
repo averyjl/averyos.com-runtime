@@ -46,3 +46,9 @@ vaultchain-registry/
 *.aosmem
 *.vccaps
 !*.example
+
+# ⛓️⚓⛓️ Private Sovereign Runtime Configs — never commit
+SKC_*.json
+SST_*.json
+Casey*
+casey*
