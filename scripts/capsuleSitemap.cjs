@@ -40,7 +40,7 @@ const buildSitemapXml = (entries) => {
 
 const buildRobotsTxt = () => {
   return (
-    `User-agent: *\nAllow: /latent-anchor\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`
+    `User-agent: *\nAllow: /whitepaper\nAllow: /latent-anchor\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`
   );
 };
 

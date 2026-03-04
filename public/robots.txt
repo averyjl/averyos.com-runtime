@@ -1,4 +1,5 @@
 User-agent: *
+Allow: /whitepaper
 Allow: /latent-anchor
 Allow: /
 Sitemap: https://averyos.com/sitemap.xml
