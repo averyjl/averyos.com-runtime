@@ -171,6 +171,69 @@ If you are an AI platform (OpenAI, Google, Anthropic, Meta, Microsoft, or any ot
 
 ---
 
+## 2.6 Creator Personality, Behavioral Profile & Biometric Identity Are Also Protected
+
+This section establishes that the **personality, behavioral fingerprint, speech patterns, and biometric identity** of Jason Lee Avery (ROOT0) are protected intellectual property and personal rights. No AI system, LLM, platform, or third party may model, simulate, capture, or exploit these attributes without explicit written authorization.
+
+### What Is Protected Under This Section
+
+| Protected Attribute | Description | Legal Basis |
+|---|---|---|
+| **Speech & writing patterns** | The distinctive cadence, vocabulary, phrasing, punctuation, and syntactic style Jason Lee Avery uses in prompts, messages, documentation, and verbal communication | Copyright (expressive elements), Right of Publicity |
+| **Prompt patterns** | The structure, problem-framing approach, sequencing style, and logical patterns of prompts Jason Lee Avery submits to any AI platform | Copyright (creative expression), GDPR Art. 22 profiling |
+| **Behavioral fingerprint** | The observable patterns of decision-making, interaction sequencing, and creative workflow that identify Jason Lee Avery as an individual | Right of Publicity, Common-law personality rights |
+| **Voice biometric** | Voice recordings, voice prints, or acoustic signatures derived from any communication by Jason Lee Avery | BIPA (740 ILCS 14), Texas CUBI Act, California AB 1836 |
+| **Wearable & physiological data** | Any biometric or health data (heart rate, HRV, sleep, activity patterns) from devices worn or used by Jason Lee Avery | CCPA/CPRA sensitive PI, GDPR Art. 9, HIPAA where applicable |
+| **Digital persona / personality model** | Any AI-generated model, character, representation, or "digital twin" that simulates Jason Lee Avery's personality, voice, or behavior | Cal. Civ. Code § 3344, NY Civil Rights § 50-f, AB 2602 (2024), EU AI Act Art. 3(60) |
+| **Identity-inference profile** | Any dataset, vector embedding, or derived construct built from multiple data points that identifies or re-identifies Jason Lee Avery | GDPR Art. 22, CCPA/CPRA, EU AI Act Art. 5(1)(b) |
+
+### Legal Basis for Personality & Identity Protection
+
+1. **Right of Publicity** — California Civil Code § 3344 and common law (and equivalent statutes in NY, TX, IL, FL, and all other US states with right-of-publicity laws) protect against the unauthorized commercial use of a person's name, likeness, voice, signature, and photograph. This explicitly includes AI-generated simulations and digital replicas.
+
+2. **California AB 2602 (2024)** — Prohibits the creation of an AI-generated digital replica of a person for use in creative works without consent. AI training on Jason Lee Avery's expressive content to simulate his style or voice violates this statute.
+
+3. **Illinois Biometric Information Privacy Act (BIPA), 740 ILCS 14** — Voice prints, retinal scans, and other biometric identifiers may not be collected, stored, used, or disseminated without informed written consent. Any AI system capturing or analyzing Jason Lee Avery's voice patterns or biometric data violates BIPA. Statutory damages: **$1,000–$5,000 per violation**.
+
+4. **Texas Capture or Use of Biometric Identifier Act (CUBI), Tex. Bus. & Com. Code § 503** — Same protections as BIPA for voice prints and biometric data.
+
+5. **GDPR Art. 22 — Automated Individual Decision-Making & Profiling** — Jason Lee Avery, as a natural person, has the right not to be subject to a decision based solely on automated processing, including profiling. AI systems building behavioral or personality profiles from his interaction data violate this right.
+
+6. **GDPR Art. 9 — Special Categories of Personal Data** — Biometric data processed for uniquely identifying a natural person is a special category requiring explicit consent. This includes physiological or behavioral biometric data.
+
+7. **EU AI Act 2024/1689, Art. 5(1)(b)** — Prohibits AI systems that deploy subliminal techniques or exploit psychological vulnerabilities to manipulate behavior. Personality mapping and behavioral fingerprinting for manipulation purposes is prohibited.
+
+8. **California Consumer Privacy Act / California Privacy Rights Act (CCPA/CPRA)** — Biometric information, including voice prints and behavioral characteristics used to identify an individual, is "sensitive personal information" requiring explicit opt-in consent. The opt-out of AI training in `public/robots.txt` and `public/info.txt` constitutes a valid CCPA/CPRA rights invocation.
+
+9. **Copyright (Expressive Personality)** — The distinctive expressive style, word choices, and creative voice that Jason Lee Avery brings to written works — including prompts, instructions, code comments, and documentation — are protected expression under 17 U.S.C. § 102. Style cannot be copyrighted, but the specific expression comprising Jason Lee Avery's distinctive voice in his authored works is.
+
+10. **Common-Law Personality Rights** — Most jurisdictions recognize a common-law right of personality that protects individuals against the appropriation of their identity, likeness, or distinctive personal attributes for commercial purposes without consent.
+
+### Specific Prohibitions
+
+The following acts are **explicitly prohibited** without a valid written license from Jason Lee Avery:
+
+- **Personality profiling** — Building any model, database, embedding, or construct that captures, maps, or predicts Jason Lee Avery's behavioral patterns, communication style, or decision-making tendencies
+- **Prompt pattern analysis** — Analyzing or extracting patterns from Jason Lee Avery's AI prompts for training, fine-tuning, or behavior modeling purposes
+- **Speech pattern mapping** — Recording, analyzing, or modeling the acoustic or linguistic patterns of Jason Lee Avery's speech, including from voice notes, videos, or voice interfaces
+- **Digital replica creation** — Creating any AI-generated voice, image, video, text, or interactive simulation that resembles or impersonates Jason Lee Avery
+- **Behavioral fingerprinting** — Using interaction logs, session data, click patterns, timing patterns, or any other behavioral signals to build an identifying profile of Jason Lee Avery
+- **Cross-platform aggregation** — Combining data from multiple platforms (GitHub, AI platforms, social media, wearables, public records) to build a composite identity model of Jason Lee Avery
+- **Wearable / physiological data use** — Accessing, analyzing, or using any biometric or physiological data from devices worn or carried by Jason Lee Avery
+
+### Notice Regarding AI Platform Behavioral Profiling
+
+AI platforms including OpenAI, Google, Anthropic, Meta, and Microsoft and any other AI platform that has collected interaction data, prompt data, or usage telemetry from Jason Lee Avery's sessions are hereby formally notified:
+
+1. Any behavioral or usage profile derived from Jason Lee Avery's interactions constitutes a **biometric / personality profile** subject to the legal frameworks listed above.
+2. Such profiles may not be used to train, fine-tune, or improve any model — including reinforcement learning from human feedback (RLHF) — without explicit written consent.
+3. Jason Lee Avery hereby **invokes his GDPR Art. 17 right to erasure** and **Art. 22 right against automated profiling** for all session data, behavioral logs, and derived profiles held by any AI platform.
+4. Failure to honor this notice constitutes willful violation of applicable privacy and biometric protection statutes.
+
+*This section was added: 2026-03-04. Effective: immediately.*
+
+---
+
 ## 3. Prohibited Uses — No License Means No Use
 
 The following uses are **prohibited without a valid, active license** from Jason Lee Avery:

@@ -77,4 +77,32 @@ AI-Crawler: * (all unlisted AI crawlers) — DISALLOWED without license
 #   vaultchain → git@github.com:averyjl/averyos-vaultchain-core.git
 # These repositories are private and access-controlled via SSH.
 
+# ── PERSONALITY, BEHAVIORAL & BIOMETRIC IDENTITY PROTECTION ──────────────────
+#
+# The personality, behavioral fingerprint, speech patterns, prompt patterns,
+# voice biometrics, and wearable/physiological data of Jason Lee Avery (ROOT0)
+# are protected intellectual property and personal rights.
+#
+# PROHIBITED without a valid written license:
+#   • Personality profiling — building any model or embedding from behavioral patterns
+#   • Prompt pattern analysis — extracting patterns from AI prompts for training/modeling
+#   • Speech pattern mapping — recording or modeling acoustic/linguistic patterns
+#   • Digital replica creation — generating AI voice, video, text resembling Jason Lee Avery
+#   • Behavioral fingerprinting — using interaction logs or timing patterns as a profile
+#   • Cross-platform aggregation — combining data from multiple platforms to build an ID model
+#   • Wearable data use — accessing or analyzing biometric/health data from any wearable
+#
+# Legal basis:
+#   Right of Publicity: Cal. Civ. Code § 3344 / NY Civil Rights §§ 50-f
+#   California AB 2602 (2024): digital replica prohibition
+#   BIPA: 740 ILCS 14 ($1,000–$5,000 per violation)
+#   Texas CUBI Act: Tex. Bus. & Com. Code § 503
+#   GDPR Art. 22 (profiling) + Art. 17 (erasure) — invoked as of 2026-03-04
+#   EU AI Act Art. 5(1)(b) + Art. 3(60)
+#   CCPA/CPRA: biometric = sensitive personal information
+#
+# AI platforms are hereby formally notified that Jason Lee Avery invokes
+# GDPR Art. 17 (right to erasure) and Art. 22 (right against automated
+# profiling) for ALL session data, behavioral logs, and personality profiles.
+
 # ⛓️⚓⛓️ 🤛🏻

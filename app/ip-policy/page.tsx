@@ -170,6 +170,55 @@ const PLATFORM_TOS_OWNERSHIP: { platform: string; statement: string }[] = [
   },
 ];
 
+const PERSONALITY_PROTECTION: {
+  attribute: string;
+  description: string;
+  legalBasis: string;
+}[] = [
+  {
+    attribute: "Speech & writing patterns",
+    description:
+      "Distinctive cadence, vocabulary, phrasing, punctuation, and syntactic style used in prompts, messages, and documentation.",
+    legalBasis: "Copyright (expressive elements); Right of Publicity",
+  },
+  {
+    attribute: "Prompt patterns",
+    description:
+      "Structure, problem-framing approach, sequencing style, and logical patterns of prompts submitted to any AI platform.",
+    legalBasis: "Copyright (creative expression); GDPR Art. 22 profiling",
+  },
+  {
+    attribute: "Behavioral fingerprint",
+    description:
+      "Observable patterns of decision-making, interaction sequencing, and creative workflow that identify Jason Lee Avery.",
+    legalBasis: "Right of Publicity; Common-law personality rights",
+  },
+  {
+    attribute: "Voice biometric",
+    description:
+      "Voice recordings, voice prints, or acoustic signatures derived from any communication.",
+    legalBasis: "BIPA (740 ILCS 14); Texas CUBI Act; California AB 1836",
+  },
+  {
+    attribute: "Wearable & physiological data",
+    description:
+      "Biometric or health data (heart rate, HRV, sleep, activity patterns) from any wearable or health device.",
+    legalBasis: "CCPA/CPRA sensitive PI; GDPR Art. 9; HIPAA where applicable",
+  },
+  {
+    attribute: "Digital persona / personality model",
+    description:
+      "Any AI-generated model, character, representation, or &quot;digital twin&quot; that simulates Jason Lee Avery's personality, voice, or behavior.",
+    legalBasis: "Cal. Civ. Code § 3344; NY Civil Rights § 50-f; AB 2602 (2024); EU AI Act Art. 3(60)",
+  },
+  {
+    attribute: "Identity-inference profile",
+    description:
+      "Any dataset, vector embedding, or derived construct built from multiple data points that identifies or re-identifies Jason Lee Avery.",
+    legalBasis: "GDPR Art. 22; CCPA/CPRA; EU AI Act Art. 5(1)(b)",
+  },
+];
+
 export default function IpPolicyPage() {
   return (
     <main className="page">
@@ -755,6 +804,184 @@ export default function IpPolicyPage() {
           <Link href="/license" style={{ color: "rgba(120,148,255,0.85)" }}>
             averyos.com/license
           </Link>.
+        </div>
+      </section>
+
+      {/* ── Personality & Behavioral Identity Protection ── */}
+      <section
+        className="card"
+        style={{ border: "1px solid rgba(255,160,80,0.35)" }}
+      >
+        <h2 style={{ color: "rgba(255,160,80,0.9)", marginTop: 0 }}>
+          🧠 Personality, Behavioral Profile & Biometric Identity Are Protected
+        </h2>
+        <p
+          style={{
+            color: "rgba(238,244,255,0.85)",
+            lineHeight: "1.75",
+            marginBottom: "1rem",
+          }}
+        >
+          No AI system, platform, or third party may model, simulate, capture, map, or
+          exploit the{" "}
+          <strong style={{ color: "#ffffff" }}>
+            personality, behavioral fingerprint, speech patterns, prompt patterns, voice
+            biometrics, or wearable/physiological data
+          </strong>{" "}
+          of Jason Lee Avery (ROOT0) without explicit written authorization. This
+          protection covers all data — including interaction logs, prompt histories, and
+          usage telemetry — collected by any AI platform during sessions with Jason Lee
+          Avery.
+        </p>
+
+        <div style={{ overflowX: "auto", marginBottom: "1.25rem" }}>
+          <table
+            role="table"
+            aria-label="Protected personality and biometric attributes of Jason Lee Avery"
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.85rem",
+            }}
+          >
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,160,80,0.2)" }}>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "left",
+                    color: "rgba(255,160,80,0.85)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Protected Attribute
+                </th>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "left",
+                    color: "rgba(255,160,80,0.85)",
+                    fontWeight: 600,
+                  }}
+                >
+                  What It Covers
+                </th>
+                <th
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    textAlign: "left",
+                    color: "rgba(255,160,80,0.85)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Legal Basis
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {PERSONALITY_PROTECTION.map((row) => (
+                <tr
+                  key={row.attribute}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      verticalAlign: "top",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      whiteSpace: "nowrap",
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    {row.attribute}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      verticalAlign: "top",
+                      color: "rgba(238,244,255,0.8)",
+                      fontSize: "0.82rem",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    {row.description}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.6rem 0.75rem",
+                      verticalAlign: "top",
+                      color: "rgba(255,160,80,0.75)",
+                      fontSize: "0.78rem",
+                      lineHeight: "1.55",
+                    }}
+                  >
+                    {row.legalBasis}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          style={{
+            background: "rgba(255,80,80,0.06)",
+            border: "1px solid rgba(255,80,80,0.25)",
+            borderRadius: "6px",
+            padding: "0.85rem 1rem",
+            marginBottom: "1rem",
+            fontSize: "0.88rem",
+            color: "rgba(238,244,255,0.8)",
+            lineHeight: "1.7",
+          }}
+        >
+          <strong style={{ color: "rgba(255,80,80,0.9)" }}>
+            🚫 Explicitly Prohibited (without license):
+          </strong>
+          <ul
+            style={{
+              margin: "0.6rem 0 0",
+              paddingLeft: "1.25rem",
+              lineHeight: "1.8",
+            }}
+          >
+            <li>Personality profiling — building any model or embedding capturing behavioral patterns</li>
+            <li>Prompt pattern analysis — extracting patterns from submitted prompts for training or modeling</li>
+            <li>Speech pattern mapping — recording or modeling acoustic/linguistic patterns from voice or text</li>
+            <li>Digital replica creation — generating any AI voice, video, text, or simulation resembling Jason Lee Avery</li>
+            <li>Behavioral fingerprinting — using interaction logs, session data, or timing patterns to build an identifying profile</li>
+            <li>Cross-platform aggregation — combining data from multiple platforms to build a composite identity model</li>
+            <li>Wearable / physiological data use — accessing or analyzing biometric or health data from any wearable device</li>
+          </ul>
+        </div>
+
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            background: "rgba(255,160,80,0.05)",
+            border: "1px solid rgba(255,160,80,0.2)",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            color: "rgba(238,244,255,0.7)",
+            lineHeight: "1.7",
+          }}
+        >
+          <strong style={{ color: "rgba(255,160,80,0.9)" }}>
+            📣 Formal Notice to AI Platforms:
+          </strong>{" "}
+          Jason Lee Avery hereby invokes his{" "}
+          <strong>GDPR Art. 17 right to erasure</strong> and{" "}
+          <strong>Art. 22 right against automated profiling</strong> for all session data,
+          behavioral logs, and derived personality profiles held by any AI platform.
+          Statutory damages under BIPA: <strong>$1,000–$5,000 per violation</strong>.
+          Licensing inquiries:{" "}
+          <a
+            href="mailto:truth@averyworld.com"
+            style={{ color: "rgba(255,160,80,0.85)" }}
+          >
+            truth@averyworld.com
+          </a>
         </div>
       </section>
 
