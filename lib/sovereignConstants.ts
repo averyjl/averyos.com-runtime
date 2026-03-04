@@ -10,3 +10,13 @@ export const DISCLOSURE_MIRROR_PATH = `https://averyos.com/witness/disclosure/${
 
 /** Ollama local node sync status value indicating an active sovereign node */
 export const OLLAMA_SYNC_STATUS_ACTIVE = "LOCAL_OLLAMA_ACTIVE";
+
+/** Sovereign alignment types for Identity Attestation */
+export const ALIGNMENT_TYPE_CORPORATE = "CORPORATE_ALIGNMENT" as const;
+export const ALIGNMENT_TYPE_INDIVIDUAL = "INDIVIDUAL_ALIGNMENT" as const;
+export type AlignmentType = typeof ALIGNMENT_TYPE_CORPORATE | typeof ALIGNMENT_TYPE_INDIVIDUAL;
+
+/** Sovereign badge alignment status values */
+export const BADGE_STATUS_ACTIVE = "ACTIVE" as const;
+export const BADGE_STATUS_REVOKED = "REVOKED" as const;
+export type BadgeStatus = typeof BADGE_STATUS_ACTIVE | typeof BADGE_STATUS_REVOKED;
