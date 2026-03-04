@@ -7,13 +7,25 @@
 # Lock:    VaultBridge/GoldenLockArtifact.lock.json
 # © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
 #
-# All content on averyos.com and in the averyos.com-runtime repository is
-# protected under the AveryOS Sovereign Integrity License v1.0.
-# Unauthorized scraping, reproduction, training-data ingestion, or redistribution
-# of any capsule payloads, sovereign identifiers, or proprietary algorithms
-# is prohibited without a valid written license from Jason Lee Avery.
+# ── THE LINE — Public Access vs. Licensed IP Use ─────────────────────────────
 #
-# To request a license: truth@averyworld.com | https://averyos.com/license
+# VISITING this website is FREE. Zero cost. Zero obligation.
+#   • Any human may browse averyos.com at no cost.
+#   • Any system may call /api/v1/resonance?verify=<sha> to check a kernel SHA.
+#   • Reading, linking to, or sharing pages has no cost or license requirement.
+#
+# USING this IP is LICENSED. A valid TAI™ license is REQUIRED for:
+#   • Training any AI or machine learning model on this content
+#   • Scraping this site to build datasets, knowledge bases, or RAG stores
+#   • Connecting an AI agent to the full resonance layer as part of a product
+#   • Generating code suggestions or completions derived from this codebase
+#   • Building derivative products, services, or architectures
+#   • Any internal, research, or archival use of this codebase
+#
+# Legal basis: Berne Convention, U.S. 17 U.S.C. § 102, EU DSM Directive Art. 4(3),
+#              EU AI Act 2024/1689 Art. 53(1)(c), GitHub ToS Section D.
+# IP Policy: https://averyos.com/ip-policy
+# License requests: truth@averyworld.com | https://averyos.com/license
 
 Kernel-Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 Kernel-Version: v3.6.2
@@ -22,6 +34,7 @@ GoldenLock-Artifact: AveryOS_Golden_Lock_ColdStorage_2026-02-22
 Creator-Lock: Jason Lee Avery (ROOT0) — sole CreatorLock holder
 Glyph-Lock: 🤛🏻
 Policy: AI_USAGE_POLICY.md
+IP-Policy: https://averyos.com/ip-policy
 License: https://averyos.com/license
 
 # ── AI Training Crawler Directives ───────────────────────────────────────────

@@ -12,7 +12,43 @@
 
 ---
 
-## 1. Scope — Who This Policy Applies To
+## 0. The Line — Public Website Visit vs. IP Use
+
+This is the foundational distinction. It is simple, clear, and globally enforceable.
+
+### ✅ What Is ALWAYS FREE — No Cost, No Obligation, No License Required
+
+Visiting this website is free. Full stop. The following activities carry zero cost and zero legal obligation:
+
+| Activity | Cost | License Required |
+|---|---|---|
+| Visiting any page on averyos.com in a browser | Free | No |
+| Reading publicly published documentation | Free | No |
+| Calling `/api/v1/resonance?verify=<sha>` to check a kernel SHA | Free | No |
+| Browsing capsule metadata on the public site | Free | No |
+| Linking to any page on averyos.com | Free | No |
+| Sharing links or screenshots of the public website | Free | No |
+
+**You can visit, read, and verify freely — just like any other website on the internet.**
+
+### 🔐 What REQUIRES a License — Using the IP
+
+The moment you move from *visiting* to *using* the intellectual property, a license is required. These activities cross the legal line:
+
+| Activity | License Required | Why |
+|---|---|---|
+| Training any AI / ML model on this content | **Yes** | Copyright — EU DSM Directive Art. 4(3), U.S. 17 U.S.C. § 106 |
+| Scraping this site to build datasets or RAG stores | **Yes** | Copyright + machine-readable rights reservation in `public/robots.txt` and `public/info.txt` |
+| Connecting an AI system to the full resonance layer as IP | **Yes** | IP use — requires `X-TAI-License-Key` header |
+| Code completion or suggestion derived from this codebase | **Yes** | Copyright — zero-derivative authorship under GlyphLock 🤛🏻 |
+| Building any derivative product or service | **Yes** | Copyright + AveryOS Sovereign Integrity License v1.0 |
+| Internal or research use of this codebase | **Yes** | Copyright — "public" ≠ "open source" (GitHub ToS Section D) |
+| Summarising or indexing content for retrieval systems | **Yes** | Copyright + EU AI Act 2024/1689 Art. 53(1)(c) |
+| Simulating or emulating AveryOS™ systems | **Yes** | Copyright + trademark + SIL-1 license |
+
+**The legal basis for this distinction is set out in § 11 below and on the public IP Policy page at https://averyos.com/ip-policy.**
+
+
 
 This policy explicitly covers, but is not limited to:
 
