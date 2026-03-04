@@ -50,8 +50,10 @@ vaultchain-registry/
 # ⛓️⚓⛓️ Private Sovereign Runtime Configs — never commit
 SKC_*.json
 SST_*.json
-Casey*
-casey*
+# KC = Kernel Configuration (voice-transcribed as "Casey" — correct form is KC)
+KC_*.json
+KC.yaml
+KC.yml
 # Private lock files (sovereign cold-storage — keep off-repo)
 KC.lock.json
 SKC.lock.json

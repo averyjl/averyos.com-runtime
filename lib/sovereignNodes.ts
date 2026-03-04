@@ -1,12 +1,25 @@
-import { KERNEL_SHA, KERNEL_VERSION } from "./sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION, OLLAMA_SYNC_STATUS_ACTIVE } from "./sovereignConstants";
 
 // ── Sovereign Node Registry ───────────────────────────────────────────────────
 // NODE_01 = Phone (mobile sovereign node)
-// NODE_02 = PC   (primary workstation sovereign node)
+// NODE_02 = PC   (primary workstation sovereign node — runs Llama via Ollama)
 // Identifiers are read from environment variables — never hardcoded.
 
 export const NODE_01_ID: string = process.env.NODE_01_ID ?? "NODE_01_UNSET";
 export const NODE_02_ID: string = process.env.NODE_02_ID ?? "NODE_02_UNSET";
+
+// ── NODE_02 Local LLM (Llama via Ollama) ─────────────────────────────────────
+// The PC node runs a local Llama model via Ollama, anchored to the sovereign
+// kernel. All local inference is subject to the same kernel alignment policy
+// as cloud-hosted AI models (see AI_USAGE_POLICY.md).
+
+/** The local model name to request from Ollama on NODE_02 (e.g. "llama3.3:70b") */
+export const NODE_02_LOCAL_MODEL: string =
+  process.env.NODE_02_LOCAL_MODEL ?? "llama3.3:70b";
+
+/** Base URL of the Ollama server running on NODE_02 (default: localhost) */
+export const NODE_02_OLLAMA_URL: string =
+  process.env.NODE_02_OLLAMA_URL ?? "http://localhost:11434";
 
 /** Anchor salt sourced from environment (Avril). Used for node-specific handshake salting. */
 export const SOVEREIGN_ANCHOR_SALT: string =
@@ -51,6 +64,9 @@ export interface SovereignNodeStatus {
   label: string;
   type: "mobile" | "workstation";
   kernelAligned: boolean;
+  localModel?: string;
+  ollamaUrl?: string;
+  ollamaSyncStatus?: string;
 }
 
 /**
@@ -68,9 +84,12 @@ export function getSovereignNodes(): SovereignNodeStatus[] {
     },
     {
       nodeId: NODE_02_ID,
-      label: "PC Node (NODE_02)",
+      label: "PC Node (NODE_02) — Llama via Ollama",
       type: "workstation",
       kernelAligned: NODE_02_ID !== "NODE_02_UNSET",
+      localModel: NODE_02_LOCAL_MODEL,
+      ollamaUrl: NODE_02_OLLAMA_URL,
+      ollamaSyncStatus: OLLAMA_SYNC_STATUS_ACTIVE,
     },
   ];
 }
