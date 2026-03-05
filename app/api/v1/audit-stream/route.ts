@@ -87,9 +87,7 @@ export async function GET(request: Request) {
     const { results } = await cfEnv.DB.prepare(
       `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level
        FROM sovereign_audit_logs
-       WHERE threat_level >= 5
-       ORDER BY id DESC
-       LIMIT 10`
+       ORDER BY id DESC`
     ).all<AuditStreamEntry>();
 
     return Response.json(
