@@ -6,9 +6,6 @@
  * Both the fingerprint and timestamp update automatically on every re-build
  * whenever whitepaper.md changes.
  *
- * KaTeX is loaded from the jsDelivr CDN via next/script and auto-renders any
- * $...$ or $$...$$ delimiters found in the whitepaper body after the page hydrates.
- *
  * Routing: This App Router page (force-static) takes precedence over the
  * legacy pages/whitepaper.tsx, ensuring reliable delivery on Cloudflare.
  *
@@ -19,7 +16,6 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { createHash } from "crypto";
 import { marked } from "marked";
-import Script from "next/script";
 import type { Metadata } from "next";
 import AnchorBanner from "../../components/AnchorBanner";
 import FooterBadge from "../../components/FooterBadge";
@@ -73,38 +69,9 @@ function buildWhitepaperData() {
 // Executed once at build time — values are baked into the static HTML.
 const { sha512, buildTimestamp, html } = buildWhitepaperData();
 
-/**
- * Inline script string that triggers KaTeX auto-render once the CDN bundle loads.
- * Passed to next/script onLoad — executed after the auto-render script is ready.
- */
-const KATEX_INIT = `
-(function() {
-  if (typeof renderMathInElement === 'function') {
-    var article = document.querySelector('article.truthforce-content');
-    if (article) {
-      renderMathInElement(article, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$',  right: '$',  display: false }
-        ],
-        throwOnError: false
-      });
-    }
-  }
-})();
-`.trim();
-
 export default function WhitepaperPage() {
   return (
     <main className="page">
-      {/* KaTeX CSS — inlined in <head> so math glyphs appear immediately on paint */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css"
-        crossOrigin="anonymous"
-      />
-
       <AnchorBanner />
 
       {/* Sovereign fingerprint banner */}
@@ -166,20 +133,6 @@ export default function WhitepaperPage() {
       </div>
 
       <FooterBadge />
-
-      {/* KaTeX JS — loaded after interactive to avoid blocking the initial paint */}
-      <Script
-        src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
-      {/* KaTeX auto-render — processes $...$ and $$...$$ delimiters in the article */}
-      <Script
-        src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-        onLoad={KATEX_INIT}
-      />
     </main>
   );
 }

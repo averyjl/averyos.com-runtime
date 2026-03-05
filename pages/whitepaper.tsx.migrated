@@ -9,15 +9,6 @@ type PageProps = {
   content: string;
 };
 
-/** KaTeX auto-render polling configuration */
-const KATEX_POLL_MAX_ATTEMPTS = 20;
-const KATEX_POLL_INTERVAL_MS  = 150; // total wait: ~3 seconds
-
-/** Window augmented with KaTeX renderMathInElement after CDN scripts load */
-interface KaTeXWindow extends Window {
-  renderMathInElement?: (el: Element, opts: object) => void;
-}
-
 const WHITEPAPER_TITLE = "AveryOS™ Whitepaper v2.0 | Technical Solidification Document";
 const WHITEPAPER_DESCRIPTION =
   `AveryOS™ Whitepaper v2.0 — Technical Solidification Document. ` +
@@ -38,31 +29,6 @@ const WhitepaperPage: NextPage<PageProps> = ({ content }) => {
     }).catch(() => {
       // best-effort; do not surface errors to the reader
     });
-
-    // KaTeX auto-render: process any $...$ or $$...$$ in the rendered content.
-    // The KaTeX scripts are loaded deferred; poll until renderMathInElement is ready.
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
-      const win = window as KaTeXWindow;
-      if (typeof win.renderMathInElement === "function") {
-        clearInterval(interval);
-        const article = document.querySelector("article.truthforce-content");
-        if (article) {
-          win.renderMathInElement(article, {
-            delimiters: [
-              { left: "$$", right: "$$", display: true },
-              { left: "$", right: "$", display: false },
-            ],
-            throwOnError: false,
-          });
-        }
-      } else if (attempts >= KATEX_POLL_MAX_ATTEMPTS) {
-        clearInterval(interval);
-      }
-    }, KATEX_POLL_INTERVAL_MS);
-
-    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -75,23 +41,6 @@ const WhitepaperPage: NextPage<PageProps> = ({ content }) => {
         <meta key="averyos:kernel-sha" name="averyos:kernel-sha" content={KERNEL_SHA} />
         <meta key="averyos:kernel-version" name="averyos:kernel-version" content={KERNEL_VERSION} />
         <link rel="canonical" href="https://averyos.com/whitepaper" />
-        {/* KaTeX stylesheet — renders $...$ and $$...$$ math expressions */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css"
-          crossOrigin="anonymous"
-        />
-        {/* KaTeX JS + auto-render: processes inline $...$ and display $$...$$ */}
-        <script
-          defer
-          src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"
-          crossOrigin="anonymous"
-        />
-        <script
-          defer
-          src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
-          crossOrigin="anonymous"
-        />
       </Head>
       <TruthforcePage
         title={WHITEPAPER_TITLE}
