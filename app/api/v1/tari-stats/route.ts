@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface D1Database {
   prepare(query: string): {
@@ -86,9 +87,10 @@ export async function GET() {
     return Response.json(response);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: 'TARI_STATS_ERROR', detail: message },
-      { status: 500 }
-    );
+    const lower = message.toLowerCase();
+    if (lower.includes('no such table') || lower.includes('tari_ledger')) {
+      return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, `tari_ledger table not found. Run: wrangler d1 migrations apply averyos_kernel_db. Detail: ${message}`);
+    }
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

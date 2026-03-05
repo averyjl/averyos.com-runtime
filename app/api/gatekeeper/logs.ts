@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { buildAosError, AOS_ERROR } from '../../../lib/sovereignError';
 
 interface LocalD1PreparedStatement {
   all(): Promise<{ results: SyncLogRow[] }>;
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const db = (req as RequestWithContext).context?.env?.DB;
 
   if (!db) {
-    return res.status(500).json({ error: "D1 Database Binding Missing" });
+    return res.status(503).json(buildAosError(AOS_ERROR.DB_UNAVAILABLE, 'D1 Database Binding Missing'));
   }
 
   try {
@@ -53,6 +54,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(formattedResults);
   } catch {
-    return res.status(500).json({ error: "Failed to query VaultChain" });
+    return res.status(500).json(buildAosError(AOS_ERROR.DB_QUERY_FAILED, 'Failed to query VaultChain'));
   }
 }

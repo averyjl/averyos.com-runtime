@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     try {
       payload = (await request.json()) as PoWPayload;
     } catch {
-      return Response.json({ error: 'INVALID_PAYLOAD' }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request payload is invalid or malformed.');
     }
 
     const { nonce, solution_hash, fingerprint, timestamp, cpu_cycles } = payload;
@@ -111,6 +112,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'POW_SUBMIT_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

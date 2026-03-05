@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { buildAosError, AOS_ERROR } from '../../../lib/sovereignError';
 
 interface SyncLogRow {
   timestamp: string;
@@ -25,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const db = (req as RequestWithContext).context?.env?.DB;
 
   if (!db) {
-    return res.status(500).json({ status: "UNANCHORED", reason: "DB_MISSING" });
+    return res.status(503).json(buildAosError(AOS_ERROR.DB_UNAVAILABLE, 'D1 database binding is not available.'));
   }
 
   try {
@@ -51,6 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ status: "DRIFT_DETECTED", label: "PLATFORM_ONLY" });
   } catch {
-    return res.status(500).json({ status: "ERROR", message: "VAULTCHAIN_OFFLINE" });
+    return res.status(500).json(buildAosError(AOS_ERROR.DB_QUERY_FAILED, 'VaultChain query failed.'));
   }
 }

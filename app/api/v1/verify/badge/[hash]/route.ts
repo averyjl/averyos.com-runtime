@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { BADGE_STATUS_ACTIVE } from '../../../../../../lib/sovereignConstants';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../../lib/sovereignError';
 
 interface D1Result {
   partner_id: string;
@@ -46,10 +47,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       .first<D1Result>();
 
     if (!row) {
-      return Response.json(
-        { error: 'NOT_FOUND', detail: 'No alignment found for this badge hash' },
-        { status: 404 },
-      );
+      return aosErrorResponse(AOS_ERROR.NOT_FOUND, 'No alignment found for this badge hash');
     }
 
     if (row.status !== BADGE_STATUS_ACTIVE) {
@@ -76,6 +74,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'RESONANCE_CHECK_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

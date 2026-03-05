@@ -7,6 +7,7 @@ import {
   resonanceAccessHeaders,
   type PublicResonanceResponse,
 } from "../../../../lib/taiLicenseGate";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface KVNamespace {
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
@@ -175,10 +176,7 @@ export async function GET(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { status: "DRIFT_DETECTED", error: message, queried_at: now },
-      { status: 500 }
-    );
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }
 
@@ -262,6 +260,6 @@ export async function POST(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ status: "ERROR", error: message, queried_at: now }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }

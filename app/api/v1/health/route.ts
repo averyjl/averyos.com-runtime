@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_VERSION } from '../../../../lib/sovereignConstants';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface D1Database {
   prepare(query: string): { first: () => Promise<unknown> };
@@ -20,11 +21,17 @@ export async function GET() {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    // D1 Tether
+    // D1 Tether — auto-heal: if DB binding missing, surface actionable error
+    if (!cfEnv.DB) {
+      return aosErrorResponse(AOS_ERROR.BINDING_MISSING, 'DB binding not found. Ensure [[d1_databases]] is configured in wrangler.toml.');
+    }
     await cfEnv.DB.prepare('SELECT 1').first();
     const d1 = 'CONNECTED ✅';
 
-    // KV Tether
+    // KV Tether — auto-heal: if KV binding missing, surface actionable error
+    if (!cfEnv.KV_LOGS) {
+      return aosErrorResponse(AOS_ERROR.BINDING_MISSING, 'KV_LOGS binding not found. Ensure [[kv_namespaces]] is configured in wrangler.toml.');
+    }
     const ts = new Date().toISOString();
     await cfEnv.KV_LOGS.put('health_ping', ts);
     await cfEnv.KV_LOGS.get('health_ping');
@@ -42,6 +49,13 @@ export async function GET() {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ status: 'DRIFT_DETECTED', error: message }, { status: 500 });
+    const lower = message.toLowerCase();
+    if (lower.includes('d1') || lower.includes('sqlite') || lower.includes('select 1')) {
+      return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, message);
+    }
+    if (lower.includes('kv') || lower.includes('namespace')) {
+      return aosErrorResponse(AOS_ERROR.KV_UNAVAILABLE, message);
+    }
+    return aosErrorResponse(AOS_ERROR.DRIFT_DETECTED, message);
   }
 }

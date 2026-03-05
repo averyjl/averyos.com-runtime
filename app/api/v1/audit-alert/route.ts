@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 /**
  * POST /api/v1/audit-alert
@@ -125,10 +126,7 @@ export async function POST(request: Request): Promise<Response> {
   else if (authHeader.startsWith("Handshake ")) token = authHeader.slice(10).trim();
 
   if (!cfEnv.VAULT_PASSPHRASE || !safeEqual(token, cfEnv.VAULT_PASSPHRASE)) {
-    return Response.json(
-      { error: "UNAUTHORIZED", detail: "Valid Bearer/Handshake token required." },
-      { status: 401 }
-    );
+    return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Valid Bearer/Handshake token required.');
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
@@ -136,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json() as Record<string, unknown>;
   } catch {
-    return Response.json({ error: "INVALID_JSON" }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'Request body must be valid JSON. Set Content-Type: application/json header.');
   }
 
   const eventType = String(body.event_type ?? "UNALIGNED_401").toUpperCase();
