@@ -12,6 +12,43 @@ import {
 } from "recharts";
 import SovereignErrorBanner from "../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
+import { KERNEL_VERSION } from "../../lib/sovereignConstants";
+
+// ---------------------------------------------------------------------------
+// Deep Purple & Gold — AveryOS™ Mobile Command Center theme tokens
+// ---------------------------------------------------------------------------
+
+const DEEP_PURPLE = "#1a0533";
+const DEEP_PURPLE_MID = "rgba(58,8,100,0.92)";
+const DEEP_PURPLE_CARD = "rgba(26,5,51,0.97)";
+const GOLD = "#FFD700";
+const GOLD_DIM = "rgba(255,215,0,0.65)";
+const GOLD_FAINT = "rgba(255,215,0,0.18)";
+const ACCENT_RED = "#ff4444";
+const ACCENT_GREEN = "#00FF41";
+
+// ---------------------------------------------------------------------------
+// 10-Point Sovereign Roadmap
+// ---------------------------------------------------------------------------
+
+interface RoadmapItem {
+  gate: number;
+  feature: string;
+  active: boolean;
+}
+
+const SOVEREIGN_ROADMAP: RoadmapItem[] = [
+  { gate: 1, feature: "Automated TARI™ Invoicing", active: false },
+  { gate: 2, feature: "TARI™ Revenue Dashboard", active: false },
+  { gate: 3, feature: "Linguistic Steganography Audit", active: false },
+  { gate: 4, feature: "VaultChain™ Explorer", active: false },
+  { gate: 5, feature: "Biometric Identity Shield", active: false },
+  { gate: 6, feature: "Multi-Cloud D1/Firebase Sync", active: false },
+  { gate: 7, feature: "Sovereign Takedown Bot", active: true },
+  { gate: 8, feature: "1,017-Notch API Throttling", active: false },
+  { gate: 9, feature: "Genesis Archive Pull", active: true },
+  { gate: 10, feature: "GabrielOS™ Mobile Push", active: false },
+];
 
 // ---------------------------------------------------------------------------
 // Deep Purple & Gold theme — AveryOS™ Mobile Command Center
@@ -362,8 +399,10 @@ export default function AuditStreamPage() {
   const [passphrase, setPassphrase] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [authError, setAuthError] = useState<AosUiError | null>(null);
+  const [evidenceError, setEvidenceError] = useState<AosUiError | null>(null);
   const [connected, setConnected] = useState(false);
   const [ready, setReady] = useState(false); // gate: only show UI after hydration
+  const [evidenceLoading, setEvidenceLoading] = useState<Record<string, boolean>>({});
 
   // Anti-flash: wait for client hydration before rendering the gate
   useEffect(() => {
@@ -407,6 +446,42 @@ export default function AuditStreamPage() {
     setAuthError(null);
     setToken(trimmed);
   };
+
+  const handleGenerateEvidence = useCallback(async (ip: string, activeToken: string) => {
+    setEvidenceError(null);
+    if (!isValidIp(ip)) {
+      setEvidenceError(buildAosUiError(AOS_ERROR.MISSING_FIELD, `Invalid IP address format: "${ip}" — evidence cannot be generated.`));
+      return;
+    }
+    setEvidenceLoading((prev) => ({ ...prev, [ip]: true }));
+    try {
+      const res = await fetch(`/api/v1/generate-evidence?ip=${encodeURIComponent(ip)}`, {
+        headers: { Authorization: `Bearer ${activeToken}` },
+      });
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({ error: res.statusText }))) as { error?: string };
+        setEvidenceError(buildAosUiError(AOS_ERROR.INTERNAL_ERROR, `Evidence generation failed: ${errBody.error ?? res.statusText}`));
+        return;
+      }
+      // Trigger browser download
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const fileName = match?.[1] ?? `EVIDENCE_BUNDLE_${ip}.aoscap`;
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(href);
+    } catch {
+      setEvidenceError(buildAosUiError(AOS_ERROR.INTERNAL_ERROR, 'Evidence bundle export failed — check network connection.'));
+    } finally {
+      setEvidenceLoading((prev) => ({ ...prev, [ip]: false }));
+    }
+  }, []);
 
   // Prevent content flash — render nothing until hydration is complete
   if (!ready) return null;
