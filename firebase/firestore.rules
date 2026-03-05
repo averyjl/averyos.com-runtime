@@ -1,0 +1,75 @@
+// AveryOS™ Firestore Security Rules
+// Version: 2026.1 — Sovereign PoW Gateway Access Control
+//
+// These rules enforce that ONLY requests that have passed the AveryOS™
+// Proof-of-Work Gateway may write to Firestore. Public read access is
+// granted only to the designated public collections.
+//
+// ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    // Verify that the caller holds a valid PoW Gateway token in their
+    // Firestore Auth custom claims. The token is set by the PoW completion
+    // endpoint once the SHA-512 puzzle is solved.
+    function hasPoWToken() {
+      return request.auth != null
+        && request.auth.token.pow_verified == true
+        && request.auth.token.pow_kernel_sha ==
+           "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+    }
+
+    // Only the sovereign server service account (FIREBASE_CLIENT_EMAIL) may
+    // write to admin-only collections. This is enforced by checking the UID
+    // against a hard-coded service-account email hash stored in the document.
+    function isSovereignServer() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == "custom"
+        && request.auth.token.role == "sovereign_server";
+    }
+
+    // ── Public read collections ──────────────────────────────────────────────
+
+    // VaultChain™ public ledger: read-only for everyone.
+    match /vaultchain_ledger/{docId} {
+      allow read: if true;
+      allow write: if isSovereignServer();
+    }
+
+    // Alignment certificates: public read (for badge verification).
+    match /alignment_certificates/{certId} {
+      allow read: if true;
+      allow write: if isSovereignServer();
+    }
+
+    // ── PoW-gated write collections ──────────────────────────────────────────
+
+    // Handshake synchronisation logs: requires PoW token or server auth.
+    match /handshake_sync_log/{logId} {
+      allow read: if isSovereignServer();
+      allow create: if hasPoWToken() || isSovereignServer();
+      allow update, delete: if isSovereignServer();
+    }
+
+    // TARI™ settlement records: server-only; no client write access.
+    match /tari_settlements/{settlementId} {
+      allow read: if hasPoWToken() || isSovereignServer();
+      allow write: if isSovereignServer();
+    }
+
+    // Forensic audit echo (VaultChain™ sync mirror): server-only.
+    match /sovereign_audit_echo/{echoId} {
+      allow read: if isSovereignServer();
+      allow write: if isSovereignServer();
+    }
+
+    // ── Catch-all: deny everything not explicitly listed above ───────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

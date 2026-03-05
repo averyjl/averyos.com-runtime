@@ -1,0 +1,59 @@
+// AveryOS™ Firebase Storage Security Rules
+// Version: 2026.1 — Sovereign PoW Gateway Access Control
+//
+// Cloud Storage is used exclusively for sovereign capsule assets.
+// All writes require either the PoW Gateway token (for creator uploads)
+// or the sovereign server service account. Public reads are allowed only
+// on the /public/ path.
+//
+// ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    function hasPoWToken() {
+      return request.auth != null
+        && request.auth.token.pow_verified == true
+        && request.auth.token.pow_kernel_sha ==
+           "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+    }
+
+    function isSovereignServer() {
+      return request.auth != null
+        && request.auth.token.role == "sovereign_server";
+    }
+
+    // ── Public capsule thumbnails ────────────────────────────────────────────
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSovereignServer();
+    }
+
+    // ── Sovereign capsule store (averyos-capsules/ prefix) ───────────────────
+    // Mirrors the R2 capsuleKey() prefix convention.
+    match /averyos-capsules/{capsuleId}/{allPaths=**} {
+      allow read: if hasPoWToken() || isSovereignServer();
+      allow write: if isSovereignServer();
+    }
+
+    // ── VaultChain™ snapshots ────────────────────────────────────────────────
+    match /vaultchain-snapshots/{snapshotId} {
+      allow read: if hasPoWToken() || isSovereignServer();
+      allow write: if isSovereignServer();
+    }
+
+    // ── Evidence bundles — server-only, never public ─────────────────────────
+    match /evidence-bundles/{bundleId} {
+      allow read: if isSovereignServer();
+      allow write: if isSovereignServer();
+    }
+
+    // ── Catch-all: deny everything not explicitly listed above ───────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
