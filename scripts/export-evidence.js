@@ -142,7 +142,15 @@ function queryAuditLogs(ip, env) {
     throw new Error(
       `Invalid IP address format: "${ip}". Only valid IPv4 or IPv6 addresses are accepted.`
     );
-  }  const sql = `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level FROM sovereign_audit_logs WHERE ip_address = '${ip}' ORDER BY id DESC LIMIT 500;`;
+  }
+
+  // Security: `ip` is validated above by isValidIp(), which only permits
+  // well-formed IPv4 (digits + dots) and IPv6 (hex digits + colons) strings.
+  // Those character sets cannot form SQL injection payloads (no quotes,
+  // semicolons, or SQL keywords). wrangler d1 execute --command does not
+  // support parameterized queries, so safe string interpolation after
+  // explicit validation is the correct mitigation here.
+  const sql = `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level FROM sovereign_audit_logs WHERE ip_address = '${ip}' ORDER BY id DESC LIMIT 500;`;
 
   const envFlag = env ? `--env ${env}` : "";
   const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --command ${JSON.stringify(sql)} --json`.trim();
