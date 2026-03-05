@@ -108,3 +108,9 @@ VaultHead*.aoscap
 # Firebase credentials — never commit the real file.
 # Use .avery-sync.example.json as the template.
 .avery-sync.json
+
+# ── Sovereign Evidence Exporter output — never commit generated bundles ───────
+# .aoscap bundles are already excluded by the *.aoscap rule above.
+# Settlement notice letters and the exports directory are also excluded.
+exports/
+SETTLEMENT_NOTICE_*.md
