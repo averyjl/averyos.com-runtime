@@ -29,6 +29,7 @@
     "forge:MeshProofKit_v1": "node scripts/forgeMeshProofKit.cjs",
     "sync:LocalNode_SeedWitnessTraining_v1": "node scripts/localNodeSeedWitnessTraining.cjs",
     "init:TAI_PublicVoteSession": "echo \"Open /tai/public-vote for civic vote bootstrap\"",
+    "enforcement:export-evidence": "node scripts/export-evidence.js",
     "enforcement:generate": "node scripts/generateEvidenceBundle.cjs",
     "sovereign-auth": "node ./scripts/auth.cjs",
     "tari-pulse": "node ./scripts/generateEvidenceBundle.cjs",
