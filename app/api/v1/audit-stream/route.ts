@@ -109,7 +109,7 @@ export async function GET(request: Request) {
  * Only the event types in ALLOWED_PUBLIC_EVENTS are accepted.
  * User-Agent is taken from the request header for reliability.
  */
-const ALLOWED_PUBLIC_EVENTS = new Set(['WHITEPAPER_READ_RECEIPT']);
+const ALLOWED_PUBLIC_EVENTS = new Set(['WHITEPAPER_READ_RECEIPT', 'POW_SOLVED']);
 
 export async function POST(request: Request) {
   let body: unknown;

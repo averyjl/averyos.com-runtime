@@ -22,9 +22,10 @@ export async function POST(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    // Check against VAULT_PASSPHRASE secret (set via Cloudflare secret store)
-    // Falls back to GITHUB_PAT if VAULT_PASSPHRASE is not set (for dev/staging)
-    const expected = cfEnv.VAULT_PASSPHRASE ?? "";
+    // Check against VAULT_PASSPHRASE secret (set via Cloudflare secret store).
+    // Trim both sides so trailing whitespace/newlines from env-var editors don't
+    // silently break comparison.
+    const expected = (cfEnv.VAULT_PASSPHRASE ?? "").trim();
 
     if (!expected) {
       // No passphrase configured — deny access in all environments

@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // PROMOTED: Root property for Next.js 15
-  serverExternalPackages: ['stripe'],
+  // isomorphic-dompurify/jsdom must be external so the Cloudflare Workers
+  // bundle does not attempt to initialise jsdom (a Node.js-only library) at
+  // module-evaluation time, which would crash the edge runtime and produce
+  // 500 errors on pages that import sanitizeHtml (e.g. the Whitepaper).
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom'],
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
