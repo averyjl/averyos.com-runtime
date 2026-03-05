@@ -319,14 +319,14 @@ function ComplianceSuccessContent() {
   }, []);
 
   // Read certificate params from query string (populated by Stripe redirect)
-  const partnerName = searchParams.get("partnerName") ?? "Aligned Partner";
-  const alignmentHash = searchParams.get("hash") ?? "";
+  const partnerName = searchParams?.get("partnerName") ?? "Aligned Partner";
+  const alignmentHash = searchParams?.get("hash") ?? "";
   const tariReference =
-    searchParams.get("tariReference") ?? "TARI-SETTLE-1017-001";
+    searchParams?.get("tariReference") ?? "TARI-SETTLE-1017-001";
   const validUntil =
-    searchParams.get("validUntil") ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    searchParams?.get("validUntil") ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
   const alignedAt =
-    searchParams.get("alignedAt") ?? new Date().toISOString();
+    searchParams?.get("alignedAt") ?? new Date().toISOString();
 
   const hashValid = /^[a-fA-F0-9]{128}$/.test(alignmentHash);
 

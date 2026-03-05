@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
+import SovereignErrorBanner from "../SovereignErrorBanner";
+import { buildAosUiError, classifyApiResponseError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
 
 type AlignmentStatus = "UNALIGNED" | "RESOLVING" | "ALIGNED" | "ERROR";
 
@@ -34,7 +36,7 @@ export default function CompliancePortal({
   tariLiabilityCents = 101700,
 }: CompliancePortalProps) {
   const [status, setStatus] = useState<AlignmentStatus>("UNALIGNED");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [uiError, setUiError] = useState<AosUiError | null>(null);
   const [inputBundleId, setInputBundleId] = useState(bundleId);
   const [inputTargetIp, setInputTargetIp] = useState(targetIp);
 
@@ -42,13 +44,13 @@ export default function CompliancePortal({
 
   const handleResolve = async () => {
     if (!inputBundleId.trim() || !inputTargetIp.trim()) {
-      setErrorMessage("Bundle ID and Target IP are required.");
+      setUiError(buildAosUiError(AOS_ERROR.MISSING_FIELD, 'Bundle ID and Target IP are required.'));
       setStatus("ERROR");
       return;
     }
 
     setStatus("RESOLVING");
-    setErrorMessage("");
+    setUiError(null);
 
     try {
       const res = await fetch("/api/v1/compliance/create-checkout", {
@@ -64,7 +66,7 @@ export default function CompliancePortal({
       const data = (await res.json()) as { checkoutUrl?: string; error?: string; detail?: string };
 
       if (!res.ok || !data.checkoutUrl) {
-        setErrorMessage(data.detail ?? data.error ?? "Failed to create checkout session.");
+        setUiError(classifyApiResponseError(data as Record<string, unknown>));
         setStatus("ERROR");
         return;
       }
@@ -72,7 +74,7 @@ export default function CompliancePortal({
       // Redirect to Stripe Checkout
       window.location.href = data.checkoutUrl;
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : "Unexpected error.");
+      setUiError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, err instanceof Error ? err.message : 'Unexpected network error.'));
       setStatus("ERROR");
     }
   };
@@ -263,19 +265,7 @@ export default function CompliancePortal({
 
       {/* Error Message */}
       {status === "ERROR" && (
-        <div
-          style={{
-            background: "rgba(248, 113, 113, 0.08)",
-            border: "1px solid rgba(248, 113, 113, 0.4)",
-            borderRadius: "6px",
-            padding: "0.75rem 1rem",
-            marginBottom: "1rem",
-            color: "rgba(248, 113, 113, 0.9)",
-            fontSize: "0.78rem",
-          }}
-        >
-          ❌ {errorMessage}
-        </div>
+        <SovereignErrorBanner error={uiError} />
       )}
 
       {/* Resolve Button */}

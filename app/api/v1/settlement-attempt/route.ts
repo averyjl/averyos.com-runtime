@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { d1ErrorResponse } from '../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -72,9 +73,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: 'SETTLEMENT_ATTEMPT_ERROR', detail: message },
-      { status: 500 }
-    );
+    return d1ErrorResponse(message, 'sovereign_audit_logs');
   }
 }

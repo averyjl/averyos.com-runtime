@@ -17,11 +17,16 @@
 
 import { execSync } from "child_process";
 import { webcrypto } from "node:crypto";
+import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Import the CJS Sovereign Error Logger from the same scripts/ directory
+const require = createRequire(import.meta.url);
+const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -107,7 +112,7 @@ async function fetchBtcBlockHeight() {
     const json = await res.json();
     return typeof json.height === "number" ? json.height : null;
   } catch (err) {
-    console.warn(`⚠️  Could not fetch BTC block height: ${err.message}`);
+    logAosHeal(SCRIPT_AOS_ERROR.BTC_ANCHOR_FAILED, `Offline anchor will be used. (${err.message})`);
     return null;
   }
 }
@@ -137,8 +142,7 @@ function queryAuditLogs(ip, env) {
     throw new Error(
       `Invalid IP address format: "${ip}". Only valid IPv4 or IPv6 addresses are accepted.`
     );
-  }
-  const sql = `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level FROM sovereign_audit_logs WHERE ip_address = '${ip}' ORDER BY id DESC LIMIT 500;`;
+  }  const sql = `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level FROM sovereign_audit_logs WHERE ip_address = '${ip}' ORDER BY id DESC LIMIT 500;`;
 
   const envFlag = env ? `--env ${env}` : "";
   const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --command ${JSON.stringify(sql)} --json`.trim();
@@ -152,9 +156,8 @@ function queryAuditLogs(ip, env) {
   } catch (err) {
     const stderr = err.stderr ? String(err.stderr) : "";
     const stdout = err.stdout ? String(err.stdout) : "";
-    throw new Error(
-      `wrangler d1 execute failed:\n${stderr || stdout || err.message}`
-    );
+    const detail = stderr || stdout || err.message;
+    throw new Error(`wrangler d1 execute failed:\n${detail}`);
   }
 }
 
@@ -413,6 +416,14 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("❌ Sovereign Evidence Exporter error:", err);
+  const msg = err instanceof Error ? err.message : String(err);
+  // Classify and log with full RCA
+  if (msg.toLowerCase().includes('invalid ip')) {
+    logAosError(SCRIPT_AOS_ERROR.INVALID_IP, msg, err);
+  } else if (msg.toLowerCase().includes('wrangler') || msg.toLowerCase().includes('d1')) {
+    logAosError(SCRIPT_AOS_ERROR.DB_QUERY_FAILED, msg, err);
+  } else {
+    logAosError(SCRIPT_AOS_ERROR.INTERNAL_ERROR, msg, err);
+  }
   process.exit(1);
 });

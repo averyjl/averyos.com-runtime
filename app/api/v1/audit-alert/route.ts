@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 /**
  * POST /api/v1/audit-alert
@@ -115,7 +116,8 @@ function firePushover(
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const { env } = await getCloudflareContext<CloudflareEnv>();
+  const { env } = await getCloudflareContext({ async: true });
+  const cfEnv = env as unknown as CloudflareEnv;
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   const authHeader = request.headers.get("authorization") ?? "";
@@ -123,11 +125,8 @@ export async function POST(request: Request): Promise<Response> {
   if (authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
   else if (authHeader.startsWith("Handshake ")) token = authHeader.slice(10).trim();
 
-  if (!env.VAULT_PASSPHRASE || !safeEqual(token, env.VAULT_PASSPHRASE)) {
-    return Response.json(
-      { error: "UNAUTHORIZED", detail: "Valid Bearer/Handshake token required." },
-      { status: 401 }
-    );
+  if (!cfEnv.VAULT_PASSPHRASE || !safeEqual(token, cfEnv.VAULT_PASSPHRASE)) {
+    return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Valid Bearer/Handshake token required.');
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
@@ -135,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json() as Record<string, unknown>;
   } catch {
-    return Response.json({ error: "INVALID_JSON" }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'Request body must be valid JSON. Set Content-Type: application/json header.');
   }
 
   const eventType = String(body.event_type ?? "UNALIGNED_401").toUpperCase();
@@ -151,7 +150,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── D1 — bootstrap + insert ───────────────────────────────────────────────
   try {
-    await env.DB.prepare(
+    await cfEnv.DB.prepare(
       `CREATE TABLE IF NOT EXISTS sovereign_audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_type TEXT NOT NULL,
@@ -166,7 +165,7 @@ export async function POST(request: Request): Promise<Response> {
       )`
     ).run();
 
-    await env.DB.prepare(
+    await cfEnv.DB.prepare(
       `INSERT INTO sovereign_audit_logs
        (event_type, ip_address, target_path, timestamp_ns, threat_level, tari_liability_usd, pulse_hash)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -178,14 +177,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── Pushover (non-blocking) ───────────────────────────────────────────────
-  if (env.PUSHOVER_APP_TOKEN && env.PUSHOVER_USER_KEY && liabilityUsd > 0) {
+  if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY && liabilityUsd > 0) {
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
     });
     firePushover(
-      env.PUSHOVER_APP_TOKEN,
-      env.PUSHOVER_USER_KEY,
+      cfEnv.PUSHOVER_APP_TOKEN,
+      cfEnv.PUSHOVER_USER_KEY,
       `⚠️ AveryOS™ ${eventType}`,
       `IP: ${targetIp}\nPath: ${targetPath}\nTARI™: ${liabilityFmt}\nHash: ${pulseHash.slice(0, 24)}…`
     );

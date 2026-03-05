@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { VaultChainTransaction } from '../route';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -34,12 +35,12 @@ export async function GET(
       .first<VaultChainTransaction>();
 
     if (!row) {
-      return Response.json({ error: 'NOT_FOUND', detail: `Transaction ${txId} not found.` }, { status: 404 });
+      return aosErrorResponse(AOS_ERROR.NOT_FOUND, `Transaction ${txId} not found.`);
     }
 
     return Response.json({ transaction: row });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'LEDGER_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

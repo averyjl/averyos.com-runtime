@@ -1,8 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first(): Promise<Record<string, unknown> | null>;
+  run(): Promise<{ success: boolean }>;
 }
 
 interface D1Database {
@@ -32,7 +34,7 @@ export async function GET(
     const token = url.searchParams.get("token") ?? "";
 
     if (!token) {
-      return Response.json({ error: "TOKEN_REQUIRED" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'download token is required. Obtain one by purchasing the capsule.');
     }
 
     const { env } = await getCloudflareContext({ async: true });
@@ -52,10 +54,7 @@ export async function GET(
       .first();
 
     if (!license) {
-      return Response.json(
-        { error: "INVALID_OR_EXPIRED_TOKEN", detail: "No active license found for this token." },
-        { status: 403 }
-      );
+      return aosErrorResponse(AOS_ERROR.LICENSE_INVALID, 'No active license found for this token.');
     }
 
     // Check expiry
@@ -68,14 +67,7 @@ export async function GET(
         .bind(capsuleId, token)
         .run();
 
-      return Response.json(
-        {
-          error: "TOKEN_EXPIRED",
-          detail: "This download token has expired. Please purchase a new license.",
-          expired_at: license.token_expires_at,
-        },
-        { status: 403 }
-      );
+      return aosErrorResponse(AOS_ERROR.TOKEN_EXPIRED, 'This download token has expired. Please purchase a new license.');
     }
 
     // Return capsule metadata + access confirmation
@@ -94,6 +86,6 @@ export async function GET(
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "DOWNLOAD_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }

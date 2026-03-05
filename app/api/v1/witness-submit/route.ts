@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface D1Database {
   prepare(query: string): {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
         ? body.name.trim().slice(0, 100)
         : null;
     if (!name) {
-      return Response.json({ error: "name is required" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'name is required');
     }
 
     const statement =
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
         ? body.statement.trim().slice(0, 2000)
         : null;
     if (!statement) {
-      return Response.json({ error: "statement is required" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'statement is required');
     }
 
     const shaWitness =
@@ -38,13 +39,10 @@ export async function POST(request: Request) {
         ? body.shaWitness.trim()
         : null;
     if (!shaWitness) {
-      return Response.json({ error: "shaWitness is required" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'shaWitness is required');
     }
     if (!SHA512_REGEX.test(shaWitness)) {
-      return Response.json(
-        { error: "shaWitness must be a valid 128-character SHA-512 hex string" },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'shaWitness must be a valid 128-character SHA-512 hex string');
     }
 
     const { env } = await getCloudflareContext({ async: true });
@@ -77,6 +75,6 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("⚠️  witness-submit error:", message);
-    return Response.json({ error: "Handshake Drift", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }

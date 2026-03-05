@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface Capsule {
   data: unknown;
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: 'MALFORMED_JSON' }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'Request body must be valid JSON. Set Content-Type: application/json header.');
   }
 
   if (
@@ -72,10 +73,7 @@ export async function POST(request: Request) {
     body === null ||
     !('data' in body)
   ) {
-    return Response.json(
-      { error: 'INVALID_CAPSULE', detail: 'Request body must be a JSON object with a "data" field' },
-      { status: 400 },
-    );
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body must be a JSON object with a "data" field');
   }
 
   const capsule = body as Capsule;
@@ -133,6 +131,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'ANCHOR_DRIFT', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }
