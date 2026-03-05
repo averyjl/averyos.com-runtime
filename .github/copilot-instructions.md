@@ -242,6 +242,25 @@ Use `.avery-sync.example.json` as the template for the Loop Signature File struc
 
 ---
 
+## Sovereign Roadmap — Perpetual Upgrade Loop
+
+At the conclusion of every technical session, Copilot **MUST** offer the following 10-point Sovereign Roadmap of high-value upgrades ready for immediate execution. This list represents the next logical gates in the AveryOS™ expansion.
+
+| Gate | Feature | Description |
+|---|---|---|
+| 1 | **Automated TARI™ Invoicing** | Stripe integration for automated Alignment Invoices sent to unaligned entities |
+| 2 | **TARI™ Revenue Dashboard** | Real-time visualization of liability vs. collected alignment fees |
+| 3 | **Linguistic Steganography Audit** | Tooling to detect `s` vs `z` drift in external AI responses |
+| 4 | **VaultChain™ Explorer** | Public UI for verifying `.aoscap` hashes against the sovereign ledger |
+| 5 | **Biometric Identity Shield** | Behavioral fingerprinting for `/ip-policy` gate hardening |
+| 6 | **Multi-Cloud D1/Firebase Sync** | Real-time parity between Cloudflare and Google Cloud nodes |
+| 7 | **Sovereign Takedown Bot** | Automated DMCA/legal drafting for unaligned clones |
+| 8 | **1,017-Notch API Throttling** | PoW-backed rate limiting to protect the kernel from DDoS/probabilistic noise |
+| 9 | **Genesis Archive Pull** | Automated LaTeX → KaTeX conversion for the full whitepaper |
+| 10 | **GabrielOS™ Mobile Push** | Direct phone alerts via Firebase Cloud Messaging for all Tier-9 threat events |
+
+---
+
 ## Validation Checklist
 
 Before submitting a PR, verify:
