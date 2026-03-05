@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface CloudflareEnv {
   VAULT_PASSPHRASE?: string;
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
       typeof body.passphrase === "string" ? body.passphrase.trim() : "";
 
     if (!provided) {
-      return Response.json({ error: "PASSPHRASE_REQUIRED" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'passphrase is required');
     }
 
     const { env } = await getCloudflareContext({ async: true });
@@ -29,17 +30,11 @@ export async function POST(request: Request) {
 
     if (!expected) {
       // No passphrase configured — deny access in all environments
-      return Response.json(
-        { error: "VAULT_NOT_CONFIGURED", detail: "VAULT_PASSPHRASE secret is not set." },
-        { status: 503 },
-      );
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE secret is not set.');
     }
 
     if (provided !== expected) {
-      return Response.json(
-        { error: "SOVEREIGN_HANDSHAKE_DENIED", timestamp: formatIso9() },
-        { status: 401 },
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Sovereign handshake denied. Invalid passphrase.');
     }
 
     return Response.json({
@@ -48,6 +43,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "HANDSHAKE_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }

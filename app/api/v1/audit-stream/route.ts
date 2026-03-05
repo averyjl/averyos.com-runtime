@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { formatIso9 } from '../../../../lib/timePrecision';
+import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -58,16 +59,10 @@ export async function GET(request: Request) {
 
     const expected = cfEnv.VAULT_PASSPHRASE ?? '';
     if (!expected) {
-      return Response.json(
-        { error: 'VAULT_NOT_CONFIGURED', detail: 'VAULT_PASSPHRASE secret is not set.' },
-        { status: 503 }
-      );
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE secret is not set.');
     }
     if (!token || token !== expected) {
-      return Response.json(
-        { error: 'YUBIKEY_HANDSHAKE_REQUIRED', detail: 'Valid sovereign passphrase required.' },
-        { status: 401 }
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Valid sovereign passphrase required. Authenticate at /vault-gate.');
     }
 
     // Ensure table exists (idempotent bootstrap)
@@ -87,9 +82,7 @@ export async function GET(request: Request) {
     const { results } = await cfEnv.DB.prepare(
       `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level
        FROM sovereign_audit_logs
-       WHERE threat_level >= 5
-       ORDER BY id DESC
-       LIMIT 10`
+       ORDER BY id DESC`
     ).all<AuditStreamEntry>();
 
     return Response.json(
@@ -100,7 +93,7 @@ export async function GET(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'AUDIT_STREAM_ERROR', detail: message }, { status: 500 });
+    return d1ErrorResponse(message, 'sovereign_audit_logs');
   }
 }
 
@@ -172,6 +165,6 @@ export async function POST(request: Request) {
     return Response.json({ status: 'RECEIPT_ANCHORED' }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'RECEIPT_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

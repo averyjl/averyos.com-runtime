@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
@@ -32,10 +33,7 @@ export async function POST(request: Request) {
 
     const stripeKey = cfEnv.STRIPE_SECRET_KEY ?? "";
     if (!stripeKey) {
-      return Response.json(
-        { error: "STRIPE_NOT_CONFIGURED", detail: "STRIPE_SECRET_KEY is not set." },
-        { status: 503 }
-      );
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY is not configured. Add it to your Cloudflare Worker secrets.');
     }
 
     // Parse request body
@@ -43,27 +41,21 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return Response.json({ error: "MALFORMED_JSON" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'Request body must be valid JSON. Set Content-Type: application/json header.');
     }
 
     if (typeof body !== "object" || body === null) {
-      return Response.json({ error: "INVALID_BODY" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
     const { bundleId, targetIp, tariLiability } = body as Record<string, unknown>;
 
     if (typeof bundleId !== "string" || !bundleId.trim()) {
-      return Response.json(
-        { error: "MISSING_BUNDLE_ID", detail: "bundleId is required." },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'bundleId is required.');
     }
 
     if (typeof targetIp !== "string" || !targetIp.trim()) {
-      return Response.json(
-        { error: "MISSING_TARGET_IP", detail: "targetIp is required." },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required.');
     }
 
     // TARI™ liability — default $1,017.00 (101700 cents) for initial alignment entry
@@ -137,9 +129,6 @@ export async function POST(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: "CHECKOUT_ERROR", detail: message },
-      { status: 500 }
-    );
+    return aosErrorResponse(AOS_ERROR.STRIPE_ERROR, message);
   }
 }

@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import Stripe from "stripe";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -37,14 +38,14 @@ export async function POST(
 
     const stripeKey = cfEnv.STRIPE_SECRET_KEY ?? "";
     if (!stripeKey) {
-      return Response.json({ error: "STRIPE_NOT_CONFIGURED" }, { status: 503 });
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY is not configured. Add it to your Cloudflare Worker secrets.');
     }
 
     // Parse body
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (!email) {
-      return Response.json({ error: "EMAIL_REQUIRED" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'email is required to process payment');
     }
 
     // Look up capsule
@@ -56,7 +57,7 @@ export async function POST(
       .first();
 
     if (!capsule) {
-      return Response.json({ error: "CAPSULE_NOT_FOUND" }, { status: 404 });
+      return aosErrorResponse(AOS_ERROR.NOT_FOUND, 'Capsule not found. Verify the capsule ID and try again.');
     }
 
     const feeCents = Math.round(Number(capsule.tari_fee_usd) * 100);
@@ -115,6 +116,6 @@ export async function POST(
     return Response.json({ checkout_url: session.url });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "PURCHASE_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.STRIPE_ERROR, message);
   }
 }

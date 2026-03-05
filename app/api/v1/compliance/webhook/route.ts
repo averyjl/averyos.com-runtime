@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -42,10 +43,7 @@ export async function POST(request: Request) {
     const webhookSecret = cfEnv.STRIPE_WEBHOOK_SECRET ?? "";
 
     if (!stripeKey || !webhookSecret) {
-      return Response.json(
-        { error: "STRIPE_NOT_CONFIGURED", detail: "STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET not set." },
-        { status: 503 }
-      );
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET not set.');
     }
 
     const rawBody = await request.text();
@@ -57,7 +55,7 @@ export async function POST(request: Request) {
     try {
       event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
     } catch {
-      return Response.json({ error: "INVALID_SIGNATURE" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Stripe webhook signature verification failed. Ensure STRIPE_WEBHOOK_SECRET is correctly set.');
     }
 
     // Only handle successful checkout completions
@@ -163,9 +161,6 @@ export async function POST(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: "WEBHOOK_ERROR", detail: message },
-      { status: 500 }
-    );
+    return aosErrorResponse(AOS_ERROR.STRIPE_ERROR, message);
   }
 }

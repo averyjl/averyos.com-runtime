@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getForensicHashesFromLedger, type D1Database } from "../../../../lib/retroactiveLedger";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface CloudflareEnv {
   DB: D1Database;
@@ -145,10 +146,7 @@ export async function GET(request: Request) {
     const entity = entityParam.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
 
     if (!entity) {
-      return Response.json(
-        { error: "entity query parameter is required (e.g. ?entity=MSFT_OAI)" },
-        { status: 400 },
-      );
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'entity query parameter is required (e.g. ?entity=MSFT_OAI)');
     }
 
     const { env } = await getCloudflareContext({ async: true });
@@ -160,10 +158,7 @@ export async function GET(request: Request) {
     );
 
     if (!entry) {
-      return Response.json(
-        { error: `No ledger entry found for entity: ${entity}` },
-        { status: 404 },
-      );
+      return aosErrorResponse(AOS_ERROR.NOT_FOUND, `No ledger entry found for entity: ${entity}`);
     }
 
     const generatedAt = formatIso9();
@@ -212,6 +207,6 @@ export async function GET(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "OUTBOUND_NOTICE_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }

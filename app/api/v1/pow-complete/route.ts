@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA } from '../../../../lib/sovereignConstants';
 import { formatIso9 } from '../../../../lib/timePrecision';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 /**
  * POST /api/v1/pow-complete
@@ -77,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return Response.json({ error: 'INVALID_JSON' }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'Request body must be valid JSON. Set Content-Type: application/json header.');
   }
 
   const nonce = body.nonce;
@@ -86,7 +87,7 @@ export async function POST(request: Request): Promise<Response> {
   const clientIp = typeof body.ip === 'string' ? body.ip : '';
 
   if (typeof nonce !== 'number' || !clientHash || !clientTimestamp || !clientIp) {
-    return Response.json({ error: 'MISSING_FIELDS' }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'All required fields must be provided.');
   }
 
   // ── Server-side PoW verification ───────────────────────────────────────────
@@ -95,14 +96,11 @@ export async function POST(request: Request): Promise<Response> {
   const expected = await sha512Hex(`${nonce}|${clientTimestamp}|${clientIp}|${KERNEL_SHA}`);
 
   if (expected !== clientHash) {
-    return Response.json({ error: 'HASH_MISMATCH', detail: 'Submitted hash does not match.' }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Submitted hash does not match. Recompute the SHA-512 hash and resubmit.');
   }
 
   if (!expected.startsWith(DIFFICULTY_PREFIX)) {
-    return Response.json(
-      { error: 'INSUFFICIENT_DIFFICULTY', detail: `Hash must start with "${DIFFICULTY_PREFIX}".` },
-      { status: 400 }
-    );
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, `Hash must start with "${DIFFICULTY_PREFIX}".`);
   }
 
   // ── Derive requester IP for audit (prefer CF header over body-supplied value) ─

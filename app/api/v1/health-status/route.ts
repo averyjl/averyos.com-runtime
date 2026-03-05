@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA } from '../../../../lib/sovereignConstants';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -109,6 +110,10 @@ export async function GET() {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'HEALTH_STATUS_ERROR', detail: message }, { status: 500 });
+    const lower = message.toLowerCase();
+    if (lower.includes('d1') || lower.includes('sqlite') || lower.includes('no such table')) {
+      return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
+    }
+    return aosErrorResponse(AOS_ERROR.DRIFT_DETECTED, message);
   }
 }

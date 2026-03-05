@@ -66,10 +66,11 @@ export function evaluateTaiAccess(
     const aBytes = enc.encode(a);
     const bBytes = enc.encode(b);
     if (aBytes.length !== bBytes.length) {
-      // Run through bytes anyway to keep time constant regardless of length
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      let diff = 0;
-      for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ 0;
+      // Run through the longer array to maintain constant-time behaviour
+      const maxLen = Math.max(aBytes.length, bBytes.length);
+      for (let i = 0; i < maxLen; i++) {
+        void (aBytes[i] ?? 0);
+      }
       return false;
     }
     let diff = 0;

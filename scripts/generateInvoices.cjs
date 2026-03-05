@@ -15,6 +15,7 @@
 const fs   = require('fs');
 const path = require('path');
 const Stripe = require('stripe');
+const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STRIPE_SECRET_KEY    = process.env.STRIPE_SECRET_KEY;
@@ -36,18 +37,18 @@ const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
  */
 function loadLogs() {
   if (!fs.existsSync(LOG_PATH)) {
-    console.error(`⚠️  Log file not found: ${LOG_PATH}`);
+    logAosHeal(AOS_ERROR.NOT_FOUND, `Log file not found at ${LOG_PATH} — returning empty set.`);
     return [];
   }
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(LOG_PATH, 'utf8'));
   } catch (err) {
-    console.error(`⚠️  Failed to parse log file: ${err.message}`);
+    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse log file at ${LOG_PATH}: ${err.message}`, err);
     return [];
   }
   if (!Array.isArray(raw)) {
-    console.error('⚠️  Log file must be a JSON array.');
+    logAosError(AOS_ERROR.INVALID_FIELD, 'Log file must be a JSON array.', null);
     return [];
   }
   return raw;
@@ -168,7 +169,7 @@ async function createDraftInvoice(stripe, org) {
 
 async function main() {
   if (!STRIPE_SECRET_KEY) {
-    console.error('❌  STRIPE_SECRET_KEY environment variable is not set.');
+    logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY environment variable is not set.');
     process.exit(1);
   }
 
@@ -196,7 +197,7 @@ async function main() {
       const url = await createDraftInvoice(stripe, org);
       results.push({ org_id: org.org_id, request_count: org.request_count, debt_usd: debtUsd, invoice_url: url });
     } catch (err) {
-      console.error(`   ❌ Failed to create invoice for ${org.org_id}: ${err.message}`);
+      logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create invoice for ${org.org_id}: ${err.message}`, err);
       results.push({ org_id: org.org_id, request_count: org.request_count, debt_usd: debtUsd, invoice_url: null, error: err.message });
     }
   }
@@ -215,6 +216,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  logAosError(AOS_ERROR.INTERNAL_ERROR, err instanceof Error ? err.message : String(err), err);
   process.exit(1);
 });

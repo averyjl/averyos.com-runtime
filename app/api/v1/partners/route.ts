@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   all<T = unknown>(): Promise<{ results: T[] }>;
@@ -47,6 +48,6 @@ export async function GET() {
     return Response.json({ partners: results });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'PARTNERS_FETCH_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

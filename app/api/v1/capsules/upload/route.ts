@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { signCapsule } from "../../../../../lib/CapsuleSigner";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -44,16 +45,10 @@ export async function POST(request: Request) {
 
     const expected = cfEnv.VAULT_PASSPHRASE ?? "";
     if (!expected) {
-      return Response.json(
-        { error: "VAULT_NOT_CONFIGURED", detail: "VAULT_PASSPHRASE secret is not set." },
-        { status: 503 }
-      );
+      return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE secret is not set.');
     }
     if (token !== expected) {
-      return Response.json(
-        { error: "SOVEREIGN_AUTH_DENIED", detail: "Invalid or missing passphrase." },
-        { status: 401 }
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Invalid or missing passphrase.');
     }
 
     // ── Parse body ─────────────────────────────────────────────────────────
@@ -80,10 +75,7 @@ export async function POST(request: Request) {
     const content = typeof body.content === "string" ? body.content : JSON.stringify(body);
 
     if (!capsule_id || !title || !genesis_date) {
-      return Response.json(
-        { error: "MISSING_FIELDS", detail: "capsule_id, title, and genesis_date are required." },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'All required fields must be provided.');
     }
 
     // Slugify capsule_id: replace any non-alphanumeric char with a hyphen.
@@ -145,6 +137,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "CAPSULE_UPLOAD_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
   }
 }

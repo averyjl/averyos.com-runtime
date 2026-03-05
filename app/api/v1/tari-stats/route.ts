@@ -1,4 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { d1ErrorResponse } from '../../../../lib/sovereignError';
 
 interface D1Database {
   prepare(query: string): {
@@ -86,9 +87,6 @@ export async function GET() {
     return Response.json(response);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: 'TARI_STATS_ERROR', detail: message },
-      { status: 500 }
-    );
+    return d1ErrorResponse(message, 'tari_ledger');
   }
 }

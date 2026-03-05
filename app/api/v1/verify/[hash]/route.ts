@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { BADGE_STATUS_ACTIVE } from '../../../../../lib/sovereignConstants';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...args: unknown[]): { first<T = unknown>(): Promise<T | null> };
@@ -119,6 +120,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'VERIFICATION_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }
