@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import YubiKeyHandshake from "../../src/components/Sovereign/YubiKeyHandshake";
-
-const KERNEL_ANCHOR =
-  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+import { KERNEL_SHA } from "../../lib/sovereignConstants";
 
 export default function VaultGatePage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -22,6 +20,10 @@ export default function VaultGatePage() {
   const handleHandshakeSuccess = () => {
     setIsAuthenticated(true);
   };
+
+  // Show nothing while the sessionStorage auth check is pending — prevents
+  // any page content from briefly flashing before the gate form appears.
+  if (isAuthenticated === null) return null;
 
   return (
     <>
@@ -323,7 +325,7 @@ export default function VaultGatePage() {
                 >
                   {"// SHA-512 · AveryOS™ ALF v4.0 · Permanent Economy Capsule"}
                 </div>
-                {KERNEL_ANCHOR}
+                {KERNEL_SHA}
               </div>
             </section>
           </>

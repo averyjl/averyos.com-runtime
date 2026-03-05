@@ -25,8 +25,12 @@ export default function EvidenceVaultLogin() {
         // Store sovereign handshake token in session
         sessionStorage.setItem("sovereign_handshake", "GRANTED");
         router.push("/evidence-vault");
+      } else if (res.status === 503) {
+        setError("⛔ VAULT_NOT_CONFIGURED: Sovereign vault is not configured. Contact the administrator.");
+      } else if (res.status === 401) {
+        setError("⛔ SOVEREIGN_HANDSHAKE_DENIED: Invalid passphrase. Verify and try again.");
       } else {
-        setError("⛔ SOVEREIGN_HANDSHAKE_DENIED: Invalid passphrase.");
+        setError("⛔ HANDSHAKE_ERROR: Could not complete verification. Try again.");
       }
     } catch {
       setError("⛔ CONNECTION_ERROR: Could not reach the handshake endpoint.");
