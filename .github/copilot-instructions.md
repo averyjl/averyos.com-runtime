@@ -254,9 +254,9 @@ At the conclusion of every technical session, Copilot **MUST** offer the followi
 | 4 | **VaultChain™ Explorer** | Public UI for verifying `.aoscap` hashes against the sovereign ledger |
 | 5 | **Biometric Identity Shield** | Behavioral fingerprinting for `/ip-policy` gate hardening |
 | 6 | **Multi-Cloud D1/Firebase Sync** | Real-time parity between Cloudflare and Google Cloud nodes |
-| 7 | **Sovereign Takedown Bot** | Automated DMCA/legal drafting for unaligned clones |
+| 7 | **Sovereign Takedown Bot** ✅ ACTIVE | Automated DMCA/legal drafting for unaligned clones |
 | 8 | **1,017-Notch API Throttling** | PoW-backed rate limiting to protect the kernel from DDoS/probabilistic noise |
-| 9 | **Genesis Archive Pull** | Automated LaTeX → KaTeX conversion for the full whitepaper |
+| 9 | **Genesis Archive Pull** ✅ ACTIVE | Automated LaTeX → KaTeX conversion for the full whitepaper |
 | 10 | **GabrielOS™ Mobile Push** | Direct phone alerts via Firebase Cloud Messaging for all Tier-9 threat events |
 
 ---
@@ -285,9 +285,9 @@ At the conclusion of every technical session, Copilot **MUST** offer the followi
 | 3 | **VaultChain™ Explorer** | Public UI for verifying `.aoscap` hashes on-chain | New page `app/vaultchain-explorer/page.tsx` + `/api/v1/verify/[hash]/route.ts` |
 | 4 | **Biometric Identity Shield** | Hardening the `/ip-policy` gate with behavioral fingerprinting (canvas, timing, WebGL entropy) | Enhance `middleware.ts` with entropy-based scoring alongside `AI_BOT_PATTERNS` |
 | 5 | **Multi-Cloud D1/Firebase Sync** | Real-time parity between Cloudflare D1 and Google Cloud Firestore nodes | `lib/firebaseClient.ts` already exists; add D1→Firebase sync in `middleware.ts` audit path |
-| 6 | **Sovereign Takedown Bot** | Automated DMCA/Legal notice drafting for unaligned clones detected in the wild | New script `scripts/sovereignTakedown.cjs` — auto-populates notice from evidence bundle |
+| 6 | **Sovereign Takedown Bot** ✅ ACTIVE | Automated DMCA/Legal notice drafting for unaligned clones detected in the wild | `scripts/sovereign-takedown.cjs` — generates DMCA § 512(c) + GDPR Art.17 notices from `.aoscap` evidence bundles |
 | 7 | **1,017-Notch API Rate Limiting** | Protecting the kernel from DDoS/Probabilistic noise via Cloudflare Rate Limiting rules | Upgrade `wrangler.toml` with `[[rate_limiting]]` rules + `middleware.ts` enforcement |
-| 8 | **Genesis Archive Pull** | Automated LaTeX to KaTeX conversion for the full whitepaper | New script `scripts/latexToKatex.cjs` + `app/whitepaper/page.tsx` upgrade |
+| 8 | **Genesis Archive Pull** ✅ ACTIVE | Automated LaTeX to KaTeX conversion for the full whitepaper | `app/whitepaper/page.tsx` — server-rendered markdown + KaTeX auto-render; reads `content/whitepaper.md` |
 | 9 | **GabrielOS™ Mobile Push** | Direct phone alerts for all Tier-9 threat events via Pushover API | Upgrade `app/api/v1/audit-alert/route.ts` — already has Pushover integration; add Tier-9 filtering |
 | 10 | **TARI™ Revenue Dashboard** | Visualizing real-time liability vs. collected alignment fees | New page `app/tari-revenue/page.tsx` consuming `/api/v1/tari-stats` + `/api/v1/compliance/usage-report` |
 
