@@ -166,7 +166,7 @@ const RCA_REGISTRY: Partial<Record<AosErrorCode, RcaEntry>> = {
     diagnosis: 'A D1 database query failed at runtime.',
     steps: [
       'Check the error detail for the specific SQL error message.',
-      'Verify the table exists by running `wrangler d1 execute <db> --command "SELECT name FROM sqlite_master WHERE type=\'table\'"` .',
+      'Verify the table exists by running `wrangler d1 execute <db> --command "SELECT name FROM sqlite_master WHERE type=\'table\'"`.',
       'Apply any missing migrations: `wrangler d1 migrations apply <db>`.',
     ],
     status: 500,
@@ -269,6 +269,25 @@ export interface AosApiError {
   sovereign_anchor: '⛓️⚓⛓️';
   timestamp: string;
 }
+
+/**
+ * Classify a D1 error message and return the appropriate AOS error Response.
+ * Specifically handles the common "no such table" case with an actionable migration hint.
+ *
+ * @param message — raw error message from the D1 catch block
+ * @param tableName — the D1 table name being queried (for the hint)
+ */
+export function d1ErrorResponse(message: string, tableName?: string): Response {
+  const lower = message.toLowerCase();
+  if (lower.includes('no such table') || (tableName && lower.includes(tableName.toLowerCase()))) {
+    const hint = tableName
+      ? `${tableName} table missing or inaccessible. Run: wrangler d1 migrations apply averyos_kernel_db`
+      : 'A required D1 table is missing. Run: wrangler d1 migrations apply averyos_kernel_db';
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, `${hint}. Detail: ${message}`);
+  }
+  return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
+}
+
 
 /**
  * Build a standardised AveryOS™ error response body.

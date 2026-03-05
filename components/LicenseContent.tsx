@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import AnchorBanner from "./AnchorBanner";
+import SovereignErrorBanner from "./SovereignErrorBanner";
+import { buildAosUiError, AOS_ERROR, type AosUiError } from "../lib/sovereignError";
 
 const LicenseContent = () => {
   const [hashInput, setHashInput] = useState("");
@@ -11,48 +13,43 @@ const LicenseContent = () => {
     hashMatch?: boolean;
     capsuleId?: string;
   } | null>(null);
+  const [checkError, setCheckError] = useState<AosUiError | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [vaultEchoStatus, setVaultEchoStatus] = useState<{
     status: string;
     message: string;
   } | null>(null);
+  const [vaultEchoError, setVaultEchoError] = useState<AosUiError | null>(null);
 
   const runIntegrityCheck = async () => {
     if (!hashInput.trim()) {
-      setCheckResult({
-        status: "error",
-        message: "Please enter a SHA-512 hash to verify.",
-      });
+      setCheckError(buildAosUiError(AOS_ERROR.MISSING_FIELD, 'Please enter a SHA-512 hash to verify.'));
       return;
     }
 
     setIsChecking(true);
     setCheckResult(null);
+    setCheckError(null);
 
     try {
       const response = await fetch(`/api/vaultecho?hash=${encodeURIComponent(hashInput.trim())}`);
       const data = await response.json();
       setCheckResult(data);
     } catch {
-      setCheckResult({
-        status: "error",
-        message: "Failed to connect to VaultEcho API.",
-      });
+      setCheckError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, 'Failed to connect to VaultEcho API. Check your network connection and try again.'));
     } finally {
       setIsChecking(false);
     }
   };
 
   const checkVaultEchoStatus = async () => {
+    setVaultEchoError(null);
     try {
       const response = await fetch("/api/vaultecho");
       const data = await response.json();
       setVaultEchoStatus(data);
     } catch {
-      setVaultEchoStatus({
-        status: "error",
-        message: "Failed to connect to VaultEcho.",
-      });
+      setVaultEchoError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, 'Failed to connect to VaultEcho. Check your network connection and try again.'));
     }
   };
 
@@ -170,6 +167,7 @@ const LicenseContent = () => {
             {isChecking ? "Checking..." : "Run Integrity Check"}
           </button>
         </div>
+        {checkError && <SovereignErrorBanner error={checkError} />}
         {checkResult && (
           <div className={checkResult.status === "error" ? "status-pill" : ""}>
             <p><strong>Status:</strong> {checkResult.status}</p>
@@ -199,6 +197,7 @@ const LicenseContent = () => {
         >
           Check VaultEcho Status
         </button>
+        {vaultEchoError && <SovereignErrorBanner error={vaultEchoError} style={{ marginTop: "1rem" }} />}
         {vaultEchoStatus && (
           <div style={{ marginTop: "1rem" }}>
             <div className="status-pill">

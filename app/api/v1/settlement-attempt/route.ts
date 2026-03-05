@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
+import { d1ErrorResponse } from '../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -73,10 +73,6 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    const lower = message.toLowerCase();
-    if (lower.includes('no such table') || lower.includes('sovereign_audit_logs')) {
-      return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, `sovereign_audit_logs table missing. Run: wrangler d1 migrations apply averyos_kernel_db. Detail: ${message}`);
-    }
-    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, message);
+    return d1ErrorResponse(message, 'sovereign_audit_logs');
   }
 }

@@ -10,6 +10,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import SovereignErrorBanner from "../../components/SovereignErrorBanner";
+import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
 
 // ---------------------------------------------------------------------------
 // TARI™ Liability schedule (mirrors scripts/export-evidence.js)
@@ -158,7 +160,7 @@ export default function AuditStreamPage() {
   const [entries, setEntries] = useState<AuditStreamEntry[]>([]);
   const [passphrase, setPassphrase] = useState("");
   const [token, setToken] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<AosUiError | null>(null);
   const [connected, setConnected] = useState(false);
   const [ready, setReady] = useState(false); // gate: only show UI after hydration
 
@@ -176,7 +178,7 @@ export default function AuditStreamPage() {
       if (res.status === 401) {
         setToken(null);
         setConnected(false);
-        setAuthError("Passphrase rejected — re-authentication required.");
+        setAuthError(buildAosUiError(AOS_ERROR.INVALID_AUTH, 'Passphrase rejected — re-authentication required. Retrieve your passphrase from /vault-gate.'));
         return;
       }
       const data = (await res.json()) as AuditStreamEntry[];
@@ -265,11 +267,7 @@ export default function AuditStreamPage() {
               AUTHENTICATE
             </button>
           </form>
-          {authError && (
-            <p style={{ color: "#f87171", fontSize: "0.8rem", marginTop: "0.5rem" }}>
-              ⚠ {authError}
-            </p>
-          )}
+          {authError && <SovereignErrorBanner error={authError} style={{ marginTop: "0.75rem" }} />}
         </section>
       </main>
     );
