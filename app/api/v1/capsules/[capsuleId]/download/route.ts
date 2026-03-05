@@ -3,6 +3,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first(): Promise<Record<string, unknown> | null>;
+  run(): Promise<{ success: boolean }>;
 }
 
 interface D1Database {

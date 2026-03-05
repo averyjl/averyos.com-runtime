@@ -16,6 +16,7 @@ interface KVNamespace {
 interface D1Database {
   prepare(query: string): {
     bind(...args: unknown[]): { run(): Promise<{ success: boolean }> };
+    run(): Promise<{ success: boolean }>;
     first(): Promise<unknown>;
   };
 }

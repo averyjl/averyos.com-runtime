@@ -1,7 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+interface SyncLogRow {
+  timestamp: string;
+  [key: string]: unknown;
+}
+
+interface LocalD1PreparedStatement {
+  first(): Promise<SyncLogRow | null>;
+}
+
+interface LocalD1Database {
+  prepare(query: string): LocalD1PreparedStatement;
+}
+
 interface RequestWithContext extends NextApiRequest {
-  context?: { env?: { DB?: D1Database } };
+  context?: { env?: { DB?: LocalD1Database } };
 }
 
 /**
