@@ -25,6 +25,9 @@ const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents
 const PER_REQUEST_CENTS    = 1;           // $0.01 in cents
 const TOP_N                = 10;
 const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
+// Only process orgs whose total liability meets or exceeds this threshold.
+// Orgs below the threshold are logged but skipped.
+const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -189,8 +192,25 @@ async function main() {
   const debtors = topN(orgMap, TOP_N);
   console.log(`\n🏢  Found ${orgMap.size} unique corporate org(s). Processing top ${debtors.length}:\n`);
 
+  // ── Threshold filter: only invoice orgs at or above TARI_THRESHOLD ────────
+  const billable = debtors.filter((org) => calcDebtCents(org.request_count) >= TARI_THRESHOLD_CENTS);
+  const below    = debtors.filter((org) => calcDebtCents(org.request_count) <  TARI_THRESHOLD_CENTS);
+
+  if (below.length > 0) {
+    console.log(`ℹ️  Skipping ${below.length} org(s) below the $${(TARI_THRESHOLD_CENTS / 100).toLocaleString()} TARI™ threshold:`);
+    for (const org of below) {
+      console.log(`   ${org.org_id}  ($${(calcDebtCents(org.request_count) / 100).toFixed(2)})`);
+    }
+    console.log('');
+  }
+
+  if (billable.length === 0) {
+    console.warn('⚠️  No orgs meet the TARI™ liability threshold.  No invoices created.');
+    process.exit(0);
+  }
+
   const results = [];
-  for (const org of debtors) {
+  for (const org of billable) {
     const debtUsd = (calcDebtCents(org.request_count) / 100).toFixed(2);
     console.log(`▶  ${org.org_id}  (${org.request_count.toLocaleString()} requests → $${debtUsd})`);
     try {
