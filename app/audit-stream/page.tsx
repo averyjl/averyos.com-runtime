@@ -14,6 +14,21 @@ import SovereignErrorBanner from "../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
 
 // ---------------------------------------------------------------------------
+// Deep Purple & Gold theme — AveryOS™ Mobile Command Center
+// ---------------------------------------------------------------------------
+
+const PURPLE_DEEP = "#0a0015";
+const PURPLE_MID = "rgba(98,0,234,0.18)";
+const PURPLE_BORDER = "rgba(120,60,255,0.35)";
+const GOLD = "#ffd700";
+const GOLD_DIM = "rgba(255,215,0,0.55)";
+const GOLD_BORDER = "rgba(255,215,0,0.35)";
+const GOLD_GLOW = "rgba(255,215,0,0.12)";
+const WHITE = "#ffffff";
+const RED = "#ff4444";
+const RED_DIM = "rgba(255,68,68,0.55)";
+
+// ---------------------------------------------------------------------------
 // TARI™ Liability schedule (mirrors scripts/export-evidence.js)
 // ---------------------------------------------------------------------------
 
@@ -52,8 +67,85 @@ interface AuditStreamEntry {
 }
 
 const POLL_INTERVAL_MS = 4000;
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-// Custom tooltip for the Resonance Pulse chart — avoids recharts `any` formatter types
+// ---------------------------------------------------------------------------
+// 10-Point Sovereign Roadmap
+// ---------------------------------------------------------------------------
+
+const SOVEREIGN_ROADMAP = [
+  { gate: 1,  name: "Automated TARI™ Invoicing",       active: true  },
+  { gate: 2,  name: "TARI™ Revenue Dashboard",          active: true  },
+  { gate: 3,  name: "Linguistic Steganography Audit",   active: false },
+  { gate: 4,  name: "VaultChain™ Explorer",             active: false },
+  { gate: 5,  name: "Biometric Identity Shield",        active: false },
+  { gate: 6,  name: "Multi-Cloud D1/Firebase Sync",     active: false },
+  { gate: 7,  name: "Sovereign Takedown Bot",           active: true  },
+  { gate: 8,  name: "1,017-Notch API Throttling",       active: false },
+  { gate: 9,  name: "Genesis Archive Pull",             active: true  },
+  { gate: 10, name: "GabrielOS™ Mobile Push",           active: false },
+];
+
+function SovereignRoadmapSection() {
+  return (
+    <section
+      style={{
+        background: PURPLE_DEEP,
+        border: `1px solid ${GOLD_BORDER}`,
+        borderRadius: "12px",
+        padding: "1.25rem",
+        marginBottom: "1.5rem",
+      }}
+    >
+      <div
+        style={{
+          color: GOLD,
+          fontFamily: "JetBrains Mono, monospace",
+          fontWeight: 700,
+          fontSize: "0.85rem",
+          marginBottom: "1rem",
+          letterSpacing: "0.08em",
+        }}
+      >
+        🗺️ SOVEREIGN ROADMAP — 10-POINT GATE STATUS
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.6rem" }}>
+        {SOVEREIGN_ROADMAP.map((item) => (
+          <div
+            key={item.gate}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.65rem",
+              padding: "0.5rem 0.75rem",
+              background: item.active ? "rgba(255,215,0,0.06)" : PURPLE_MID,
+              border: `1px solid ${item.active ? GOLD_BORDER : PURPLE_BORDER}`,
+              borderRadius: "8px",
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: "0.78rem",
+              minHeight: "44px",
+            }}
+          >
+            <span style={{ fontSize: "1rem", lineHeight: 1 }}>
+              {item.active ? "🟢" : "🔴"}
+            </span>
+            <span style={{ color: "rgba(255,255,255,0.55)", minWidth: "1.4rem", fontWeight: 700 }}>
+              G{item.gate}
+            </span>
+            <span style={{ color: item.active ? GOLD : "rgba(255,255,255,0.7)", lineHeight: 1.3 }}>
+              {item.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom tooltip for the Resonance Pulse chart
+// ---------------------------------------------------------------------------
+
 interface PulseTooltipProps {
   active?: boolean;
   payload?: Array<{ name: string; value: number }>;
@@ -65,90 +157,199 @@ function PulseTooltip({ active, payload, label }: PulseTooltipProps) {
   return (
     <div
       style={{
-        background: "#000",
-        border: "1px solid #00FF41",
+        background: PURPLE_DEEP,
+        border: `1px solid ${GOLD_BORDER}`,
         borderRadius: "6px",
         padding: "0.4rem 0.65rem",
         fontFamily: "monospace",
         fontSize: "0.72rem",
-        color: "#00FF41",
+        color: GOLD,
       }}
     >
-      <div style={{ color: "rgba(0,255,65,0.5)", marginBottom: "2px" }}>{label}</div>
+      <div style={{ color: GOLD_DIM, marginBottom: "2px" }}>{label}:00</div>
       {payload.map((p) => (
         <div key={p.name}>
-          {p.name === "threatLevel" ? `TL: ${p.value}` : `TARI™: ${formatUsd(p.value)}`}
+          {p.value} UNALIGNED_401 hit{p.value !== 1 ? "s" : ""}
         </div>
       ))}
     </div>
   );
 }
 
-
-
 // ---------------------------------------------------------------------------
-// Resonance Pulse Chart
+// Resonance Pulse Chart — UNALIGNED_401 hits over last 24 hours
 // ---------------------------------------------------------------------------
+
+function buildHourlyBuckets(entries: AuditStreamEntry[]): Array<{ hour: string; hits: number }> {
+  const now = Date.now();
+  const buckets: number[] = Array(24).fill(0);
+
+  for (const e of entries) {
+    if (e.event_type !== "UNALIGNED_401") continue;
+    // timestamp_ns is a nanosecond string; parse the first 13 digits as milliseconds
+    const ms = Number(e.timestamp_ns.slice(0, 13));
+    if (isNaN(ms)) continue;
+    const ageMs = now - ms;
+    if (ageMs < 0 || ageMs > TWENTY_FOUR_HOURS_MS) continue;
+    const hourIndex = Math.floor(ageMs / (60 * 60 * 1000)); // 0 = most recent hour
+    if (hourIndex < 24) buckets[hourIndex]++;
+  }
+
+  // Reverse so index 0 = oldest hour (23h ago), index 23 = most recent
+  return buckets
+    .slice()
+    .reverse()
+    .map((hits, i) => ({
+      hour: `${String(23 - i).padStart(2, "0")}h`,
+      hits,
+    }));
+}
 
 function ResonancePulseChart({ entries }: { entries: AuditStreamEntry[] }) {
-  // Build chart data: most recent 20 entries, oldest → newest left-to-right
-  const chartData = [...entries]
-    .slice(0, 20)
-    .reverse()
-    .map((e) => ({
-      pulse: e.forensic_pulse.slice(11, 19),
-      threatLevel: e.threat_level ?? 1,
-      tari: tariLiability(e.event_type),
-    }));
+  const chartData = buildHourlyBuckets(entries);
 
   return (
     <div
       style={{
-        background: "rgba(0,8,20,0.95)",
-        border: "1px solid rgba(0,255,65,0.3)",
-        borderRadius: "10px",
+        background: PURPLE_DEEP,
+        border: `1px solid ${GOLD_BORDER}`,
+        borderRadius: "12px",
         padding: "1.25rem",
         marginBottom: "1.5rem",
       }}
     >
       <div
         style={{
-          color: "#00FF41",
+          color: GOLD,
           fontFamily: "JetBrains Mono, monospace",
           fontWeight: 700,
-          fontSize: "0.8rem",
+          fontSize: "0.82rem",
           marginBottom: "0.75rem",
+          letterSpacing: "0.06em",
         }}
       >
-        📡 RESONANCE PULSE — Threat Level by Event
+        📡 RESONANCE PULSE — UNALIGNED_401 Hits · Last 24 Hours
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(0,255,65,0.1)"
+            stroke="rgba(255,215,0,0.08)"
             vertical={false}
           />
           <XAxis
-            dataKey="pulse"
-            tick={{ fill: "rgba(0,255,65,0.45)", fontSize: 9, fontFamily: "monospace" }}
+            dataKey="hour"
+            tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
             axisLine={false}
             tickLine={false}
+            interval={2}
           />
           <YAxis
-            tick={{ fill: "rgba(0,255,65,0.45)", fontSize: 9, fontFamily: "monospace" }}
+            tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
             axisLine={false}
             tickLine={false}
-            domain={[0, 10]}
+            allowDecimals={false}
           />
           <Tooltip
             content={<PulseTooltip />}
-            cursor={{ fill: "rgba(0,255,65,0.05)" }}
+            cursor={{ fill: GOLD_GLOW }}
           />
-          <Bar dataKey="threatLevel" fill="#00FF41" maxBarSize={24} radius={[2, 2, 0, 0]} />
+          <Bar dataKey="hits" fill={GOLD} maxBarSize={24} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generate Evidence Button
+// ---------------------------------------------------------------------------
+
+interface GenerateEvidenceButtonProps {
+  entry: AuditStreamEntry;
+  token: string;
+}
+
+function GenerateEvidenceButton({ entry, token }: GenerateEvidenceButtonProps) {
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+
+  const handleGenerate = async () => {
+    setState("loading");
+    try {
+      const bundleId = `EVIDENCE_BUNDLE_${entry.id}_${entry.ip_address.replace(/\./g, "-")}_${Date.now()}`;
+      const res = await fetch("/api/v1/compliance/create-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bundleId,
+          targetIp: entry.ip_address,
+          tariLiability: Math.round(tariLiability(entry.event_type) * 100),
+        }),
+      });
+      if (!res.ok) {
+        setState("error");
+        return;
+      }
+      const data = (await res.json()) as { checkoutUrl: string };
+      setCheckoutUrl(data.checkoutUrl ?? null);
+      setState("done");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "done" && checkoutUrl) {
+    return (
+      <a
+        href={checkoutUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-block",
+          background: "rgba(255,215,0,0.15)",
+          border: `1px solid ${GOLD}`,
+          color: GOLD,
+          padding: "0.3rem 0.65rem",
+          borderRadius: "6px",
+          fontSize: "0.7rem",
+          fontFamily: "JetBrains Mono, monospace",
+          fontWeight: 700,
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+          minHeight: "36px",
+          lineHeight: "1.8",
+        }}
+      >
+        📄 Open Invoice
+      </a>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleGenerate}
+      disabled={state === "loading"}
+      style={{
+        background: state === "error" ? "rgba(255,68,68,0.15)" : "rgba(255,215,0,0.08)",
+        border: `1px solid ${state === "error" ? RED : GOLD_BORDER}`,
+        color: state === "error" ? RED : GOLD,
+        padding: "0.3rem 0.65rem",
+        borderRadius: "6px",
+        fontSize: "0.7rem",
+        fontFamily: "JetBrains Mono, monospace",
+        fontWeight: 700,
+        cursor: state === "loading" ? "wait" : "pointer",
+        whiteSpace: "nowrap",
+        minHeight: "36px",
+        minWidth: "120px",
+      }}
+    >
+      {state === "loading" ? "⏳ Packaging…" : state === "error" ? "⚠ Retry" : "📦 Gen Evidence"}
+    </button>
   );
 }
 
@@ -210,24 +411,30 @@ export default function AuditStreamPage() {
   // Prevent content flash — render nothing until hydration is complete
   if (!ready) return null;
 
-  // Passphrase gate
+  // Passphrase gate — VaultGate passphrase handshake, zero-content-flash
   if (!token) {
     return (
-      <main className="page">
+      <main
+        className="page"
+        style={{ background: PURPLE_DEEP, minHeight: "100vh" }}
+        aria-label="Sovereign Audit Stream — Authentication"
+      >
         <section className="hero">
-          <h1>⛓️ AveryOS™ Sovereign Audit Stream</h1>
-          <p className="auth-seal">GabrielOS™ Command Center · YUBIKEY HANDSHAKE REQUIRED</p>
+          <h1 style={{ color: GOLD }}>⛓️ AveryOS™ Sovereign Audit Stream</h1>
+          <p className="auth-seal" style={{ color: GOLD_DIM }}>
+            GabrielOS™ Mobile Command Center · VAULT_PASSPHRASE REQUIRED
+          </p>
         </section>
 
         <section
           className="card"
           style={{
-            background: "rgba(0,8,20,0.95)",
-            border: "2px solid rgba(0,255,65,0.35)",
+            background: "rgba(10,0,21,0.98)",
+            border: `2px solid ${GOLD_BORDER}`,
             fontFamily: "JetBrains Mono, monospace",
           }}
         >
-          <h2 style={{ color: "#00FF41", marginTop: 0 }}>🔐 Sovereign Passphrase</h2>
+          <h2 style={{ color: GOLD, marginTop: 0, fontSize: "1rem" }}>🔐 Sovereign Passphrase</h2>
           <form
             onSubmit={handleAuth}
             style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}
@@ -237,31 +444,35 @@ export default function AuditStreamPage() {
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               placeholder="Enter VAULT_PASSPHRASE…"
+              aria-label="VAULT_PASSPHRASE"
               style={{
                 flex: 1,
                 minWidth: "220px",
-                background: "#000",
-                border: "1px solid #00FF41",
-                color: "#00FF41",
-                padding: "0.5rem 0.85rem",
+                background: "#0a0015",
+                border: `1px solid ${GOLD_BORDER}`,
+                color: GOLD,
+                padding: "0.65rem 0.85rem",
                 fontFamily: "inherit",
-                fontSize: "0.85rem",
-                borderRadius: "6px",
+                fontSize: "1rem",
+                borderRadius: "8px",
                 outline: "none",
+                minHeight: "44px",
               }}
             />
             <button
               type="submit"
               style={{
-                background: "rgba(0,255,65,0.12)",
-                border: "1px solid #00FF41",
-                color: "#00FF41",
-                padding: "0.5rem 1.25rem",
+                background: GOLD_GLOW,
+                border: `1px solid ${GOLD}`,
+                color: GOLD,
+                padding: "0.65rem 1.5rem",
                 fontFamily: "inherit",
-                fontSize: "0.85rem",
-                borderRadius: "6px",
+                fontSize: "1rem",
+                borderRadius: "8px",
                 cursor: "pointer",
                 fontWeight: 700,
+                minHeight: "44px",
+                minWidth: "140px",
               }}
             >
               AUTHENTICATE
@@ -278,65 +489,67 @@ export default function AuditStreamPage() {
   const totalLiability = entries.reduce((sum, e) => sum + tariLiability(e.event_type), 0);
 
   return (
-    <main className="page">
+    <main
+      className="page"
+      style={{ background: PURPLE_DEEP, minHeight: "100vh" }}
+      aria-label="Sovereign Audit Stream — Command Center"
+    >
       {/* Page banner */}
       <div
         style={{
-          background:
-            "repeating-linear-gradient(135deg,#000800 0,#000800 10px,#001200 10px,#001200 20px)",
-          border: "none",
-          borderBottom: "2px solid rgba(0,255,65,0.4)",
-          padding: "0.55rem 1rem",
+          background: "linear-gradient(135deg, #0a0015 0%, #1a003a 100%)",
+          borderBottom: `2px solid ${GOLD_BORDER}`,
+          padding: "0.65rem 1rem",
           textAlign: "center",
           fontFamily: "JetBrains Mono, monospace",
           fontWeight: 900,
           fontSize: "clamp(0.7rem,1.8vw,0.9rem)",
-          color: "#00FF41",
-          letterSpacing: "0.15em",
+          color: GOLD,
+          letterSpacing: "0.12em",
         }}
       >
         ⛓️⚓⛓️&nbsp; SOVEREIGN AUDIT STREAM — COMMAND CENTER &nbsp;
-        <span style={{ color: connected ? "#00FF41" : "#f87171" }}>
+        <span style={{ color: connected ? "#4ade80" : RED }}>
           {connected ? "● LIVE" : "○ CONNECTING…"}
         </span>
         &nbsp;⛓️⚓⛓️
       </div>
 
       <section className="hero" style={{ paddingBottom: "1rem" }}>
-        <h1>📡 AveryOS™ Sovereign Audit Stream</h1>
-        <p className="auth-seal">
+        <h1 style={{ color: GOLD }}>📡 AveryOS™ Sovereign Audit Stream</h1>
+        <p className="auth-seal" style={{ color: GOLD_DIM }}>
           Real-time GabrielOS™ Forensic Telemetry · D1 Audit Feed
         </p>
       </section>
 
-      {/* TARI™ summary */}
+      {/* TARI™ stat cards */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
           gap: "1rem",
           marginBottom: "1.5rem",
         }}
       >
         {[
-          { label: "Total Entries", value: String(entries.length) },
-          { label: "UNALIGNED_401 Hits", value: String(unalignedHits.length) },
-          { label: "Total TARI™ Liability", value: formatUsd(totalLiability) },
+          { label: "Total Entries",        value: String(entries.length),        color: WHITE },
+          { label: "UNALIGNED_401 Hits",   value: String(unalignedHits.length),  color: RED   },
+          { label: "Total TARI™ Liability", value: formatUsd(totalLiability),    color: GOLD  },
         ].map((stat) => (
           <div
             key={stat.label}
             style={{
-              background: "rgba(0,8,20,0.9)",
-              border: "1px solid rgba(0,255,65,0.25)",
-              borderRadius: "10px",
+              background: PURPLE_DEEP,
+              border: `1px solid ${GOLD_BORDER}`,
+              borderRadius: "12px",
               padding: "1rem 1.25rem",
               fontFamily: "JetBrains Mono, monospace",
             }}
           >
-            <div style={{ fontSize: "0.7rem", color: "rgba(0,255,65,0.55)", marginBottom: "0.35rem" }}>
+            <div style={{ fontSize: "0.7rem", color: GOLD_DIM, marginBottom: "0.35rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {stat.label}
             </div>
-            <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "#00FF41" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: 700, color: stat.color }}>
               {stat.value}
             </div>
           </div>
@@ -346,50 +559,56 @@ export default function AuditStreamPage() {
       {/* Resonance Pulse Chart */}
       <ResonancePulseChart entries={entries} />
 
+      {/* 10-Point Sovereign Roadmap */}
+      <SovereignRoadmapSection />
+
       {/* UNALIGNED_401 Hits table */}
       <section
         className="card"
         style={{
-          background: "rgba(0,8,20,0.95)",
-          border: "1px solid rgba(0,255,65,0.25)",
+          background: PURPLE_DEEP,
+          border: `1px solid ${GOLD_BORDER}`,
           padding: 0,
           overflow: "hidden",
+          marginBottom: "1.5rem",
         }}
       >
         <div
           style={{
             padding: "0.85rem 1.25rem",
-            borderBottom: "1px solid rgba(0,255,65,0.15)",
-            color: "#00FF41",
+            borderBottom: `1px solid ${GOLD_BORDER}`,
+            color: GOLD,
             fontFamily: "JetBrains Mono, monospace",
             fontWeight: 700,
-            fontSize: "0.8rem",
+            fontSize: "0.82rem",
+            letterSpacing: "0.06em",
           }}
         >
-          ⚠ RECENT UNALIGNED_401 HITS — Target IP · TARI™ Liability · Forensic Pulse
+          ⚠️ UNALIGNED_401 HITS — Actionable Forensics
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
               fontFamily: "JetBrains Mono, monospace",
-              fontSize: "0.75rem",
-              color: "#00FF41",
+              fontSize: "0.78rem",
+              color: WHITE,
             }}
           >
             <thead>
-              <tr style={{ borderBottom: "1px solid rgba(0,255,65,0.12)" }}>
-                {["Target IP", "Event", "TARI™ Liability", "Threat", "Forensic Pulse SHA"].map(
+              <tr style={{ borderBottom: `1px solid ${GOLD_BORDER}` }}>
+                {["Target IP", "Event", "TARI™ Liability", "Threat", "Forensic Pulse", "Action"].map(
                   (h) => (
                     <th
                       key={h}
                       style={{
-                        padding: "0.6rem 1rem",
+                        padding: "0.65rem 1rem",
                         textAlign: "left",
-                        color: "rgba(0,255,65,0.55)",
+                        color: GOLD_DIM,
                         fontWeight: 600,
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {h}
@@ -402,11 +621,11 @@ export default function AuditStreamPage() {
               {unalignedHits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     style={{
                       padding: "1.5rem 1rem",
                       textAlign: "center",
-                      color: "rgba(0,255,65,0.35)",
+                      color: GOLD_DIM,
                     }}
                   >
                     {">"} No UNALIGNED_401 events on record…
@@ -416,41 +635,42 @@ export default function AuditStreamPage() {
                 unalignedHits.map((entry) => (
                   <tr
                     key={entry.id}
-                    style={{
-                      borderBottom: "1px solid rgba(0,255,65,0.07)",
-                    }}
+                    style={{ borderBottom: `1px solid ${GOLD_GLOW}` }}
                   >
-                    <td style={{ padding: "0.5rem 1rem", color: "#fff" }}>
+                    <td style={{ padding: "0.6rem 1rem", color: WHITE, whiteSpace: "nowrap" }}>
                       {entry.ip_address}
                     </td>
-                    <td style={{ padding: "0.5rem 1rem" }}>
+                    <td style={{ padding: "0.6rem 1rem" }}>
                       <span
                         style={{
-                          background: "rgba(255,49,49,0.12)",
-                          border: "1px solid rgba(255,49,49,0.4)",
+                          background: "rgba(255,68,68,0.12)",
+                          border: `1px solid ${RED_DIM}`,
                           borderRadius: "4px",
-                          padding: "0.1rem 0.4rem",
-                          color: "#ff3131",
+                          padding: "0.15rem 0.45rem",
+                          color: RED,
                           fontSize: "0.7rem",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {entry.event_type}
                       </span>
                     </td>
-                    <td style={{ padding: "0.5rem 1rem", color: "#f87171", fontWeight: 700 }}>
+                    <td style={{ padding: "0.6rem 1rem", color: RED, fontWeight: 700, whiteSpace: "nowrap" }}>
                       {formatUsd(tariLiability(entry.event_type))}
                     </td>
-                    <td style={{ padding: "0.5rem 1rem" }}>
+                    <td style={{ padding: "0.6rem 1rem" }}>
                       <span
                         style={{
                           background:
                             (entry.threat_level ?? 1) >= 7
-                              ? "rgba(255,49,49,0.15)"
-                              : "rgba(0,255,65,0.08)",
-                          border: `1px solid ${(entry.threat_level ?? 1) >= 7 ? "rgba(255,49,49,0.5)" : "rgba(0,255,65,0.25)"}`,
-                          borderRadius: "3px",
-                          padding: "0.1rem 0.35rem",
+                              ? "rgba(255,68,68,0.15)"
+                              : PURPLE_MID,
+                          border: `1px solid ${(entry.threat_level ?? 1) >= 7 ? RED_DIM : PURPLE_BORDER}`,
+                          borderRadius: "4px",
+                          padding: "0.15rem 0.4rem",
                           fontSize: "0.7rem",
+                          color: (entry.threat_level ?? 1) >= 7 ? RED : GOLD_DIM,
+                          whiteSpace: "nowrap",
                         }}
                       >
                         TL:{entry.threat_level ?? "—"}
@@ -458,14 +678,17 @@ export default function AuditStreamPage() {
                     </td>
                     <td
                       style={{
-                        padding: "0.5rem 1rem",
-                        color: "rgba(0,255,65,0.5)",
+                        padding: "0.6rem 1rem",
+                        color: GOLD_DIM,
                         wordBreak: "break-all",
-                        maxWidth: "240px",
+                        maxWidth: "200px",
                         fontSize: "0.65rem",
                       }}
                     >
                       {entry.forensic_pulse}
+                    </td>
+                    <td style={{ padding: "0.6rem 1rem" }}>
+                      <GenerateEvidenceButton entry={entry} token={token} />
                     </td>
                   </tr>
                 ))
@@ -476,51 +699,53 @@ export default function AuditStreamPage() {
       </section>
 
       {/* Full audit stream terminal */}
-      <section className="card" style={{ padding: 0, overflow: "hidden", marginTop: "1.5rem" }}>
+      <section
+        className="card"
+        style={{ padding: 0, overflow: "hidden", marginBottom: "1.5rem", background: PURPLE_DEEP, border: `1px solid ${PURPLE_BORDER}` }}
+      >
         <div
           style={{
             padding: "0.85rem 1.25rem",
-            borderBottom: "1px solid rgba(0,255,65,0.15)",
-            color: "#00FF41",
+            borderBottom: `1px solid ${PURPLE_BORDER}`,
+            color: GOLD,
             fontFamily: "JetBrains Mono, monospace",
             fontWeight: 700,
-            fontSize: "0.8rem",
-            background: "rgba(0,8,20,0.95)",
+            fontSize: "0.82rem",
           }}
         >
           ⛓️⚓⛓️ LIVE AUDIT LOG — All Events
         </div>
         <div
           style={{
-            background: "#000",
+            background: "#06001a",
             padding: "0.75rem 1rem",
-            maxHeight: "420px",
+            maxHeight: "400px",
             overflowY: "auto",
             fontFamily: "JetBrains Mono, monospace",
             fontSize: "0.72rem",
-            color: "#00FF41",
+            color: GOLD,
             lineHeight: "1.65",
           }}
         >
           {entries.length === 0 ? (
-            <div style={{ color: "rgba(0,255,65,0.35)" }}>{">"} Awaiting audit events…</div>
+            <div style={{ color: GOLD_DIM }}>{">"} Awaiting audit events…</div>
           ) : (
             entries.map((entry) => (
               <div
                 key={entry.id}
                 style={{
-                  borderBottom: "1px solid rgba(0,255,65,0.07)",
+                  borderBottom: `1px solid ${GOLD_GLOW}`,
                   padding: "3px 0",
-                  color: entry.event_type === "UNALIGNED_401" ? "#ff3131" : "#00FF41",
+                  color: entry.event_type === "UNALIGNED_401" ? RED : GOLD,
                 }}
               >
-                <span style={{ color: "rgba(0,255,65,0.4)" }}>
+                <span style={{ color: GOLD_DIM }}>
                   [{entry.forensic_pulse}]
                 </span>{" "}
                 <span style={{ fontWeight: 700 }}>{entry.event_type}</span>{" "}
-                <span style={{ color: "#fff" }}>→</span>{" "}
+                <span style={{ color: WHITE }}>→</span>{" "}
                 <span>{entry.target_path}</span>{" "}
-                <span style={{ color: "rgba(0,255,65,0.5)" }}>
+                <span style={{ color: GOLD_DIM }}>
                   | {entry.ip_address}
                   {entry.geo_location ? ` | ${entry.geo_location}` : ""}
                 </span>{" "}
@@ -529,8 +754,9 @@ export default function AuditStreamPage() {
                     fontSize: "0.62rem",
                     padding: "0 0.25rem",
                     borderRadius: "2px",
-                    background: "rgba(0,255,65,0.06)",
-                    border: "1px solid rgba(0,255,65,0.2)",
+                    background: GOLD_GLOW,
+                    border: `1px solid ${GOLD_BORDER}`,
+                    color: GOLD_DIM,
                   }}
                 >
                   TL:{entry.threat_level ?? "—"}
