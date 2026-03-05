@@ -1,42 +1,10 @@
-[debug] [2026-03-04T21:34:33.279Z] ----------------------------------------------------------------------
-[debug] [2026-03-04T21:34:33.281Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\Jason Lee Avery\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
-[debug] [2026-03-04T21:34:33.281Z] CLI Version:   15.8.0
-[debug] [2026-03-04T21:34:33.282Z] Platform:      win32
-[debug] [2026-03-04T21:34:33.282Z] Node Version:  v22.18.0
-[debug] [2026-03-04T21:34:33.282Z] Time:          Wed Mar 04 2026 14:34:33 GMT-0700 (Mountain Standard Time)
-[debug] [2026-03-04T21:34:33.282Z] ----------------------------------------------------------------------
-[debug] 
-[info] 
-     ######## #### ########  ######## ########     ###     ######  ########
-     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
-     ######    ##  ########  ######   ########  #########  ######  ######
-     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
-     ##       #### ##     ## ######## ########  ##     ##  ######  ########
-
-You're about to initialize a Firebase project in this directory:
-
-  C:\Users\Jason Lee Avery\_repos\averyos.com-runtime
-
-[debug] [2026-03-04T21:34:52.843Z] ExitPromptError: User force closed the prompt with SIGINT
-    at Interface.sigint (C:\Users\Jason Lee Avery\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
-    at Interface.emit (node:events:518:28)
-    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1132:18)
-    at ReadStream.onkeypress (node:internal/readline/interface:271:20)
-    at ReadStream.emit (node:events:530:35)
-    at emitKeys (node:internal/readline/utils:370:14)
-    at emitKeys.next (<anonymous>)
-    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
-    at ReadStream.emit (node:events:518:28)
-    at addChunk (node:internal/streams/readable:561:12)
-[error] 
-[error] Error: An unexpected error has occurred.
-[debug] [2026-03-04T21:48:11.801Z] ----------------------------------------------------------------------
-[debug] [2026-03-04T21:48:11.804Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\Jason Lee Avery\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
-[debug] [2026-03-04T21:48:11.804Z] CLI Version:   15.8.0
-[debug] [2026-03-04T21:48:11.804Z] Platform:      win32
-[debug] [2026-03-04T21:48:11.804Z] Node Version:  v22.18.0
-[debug] [2026-03-04T21:48:11.805Z] Time:          Wed Mar 04 2026 14:48:11 GMT-0700 (Mountain Standard Time)
-[debug] [2026-03-04T21:48:11.805Z] ----------------------------------------------------------------------
+[debug] [2026-03-04T22:07:17.915Z] ----------------------------------------------------------------------
+[debug] [2026-03-04T22:07:17.918Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\Jason Lee Avery\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2026-03-04T22:07:17.919Z] CLI Version:   15.8.0
+[debug] [2026-03-04T22:07:17.919Z] Platform:      win32
+[debug] [2026-03-04T22:07:17.919Z] Node Version:  v22.18.0
+[debug] [2026-03-04T22:07:17.919Z] Time:          Wed Mar 04 2026 15:07:17 GMT-0700 (Mountain Standard Time)
+[debug] [2026-03-04T22:07:17.919Z] ----------------------------------------------------------------------
 [debug] 
 [info] 
      ######## #### ########  ######## ########     ###     ######  ########
@@ -55,45 +23,141 @@ You're about to initialize a Firebase project in this directory:
 [info] First, let's associate this project directory with a Firebase project.
 [info] You can create multiple project aliases by running firebase use --add, 
 [info] 
-[debug] [2026-03-04T21:49:44.621Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-03-04T21:49:44.622Z] > authorizing via signed-in user (averyjl@gmail.com)
-[debug] [2026-03-04T21:49:44.623Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:49:44.623Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:49:44.624Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=100
-[debug] [2026-03-04T21:49:45.026Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
-[debug] [2026-03-04T21:49:45.026Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-03-04T22:08:06.137Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-04T22:08:06.137Z] > authorizing via signed-in user (averyjl@gmail.com)
+[debug] [2026-03-04T22:08:06.138Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.138Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.139Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/studio-1684414389-a98c9 [none]
+[debug] [2026-03-04T22:08:06.387Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/studio-1684414389-a98c9 200
+[debug] [2026-03-04T22:08:06.387Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/studio-1684414389-a98c9 {"projectId":"studio-1684414389-a98c9","projectNumber":"878632941448","displayName":"Firebase app","name":"projects/studio-1684414389-a98c9","resources":{"hostingSite":"studio-1684414389-a98c9"},"state":"ACTIVE","etag":"1_6b085ea2-53e4-4826-b3f2-a0b57c030fb6"}
+[info] i  Using project studio-1684414389-a98c9 (Firebase app) . 
 [info] 
-=== Dataconnect Setup
-[info] i  dataconnect: ensuring required API firebasedataconnect.googleapis.com is enabled... 
-[debug] [2026-03-04T21:50:20.912Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:20.912Z] Checked if tokens are valid: true, expires at: 1772663068038
-[info] i  dataconnect: ensuring required API sqladmin.googleapis.com is enabled... 
-[debug] [2026-03-04T21:50:20.912Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:20.913Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:20.913Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com [none]
-[debug] [2026-03-04T21:50:20.913Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
-[debug] [2026-03-04T21:50:20.914Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com [none]
-[debug] [2026-03-04T21:50:20.914Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
-[debug] [2026-03-04T21:50:21.222Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com 200
-[debug] [2026-03-04T21:50:21.222Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com [omitted]
-[warn] !  dataconnect: missing required API firebasedataconnect.googleapis.com. Enabling now... 
-[debug] [2026-03-04T21:50:21.223Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:21.223Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:21.223Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com:enable [none]
-[debug] [2026-03-04T21:50:21.223Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com:enable  x-goog-user-project=studio-1684414389-a98c9
-[debug] [2026-03-04T21:50:21.233Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com 200
-[debug] [2026-03-04T21:50:21.233Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com [omitted]
-[warn] !  dataconnect: missing required API sqladmin.googleapis.com. Enabling now... 
-[debug] [2026-03-04T21:50:21.233Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:21.234Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:21.234Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com:enable [none]
-[debug] [2026-03-04T21:50:21.234Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com:enable  x-goog-user-project=studio-1684414389-a98c9
-[debug] [2026-03-04T21:50:21.447Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com:enable 200
-[debug] [2026-03-04T21:50:21.447Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebasedataconnect.googleapis.com:enable [omitted]
-[debug] [2026-03-04T21:50:21.546Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com:enable 200
-[debug] [2026-03-04T21:50:21.546Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/sqladmin.googleapis.com:enable [omitted]
-[debug] [2026-03-04T21:50:31.566Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:31.566Z] Checked if tokens are valid: true, expires at: 1772663068038
-[debug] [2026-03-04T21:50:31.566Z] >>> [apiv2][query] GET https://firebasedataconnect.googleapis.com/v1/projects/studio-1684414389-a98c9/locations/-/services [none]
-[debug] [2026-03-04T21:50:32.115Z] <<< [apiv2][status] GET https://firebasedataconnect.googleapis.com/v1/projects/studio-1684414389-a98c9/locations/-/services 200
-[debug] [2026-03-04T21:50:32.115Z] <<< [apiv2][body] GET https://firebasedataconnect.googleapis.com/v1/projects/studio-1684414389-a98c9/locations/-/services {}
+=== Functions Setup
+[debug] [2026-03-04T22:08:06.405Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-04T22:08:06.406Z] > authorizing via signed-in user (averyjl@gmail.com)
+[debug] [2026-03-04T22:08:06.406Z] [iam] checking project studio-1684414389-a98c9 for permissions ["firebase.projects.get"]
+[debug] [2026-03-04T22:08:06.406Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.406Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.406Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:testIamPermissions [none]
+[debug] [2026-03-04T22:08:06.406Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:testIamPermissions  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:08:06.406Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-03-04T22:08:06.566Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:testIamPermissions 200
+[debug] [2026-03-04T22:08:06.567Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-03-04T22:08:06.567Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.567Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.568Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.568Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.568Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-03-04T22:08:06.568Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:08:06.569Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-03-04T22:08:06.569Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/runtimeconfig.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:08:06.855Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/runtimeconfig.googleapis.com 200
+[debug] [2026-03-04T22:08:06.856Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-03-04T22:08:06.876Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com 200
+[debug] [2026-03-04T22:08:06.877Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-03-04T22:08:06.877Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.877Z] Checked if tokens are valid: true, expires at: 1772663068038
+[debug] [2026-03-04T22:08:06.877Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com:enable [none]
+[debug] [2026-03-04T22:08:06.877Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com:enable  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:08:07.259Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com:enable 200
+[debug] [2026-03-04T22:08:07.259Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudfunctions.googleapis.com:enable [omitted]
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[info] +  Wrote functions/.eslintrc.js 
+[info] +  Wrote functions/tsconfig.dev.json 
+[info] +  Wrote functions/package.json 
+[info] +  Wrote functions/tsconfig.json 
+[info] +  Wrote functions/src/index.ts 
+[info] +  Wrote functions/.gitignore 
+[info] 
+=== App Hosting Setup
+[debug] [2026-03-04T22:14:31.854Z] Checked if tokens are valid: false, expires at: 1772663068038
+[debug] [2026-03-04T22:14:31.854Z] Checked if tokens are valid: false, expires at: 1772663068038
+[debug] [2026-03-04T22:14:31.854Z] > refreshing access token with scopes: []
+[debug] [2026-03-04T22:14:31.856Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-04T22:14:31.856Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-04T22:14:32.001Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-03-04T22:14:32.001Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-04T22:14:32.043Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/studio-1684414389-a98c9/billingInfo [none]
+[debug] [2026-03-04T22:14:32.248Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/studio-1684414389-a98c9/billingInfo 200
+[debug] [2026-03-04T22:14:32.248Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/studio-1684414389-a98c9/billingInfo {"name":"projects/studio-1684414389-a98c9/billingInfo","projectId":"studio-1684414389-a98c9","billingAccountName":"billingAccounts/0160E2-FF4313-8A7C5B","billingEnabled":true}
+[debug] [2026-03-04T22:14:32.249Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.249Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.249Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.249Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebaseapphosting.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.568Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-03-04T22:14:32.568Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.586Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.587Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.587Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.587Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.587Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.587Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.588Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.588Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.589Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.589Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.589Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.589Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.590Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/developerconnect.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.590Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/developerconnect.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.591Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudbuild.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.591Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudbuild.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.593Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/secretmanager.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.593Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/secretmanager.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.597Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/run.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.597Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/run.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.599Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/artifactregistry.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.599Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/artifactregistry.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.601Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/iam.googleapis.com [none]
+[debug] [2026-03-04T22:14:32.601Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/iam.googleapis.com  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.734Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/developerconnect.googleapis.com 200
+[debug] [2026-03-04T22:14:32.734Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/developerconnect.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.890Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/secretmanager.googleapis.com 200
+[debug] [2026-03-04T22:14:32.891Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/secretmanager.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.898Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudbuild.googleapis.com 200
+[debug] [2026-03-04T22:14:32.898Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/cloudbuild.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.917Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/run.googleapis.com 200
+[debug] [2026-03-04T22:14:32.917Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/run.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.936Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/artifactregistry.googleapis.com 200
+[debug] [2026-03-04T22:14:32.936Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/artifactregistry.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.953Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/iam.googleapis.com 200
+[debug] [2026-03-04T22:14:32.954Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/studio-1684414389-a98c9/services/iam.googleapis.com [omitted]
+[debug] [2026-03-04T22:14:32.975Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.975Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:32.975Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts/firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-03-04T22:14:32.975Z] >>> [apiv2][(partial)header] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts/firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com:testIamPermissions  x-goog-user-project=studio-1684414389-a98c9
+[debug] [2026-03-04T22:14:32.975Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts/firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-04T22:14:33.247Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts/firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-03-04T22:14:33.247Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts/firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-04T22:14:33.248Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.248Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.248Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts [none]
+[debug] [2026-03-04T22:14:33.248Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts {"accountId":"firebase-app-hosting-compute","serviceAccount":{"displayName":"Firebase App Hosting compute service account","description":"Default service account used to run builds and deploys for Firebase App Hosting"}}
+[debug] [2026-03-04T22:14:33.609Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts 409
+[debug] [2026-03-04T22:14:33.609Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/studio-1684414389-a98c9/serviceAccounts [omitted]
+[debug] [2026-03-04T22:14:33.610Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.610Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.610Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:getIamPolicy [none]
+[debug] [2026-03-04T22:14:33.945Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:getIamPolicy 200
+[debug] [2026-03-04T22:14:33.945Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:getIamPolicy {"version":1,"etag":"BwZMOg4i75Y=","bindings":[{"role":"roles/artifactregistry.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-artifactregistry.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:878632941448@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.serviceAgent","members":["serviceAccount:service-878632941448@gcf-admin-robot.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-878632941448@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:878632941448-compute@developer.gserviceaccount.com","serviceAccount:studio-1684414389-a98c9@appspot.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaserules.system","members":["serviceAccount:service-878632941448@firebase-rules.iam.gserviceaccount.com"]},{"role":"roles/firestore.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firestore.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:averyjl@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-878632941448@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.admin_withcond_0b56ba1362fbfdfe3059","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]}]}
+[debug] [2026-03-04T22:14:33.946Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.946Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:14:33.946Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:setIamPolicy [none]
+[debug] [2026-03-04T22:14:33.946Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:setIamPolicy {"policy":{"version":1,"etag":"BwZMOg4i75Y=","bindings":[{"role":"roles/artifactregistry.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-artifactregistry.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:878632941448@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.serviceAgent","members":["serviceAccount:service-878632941448@gcf-admin-robot.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-878632941448@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:878632941448-compute@developer.gserviceaccount.com","serviceAccount:studio-1684414389-a98c9@appspot.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaserules.system","members":["serviceAccount:service-878632941448@firebase-rules.iam.gserviceaccount.com"]},{"role":"roles/firestore.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firestore.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:averyjl@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-878632941448@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.admin_withcond_0b56ba1362fbfdfe3059","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]}]},"updateMask":"bindings"}
+[debug] [2026-03-04T22:14:34.424Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:setIamPolicy 200
+[debug] [2026-03-04T22:14:34.425Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-1684414389-a98c9:setIamPolicy {"version":1,"etag":"BwZMOiUR2pE=","bindings":[{"role":"roles/artifactregistry.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-artifactregistry.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:878632941448@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.serviceAgent","members":["serviceAccount:service-878632941448@gcf-admin-robot.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-878632941448@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:878632941448-compute@developer.gserviceaccount.com","serviceAccount:studio-1684414389-a98c9@appspot.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/firebaserules.system","members":["serviceAccount:service-878632941448@firebase-rules.iam.gserviceaccount.com"]},{"role":"roles/firestore.serviceAgent","members":["serviceAccount:service-878632941448@gcp-sa-firestore.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@studio-1684414389-a98c9.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:averyjl@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-878632941448@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.admin_withcond_0b56ba1362fbfdfe3059","members":["serviceAccount:service-878632941448@gcp-sa-devconnect.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com"]}]}
+[info] i  This command links your local project to Firebase App Hosting. You will be able to deploy your web app with `firebase deploy` after setup. 
+[debug] [2026-03-04T22:16:15.808Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:16:15.808Z] Checked if tokens are valid: true, expires at: 1772666071001
+[debug] [2026-03-04T22:16:15.808Z] >>> [apiv2][query] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-1684414389-a98c9/locations/-/backends 
+[debug] [2026-03-04T22:16:16.212Z] <<< [apiv2][status] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-1684414389-a98c9/locations/-/backends 200
+[debug] [2026-03-04T22:16:16.212Z] <<< [apiv2][body] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-1684414389-a98c9/locations/-/backends {"backends":[{"name":"projects/studio-1684414389-a98c9/locations/us-central1/backends/studio","createTime":"2026-03-04T03:54:30.686798990Z","updateTime":"2026-03-04T03:54:30.982984Z","uri":"studio--studio-1684414389-a98c9.us-central1.hosted.app","displayName":"Studio","uid":"1d3c498b-a3d3-4a81-aded-8eabf52c8ee1","etag":"fCEzLtBkdmYUak-qTccuCdrWRdqrmxWB0yvO0tJ0qsg","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@studio-1684414389-a98c9.iam.gserviceaccount.com","appId":"1:878632941448:web:1d80340a34d572f60e6c3d"}]}
+[info] i  === Deploy local source setup 
