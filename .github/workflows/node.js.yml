@@ -37,5 +37,11 @@ jobs:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       run: |
-        echo "::add-mask::${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+        if [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+          echo "⚠️  CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN secret not configured."
+          echo "   Skipping D1 schema check — add these secrets to enable live D1 verification."
+          echo "   ⛓️⚓⛓️ Sovereign schema check deferred — secrets required."
+          exit 0
+        fi
+        echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
         npx wrangler d1 execute averyos_kernel_db --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name='kernel_locks';" | grep "kernel_locks"

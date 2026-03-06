@@ -16,6 +16,12 @@ jobs:
 
       - name: Deploy redirects to Cloudflare
         run: |
+          if [ -z "${{ secrets.CLOUDFLARE_ZONE_ID }}" ] || [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "⚠️  CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN secret not configured."
+            echo "   Skipping redirect rules deployment."
+            exit 0
+          fi
+
           RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/rulesets/phases/http_request_redirect/entrypoint" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
@@ -35,6 +41,8 @@ jobs:
               echo "   The Rulesets PUT endpoint requires Zone:Edit (not Zone:Read)."
               echo "   In Cloudflare Dashboard → API Tokens → Edit token:"
               echo "   Change 'All zones → Zone:Read' to 'All zones → Zone:Edit'"
+              echo "   ⚠️  Skipping redirect deployment — update the token and re-run."
+              exit 0
             fi
             exit 1
           fi

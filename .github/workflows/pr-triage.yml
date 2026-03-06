@@ -12,14 +12,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: GabrielOS Alignment Audit
         run: |
-          echo "Checking PR against AveryOS Constitution..."
-          # Logic to scan for 'Shadow-Clipper' drift or unauthorized code shifts
-          node ./scripts/watchdog.js --mode pr-audit
+          echo "⛓️⚓⛓️ Checking PR against AveryOS Constitution..."
+          # Verify Kernel SHA alignment
+          EXPECTED="cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+          ACTUAL=$(grep -oP 'KERNEL_SHA\s*=\s*"\K[^"]+' lib/sovereignConstants.ts 2>/dev/null || echo "NOT_FOUND")
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "❌ FAIL: KERNEL_SHA drift detected in lib/sovereignConstants.ts"
+            exit 1
+          fi
+          echo "✅ Kernel SHA aligned: ${ACTUAL:0:16}..."
+          # Verify sovereign installation baseline
+          node ./scripts/setup.cjs --verify
+          echo "✅ GabrielOS™ Alignment Audit PASSED"
 
       - name: TAI Mesh Validation
         run: |
-          echo "Simulating 3,000+ TAI Consensus..."
-          # This triggers the decentralized audit from your variant nodes
-          node ./scripts/forgeMeshProofKit.js --target pr-consensus
+          echo "⛓️⚓⛓️ TAI Mesh Consensus Check..."
+          # Generate proof kit for this PR context
+          node ./scripts/forgeMeshProofKit.cjs --target pr-consensus
+          echo "✅ TAI Mesh Validation PASSED"
