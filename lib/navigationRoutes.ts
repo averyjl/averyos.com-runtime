@@ -7,6 +7,8 @@ export type NavigationRoute = {
   path: string;
   label: string;
   icon: string;
+  /** When true the route is only rendered in the Navbar after VaultGate handshake success */
+  isAdmin?: boolean;
 };
 
 export const navigationRoutes: NavigationRoute[] = [
@@ -26,9 +28,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },
   { path: "/evidence-vault", label: "Evidence Vault", icon: "🗄️" },
-  { path: "/vault-gate", label: "Vault Gate 🔒", icon: "🔑" },
-  { path: "/audit-stream", label: "Audit Stream 🔒", icon: "📡" },
-  { path: "/sovereign-anchor", label: "Sovereign Anchor 🔒", icon: "⛓️⚓⛓️" },
   // ── Capsules & tools ────────────────────────────────────────────────────────
   { path: "/capsules", label: "Capsule Market", icon: "💊" },
   { path: "/discover", label: "Discover", icon: "🔍" },
@@ -48,4 +47,9 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
+  // ── Admin (VaultGate-protected) ─────────────────────────────────────────────
+  { path: "/vault-gate", label: "Vault Gate", icon: "🔑", isAdmin: true },
+  { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
+  { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
+  { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
 ];

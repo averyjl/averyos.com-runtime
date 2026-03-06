@@ -1,0 +1,82 @@
+name: ⛓️ Sovereign Build Matrix
+
+# Consolidates Lint, Build, and Security into a single unified-sync job.
+# Runs all checks in parallel under one PR check to minimise CI minutes.
+# ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+permissions:
+  contents: read
+  security-events: write
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  unified-sync:
+    name: "⛓️ Unified Sync (Lint + Build + Security)"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [lint, build, security]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Lint ─────────────────────────────────────────────────────────────────
+      - name: "🔍 Lint — ESLint"
+        if: matrix.task == 'lint'
+        run: npm run lint
+
+      # ── Build ────────────────────────────────────────────────────────────────
+      - name: "🏗️ Build — Next.js"
+        if: matrix.task == 'build'
+        run: npm run build
+
+      - name: "🔎 TypeScript check"
+        if: matrix.task == 'build'
+        run: ./node_modules/.bin/tsc --noEmit
+
+      # ── Security ─────────────────────────────────────────────────────────────
+      - name: "🔐 Security — Kernel integrity check"
+        if: matrix.task == 'security'
+        run: |
+          echo "⛓️⚓⛓️ AveryOS™ Sovereign Kernel Integrity Check"
+          KERNEL_SHA="cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+          VIOLATIONS=0
+
+          for file in "VaultBridge/IPFS_Snapshot_2026.json" "LICENSE.md" "content/whitepaper.md" "middleware.ts"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            elif ! grep -q "cf83.*da3e" "$file" 2>/dev/null; then
+              echo "❌ Kernel SHA missing in: $file"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            else
+              echo "✅ Verified: $file"
+            fi
+          done
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "⛓️⚓⛓️ SECURITY CHECK FAILED: $VIOLATIONS violation(s)"
+            exit 1
+          fi
+          echo "✅ All sovereign integrity checks passed"
+
+      - name: "🛡️ Security — npm audit"
+        if: matrix.task == 'security'
+        run: npm audit --audit-level=high || true
