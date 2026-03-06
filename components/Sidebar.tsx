@@ -1,13 +1,20 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { navigationRoutes } from "../lib/navigationRoutes";
 
 /**
  * Collapsible sidebar navigation
  * Can be toggled open/closed for desktop layouts
+ *
+ * PERMANENT UPGRADE: Admin routes are included automatically from
+ * lib/navigationRoutes.ts — add new routes there and they appear here.
  */
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
+
+  // Public routes only — admin routes require VaultGate auth (handled by NavBar).
+  // Memoised because navigationRoutes is static and this filter need not re-run.
+  const publicRoutes = useMemo(() => navigationRoutes.filter((r) => !r.isAdmin), []);
 
   return (
     <>
@@ -26,7 +33,7 @@ const Sidebar = () => {
           </Link>
         </div>
         <nav className="sidebar-nav">
-          {navigationRoutes.map((route) => (
+          {publicRoutes.map((route) => (
             <Link key={route.path} href={route.path} className="sidebar-link">
               <span className="sidebar-link-icon">{route.icon}</span>
               {isOpen && <span className="sidebar-link-text">{route.label}</span>}
