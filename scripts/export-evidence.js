@@ -6,11 +6,13 @@
  * as VaultChain™-ready .aoscap capsule files.
  *
  * Usage:
- *   node scripts/export-evidence.js --ip <target-ip> [--output <dir>] [--env production]
+ *   node scripts/export-evidence.js --ip <target-ip> [--output <dir>] [--env production] [--r2-upload]
  *
  * Environment variables:
  *   BLOCKCHAIN_API_KEY   — BlockCypher API key for BTC block height anchor
  *   KERNEL_SHA           — Override Root0 kernel SHA (falls back to canonical value)
+ *   SITE_URL             — Base URL for the alert-link API (default: https://averyos.com)
+ *   VAULT_PASSPHRASE     — Bearer token for /api/v1/compliance/alert-link (required for --r2-upload)
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -63,11 +65,12 @@ const TARI_LIABILITY_LABELS = {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const result = { ip: null, output: ".", env: null };
+  const result = { ip: null, output: ".", env: null, r2Upload: false };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--ip" && args[i + 1]) result.ip = args[++i];
     if (args[i] === "--output" && args[i + 1]) result.output = args[++i];
     if (args[i] === "--env" && args[i + 1]) result.env = args[++i];
+    if (args[i] === "--r2-upload") result.r2Upload = true;
   }
   return result;
 }
@@ -287,16 +290,87 @@ function generateSettlementLetter({
 }
 
 // ---------------------------------------------------------------------------
+// R2 Upload via alert-link API
+// ---------------------------------------------------------------------------
+
+/**
+ * Uploads the .aoscap bundle to Cloudflare R2 by calling the
+ * /api/v1/compliance/alert-link edge endpoint.
+ * Returns the 24-hour signed URL or null on failure.
+ *
+ * @param {object} bundle        — the full .aoscap payload
+ * @param {string} bundleId      — the CapsuleID string
+ * @param {string} ip            — the target IP address
+ * @param {number} tariLiability — TARI™ liability in USD
+ * @returns {Promise<{signedUrl: string, bundleKey: string, expiresAt: string}|null>}
+ */
+async function uploadToR2(bundle, bundleId, ip, tariLiability) {
+  const siteUrl = process.env.SITE_URL ?? "https://averyos.com";
+  const passphrase = process.env.VAULT_PASSPHRASE ?? "";
+
+  if (!passphrase) {
+    logAosError(
+      SCRIPT_AOS_ERROR.VAULT_NOT_CONFIGURED,
+      "VAULT_PASSPHRASE env var is required for --r2-upload. Set it and retry.",
+      null
+    );
+    return null;
+  }
+
+  const endpoint = `${siteUrl}/api/v1/compliance/alert-link`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${passphrase}`,
+      },
+      body: JSON.stringify({
+        bundleId,
+        bundlePayload: bundle,
+        targetIp: ip,
+        tariLiability,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "(no body)");
+      logAosError(
+        SCRIPT_AOS_ERROR.INTERNAL_ERROR,
+        `alert-link API returned HTTP ${res.status}: ${text}`,
+        null
+      );
+      return null;
+    }
+
+    const data = await res.json();
+    logAosHeal(
+      "R2 upload succeeded",
+      `Bundle ${bundleId} is now stored in R2. Signed URL expires at ${data.expiresAt}.`
+    );
+    return data;
+  } catch (err) {
+    logAosError(
+      SCRIPT_AOS_ERROR.INTERNAL_ERROR,
+      `R2 upload failed: ${err instanceof Error ? err.message : String(err)}`,
+      err instanceof Error ? err : null
+    );
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const { ip, output, env } = parseArgs();
+  const { ip, output, env, r2Upload } = parseArgs();
 
   if (!ip) {
     console.error(
       "❌  Missing --ip argument.\n\n" +
-        "Usage: node scripts/export-evidence.js --ip <target-ip> [--output <dir>] [--env production]"
+        "Usage: node scripts/export-evidence.js --ip <target-ip> [--output <dir>] [--env production] [--r2-upload]"
     );
     process.exit(1);
   }
@@ -419,6 +493,22 @@ async function main() {
   console.log(`   Audit Rows       : ${rows.length}`);
   console.log(`   BTC Block Height : ${btcBlockHeight ?? "unavailable"}`);
   console.log(`   Pulse Hash       : ${pulseHash.slice(0, 32)}…`);
+
+  // 8. Optional R2 upload via /api/v1/compliance/alert-link
+  if (r2Upload) {
+    console.log("");
+    console.log("☁️  Uploading to Cloudflare R2 via alert-link API…");
+    const r2Result = await uploadToR2(bundle, bundle.CapsuleID, ip, tariTotal);
+    if (r2Result) {
+      console.log(`✅ R2 upload complete`);
+      console.log(`   Bundle key : ${r2Result.bundleKey}`);
+      console.log(`   Signed URL : ${r2Result.signedUrl}`);
+      console.log(`   Expires    : ${r2Result.expiresAt}`);
+    } else {
+      console.log("⚠️  R2 upload failed — local bundle is still saved.");
+    }
+  }
+
   console.log("⛓️⚓⛓️ Sovereign Evidence Export complete. 🤛🏻");
   console.log("");
 }
