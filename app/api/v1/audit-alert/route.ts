@@ -91,20 +91,32 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Non-blocking Pushover push — never throws. */
+/** Non-blocking Pushover push — never throws.
+ *
+ * @param {string}  appToken
+ * @param {string}  userKey
+ * @param {string}  title
+ * @param {string}  message
+ * @param {boolean} [tier9=false]  If true, uses Pushover priority 2 (emergency — requires confirmation)
+ */
 function firePushover(
   appToken: string,
   userKey: string,
   title: string,
-  message: string
+  message: string,
+  tier9 = false
 ): void {
   const body = new URLSearchParams({
     token: appToken,
     user: userKey,
     title,
     message,
-    priority: "1",
-    sound: "siren",
+    // Tier-9 → priority 2 (emergency: breaks quiet hours AND requires acknowledgement)
+    // All other alerts → priority 1 (high: breaks quiet hours)
+    priority: tier9 ? "2" : "1",
+    retry:    tier9 ? "30"  : "",   // emergency: retry every 30 s
+    expire:   tier9 ? "3600" : "",  // emergency: expire after 1 h
+    sound: tier9 ? "echo" : "siren",
     url: "https://averyos.com/evidence-vault",
     url_title: "🔐 Evidence Vault",
   });
@@ -112,6 +124,27 @@ function firePushover(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
+  }).catch(() => {});
+}
+
+/**
+ * Non-blocking GabrielOS™ Sentinel webhook forward for Tier-9 events.
+ * Sends an HMAC-SHA-256 signed payload to the configured webhook URL.
+ */
+function forwardToGabrielSentinel(
+  webhookUrl: string,
+  btcApiKey: string | undefined,
+  payload: Record<string, unknown>
+): void {
+  fetch(webhookUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(btcApiKey
+        ? { "X-GabrielOS-Salt": btcApiKey.slice(0, 8) + "…" }
+        : {}),
+    },
+    body: JSON.stringify(payload),
   }).catch(() => {});
 }
 
@@ -178,15 +211,38 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── Pushover (non-blocking) ───────────────────────────────────────────────
   if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY && liabilityUsd > 0) {
+    const isTier9 = threatLevel >= 9;
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
     });
+    const title = isTier9
+      ? `🚨 TIER-9 GabrielOS™ ALERT: ${eventType}`
+      : `⚠️ AveryOS™ ${eventType}`;
     firePushover(
       cfEnv.PUSHOVER_APP_TOKEN,
       cfEnv.PUSHOVER_USER_KEY,
-      `⚠️ AveryOS™ ${eventType}`,
-      `IP: ${targetIp}\nPath: ${targetPath}\nTARI™: ${liabilityFmt}\nHash: ${pulseHash.slice(0, 24)}…`
+      title,
+      `IP: ${targetIp}\nPath: ${targetPath}\nTARI™: ${liabilityFmt}\nHash: ${pulseHash.slice(0, 24)}…`,
+      isTier9
+    );
+  }
+
+  // ── GabrielOS™ Sentinel — Tier-9 forward (non-blocking) ──────────────────
+  if (threatLevel >= 9 && cfEnv.GABRIEL_SENTINEL_WEBHOOK) {
+    forwardToGabrielSentinel(
+      cfEnv.GABRIEL_SENTINEL_WEBHOOK,
+      cfEnv.BITCOIN_API_KEY,
+      {
+        event_type:        eventType,
+        target_ip:         targetIp,
+        target_path:       targetPath,
+        threat_level:      threatLevel,
+        tari_liability_usd: liabilityUsd,
+        pulse_hash:        pulseHash,
+        timestamp:         now,
+        kernel_sha:        KERNEL_SHA.slice(0, 16) + "…",
+      }
     );
   }
 
