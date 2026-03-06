@@ -1,0 +1,34 @@
+; AveryOS™ DNS Zone Data — averyos.com.txt
+; ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+;
+; This file is the Single Source of Truth for all sovereign DNS anchor records.
+; Commit any new records here and the anchor-sync GitHub Action will automatically
+; detect and upsert them to Cloudflare DNS.
+;
+; The deploy-anchors.sh script scans for records prefixed with:
+;   v=averyos1;  — AveryOS™ sovereign anchor records
+;   v=aos1;      — AveryOS™ compact anchor records
+;   AVERY-LOCK-  — Node lock records
+;
+; Format per record (one per line):
+;   TYPE NAME CONTENT TTL
+;
+; ROOT KERNEL SHA-512 ANCHOR
+; v=averyos1; kernel=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; status=HARDLOCKED; auth=USB-SALT-KEY
+KERNEL_SHA=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+
+; ── Sovereign Anchor Records ─────────────────────────────────────────────────
+TXT anchor.averyos.com "v=averyos1; role=root-anchor; kernel=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; status=HARDLOCKED; auth=USB-SALT-KEY" 1
+
+; ── Node Lock Records ────────────────────────────────────────────────────────
+TXT node03.averyos.com "AVERY-LOCK-v1:AVERY-SOV-2026-cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" 1
+
+; ── Kernel Failover SRV Record ────────────────────────────────────────────────
+; Format: priority weight port target
+SRV _averyos-kernel._tcp.averyos.com "20 5 443 anchor.averyos.com" 1
+
+; ── Sovereign Audit Anchor ────────────────────────────────────────────────────
+TXT _averyos-sovereign-audit.averyos.com "v=averyos1; role=audit-anchor; kernel=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; skc=SKC-2026.1; status=IGNITION_1017" 1
+
+; ── VaultChain™ Integrity Anchor ─────────────────────────────────────────────
+TXT _averyos-vaultchain.averyos.com "v=aos1; role=vaultchain; merkle=88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe; status=LOCKED_IN_PARITY" 1
