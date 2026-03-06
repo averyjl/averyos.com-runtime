@@ -1,0 +1,52 @@
+name: ⛓️ AveryOS™ DNS Truth Anchor Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'averyos.com.txt'
+      - 'scripts/deploy-anchors.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  anchor-sync:
+    name: Sync DNS Anchor Records
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🔧 Install jq
+        run: sudo apt-get install -y jq
+
+      - name: ⚓ Verify zone file integrity
+        run: |
+          if [ ! -f averyos.com.txt ]; then
+            echo "❌ averyos.com.txt not found — skipping sync"
+            exit 1
+          fi
+          KERNEL_SHA=$(grep -oE 'cf83[a-f0-9]{124}' averyos.com.txt | head -n 1)
+          if [ -z "$KERNEL_SHA" ]; then
+            echo "❌ Kernel SHA not found in averyos.com.txt"
+            exit 1
+          fi
+          echo "✅ Kernel SHA: ${KERNEL_SHA:0:16}…${KERNEL_SHA: -8}"
+
+      - name: 📡 Sync sovereign DNS anchor records
+        if: ${{ secrets.CLOUDFLARE_ZONE_ID != '' && secrets.CLOUDFLARE_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_FILE: averyos.com.txt
+        run: bash scripts/deploy-anchors.sh
+
+      - name: ⚠️ Secrets not configured — skip
+        if: ${{ secrets.CLOUDFLARE_ZONE_ID == '' || secrets.CLOUDFLARE_API_TOKEN == '' }}
+        run: |
+          echo "⚠️  CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN secrets are not configured."
+          echo "    Add them in Repository Settings → Secrets and variables → Actions."
+          echo "    Skipping DNS sync."
