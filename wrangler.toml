@@ -129,6 +129,19 @@ bucket_name = 'cloudflare-managed-42f4b874'
 binding = "AVERY_KV"
 id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
+# ── Custom Domains for R2 Edge ────────────────────────────────────────────────
+[[routes]]
+pattern = "lighthouse.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "api.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "terminal.averyos.com"
+custom_domain = true
+
 # VAULT_R2 — architecture integrity session audit logs (shares bucket with VAULT;
 # logs are scoped under the session-logs/integrity/ key prefix to avoid collisions)
 [[r2_buckets]]
