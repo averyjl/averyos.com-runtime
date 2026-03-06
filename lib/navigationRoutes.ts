@@ -1,6 +1,11 @@
 /**
- * Centralized navigation route definitions for AveryOS
- * Used across NavBar, Sidebar, and Drawer components
+ * Centralized navigation route definitions for AveryOS™
+ * Used across NavBar, Sidebar, and Drawer components.
+ *
+ * Admin routes (adminRoutes) are gated behind VAULTAUTH_TOKEN verification.
+ * Only render the Sovereign Admin tab after a successful token check.
+ *
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 export type NavigationRoute = {
@@ -11,6 +16,7 @@ export type NavigationRoute = {
   isAdmin?: boolean;
 };
 
+/** Public navigation routes — rendered for all visitors */
 export const navigationRoutes: NavigationRoute[] = [
   // ── Core documents ─────────────────────────────────────────────────────────
   { path: "/whitepaper", label: "Whitepaper", icon: "📖" },
@@ -52,4 +58,19 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
   { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
+];
+
+/**
+ * Sovereign Admin routes — rendered ONLY after successful VAULTAUTH_TOKEN
+ * verification. Consolidates all secure admin-only pages under one tab.
+ *
+ * Usage in components:
+ *   const isAdmin = sessionStorage.getItem('VAULTAUTH_TOKEN') === expectedToken;
+ *   if (isAdmin) { render adminRoutes under the "Sovereign Admin" tab }
+ */
+export const adminRoutes: NavigationRoute[] = [
+  { path: "/vault-gate", label: "Vault Gate", icon: "🔑" },
+  { path: "/audit-stream", label: "Audit Stream", icon: "📡" },
+  { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️" },
+  { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹" },
 ];

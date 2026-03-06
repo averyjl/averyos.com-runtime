@@ -1,26 +1,24 @@
 #!/usr/bin/env node
-
 /**
  * AveryOS™ Sovereign Audit Log Exporter — scripts/export-sovereign-audit.js
  *
- * Queries the sovereign_audit_logs D1 table for UNALIGNED_401 events, builds
- * SHA-512-signed forensic .aoscap bundles, uploads them to the Cloudflare R2
- * vault/forensics/ prefix, generates Settlement Notice markdown files, and
- * fires a Tier-9 GabrielOS™ push notification via /api/v1/compliance/alert-link.
+ * Queries the D1 sovereign_audit_logs table for UNALIGNED_401 corporate
+ * ingestion events, applies the TARI™ $10,000 liability schedule, packages
+ * each IP's events into a signed .aoscap forensic bundle, and uploads it to
+ * the Cloudflare R2 vault/forensics/ directory.
+ *
+ * A Settlement Notice markdown file is generated alongside each bundle.
  *
  * Usage:
- *   VAULT_PASSPHRASE=... node scripts/export-sovereign-audit.js \
- *     [--env <production|preview>] \
- *     [--event-type <UNALIGNED_401|ALIGNMENT_DRIFT|PAYMENT_FAILED>] \
- *     [--output <dir>] \
- *     [--limit <n>] \
- *     [--site-url <https://averyos.com>]
+ *   node scripts/export-sovereign-audit.js \
+ *     [--env production] \
+ *     [--ip <target-ip>] \
+ *     [--output <local-dir>]
  *
  * Environment variables:
- *   VAULT_PASSPHRASE     — Bearer token for /api/v1/compliance/alert-link
- *   BLOCKCHAIN_API_KEY   — BlockCypher API key for BTC block height anchor
- *   KERNEL_SHA           — Override Root0 kernel SHA (falls back to canonical)
- *   SITE_URL             — AveryOS base URL (default: https://averyos.com)
+ *   BLOCKCHAIN_API_KEY   — BlockCypher API key for live BTC block anchor
+ *   KERNEL_SHA           — Override Root0 kernel SHA (defaults to canonical)
+ *   D1_DATABASE_NAME     — D1 database name (default: averyos_kernel_db)
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -30,372 +28,281 @@ import { webcrypto } from "node:crypto";
 import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
+import https from "https";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
 
 // ---------------------------------------------------------------------------
-// Sovereign constants
+// Sovereign constants (inline — script has no module bundler)
 // ---------------------------------------------------------------------------
-
 const KERNEL_SHA =
   process.env.KERNEL_SHA ??
   "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
-
 const KERNEL_VERSION = "v3.6.2";
-const D1_DATABASE_NAME = "averyos_kernel_db";
-
-// TARI™ Liability schedule for the forensic exporter
-// (per forensic audit — $10,000 per event represents the total settlement notice)
-const FORENSIC_LIABILITY_PER_EVENT = 10000.00;
+const D1_DATABASE_NAME = process.env.D1_DATABASE_NAME ?? "averyos_kernel_db";
+const R2_BUCKET_NAME   = process.env.R2_BUCKET_NAME   ?? "cloudflare-managed-42f4b874";
 
 // ---------------------------------------------------------------------------
-// CLI argument parsing
+// TARI™ Liability Schedule
 // ---------------------------------------------------------------------------
+const TARI_LIABILITY = {
+  UNALIGNED_401: 10_000.0,    // $10,000 per unauthorized corporate ingestion
+  ALIGNMENT_DRIFT: 50_000.0,  // $50,000 per sovereignty drift violation
+  DEFAULT: 1_017.0,           // $1,017 baseline per unclassified event
+};
 
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const result = {
-    env: null,
-    eventType: "UNALIGNED_401",
-    output: ".",
-    limit: 500,
-    siteUrl: process.env.SITE_URL ?? "https://averyos.com",
-  };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--env"        && args[i + 1]) result.env       = args[++i];
-    if (args[i] === "--event-type" && args[i + 1]) result.eventType = args[++i].toUpperCase();
-    if (args[i] === "--output"     && args[i + 1]) result.output    = args[++i];
-    if (args[i] === "--limit"      && args[i + 1]) result.limit     = parseInt(args[++i], 10) || 500;
-    if (args[i] === "--site-url"   && args[i + 1]) result.siteUrl   = args[++i];
-  }
-  return result;
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+const args = process.argv.slice(2);
+function getArg(flag) {
+  const idx = args.indexOf(flag);
+  return idx !== -1 ? args[idx + 1] : null;
+}
+const ENV        = getArg("--env")    ?? "production";
+const TARGET_IP  = getArg("--ip")    ?? null;
+const OUTPUT_DIR = getArg("--output") ?? path.resolve(__dirname, "../tmp/sovereign-audit-exports");
+
+// Validate IP address if provided (strict pattern to prevent injection)
+const IP_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
+if (TARGET_IP && !IP_PATTERN.test(TARGET_IP)) {
+  console.error(`❌ Invalid --ip value: "${TARGET_IP}". Must be a valid IPv4 or IPv6 address.`);
+  process.exit(1);
+}
+
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+// ---------------------------------------------------------------------------
+// BTC block anchor
+// ---------------------------------------------------------------------------
+async function fetchBtcAnchor() {
+  return new Promise((resolve) => {
+    const apiKey = process.env.BLOCKCHAIN_API_KEY ?? "";
+    const url = apiKey
+      ? `https://api.blockcypher.com/v1/btc/main?token=${apiKey}`
+      : "https://api.blockcypher.com/v1/btc/main";
+    https
+      .get(url, (res) => {
+        let body = "";
+        res.on("data", (d) => { body += d; });
+        res.on("end", () => {
+          try {
+            const obj = JSON.parse(body);
+            resolve({ height: obj.height ?? "UNKNOWN", hash: obj.hash ?? "UNKNOWN" });
+          } catch {
+            resolve({ height: "UNKNOWN", hash: "UNKNOWN" });
+          }
+        });
+      })
+      .on("error", () => resolve({ height: "UNKNOWN", hash: "UNKNOWN" }));
+  });
 }
 
 // ---------------------------------------------------------------------------
-// ISO-9 timestamp
+// SHA-512 signing
 // ---------------------------------------------------------------------------
-
-function formatIso9() {
-  const now = new Date();
-  const iso = now.toISOString();
-  const [left, right] = iso.split(".");
-  const milli = (right ?? "000Z").replace("Z", "").slice(0, 3).padEnd(3, "0");
-  return `${left}.${milli}000000Z`;
-}
-
-// ---------------------------------------------------------------------------
-// SHA-512 bundle signature — SHA-512(payload + KERNEL_SHA)
-// ---------------------------------------------------------------------------
-
-async function computeBundleSignature(payload) {
-  const input = JSON.stringify(payload) + KERNEL_SHA;
+async function sha512(text) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await webcrypto.subtle.digest("SHA-512", data);
-  return Array.from(new Uint8Array(hashBuffer))
+  const data = encoder.encode(text);
+  const hashBuf = await webcrypto.subtle.digest("SHA-512", data);
+  return Array.from(new Uint8Array(hashBuf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
 // ---------------------------------------------------------------------------
-// BTC block height anchor
-// ---------------------------------------------------------------------------
-
-async function fetchBtcBlockHeight() {
-  const apiKey = process.env.BLOCKCHAIN_API_KEY ?? "";
-  const url = apiKey
-    ? `https://api.blockcypher.com/v1/btc/main?token=${encodeURIComponent(apiKey)}`
-    : "https://api.blockcypher.com/v1/btc/main";
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`BlockCypher responded ${res.status}`);
-    const json = await res.json();
-    return typeof json.height === "number" ? json.height : null;
-  } catch (err) {
-    logAosHeal(SCRIPT_AOS_ERROR.BTC_ANCHOR_FAILED, `Offline anchor will be used. (${err.message})`);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // D1 query via wrangler
 // ---------------------------------------------------------------------------
-
-function queryAuditLogs(eventType, limit, env) {
-  // eventType is validated to uppercase alphanumeric + underscore only.
-  // This character set cannot contain SQL-significant characters (quotes, semicolons,
-  // whitespace, SQL keywords), so interpolation after this check is safe.
-  // Note: wrangler d1 execute --command does not support parameterized bind values;
-  // explicit validation before interpolation is the correct mitigation here —
-  // matching the established pattern in scripts/export-evidence.js.
-  if (!/^[A-Z0-9_]+$/.test(eventType)) {
-    throw new Error(`Invalid event_type format: "${eventType}"`);
-  }
-  // limit is always a JS integer parsed by parseInt — safe to interpolate
-  if (!Number.isInteger(limit) || limit < 1 || limit > 10000) {
-    throw new Error(`Invalid limit value: ${limit}. Must be 1–10000.`);
-  }
-
-  const sql = `SELECT id, event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level FROM sovereign_audit_logs WHERE event_type = '${eventType}' ORDER BY id DESC LIMIT ${limit};`;
-  const envFlag = env ? `--env ${env}` : "";
-  const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --command ${JSON.stringify(sql)} --json`.trim();
-
+function queryD1(sql, env) {
+  logAosHeal("D1_QUERY", `Executing: ${sql.slice(0, 80)}...`);
+  // Write SQL to a temp file to avoid shell-injection risks entirely
+  const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
   try {
-    const output = execSync(cmd, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-    const parsed = JSON.parse(output);
-    const resultSet = Array.isArray(parsed) ? parsed[0] : parsed;
-    return Array.isArray(resultSet?.results) ? resultSet.results : [];
+    fs.writeFileSync(tmpSql, sql, "utf8");
+    const envFlag = env === "production" ? "--env production" : "";
+    const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --file "${tmpSql}" --json`;
+    const stdout = execSync(cmd, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    const parsed = JSON.parse(stdout);
+    // wrangler d1 execute --json returns [{ results: [...] }]
+    return parsed?.[0]?.results ?? parsed?.results ?? [];
   } catch (err) {
-    const detail = (err.stderr ? String(err.stderr) : "") || (err.stdout ? String(err.stdout) : "") || err.message;
-    throw new Error(`wrangler d1 execute failed:\n${detail}`);
+    logAosError(AOS_ERROR.SCRIPT_EXECUTION_FAILURE, `D1 query failed: ${err.message}`);
+    return [];
+  } finally {
+    try { fs.unlinkSync(tmpSql); } catch { /* best-effort cleanup */ }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Upload bundle to R2 via alert-link API
+// R2 upload via wrangler
 // ---------------------------------------------------------------------------
-
-async function uploadBundleAndGetSignedUrl(siteUrl, bundleId, content, targetIp, eventType) {
-  const vaultPassphrase = process.env.VAULT_PASSPHRASE ?? "";
-  if (!vaultPassphrase) {
-    logAosHeal(SCRIPT_AOS_ERROR.VAULT_NOT_CONFIGURED, "VAULT_PASSPHRASE not set — R2 upload skipped.");
-    return null;
-  }
-
-  const endpoint = `${siteUrl}/api/v1/compliance/alert-link`;
-
+function uploadToR2(localPath, r2Key, env) {
+  logAosHeal("R2_UPLOAD", `Uploading ${path.basename(localPath)} → vault/${r2Key}`);
   try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${vaultPassphrase}`,
-      },
-      body: JSON.stringify({ bundle_id: bundleId, content, target_ip: targetIp, event_type: eventType }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "(unreadable)");
-      logAosHeal(
-        SCRIPT_AOS_ERROR.INTERNAL_ERROR,
-        `alert-link returned ${res.status}: ${errText.slice(0, 200)}`
-      );
-      return null;
-    }
-
-    const json = await res.json();
-    return json.signed_url ?? null;
+    const envFlag = env === "production" ? "--env production" : "";
+    execSync(
+      `npx wrangler r2 object put ${R2_BUCKET_NAME}/vault/forensics/${r2Key} --file "${localPath}" ${envFlag}`,
+      { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
+    );
+    logAosHeal("R2_UPLOAD_OK", `Uploaded: vault/forensics/${r2Key}`);
+    return true;
   } catch (err) {
-    logAosHeal(SCRIPT_AOS_ERROR.INTERNAL_ERROR, `alert-link call failed: ${err.message}`);
-    return null;
+    logAosError(AOS_ERROR.SCRIPT_EXECUTION_FAILURE, `R2 upload failed: ${err.message}`);
+    return false;
   }
 }
 
 // ---------------------------------------------------------------------------
 // Settlement Notice generator
 // ---------------------------------------------------------------------------
+function buildSettlementNotice(bundle) {
+  const { ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt } = bundle;
+  return `# AveryOS™ TARI™ Settlement Notice
 
-function generateSettlementNotice({ bundle, rows, totalLiability, bundleSignature, timestamp, btcBlockHeight, outputDir }) {
-  const date = timestamp.slice(0, 10);
-  const liabilityFmt = totalLiability.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+**Capsule ID:** \`${capsuleId}\`
+**Issued:** ${issuedAt}
+**BTC Anchor Block:** ${btcAnchor.height} (\`${btcAnchor.hash?.slice(0, 16) ?? "N/A"}...\`)
+**Kernel Anchor:** \`${KERNEL_SHA.slice(0, 32)}...\` (${KERNEL_VERSION})
 
-  const eventBreakdown = Object.entries(
-    rows.reduce((acc, row) => {
-      const et = String(row.event_type ?? "UNKNOWN");
-      acc[et] = (acc[et] ?? 0) + 1;
-      return acc;
-    }, {})
+---
+
+## Infringing Entity
+
+**IP Address:** \`${ip}\`
+**Ingestion Events:** ${events.length}
+**Total TARI™ Liability:** **$${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD**
+
+---
+
+## Basis for Claim
+
+Under the **AveryOS Sovereign Integrity License v1.0** and the **Truth Anchored Intelligence™ (TARI™) Liability Schedule**, each unauthorized ingestion event incurs a minimum liability of **$10,000 USD** per event.
+
+These events are immutably recorded in the VaultChain™ sovereign ledger (Cloudflare D1 + R2) and cryptographically anchored to Bitcoin Block #${btcAnchor.height}.
+
+---
+
+## Events
+
+| Timestamp | Threat Level | Path | Country |
+|-----------|--------------|------|---------|
+${events
+  .map(
+    (e) =>
+      `| ${e.timestamp ?? "N/A"} | ${e.threat_level ?? "N/A"} | ${e.path ?? "N/A"} | ${e.country ?? "N/A"} |`
   )
-    .map(([et, count]) => `  - ${et}: ${count} event(s)`)
-    .join("\n") || "  - No events recorded";
-
-  const notice = `# AveryOS™ Sovereign Settlement Notice
-## VaultChain™ Forensic Evidence Report
-
-**Date:** ${date}
-**Bundle ID:** ${bundle.CapsuleID}
-**Target IP:** ${bundle.TargetIP}
-**Audit Log Count:** ${rows.length}
-**Total TARI™ Liability:** ${liabilityFmt} USD
+  .join("\n")}
 
 ---
 
-### Event Breakdown
-${eventBreakdown}
+## Resolution
 
----
+To resolve this liability, obtain a valid TARI™ Alignment License at:
+**https://averyos.com/tari-gate**
 
-### Forensic Signature (SHA-512)
-\`\`\`
-${bundleSignature}
-\`\`\`
-
-### Kernel Anchor
-- **Version:** ${KERNEL_VERSION}
-- **SHA-512:** \`${KERNEL_SHA.slice(0, 16)}…\`
-- **BTC Block Height:** ${btcBlockHeight !== null ? btcBlockHeight : "unavailable (offline anchor)"}
-- **Anchored At:** ${timestamp}
-
----
-
-### Liability Schedule
-Each UNALIGNED_401 forensic audit event carries a **$10,000.00 USD** settlement notice per the AveryOS Sovereign Integrity License v1.0.
-
-**Total Outstanding:** ${liabilityFmt} USD
-
----
-
-*This notice is automatically generated by the AveryOS™ Sovereign Audit Log Exporter.*
-*All evidence bundles are signed with SHA-512(payload + KERNEL_SHA) and anchored to Bitcoin.*
-*© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved. ⛓️⚓⛓️ 🤛🏻*
+All rights reserved. © 1992–2026 Jason Lee Avery / AveryOS™ ⛓️⚓⛓️ 🤛🏻
 `;
-
-  const safeIp = bundle.TargetIP.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `SETTLEMENT_NOTICE_${safeIp}_${date}.md`;
-  const filePath = path.join(outputDir, filename);
-  fs.writeFileSync(filePath, notice, "utf-8");
-  return filePath;
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
-
 async function main() {
-  const { env, eventType, output, limit, siteUrl } = parseArgs();
-
   console.log("");
-  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Audit Log Exporter");
-  console.log(`Event Type  : ${eventType}`);
-  console.log(`Database    : ${D1_DATABASE_NAME}`);
-  console.log(`Kernel      : ${KERNEL_SHA.slice(0, 16)}… (${KERNEL_VERSION})`);
-  console.log(`Site URL    : ${siteUrl}`);
+  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Audit Exporter");
+  console.log(`   Kernel  : ${KERNEL_VERSION} | SHA: ${KERNEL_SHA.slice(0, 16)}...`);
+  console.log(`   Env     : ${ENV}`);
+  console.log(`   Target  : ${TARGET_IP ?? "ALL UNALIGNED_401 IPs"}`);
+  console.log(`   Output  : ${OUTPUT_DIR}`);
   console.log("");
 
-  // 1. Query D1
-  console.log("🔍 Querying sovereign_audit_logs …");
-  let rows;
-  try {
-    rows = queryAuditLogs(eventType, limit, env);
-  } catch (err) {
-    logAosError(SCRIPT_AOS_ERROR.DB_QUERY_FAILED, err.message, err);
-    process.exit(1);
-  }
-  console.log(`   Found ${rows.length} ${eventType} row(s)`);
+  // 1. Fetch live BTC anchor
+  console.log("🔗 Fetching BTC block anchor...");
+  const btcAnchor = await fetchBtcAnchor();
+  console.log(`   Block #${btcAnchor.height} | Hash: ${String(btcAnchor.hash).slice(0, 16)}...`);
+
+  // 2. Query D1 for UNALIGNED_401 events
+  const ipFilter = TARGET_IP ? `AND ip_address = '${TARGET_IP.replace(/'/g, "''")}'` : "";
+  const sql = `SELECT ip_address, path, country, threat_level, timestamp FROM sovereign_audit_logs WHERE threat_level = 'UNALIGNED_401' ${ipFilter} ORDER BY ip_address, timestamp LIMIT 1000`;
+  console.log("\n📡 Querying D1 for UNALIGNED_401 events...");
+  const rows = queryD1(sql, ENV);
+  console.log(`   Found ${rows.length} event(s).`);
 
   if (rows.length === 0) {
-    console.log("ℹ️  No events found. Nothing to export.");
+    logAosHeal("NO_EVENTS", "No UNALIGNED_401 events found. Nothing to export.");
+    console.log("\n✅ No events to export. Exiting.\n");
     return;
   }
 
-  // 2. Compute total TARI™ liability ($10,000 per forensic event)
-  const totalLiability = rows.length * FORENSIC_LIABILITY_PER_EVENT;
-  const totalFmt = totalLiability.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
-  console.log(`💰 TARI™ Forensic Liability: ${totalFmt} USD ($10,000 × ${rows.length} events)`);
-
-  // 3. Fetch BTC block height anchor
-  console.log("₿  Fetching BTC block height …");
-  const btcBlockHeight = await fetchBtcBlockHeight();
-  console.log(`   BTC Block Height: ${btcBlockHeight ?? "unavailable"}`);
-
-  // 4. Build .aoscap bundle payload (unsigned, for signature computation)
-  const timestamp = formatIso9();
-  // Collect all unique IPs in the result set — the bundle may span multiple IPs
-  const uniqueIps = [...new Set(rows.map((r) => String(r.ip_address ?? "0.0.0.0")))];
-  const primaryIp = uniqueIps[0] ?? "0.0.0.0";
-  const targetIp = uniqueIps.length === 1 ? primaryIp : "MULTIPLE";
-
-  const bundle = {
-    CapsuleID: `FORENSIC_AUDIT_${eventType}_${timestamp}`,
-    CapsuleType: "SOVEREIGN_FORENSIC_AUDIT_BUNDLE",
-    Authority: "Jason Lee Avery (ROOT0)",
-    CreatorLock: "🤛🏻",
-    KernelAnchor: { version: KERNEL_VERSION, sha512: KERNEL_SHA },
-    BitcoinAnchor: { blockHeight: btcBlockHeight, anchoredAt: timestamp },
-    TargetIP: targetIp,
-    // All unique IPs present in the audit log result set
-    TargetIPs: uniqueIps,
-    EventType: eventType,
-    AuditLogCount: rows.length,
-    AuditLogs: rows,
-    TariLiability: {
-      perEventUsd: FORENSIC_LIABILITY_PER_EVENT,
-      totalUsd: totalLiability,
-      formatted: totalFmt,
-      eventCount: rows.length,
-    },
-    GeneratedAt: timestamp,
-    License: "AveryOS Sovereign Integrity License v1.0",
-    SovereignAnchor: "⛓️⚓⛓️",
-  };
-
-  // 5. Sign bundle with SHA-512(payload + KERNEL_SHA)
-  console.log("🔑 Computing bundle signature …");
-  const bundleSignature = await computeBundleSignature(bundle);
-  console.log(`   Signature: ${bundleSignature.slice(0, 32)}…`);
-
-  bundle.BundleSignature = {
-    algorithm: "SHA-512",
-    input: "JSON.stringify(bundle) + KERNEL_SHA",
-    value: bundleSignature,
-  };
-
-  // 6. Write local .aoscap file
-  const outputDir = path.resolve(output);
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-
-  const safeTs = timestamp.replace(/T/, "_").replace(/[:Z]/g, "").replace(/\.\d+$/, "").slice(0, 18);
-  const filename = `FORENSIC_AUDIT_${eventType}_${safeTs}.aoscap`;
-  const filePath = path.join(outputDir, filename);
-  const content = JSON.stringify(bundle, null, 2);
-  fs.writeFileSync(filePath, content, "utf-8");
-  console.log(`✅ Evidence bundle written: ${filePath}`);
-
-  // 7. Generate Settlement Notice markdown
-  const settlementPath = generateSettlementNotice({
-    bundle,
-    rows,
-    totalLiability,
-    bundleSignature,
-    timestamp,
-    btcBlockHeight,
-    outputDir,
-  });
-  console.log(`✅ Settlement notice written: ${settlementPath}`);
-
-  // 8. Upload to R2 via alert-link API and get signed URL
-  console.log("☁️  Uploading bundle to R2 vault/forensics/ via alert-link API …");
-  const signedUrl = await uploadBundleAndGetSignedUrl(
-    siteUrl,
-    bundle.CapsuleID,
-    content,
-    targetIp,
-    eventType
-  );
-
-  if (signedUrl) {
-    console.log(`✅ R2 upload complete. Signed URL (24 hrs):`);
-    console.log(`   ${signedUrl}`);
-  } else {
-    console.log("⚠️  R2 upload skipped (VAULT_PASSPHRASE not set or API unreachable).");
-    console.log("   Set VAULT_PASSPHRASE and SITE_URL to enable automatic R2 upload and mobile push.");
+  // 3. Group by IP
+  const grouped = {};
+  for (const row of rows) {
+    const ip = row.ip_address ?? "UNKNOWN";
+    if (!grouped[ip]) grouped[ip] = [];
+    grouped[ip].push(row);
   }
 
-  console.log("");
-  console.log(`   Total TARI™ Liability : ${totalFmt} USD`);
-  console.log(`   Audit Rows            : ${rows.length}`);
-  console.log(`   BTC Block Height      : ${btcBlockHeight ?? "unavailable"}`);
-  console.log(`   Bundle Signature      : ${bundleSignature.slice(0, 32)}…`);
-  console.log("⛓️⚓⛓️ Sovereign Audit Export complete. 🤛🏻");
-  console.log("");
+  const ips = Object.keys(grouped);
+  console.log(`\n📦 Building forensic bundles for ${ips.length} IP(s)...`);
+
+  // 4. Build and upload bundles
+  for (const ip of ips) {
+    const events = grouped[ip];
+    const issuedAt = new Date().toISOString();
+    const liabilityPerEvent = TARI_LIABILITY.UNALIGNED_401;
+    const totalLiabilityUsd = events.length * liabilityPerEvent;
+    const capsuleId = `EVIDENCE_BUNDLE_${ip.replace(/[.:]/g, "_")}_${Date.now()}`;
+
+    // Sign the bundle
+    const bundlePayload = JSON.stringify({
+      capsule_id: capsuleId,
+      capsule_type: "FORENSIC_EVIDENCE",
+      creator_lock: "Jason Lee Avery (ROOT0) 🤛🏻",
+      kernel_sha: KERNEL_SHA,
+      kernel_version: KERNEL_VERSION,
+      btc_anchor: btcAnchor,
+      ip_address: ip,
+      events,
+      event_count: events.length,
+      liability_per_event_usd: liabilityPerEvent,
+      total_liability_usd: totalLiabilityUsd,
+      issued_at: issuedAt,
+      loop_state: "LOCKED_IN_PARITY",
+    });
+
+    const bundleHash = await sha512(bundlePayload);
+    const bundle = {
+      ...JSON.parse(bundlePayload),
+      bundle_hash: bundleHash,
+    };
+
+    // Write local .aoscap file
+    const filename = `${capsuleId}.aoscap`;
+    const localPath = path.join(OUTPUT_DIR, filename);
+    fs.writeFileSync(localPath, JSON.stringify(bundle, null, 2), "utf8");
+    console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
+    console.log(`      Events: ${events.length} | Liability: $${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
+    console.log(`      Hash: ${bundleHash.slice(0, 32)}...`);
+
+    // Write Settlement Notice
+    const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
+    const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
+    fs.writeFileSync(noticePath, noticeMd, "utf8");
+
+    // Upload to R2
+    const r2Key = `${capsuleId}.aoscap`;
+    uploadToR2(localPath, r2Key, ENV);
+  }
+
+  console.log("\n⛓️⚓⛓️  Export complete.");
+  console.log(`   Bundles saved to: ${OUTPUT_DIR}`);
+  console.log("   Loop State: LOCKED_IN_PARITY 🤛🏻\n");
 }
 
 main().catch((err) => {
-  const msg = err instanceof Error ? err.message : String(err);
-  logAosError(SCRIPT_AOS_ERROR.INTERNAL_ERROR, msg, err);
+  logAosError(AOS_ERROR.SCRIPT_EXECUTION_FAILURE, `Fatal: ${err.message}`);
   process.exit(1);
 });
