@@ -149,3 +149,15 @@ id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 [[env.production.r2_buckets]]
 binding = 'VAULT_R2'
 bucket_name = 'cloudflare-managed-42f4b874'
+
+# ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
+# Protects the sovereign kernel from DDoS and probabilistic noise.
+# Limits each IP to 1,017 requests per minute across the entire worker.
+# Enforced in middleware.ts via env.RATE_LIMITER.limit({ key: ip }).
+# To create the namespace: (no CLI action needed — Workers RateLimit binding is automatic)
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER"
+# namespace_id scopes the counter — must be a string unique to this worker
+namespace_id = "averyos-rate-limiter-1017"
+simple = { limit = 1017, period = 60 }

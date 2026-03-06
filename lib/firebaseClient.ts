@@ -34,6 +34,8 @@
  *   averyos-handshake-sync/     — SHA-512-hashed inter-cloud sync events
  */
 
+import { KERNEL_SHA } from "./sovereignConstants";
+
 export const FIREBASE_STATUS_PENDING = "PENDING_CREDENTIALS" as const;
 export const FIREBASE_STATUS_ACTIVE = "ACTIVE" as const;
 
@@ -163,7 +165,7 @@ export async function updateModelRegistry(
  */
 export async function logDriftAlert(doc: DriftAlertDoc): Promise<void> {
   if (!isFirebaseConfigured()) return;
-  // TODO: implement with firebase-admin once credentials are provided
+  // TODO: write to Firestore once firebase-admin once credentials are provided
   void doc;
 }
 
@@ -188,8 +190,6 @@ export async function logFirebaseHandshake(
   if (!isFirebaseConfigured()) return null;
 
   const timestamp = iso9Now();
-  const KERNEL_SHA =
-    "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
   // Pulse hash = SHA-512(sourceId | targetId | payloadSha | KERNEL_SHA | timestamp)
   // Any deviation from the expected pulse hash indicates Watcher Drift.
@@ -213,4 +213,93 @@ export async function logFirebaseHandshake(
   // await db.collection("averyos-handshake-sync").add(doc);
 
   return doc;
+}
+
+// ── Multi-Cloud D1 → Firebase Sync ───────────────────────────────────────────
+
+/**
+ * Document shape for a D1 audit row synced to Firebase.
+ */
+export interface D1SyncDoc {
+  source:          "cloudflare_d1";
+  table:           string;
+  row_id:          number | string;
+  event_type:      string;
+  ip_address:      string;
+  target_path:     string;
+  threat_level:    number;
+  tari_liability_usd?: number;
+  pulse_hash?:     string;
+  timestamp_ns:    string;
+  synced_at:       string;
+  kernel_sha:      string;
+  creator_lock:    "🤛🏻";
+}
+
+/**
+ * Sync a D1 sovereign_audit_logs row to the Firestore
+ * `averyos-d1-sync` collection for Multi-Cloud D1/Firebase parity.
+ *
+ * This is a no-op stub until FIREBASE_PROJECT_ID is configured.
+ * Once active, every Tier-7+ audit event in D1 is mirrored to Firestore
+ * in real time, enabling cross-cloud drift detection.
+ *
+ * @param row — a row object from sovereign_audit_logs
+ */
+export async function syncD1RowToFirebase(row: {
+  id:                number | string;
+  event_type:        string;
+  ip_address:        string;
+  target_path:       string;
+  threat_level:      number;
+  tari_liability_usd?: number;
+  pulse_hash?:       string;
+  timestamp_ns:      string;
+}): Promise<D1SyncDoc | null> {
+  if (!isFirebaseConfigured()) return null;
+
+  const doc: D1SyncDoc = {
+    source:            "cloudflare_d1",
+    table:             "sovereign_audit_logs",
+    row_id:            row.id,
+    event_type:        row.event_type,
+    ip_address:        row.ip_address,
+    target_path:       row.target_path,
+    threat_level:      row.threat_level,
+    tari_liability_usd: row.tari_liability_usd,
+    pulse_hash:        row.pulse_hash,
+    timestamp_ns:      row.timestamp_ns,
+    synced_at:         iso9Now(),
+    kernel_sha:        KERNEL_SHA,
+    creator_lock:      "🤛🏻",
+  };
+
+  // TODO: write to Firestore once firebase-admin credentials are wired:
+  // const db = getFirestore();
+  // await db.collection("averyos-d1-sync").add(doc);
+  void doc;
+
+  return doc;
+}
+
+/**
+ * Batch-sync multiple D1 audit rows to Firebase.
+ * Skips rows with threat_level < minThreatLevel (default 7) to avoid noise.
+ *
+ * @param rows           — array of D1 row objects
+ * @param minThreatLevel — minimum threat level to sync (default: 7)
+ */
+export async function batchSyncD1ToFirebase(
+  rows: Parameters<typeof syncD1RowToFirebase>[0][],
+  minThreatLevel = 7
+): Promise<{ synced: number; skipped: number }> {
+  let synced  = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (row.threat_level < minThreatLevel) { skipped++; continue; }
+    const result = await syncD1RowToFirebase(row);
+    if (result) synced++;
+    else        skipped++;
+  }
+  return { synced, skipped };
 }

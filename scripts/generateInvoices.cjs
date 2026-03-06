@@ -12,13 +12,17 @@
 
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
+const fs    = require('fs');
+const path  = require('path');
+const https = require('https');
+const http  = require('http');
 const Stripe = require('stripe');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STRIPE_SECRET_KEY    = process.env.STRIPE_SECRET_KEY;
+const SITE_URL             = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, '');
+const VAULT_PASSPHRASE     = process.env.VAULT_PASSPHRASE ?? '';
 const LOG_PATH             = process.env.AI_GATEWAY_LOG_PATH
   || path.join(process.cwd(), 'capsule_logs', 'ai_gateway_logs.json');
 const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents
@@ -168,6 +172,70 @@ async function createDraftInvoice(stripe, org) {
   return finalized.hosted_invoice_url || `https://dashboard.stripe.com/invoices/${invoice.id}`;
 }
 
+// ── TARI™ Checkout Session trigger ───────────────────────────────────────────
+
+/**
+ * POST to /api/v1/compliance/create-checkout to generate a Stripe Checkout
+ * session URL for immediate payment.  Logs a warning if VAULT_PASSPHRASE or
+ * SITE_URL is not configured, but never throws.
+ *
+ * @param {{ org_id: string, request_count: number }} org
+ * @param {number} debtCents
+ * @returns {Promise<string|null>} Checkout session URL, or null on error
+ */
+async function triggerCheckoutSession(org, debtCents) {
+  if (!VAULT_PASSPHRASE) {
+    logAosHeal(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE not set — skipping checkout session for ' + org.org_id);
+    return null;
+  }
+  const bodyData = JSON.stringify({
+    bundleId:     `EVIDENCE_BUNDLE_${org.org_id}_TARI_${Date.now()}`,
+    targetIp:     org.ip ?? org.org_id,
+    tariLiability: debtCents,
+  });
+  return new Promise((resolve) => {
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/compliance/create-checkout`); }
+    catch { resolve(null); return; }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     url.pathname,
+      method:   'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(bodyData),
+        Authorization:    `Bearer ${VAULT_PASSPHRASE}`,
+      },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.checkoutUrl) {
+            resolve(json.checkoutUrl);
+          } else {
+            logAosHeal(AOS_ERROR.STRIPE_ERROR, `create-checkout did not return checkoutUrl for ${org.org_id}: ${data.slice(0, 200)}`);
+            resolve(null);
+          }
+        } catch {
+          logAosHeal(AOS_ERROR.INVALID_JSON, `create-checkout non-JSON response for ${org.org_id}`);
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', (err) => {
+      logAosHeal(AOS_ERROR.NETWORK_ERROR, `create-checkout request failed for ${org.org_id}: ${err.message}`);
+      resolve(null);
+    });
+    req.write(bodyData);
+    req.end();
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -211,15 +279,33 @@ async function main() {
 
   const results = [];
   for (const org of billable) {
-    const debtUsd = (calcDebtCents(org.request_count) / 100).toFixed(2);
+    const debtUsd   = (calcDebtCents(org.request_count) / 100).toFixed(2);
+    const debtCents = calcDebtCents(org.request_count);
     console.log(`▶  ${org.org_id}  (${org.request_count.toLocaleString()} requests → $${debtUsd})`);
+    let invoiceUrl   = null;
+    let checkoutUrl  = null;
     try {
-      const url = await createDraftInvoice(stripe, org);
-      results.push({ org_id: org.org_id, request_count: org.request_count, debt_usd: debtUsd, invoice_url: url });
+      invoiceUrl = await createDraftInvoice(stripe, org);
     } catch (err) {
       logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create invoice for ${org.org_id}: ${err.message}`, err);
-      results.push({ org_id: org.org_id, request_count: org.request_count, debt_usd: debtUsd, invoice_url: null, error: err.message });
     }
+    // Wire to /api/v1/compliance/create-checkout for immediate payment link
+    try {
+      checkoutUrl = await triggerCheckoutSession(org, debtCents);
+      if (checkoutUrl) {
+        console.log(`   ↳ Checkout session: ${checkoutUrl.slice(0, 72)}…`);
+      }
+    } catch (err) {
+      logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for ${org.org_id}: ${err.message}`);
+    }
+    results.push({
+      org_id:        org.org_id,
+      request_count: org.request_count,
+      debt_usd:      debtUsd,
+      invoice_url:   invoiceUrl,
+      checkout_url:  checkoutUrl,
+      error:         invoiceUrl ? undefined : 'Draft invoice creation failed',
+    });
   }
 
   console.log('\n──────────────────────────────────────────────────────────────');
@@ -230,6 +316,9 @@ async function main() {
       console.log(`  ${r.org_id}  →  ${r.invoice_url}`);
     } else {
       console.log(`  ${r.org_id}  →  ❌ ERROR: ${r.error}`);
+    }
+    if (r.checkout_url) {
+      console.log(`             ⚡ Checkout: ${r.checkout_url}`);
     }
   }
   console.log('\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1 | All invoices in DRAFT state.\n');
