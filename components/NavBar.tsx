@@ -2,11 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { navigationRoutes } from "../lib/navigationRoutes";
 import AnchorBadge from "./AnchorBadge";
 
 const NavBar = () => {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check VaultGate handshake — only show admin routes when authenticated
+  useEffect(() => {
+    const token = sessionStorage.getItem("VAULTAUTH_TOKEN");
+    if (!token) { setIsAdmin(false); return; }
+
+    fetch("/api/gatekeeper/handshake-check", {
+      headers: { "x-vault-auth": token },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setIsAdmin(data?.status === "LOCKED" || data?.status === "AUTHENTICATED");
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  const publicRoutes = navigationRoutes.filter((r) => !r.isAdmin);
+  const adminRoutes  = navigationRoutes.filter((r) => r.isAdmin);
 
   return (
     <nav className="navbar">
@@ -16,7 +36,7 @@ const NavBar = () => {
           <span className="navbar-brand-text">AveryOS</span>
         </Link>
         <div className="navbar-links">
-          {navigationRoutes.map((route) => {
+          {publicRoutes.map((route) => {
             const isActive =
               route.path === "/"
                 ? pathname === "/"
@@ -32,6 +52,31 @@ const NavBar = () => {
               </Link>
             );
           })}
+
+          {/* Admin Tab — only rendered after VaultGate handshake success */}
+          {isAdmin && (
+            <div className="navbar-admin-group">
+              <span className="navbar-link navbar-admin-label">
+                <span className="navbar-link-icon">🔐</span>
+                <span className="navbar-link-text">Admin</span>
+              </span>
+              <div className="navbar-admin-dropdown">
+                {adminRoutes.map((route) => {
+                  const isActive = pathname?.startsWith(route.path) ?? false;
+                  return (
+                    <Link
+                      key={route.path}
+                      href={route.path}
+                      className={`navbar-link${isActive ? " navbar-link-active" : ""}`}
+                    >
+                      <span className="navbar-link-icon">{route.icon}</span>
+                      <span className="navbar-link-text">{route.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ marginLeft: "auto", paddingLeft: "1rem", display: "flex", alignItems: "center" }}>
           <AnchorBadge />
