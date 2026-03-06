@@ -1,6 +1,11 @@
 /**
- * Centralized navigation route definitions for AveryOS
- * Used across NavBar, Sidebar, and Drawer components
+ * Centralized navigation route definitions for AveryOS™
+ * Used across NavBar, Sidebar, and Drawer components.
+ *
+ * Admin routes (adminRoutes) are gated behind VAULTAUTH_TOKEN verification.
+ * Only render the Sovereign Admin tab after a successful token check.
+ *
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 export type NavigationRoute = {
@@ -9,6 +14,7 @@ export type NavigationRoute = {
   icon: string;
 };
 
+/** Public navigation routes — rendered for all visitors */
 export const navigationRoutes: NavigationRoute[] = [
   // ── Core documents ─────────────────────────────────────────────────────────
   { path: "/whitepaper", label: "Whitepaper", icon: "📖" },
@@ -26,9 +32,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },
   { path: "/evidence-vault", label: "Evidence Vault", icon: "🗄️" },
-  { path: "/vault-gate", label: "Vault Gate 🔒", icon: "🔑" },
-  { path: "/audit-stream", label: "Audit Stream 🔒", icon: "📡" },
-  { path: "/sovereign-anchor", label: "Sovereign Anchor 🔒", icon: "⛓️⚓⛓️" },
   // ── Capsules & tools ────────────────────────────────────────────────────────
   { path: "/capsules", label: "Capsule Market", icon: "💊" },
   { path: "/discover", label: "Discover", icon: "🔍" },
@@ -48,4 +51,19 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
+];
+
+/**
+ * Sovereign Admin routes — rendered ONLY after successful VAULTAUTH_TOKEN
+ * verification. Consolidates all secure admin-only pages under one tab.
+ *
+ * Usage in components:
+ *   const isAdmin = sessionStorage.getItem('VAULTAUTH_TOKEN') === expectedToken;
+ *   if (isAdmin) { render adminRoutes under the "Sovereign Admin" tab }
+ */
+export const adminRoutes: NavigationRoute[] = [
+  { path: "/vault-gate", label: "Vault Gate", icon: "🔑" },
+  { path: "/audit-stream", label: "Audit Stream", icon: "📡" },
+  { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️" },
+  { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹" },
 ];
