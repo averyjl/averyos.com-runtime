@@ -19,13 +19,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
       - name: Install dependencies
-        run: npm install
-      - name: Build OpenNext
-        run: npx open-next build
+        run: npm ci
+      - name: Build with OpenNext Cloudflare adapter
+        run: npm run build:cloudflare
+      - name: Verify Cloudflare credentials
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "⚠️  CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID not configured."
+            echo "   Skipping Cloudflare Worker deployment."
+            exit 0
+          fi
+          echo "✅ Cloudflare credentials present"
       - name: Deploy to Cloudflare
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          command: deploy --env production
