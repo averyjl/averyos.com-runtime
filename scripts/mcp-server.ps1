@@ -78,13 +78,11 @@ function Write-D1VaultLog {
     )
     if (-not $D1_ACCOUNT_ID -or -not $D1_DATABASE_ID -or -not $D1_API_TOKEN) {
         Write-AosLog "WARN" "D1 credentials not configured — skipping VaultChain log."
-        Write-AosLog "WARN" "Set AVERYOS_D1_ACCOUNT_ID, AVERYOS_D1_DATABASE_ID, AVERYOS_D1_API_TOKEN."
         return
     }
 
     $timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
     $sql  = "INSERT INTO sovereign_audit_logs (event_type, ip_address, path, user_agent, timestamp, sha512_pulse) VALUES (?, ?, ?, ?, ?, ?)"
-    # user_agent reused to record the model name for ALM audit traceability
     $body = @{
         sql    = $sql
         params = @("OLLAMA_ALM_RESPONSE", "NODE_02_LOCAL", "/mcp/ollama", $ModelUsed, $timestamp, $PulseHash)
@@ -103,8 +101,6 @@ function Write-D1VaultLog {
             $result = Invoke-RestMethod -Uri $uri -Method POST -Headers $headers -Body $body
             if ($result.success) {
                 Write-AosLog "INFO" "VaultChain log written: $($PulseHash.Substring(0,32))..."
-            } else {
-                Write-AosLog "WARN" "D1 write returned non-success: $($result | ConvertTo-Json -Compress)"
             }
         }
     } catch {
@@ -115,89 +111,53 @@ function Write-D1VaultLog {
 # Send a prompt to the local Ollama instance and return the response
 function Invoke-OllamaQuery {
     param([string]$Prompt)
-
     $body = @{
         model  = $ModelName
         prompt = $Prompt
         stream = $false
     } | ConvertTo-Json -Compress
-
-    $response = Invoke-RestMethod -Uri "$OllamaEndpoint/api/generate" `
-        -Method POST `
-        -ContentType "application/json" `
-        -Body $body
-
+    $response = Invoke-RestMethod -Uri "$OllamaEndpoint/api/generate" -Method POST -ContentType "application/json" -Body $body
     return $response.response
 }
 
 # Handle a single MCP JSON-RPC request and return a JSON-RPC response
 function Invoke-McpRequest {
     param([hashtable]$Request)
-
     $id     = $Request.id
     $method = $Request.method
-
     switch ($method) {
         "initialize" {
             return @{
-                jsonrpc = "2.0"
-                id      = $id
+                jsonrpc = "2.0"; id = $id;
                 result  = @{
-                    protocolVersion = "0.1.0"
-                    capabilities    = @{ sampling = @{} }
-                    serverInfo      = @{
-                        name    = "AveryOS™ Ollama MCP"
-                        version = $KERNEL_VERSION
-                    }
+                    protocolVersion = "0.1.0"; capabilities = @{ sampling = @{} };
+                    serverInfo = @{ name = "AveryOS™ Ollama MCP"; version = $KERNEL_VERSION }
                 }
             }
         }
         "sampling/createMessage" {
             $messages = $Request.params.messages
             $prompt   = ($messages | ForEach-Object { "$($_.role): $($_.content.text)" }) -join "`n"
-
-            # Prepend active repo context so Ollama is aware of the multi-repo bridge
             $repoContext = if ($ActiveRepoPaths.Count -gt 0) {
-                # Show count + first 3 paths to keep context concise
                 $preview = ($ActiveRepoPaths | Select-Object -First 3 | ForEach-Object { Split-Path $_ -Leaf }) -join ", "
                 $suffix  = if ($ActiveRepoPaths.Count -gt 3) { " (+$($ActiveRepoPaths.Count - 3) more)" } else { "" }
                 "`n[AVERYOS_BRIDGE] Active repos ($($ActiveRepoPaths.Count)): $preview$suffix`n"
             } else { "" }
             $fullPrompt = "$repoContext$prompt"
-
             Write-AosLog "INFO" "MCP sampling request received (model: $ModelName)"
             $responseText = Invoke-OllamaQuery -Prompt $fullPrompt
-
-            # SHA-512 hash and log to D1 VaultChain
             $pulseHash = Get-Sha512 -Input "${KERNEL_SHA}:${fullPrompt}:${responseText}"
             Write-D1VaultLog -Prompt $fullPrompt -ResponseText $responseText -PulseHash $pulseHash -ModelUsed $ModelName
-
             return @{
-                jsonrpc = "2.0"
-                id      = $id
+                jsonrpc = "2.0"; id = $id;
                 result  = @{
-                    role    = "assistant"
-                    content = @{
-                        type = "text"
-                        text = $responseText
-                    }
-                    model           = $ModelName
-                    stopReason      = "endTurn"
-                    sovereignAnchor = "${KERNEL_SHA}"
-                    pulseHash       = $pulseHash
-                    activeRepos     = $ActiveRepoPaths
+                    role = "assistant"; content = @{ type = "text"; text = $responseText };
+                    model = $ModelName; stopReason = "endTurn"; sovereignAnchor = "${KERNEL_SHA}"; pulseHash = $pulseHash; activeRepos = $ActiveRepoPaths
                 }
             }
         }
         default {
-            return @{
-                jsonrpc = "2.0"
-                id      = $id
-                error   = @{
-                    code    = -32601
-                    message = "Method not found: $method"
-                }
-            }
+            return @{ jsonrpc = "2.0"; id = $id; error = @{ code = -32601; message = "Method not found: $method" } }
         }
     }
 }
@@ -207,74 +167,42 @@ function Start-McpServer {
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
     $listener.Start()
     Write-AosLog "INFO" "MCP Server listening on 127.0.0.1:$Port"
-
     try {
         while ($true) {
             $client = $listener.AcceptTcpClient()
-            Write-AosLog "INFO" "Client connected: $($client.Client.RemoteEndPoint)"
-
             $stream = $client.GetStream()
             $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8)
             $writer = [System.IO.StreamWriter]::new($stream, [System.Text.Encoding]::UTF8)
             $writer.AutoFlush = $true
-
             try {
                 while (-not $reader.EndOfStream) {
                     $line = $reader.ReadLine()
                     if ($null -eq $line -or $line.Trim() -eq "") { continue }
-
                     $request  = $line | ConvertFrom-Json -AsHashtable
                     $response = Invoke-McpRequest -Request $request
                     $writer.WriteLine(($response | ConvertTo-Json -Compress -Depth 10))
                 }
-            } catch {
-                Write-AosLog "WARN" "Client error: $_"
-            } finally {
-                $reader.Dispose()
-                $writer.Dispose()
-                $client.Close()
-            }
+            } catch { Write-AosLog "WARN" "Client error: $_" } finally { $reader.Dispose(); $writer.Dispose(); $client.Close() }
         }
-    } finally {
-        $listener.Stop()
-    }
+    } finally { $listener.Stop() }
 }
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "⛓️⚓⛓️  AveryOS™ Ollama MCP Server"
-Write-Host "   Kernel : $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))..."
-Write-Host "   Creator: $CREATOR_LOCK"
-Write-Host "   Model  : $ModelName @ $OllamaEndpoint"
-Write-Host "   Port   : $Port"
-if ($DryRun) { Write-Host "   Mode   : DRY RUN" }
-Write-Host ""
-
-# Report multi-repo bridge status
+Write-Host "`n⛓️⚓⛓️  AveryOS™ Ollama MCP Server"
 Write-Host "── Multi-Repo Bridge ─────────────────────────────────────────────────────"
 foreach ($repoPath in $RepoPaths) {
     $found = Test-Path $repoPath
     $icon  = if ($found) { "✅" } else { "⚠️ " }
     Write-Host "   $icon $repoPath"
 }
-Write-Host "   Active: $($ActiveRepoPaths.Count)/$($RepoPaths.Count) repos"
-Write-Host ""
+Write-Host "   Active: $($ActiveRepoPaths.Count)/$($RepoPaths.Count) repos`n"
 
-if ($DryRun) {
-    Write-AosLog "INFO" "[DRY RUN] MCP server would listen on port $Port"
-    Write-AosLog "INFO" "[DRY RUN] Queries would be forwarded to $OllamaEndpoint/api/generate"
-    Write-AosLog "INFO" "[DRY RUN] Responses would be SHA-512 hashed and logged to D1 VaultChain"
-    exit 0
-}
+if ($DryRun) { Write-AosLog "INFO" "[DRY RUN] Mode active - exiting." ; exit 0 }
 
-# Verify Ollama is reachable before starting
 try {
     $tags = Invoke-RestMethod -Uri "$OllamaEndpoint/api/tags" -TimeoutSec 5
     Write-AosLog "INFO" "Ollama server running — $(($tags.models).Count) model(s) loaded"
-} catch {
-    Write-AosLog "ERROR" "Ollama not reachable at $OllamaEndpoint. Run: ollama serve"
-    exit 1
-}
+} catch { Write-AosLog "ERROR" "Ollama not reachable at $OllamaEndpoint." ; exit 1 }
 
 Write-AosLog "INFO" "Starting MCP server (Ctrl+C to stop)..."
 Start-McpServer
