@@ -104,6 +104,28 @@ function readHardwareSalt(): string | null {
   }
 }
 
+/**
+ * Parse an Ollama response that may be either:
+ *   a) A clean JSON object already (parsed by fetch → .json())
+ *   b) A raw prose string that may embed a SHA-512 hex somewhere
+ *
+ * Returns a normalised { thought, thoughtHash } tuple.
+ * The hash is either the first 128-char hex substring found in the prose
+ * (typical when llama3 emits a thought that contains its own SHA), or a
+ * fresh SHA-512 of the full thought text.
+ */
+function parseOllamaThought(rawResponse: string): { thought: string; thoughtHash: string } {
+  const thought = rawResponse.trim();
+
+  // Look for an embedded SHA-512 (128 lowercase hex chars) in the prose
+  const sha512Pattern = /\b([0-9a-fA-F]{128})\b/;
+  const match = thought.match(sha512Pattern);
+  const embeddedHash = match?.[1]?.toLowerCase() ?? null;
+
+  const thoughtHash = embeddedHash ?? sha512(thought);
+  return { thought, thoughtHash };
+}
+
 /** POST JSON to an AveryOS anchor endpoint */
 async function anchorPost(path: string, body: unknown): Promise<unknown> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -156,7 +178,7 @@ function prompt(question: string): Promise<string> {
 async function anchorOllamaThought(): Promise<void> {
   console.log("[ollama] Querying Ollama model:", OLLAMA_MODEL);
 
-  let ollamaRes: OllamaGenerateResponse;
+  let rawResponse: string;
   try {
     const res = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
@@ -172,20 +194,28 @@ async function anchorOllamaThought(): Promise<void> {
       console.warn("[ollama] ⚠️  Ollama returned HTTP", res.status);
       return;
     }
-    ollamaRes = (await res.json()) as OllamaGenerateResponse;
+    // Ollama /api/generate may return JSON OR, with certain models/configs,
+    // a prose string.  We normalise both cases here.
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const json = (await res.json()) as OllamaGenerateResponse;
+      rawResponse = json.response ?? "";
+    } else {
+      // Fallback: treat as plain text (handles non-standard Ollama wrappers)
+      rawResponse = await res.text();
+    }
   } catch (err) {
     console.warn("[ollama] ⚠️  Could not reach Ollama:", (err as Error).message);
     return;
   }
 
-  const thought = ollamaRes.response ?? "";
-  if (!thought) {
+  if (!rawResponse) {
     console.warn("[ollama] ⚠️  Empty response from Ollama");
     return;
   }
 
-  const thoughtHash = sha512(thought);
-  const timestamp   = new Date().toISOString();
+  const { thought, thoughtHash } = parseOllamaThought(rawResponse);
+  const timestamp = new Date().toISOString();
 
   console.log("[ollama] Thought:", thought.slice(0, 80) + (thought.length > 80 ? "…" : ""));
   console.log("[ollama] SHA-512:", thoughtHash.slice(0, 32) + "…");

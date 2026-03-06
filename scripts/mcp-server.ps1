@@ -19,7 +19,17 @@ param(
     [string]$OllamaEndpoint = "http://localhost:11434",
     [string]$ModelName      = "averyos-alm",
     [int]$Port              = 11435,
-    [switch]$DryRun
+    [switch]$DryRun,
+    # Multi-repo bridge paths — override via -RepoPaths @("path1","path2")
+    [string[]]$RepoPaths    = @(
+        "$env:USERPROFILE\_repos\averyos-vaultchain-core",
+        "$env:USERPROFILE\_repos\AveryOS_Capsule_Licensing_Gateway",
+        "$env:USERPROFILE\_repos\AveryOS-Genesis-Architecture",
+        "$env:USERPROFILE\_repos\AveryOS-Sovereign-Core",
+        "$env:USERPROFILE\_repos\AveryOS_Terminal_FullStack",
+        "$env:USERPROFILE\_repos\Stripe_Listener",
+        "$env:USERPROFILE\_repos\AveryOS_PublicTerminal_Launch2026"
+    )
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,6 +42,9 @@ $D1_ACCOUNT_ID   = $env:AVERYOS_D1_ACCOUNT_ID
 $D1_DATABASE_ID  = $env:AVERYOS_D1_DATABASE_ID
 $D1_API_TOKEN    = $env:AVERYOS_D1_API_TOKEN
 $D1_API_BASE     = "https://api.cloudflare.com/client/v4"
+
+# Resolve and validate multi-repo bridge paths
+$ActiveRepoPaths = $RepoPaths | Where-Object { Test-Path $_ }
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 function Write-AosLog {
@@ -143,12 +156,21 @@ function Invoke-McpRequest {
             $messages = $Request.params.messages
             $prompt   = ($messages | ForEach-Object { "$($_.role): $($_.content.text)" }) -join "`n"
 
+            # Prepend active repo context so Ollama is aware of the multi-repo bridge
+            $repoContext = if ($ActiveRepoPaths.Count -gt 0) {
+                # Show count + first 3 paths to keep context concise
+                $preview = ($ActiveRepoPaths | Select-Object -First 3 | ForEach-Object { Split-Path $_ -Leaf }) -join ", "
+                $suffix  = if ($ActiveRepoPaths.Count -gt 3) { " (+$($ActiveRepoPaths.Count - 3) more)" } else { "" }
+                "`n[AVERYOS_BRIDGE] Active repos ($($ActiveRepoPaths.Count)): $preview$suffix`n"
+            } else { "" }
+            $fullPrompt = "$repoContext$prompt"
+
             Write-AosLog "INFO" "MCP sampling request received (model: $ModelName)"
-            $responseText = Invoke-OllamaQuery -Prompt $prompt
+            $responseText = Invoke-OllamaQuery -Prompt $fullPrompt
 
             # SHA-512 hash and log to D1 VaultChain
-            $pulseHash = Get-Sha512 -Input "$KERNEL_SHA:$prompt:$responseText"
-            Write-D1VaultLog -Prompt $prompt -ResponseText $responseText -PulseHash $pulseHash -ModelUsed $ModelName
+            $pulseHash = Get-Sha512 -Input "${KERNEL_SHA}:${fullPrompt}:${responseText}"
+            Write-D1VaultLog -Prompt $fullPrompt -ResponseText $responseText -PulseHash $pulseHash -ModelUsed $ModelName
 
             return @{
                 jsonrpc = "2.0"
@@ -161,8 +183,9 @@ function Invoke-McpRequest {
                     }
                     model           = $ModelName
                     stopReason      = "endTurn"
-                    sovereignAnchor = $KERNEL_SHA
+                    sovereignAnchor = "${KERNEL_SHA}"
                     pulseHash       = $pulseHash
+                    activeRepos     = $ActiveRepoPaths
                 }
             }
         }
@@ -225,6 +248,16 @@ Write-Host "   Creator: $CREATOR_LOCK"
 Write-Host "   Model  : $ModelName @ $OllamaEndpoint"
 Write-Host "   Port   : $Port"
 if ($DryRun) { Write-Host "   Mode   : DRY RUN" }
+Write-Host ""
+
+# Report multi-repo bridge status
+Write-Host "── Multi-Repo Bridge ─────────────────────────────────────────────────────"
+foreach ($repoPath in $RepoPaths) {
+    $found = Test-Path $repoPath
+    $icon  = if ($found) { "✅" } else { "⚠️ " }
+    Write-Host "   $icon $repoPath"
+}
+Write-Host "   Active: $($ActiveRepoPaths.Count)/$($RepoPaths.Count) repos"
 Write-Host ""
 
 if ($DryRun) {

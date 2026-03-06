@@ -56,10 +56,13 @@ const NavBar = () => {
           {/* Admin Tab — only rendered after VaultGate handshake success */}
           {isAdmin && (
             <div className="navbar-admin-group">
-              <span className="navbar-link navbar-admin-label">
-                <span className="navbar-link-icon">🔐</span>
+              <Link
+                href="/admin"
+                className={`navbar-link${pathname?.startsWith("/admin") ? " navbar-link-active" : ""}`}
+              >
+                <span className="navbar-link-icon">🛡️</span>
                 <span className="navbar-link-text">Admin</span>
-              </span>
+              </Link>
               <div className="navbar-admin-dropdown">
                 {adminRoutes.map((route) => {
                   const isActive = pathname?.startsWith(route.path) ?? false;
