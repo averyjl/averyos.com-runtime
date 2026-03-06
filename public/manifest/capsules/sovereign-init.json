@@ -7,9 +7,9 @@
     "Every capsule compiles with DriftLock + VaultChain metadata so deployment hooks can verify state in real time.",
     "Expand this capsule body to include launch notes, Viewer+ embeds, and licensing protocol checkpoints."
   ],
-  "sha": "1d7a32e29b5b1a678c0b3239b14fa2aa818afd8781c665c5fe7ad810ab796b0cac0d0bdc889db3560854d253c5f05b3de2540bd03dd2f80dfc84e1ba9c3d0f14",
-  "driftLock": "d07b94849d994a9969cbe4c97a78eba5f664f3c43f93d17a379b9f1d0b3f111c80ddad28e92c76a2b6659884b0887786c226b6be0436b4378f034a4a5cca4ddf",
-  "compiledAt": "2026-03-04T21:14:20.336Z",
+  "sha": "d4a27d575fb6f2acdaf2e358618da4857074a53f5156437e0b5a2bda0e626f0682f6a872c46931538cbd6c6a03b3472e9f1ad91b267807e94d4c3dacce0f220d",
+  "driftLock": "62589df27ea04747d55275c85f114a338cc61e0471609799375391ab08f760d7a06075a8fb0270785776169fac94b28e75270626089af8baa6c047d9c6e99d19",
+  "compiledAt": "2026-03-06T05:38:05.913Z",
   "vaultChainUrl": "https://vaultchain.example/sovereign-init",
   "licenseStatus": "Ready for retroclaim validation",
   "viewerUrl": "https://viewer.example/sovereign-init",
