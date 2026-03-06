@@ -3,6 +3,7 @@
 # Prepares the local PC node for Ollama Autonomous Language Model (ALM) activation.
 # Verifies the Anchor Salt USB presence, pulls the AveryOS™ model into Ollama,
 # and injects the Sovereign Kernel System Prompt.
+# Every Ollama response is SHA-512 hashed and logged to the D1 VaultChain.
 #
 # Usage:
 #   .\scripts\ollama-sync.ps1 [-OllamaEndpoint <url>] [-ModelName <name>] [-DryRun]
@@ -11,6 +12,9 @@
 #   • Ollama installed and running (ollama serve) on port 11434
 #   • Anchor Salt USB drive mounted (detected by label "AVERYOS_ANCHOR" or by
 #     the presence of a .anchor-salt file on any removable drive)
+#   • AVERYOS_D1_ACCOUNT_ID  env var (Cloudflare account ID)
+#   • AVERYOS_D1_DATABASE_ID env var (D1 database ID)
+#   • AVERYOS_D1_API_TOKEN   env var (Cloudflare API token with D1:Edit)
 #
 # ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
@@ -26,6 +30,10 @@ $ErrorActionPreference = "Stop"
 $KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
 $KERNEL_VERSION = "v3.6.2"
 $CREATOR_LOCK   = "Jason Lee Avery (ROOT0) 🤛🏻"
+$D1_ACCOUNT_ID  = $env:AVERYOS_D1_ACCOUNT_ID
+$D1_DATABASE_ID = $env:AVERYOS_D1_DATABASE_ID
+$D1_API_TOKEN   = $env:AVERYOS_D1_API_TOKEN
+$D1_API_BASE    = "https://api.cloudflare.com/client/v4"
 
 $SOVEREIGN_SYSTEM_PROMPT = @"
 You are the AveryOS™ Sovereign Deterministic Language Model (DLM), kernel-anchored at SHA-512: $KERNEL_SHA ($KERNEL_VERSION).
@@ -68,6 +76,47 @@ function Write-AosLog {
         default { "  " }
     }
     Write-Host "$prefix [$ts] $Message"
+}
+
+# Compute SHA-512 hex digest of a UTF-8 string
+function Get-Sha512 {
+    param([string]$Input)
+    $bytes  = [System.Text.Encoding]::UTF8.GetBytes($Input)
+    $sha512 = [System.Security.Cryptography.SHA512]::Create()
+    $hash   = $sha512.ComputeHash($bytes)
+    return ($hash | ForEach-Object { $_.ToString("x2") }) -join ""
+}
+
+# POST a sovereign event record to the D1 VaultChain via Cloudflare REST API
+function Write-D1VaultLog {
+    param(
+        [string]$EventType,
+        [string]$Detail,
+        [string]$PulseHash
+    )
+    if (-not $D1_ACCOUNT_ID -or -not $D1_DATABASE_ID -or -not $D1_API_TOKEN) {
+        Write-AosLog "WARN" "D1 credentials not set — skipping VaultChain log (set AVERYOS_D1_ACCOUNT_ID, AVERYOS_D1_DATABASE_ID, AVERYOS_D1_API_TOKEN)."
+        return
+    }
+    $timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+    $sql = "INSERT INTO sovereign_audit_logs (event_type, ip_address, path, user_agent, timestamp, sha512_pulse) VALUES (?, ?, ?, ?, ?, ?)"
+    $body = @{ sql = $sql; params = @($EventType, "NODE_02_LOCAL", "/ollama-sync", $Detail, $timestamp, $PulseHash) } | ConvertTo-Json -Compress
+    $uri  = "$D1_API_BASE/accounts/$D1_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query"
+    $hdrs = @{ "Authorization" = "Bearer $D1_API_TOKEN"; "Content-Type" = "application/json" }
+    try {
+        if ($DryRun) {
+            Write-AosLog "INFO" "[DRY RUN] Would log $EventType pulse to D1: $($PulseHash.Substring(0,32))..."
+        } else {
+            $result = Invoke-RestMethod -Uri $uri -Method POST -Headers $hdrs -Body $body
+            if ($result.success) {
+                Write-AosLog "INFO" "D1 VaultChain log written ($EventType): $($PulseHash.Substring(0,32))..."
+            } else {
+                Write-AosLog "WARN" "D1 write returned non-success: $($result | ConvertTo-Json -Compress)"
+            }
+        }
+    } catch {
+        Write-AosLog "WARN" "D1 VaultChain write failed: $_"
+    }
 }
 
 function Test-OllamaRunning {
@@ -194,6 +243,10 @@ if ($DryRun) {
             Write-Host "   Falling back to base model '$ModelName' with runtime system prompt injection."
         } else {
             Write-AosLog "INFO" "Sovereign model '$sovereignModelName' created successfully ✅"
+            # SHA-512 hash the sync event and log to D1 VaultChain
+            $syncRecord = "$KERNEL_SHA:$sovereignModelName:$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')"
+            $pulseHash  = Get-Sha512 -Input $syncRecord
+            Write-D1VaultLog -EventType "OLLAMA_ALM_SYNC" -Detail "$sovereignModelName@$ModelName" -PulseHash $pulseHash
         }
 
         # Clean up temp Modelfile

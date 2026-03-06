@@ -12,6 +12,8 @@ export type NavigationRoute = {
   path: string;
   label: string;
   icon: string;
+  /** When true the route is only rendered in the Navbar after VaultGate handshake success */
+  isAdmin?: boolean;
 };
 
 /** Public navigation routes — rendered for all visitors */
@@ -51,6 +53,11 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
+  // ── Admin (VaultGate-protected) ─────────────────────────────────────────────
+  { path: "/vault-gate", label: "Vault Gate", icon: "🔑", isAdmin: true },
+  { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
+  { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
+  { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
 ];
 
 /**

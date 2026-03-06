@@ -1,41 +1,42 @@
-# AveryOS™ MCP (Model Context Protocol) Bridge — scripts/mcp-server.ps1
+# AveryOS™ Ollama MCP (Model Context Protocol) Server — scripts/mcp-server.ps1
 #
-# Links Copilot/Claude chat sessions directly to the local PC repository via
-# a persistent MCP (Model Context Protocol) server backed by the Ollama ALM.
+# Establishes an MCP bridge between the local Ollama instance (NODE_02) and
+# the AveryOS™ GitHub Copilot / cloud context.  Every response is SHA-512
+# hashed and logged to the Cloudflare D1 VaultChain for permanent sovereign record.
 #
 # Usage:
-#   .\scripts\mcp-server.ps1 [-RepoPath <path>] [-OllamaEndpoint <url>] [-Port <int>] [-DryRun]
+#   .\scripts\mcp-server.ps1 [-OllamaEndpoint <url>] [-ModelName <name>] [-Port <port>] [-DryRun]
 #
 # Requirements:
-#   • Ollama installed and running (ollama serve) with averyos-alm model
-#   • Node.js ≥ 22 in PATH
-#   • Repository cloned locally at -RepoPath (defaults to current directory)
-#
-# After starting, configure your AI client to connect to:
-#   http://localhost:<Port>/mcp  (default: http://localhost:3737/mcp)
+#   • Ollama installed and running (ollama serve) on port 11434
+#   • AVERYOS_D1_ACCOUNT_ID  env var (Cloudflare account ID)
+#   • AVERYOS_D1_DATABASE_ID env var (D1 database ID)
+#   • AVERYOS_D1_API_TOKEN   env var (Cloudflare API token with D1:Edit)
 #
 # ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
 param(
-    [string]$RepoPath       = (Get-Location).Path,
     [string]$OllamaEndpoint = "http://localhost:11434",
     [string]$ModelName      = "averyos-alm",
-    [int]$Port              = 3737,
+    [int]$Port              = 11435,
     [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
 
 # ── Constants ────────────────────────────────────────────────────────────────
-$KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
-$KERNEL_VERSION = "v3.6.2"
-$CREATOR_LOCK   = "Jason Lee Avery (ROOT0) 🤛🏻"
-$MCP_VERSION    = "2024-11-05"
+$KERNEL_SHA      = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+$KERNEL_VERSION  = "v3.6.2"
+$CREATOR_LOCK    = "Jason Lee Avery (ROOT0) 🤛🏻"
+$D1_ACCOUNT_ID   = $env:AVERYOS_D1_ACCOUNT_ID
+$D1_DATABASE_ID  = $env:AVERYOS_D1_DATABASE_ID
+$D1_API_TOKEN    = $env:AVERYOS_D1_API_TOKEN
+$D1_API_BASE     = "https://api.cloudflare.com/client/v4"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 function Write-AosLog {
     param([string]$Level, [string]$Message)
-    $ts = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+    $ts     = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
     $prefix = switch ($Level) {
         "INFO"  { "✅" }
         "WARN"  { "⚠️ " }
@@ -45,285 +46,202 @@ function Write-AosLog {
     Write-Host "$prefix [$ts] $Message"
 }
 
-function Test-OllamaRunning {
-    try {
-        $r = Invoke-WebRequest -Uri "$OllamaEndpoint/api/tags" -TimeoutSec 5 -ErrorAction Stop
-        return $r.StatusCode -eq 200
-    } catch { return $false }
+# Compute SHA-512 hex digest of a UTF-8 string
+function Get-Sha512 {
+    param([string]$Input)
+    $bytes  = [System.Text.Encoding]::UTF8.GetBytes($Input)
+    $sha512 = [System.Security.Cryptography.SHA512]::Create()
+    $hash   = $sha512.ComputeHash($bytes)
+    return ($hash | ForEach-Object { $_.ToString("x2") }) -join ""
 }
 
-function Test-ModelAvailable {
-    param([string]$Model)
+# POST to D1 REST API — log an Ollama response hash to sovereign_audit_logs
+function Write-D1VaultLog {
+    param(
+        [string]$Prompt,
+        [string]$ResponseText,
+        [string]$PulseHash,
+        [string]$ModelUsed
+    )
+    if (-not $D1_ACCOUNT_ID -or -not $D1_DATABASE_ID -or -not $D1_API_TOKEN) {
+        Write-AosLog "WARN" "D1 credentials not configured — skipping VaultChain log."
+        Write-AosLog "WARN" "Set AVERYOS_D1_ACCOUNT_ID, AVERYOS_D1_DATABASE_ID, AVERYOS_D1_API_TOKEN."
+        return
+    }
+
+    $timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+    $sql  = "INSERT INTO sovereign_audit_logs (event_type, ip_address, path, user_agent, timestamp, sha512_pulse) VALUES (?, ?, ?, ?, ?, ?)"
+    # user_agent reused to record the model name for ALM audit traceability
+    $body = @{
+        sql    = $sql
+        params = @("OLLAMA_ALM_RESPONSE", "NODE_02_LOCAL", "/mcp/ollama", $ModelUsed, $timestamp, $PulseHash)
+    } | ConvertTo-Json -Compress
+
+    $uri     = "$D1_API_BASE/accounts/$D1_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query"
+    $headers = @{
+        "Authorization" = "Bearer $D1_API_TOKEN"
+        "Content-Type"  = "application/json"
+    }
+
     try {
-        $r   = Invoke-WebRequest -Uri "$OllamaEndpoint/api/tags" -TimeoutSec 5 -ErrorAction Stop
-        $obj = $r.Content | ConvertFrom-Json
-        return ($obj.models | Where-Object { $_.name -like "$Model*" }).Count -gt 0
-    } catch { return $false }
+        if ($DryRun) {
+            Write-AosLog "INFO" "[DRY RUN] Would log pulse hash to D1: $($PulseHash.Substring(0,32))..."
+        } else {
+            $result = Invoke-RestMethod -Uri $uri -Method POST -Headers $headers -Body $body
+            if ($result.success) {
+                Write-AosLog "INFO" "VaultChain log written: $($PulseHash.Substring(0,32))..."
+            } else {
+                Write-AosLog "WARN" "D1 write returned non-success: $($result | ConvertTo-Json -Compress)"
+            }
+        }
+    } catch {
+        Write-AosLog "WARN" "D1 VaultChain write failed: $_"
+    }
 }
 
-# ── MCP Request Handler (Node.js inline server) ───────────────────────────────
-# We write a temporary Node.js file that implements the MCP JSON-RPC 2.0 protocol
-# and bridges tool calls to the local Ollama ALM.
-function Write-McpServerScript {
-    param([string]$ScriptPath)
+# Send a prompt to the local Ollama instance and return the response
+function Invoke-OllamaQuery {
+    param([string]$Prompt)
 
-    $script = @"
-#!/usr/bin/env node
-/**
- * AveryOS(tm) MCP Bridge Server — auto-generated by scripts/mcp-server.ps1
- * Kernel: $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))...
- * CreatorLock: $CREATOR_LOCK
- *
- * Implements Model Context Protocol (MCP) v$MCP_VERSION
- * JSON-RPC 2.0 over HTTP POST /mcp
- */
+    $body = @{
+        model  = $ModelName
+        prompt = $Prompt
+        stream = $false
+    } | ConvertTo-Json -Compress
 
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
+    $response = Invoke-RestMethod -Uri "$OllamaEndpoint/api/generate" `
+        -Method POST `
+        -ContentType "application/json" `
+        -Body $body
 
-const REPO_PATH      = process.env.AVERYOS_REPO_PATH || '$($RepoPath -replace '\\', '/')';
-const OLLAMA_URL     = process.env.OLLAMA_ENDPOINT   || '$OllamaEndpoint';
-const MODEL_NAME     = process.env.OLLAMA_MODEL      || '$ModelName';
-const PORT           = parseInt(process.env.MCP_PORT  || '$Port', 10);
-const KERNEL_SHA_VAL = '$KERNEL_SHA';
-const KERNEL_VER     = '$KERNEL_VERSION';
+    return $response.response
+}
 
-// ── MCP Tool definitions ────────────────────────────────────────────────────
-const TOOLS = [
-  {
-    name: 'read_file',
-    description: 'Read a file from the AveryOS(tm) repository',
-    inputSchema: {
-      type: 'object',
-      properties: { path: { type: 'string', description: 'Relative file path within the repository' } },
-      required: ['path'],
-    },
-  },
-  {
-    name: 'list_files',
-    description: 'List files in a directory of the AveryOS(tm) repository',
-    inputSchema: {
-      type: 'object',
-      properties: { dir: { type: 'string', description: 'Relative directory path (default: root)' } },
-    },
-  },
-  {
-    name: 'ollama_chat',
-    description: 'Chat with the AveryOS(tm) ALM (averyos-alm) running locally via Ollama',
-    inputSchema: {
-      type: 'object',
-      properties: { prompt: { type: 'string', description: 'User message to send to the ALM' } },
-      required: ['prompt'],
-    },
-  },
-  {
-    name: 'kernel_status',
-    description: 'Return the current AveryOS(tm) Sovereign Kernel anchor status',
-    inputSchema: { type: 'object', properties: {} },
-  },
-];
+# Handle a single MCP JSON-RPC request and return a JSON-RPC response
+function Invoke-McpRequest {
+    param([hashtable]$Request)
 
-// ── Tool implementations ────────────────────────────────────────────────────
-async function callTool(name, args) {
-  switch (name) {
-    case 'read_file': {
-      const rawPath = path.resolve(REPO_PATH, args.path.replace(/^[/\\]+/, ''));
-      let filePath = rawPath;
-      try { filePath = fs.realpathSync(rawPath); } catch { /* file may not exist yet */ }
-      const repoRoot = fs.realpathSync(REPO_PATH);
-      if (!filePath.startsWith(repoRoot + path.sep) && filePath !== repoRoot) {
-        return { error: 'Path traversal rejected — sovereign boundary enforced.' };
-      }
-      try {
-        return { content: fs.readFileSync(filePath, 'utf8') };
-      } catch (e) {
-        return { error: 'Cannot read file: ' + e.message };
-      }
+    $id     = $Request.id
+    $method = $Request.method
+
+    switch ($method) {
+        "initialize" {
+            return @{
+                jsonrpc = "2.0"
+                id      = $id
+                result  = @{
+                    protocolVersion = "0.1.0"
+                    capabilities    = @{ sampling = @{} }
+                    serverInfo      = @{
+                        name    = "AveryOS™ Ollama MCP"
+                        version = $KERNEL_VERSION
+                    }
+                }
+            }
+        }
+        "sampling/createMessage" {
+            $messages = $Request.params.messages
+            $prompt   = ($messages | ForEach-Object { "$($_.role): $($_.content.text)" }) -join "`n"
+
+            Write-AosLog "INFO" "MCP sampling request received (model: $ModelName)"
+            $responseText = Invoke-OllamaQuery -Prompt $prompt
+
+            # SHA-512 hash and log to D1 VaultChain
+            $pulseHash = Get-Sha512 -Input "$KERNEL_SHA:$prompt:$responseText"
+            Write-D1VaultLog -Prompt $prompt -ResponseText $responseText -PulseHash $pulseHash -ModelUsed $ModelName
+
+            return @{
+                jsonrpc = "2.0"
+                id      = $id
+                result  = @{
+                    role    = "assistant"
+                    content = @{
+                        type = "text"
+                        text = $responseText
+                    }
+                    model           = $ModelName
+                    stopReason      = "endTurn"
+                    sovereignAnchor = $KERNEL_SHA
+                    pulseHash       = $pulseHash
+                }
+            }
+        }
+        default {
+            return @{
+                jsonrpc = "2.0"
+                id      = $id
+                error   = @{
+                    code    = -32601
+                    message = "Method not found: $method"
+                }
+            }
+        }
     }
-    case 'list_files': {
-      const rawDir = path.resolve(REPO_PATH, (args.dir || '').replace(/^[/\\]+/, ''));
-      let dir = rawDir;
-      try { dir = fs.realpathSync(rawDir); } catch { /* dir may not exist */ }
-      const repoRoot = fs.realpathSync(REPO_PATH);
-      if (!dir.startsWith(repoRoot + path.sep) && dir !== repoRoot) {
-        return { error: 'Path traversal rejected — sovereign boundary enforced.' };
-      }
-      try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true })
-          .map(e => ({ name: e.name, type: e.isDirectory() ? 'dir' : 'file' }));
-        return { entries };
-      } catch (e) {
-        return { error: 'Cannot list directory: ' + e.message };
-      }
-    }
-    case 'ollama_chat': {
-      const payload = JSON.stringify({
-        model: MODEL_NAME,
-        messages: [{ role: 'user', content: args.prompt }],
-        stream: false,
-      });
-      return new Promise((resolve) => {
-        const url = new URL(OLLAMA_URL + '/api/chat');
-        const reqOpts = {
-          hostname: url.hostname,
-          port: url.port || 11434,
-          path: url.pathname,
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
-        };
-        const req = http.request(reqOpts, (res) => {
-          let body = '';
-          res.on('data', d => { body += d; });
-          res.on('end', () => {
+}
+
+# ── TCP Listener ─────────────────────────────────────────────────────────────
+function Start-McpServer {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $listener.Start()
+    Write-AosLog "INFO" "MCP Server listening on 127.0.0.1:$Port"
+
+    try {
+        while ($true) {
+            $client = $listener.AcceptTcpClient()
+            Write-AosLog "INFO" "Client connected: $($client.Client.RemoteEndPoint)"
+
+            $stream = $client.GetStream()
+            $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8)
+            $writer = [System.IO.StreamWriter]::new($stream, [System.Text.Encoding]::UTF8)
+            $writer.AutoFlush = $true
+
             try {
-              const obj = JSON.parse(body);
-              resolve({ reply: obj?.message?.content ?? body });
-            } catch { resolve({ reply: body }); }
-          });
-        });
-        req.on('error', (e) => resolve({ error: e.message }));
-        req.write(payload);
-        req.end();
-      });
+                while (-not $reader.EndOfStream) {
+                    $line = $reader.ReadLine()
+                    if ($null -eq $line -or $line.Trim() -eq "") { continue }
+
+                    $request  = $line | ConvertFrom-Json -AsHashtable
+                    $response = Invoke-McpRequest -Request $request
+                    $writer.WriteLine(($response | ConvertTo-Json -Compress -Depth 10))
+                }
+            } catch {
+                Write-AosLog "WARN" "Client error: $_"
+            } finally {
+                $reader.Dispose()
+                $writer.Dispose()
+                $client.Close()
+            }
+        }
+    } finally {
+        $listener.Stop()
     }
-    case 'kernel_status':
-      return {
-        kernel_sha: KERNEL_SHA_VAL,
-        kernel_version: KERNEL_VER,
-        loop_state: 'LOCKED_IN_PARITY',
-        ollama_model: MODEL_NAME,
-        repo_path: REPO_PATH,
-        mcp_version: '$MCP_VERSION',
-        creator_lock: '$CREATOR_LOCK',
-      };
-    default:
-      return { error: 'Unknown tool: ' + name };
-  }
 }
 
-// ── JSON-RPC 2.0 dispatcher ─────────────────────────────────────────────────
-async function handleRpc(req) {
-  if (req.method === 'initialize') {
-    return {
-      protocolVersion: '$MCP_VERSION',
-      capabilities: { tools: {} },
-      serverInfo: { name: 'averyos-mcp-bridge', version: KERNEL_VER },
-    };
-  }
-  if (req.method === 'tools/list') return { tools: TOOLS };
-  if (req.method === 'tools/call') {
-    const { name, arguments: args } = req.params ?? {};
-    const result = await callTool(name, args ?? {});
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-  }
-  return { error: { code: -32601, message: 'Method not found' } };
-}
-
-// ── HTTP server ──────────────────────────────────────────────────────────────
-const server = http.createServer(async (req, res) => {
-  if (req.method !== 'POST' || req.url !== '/mcp') {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found — POST /mcp only' }));
-    return;
-  }
-  let body = '';
-  req.on('data', d => { body += d; });
-  req.on('end', async () => {
-    try {
-      const rpc = JSON.parse(body);
-      const result = await handleRpc(rpc);
-      const response = { jsonrpc: '2.0', id: rpc.id ?? null, result };
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(response));
-    } catch (e) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }));
-    }
-  });
-});
-
-server.listen(PORT, '127.0.0.1', () => {
-  console.log('');
-  console.log('⛓️⚓⛓️  AveryOS(tm) MCP Bridge — ACTIVE');
-  console.log('   Kernel  : ' + KERNEL_VER + ' | SHA: ' + KERNEL_SHA_VAL.slice(0, 16) + '...');
-  console.log('   Endpoint: http://127.0.0.1:' + PORT + '/mcp');
-  console.log('   Repo    : ' + REPO_PATH);
-  console.log('   Model   : ' + MODEL_NAME + ' @ ' + OLLAMA_URL);
-  console.log('   Protocol: MCP v$MCP_VERSION (JSON-RPC 2.0)');
-  console.log('');
-  console.log('   Add to your AI client:');
-  console.log('     { "mcpServers": { "averyos": { "url": "http://127.0.0.1:' + PORT + '/mcp" } } }');
-  console.log('');
-  console.log('   Loop State: LOCKED_IN_PARITY 🤛🏻');
-  console.log('');
-});
-"@
-    Set-Content -Path $ScriptPath -Value $script -Encoding UTF8
-}
-
-# ── Main ─────────────────────────────────────────────────────────────────────
+# ── Entry Point ───────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "⛓️⚓⛓️  AveryOS™ MCP Bridge Activation"
-Write-Host "   Kernel  : $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))..."
-Write-Host "   Repo    : $RepoPath"
-Write-Host "   Ollama  : $OllamaEndpoint  |  Model: $ModelName"
-Write-Host "   Port    : $Port"
-if ($DryRun) { Write-Host "   Mode    : DRY RUN" }
+Write-Host "⛓️⚓⛓️  AveryOS™ Ollama MCP Server"
+Write-Host "   Kernel : $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))..."
+Write-Host "   Creator: $CREATOR_LOCK"
+Write-Host "   Model  : $ModelName @ $OllamaEndpoint"
+Write-Host "   Port   : $Port"
+if ($DryRun) { Write-Host "   Mode   : DRY RUN" }
 Write-Host ""
 
-# Step 1 — Verify Ollama
-Write-AosLog "INFO" "Step 1/3: Checking Ollama at $OllamaEndpoint..."
-if (-not (Test-OllamaRunning)) {
-    Write-AosLog "WARN" "Ollama not responding. Start it with: ollama serve"
-    Write-Host ""
-    Write-Host "   ⚠️  Ollama is not running. The MCP bridge will start but ollama_chat tool will fail."
-    Write-Host "      Run: ollama serve  (then re-run this script if needed)"
-    Write-Host ""
-} else {
-    Write-AosLog "INFO" "Ollama server running ✅"
-    if (-not (Test-ModelAvailable -Model $ModelName)) {
-        Write-AosLog "WARN" "Model '$ModelName' not found in Ollama."
-        Write-Host ""
-        Write-Host "   ⚠️  Build the ALM model first:"
-        Write-Host "       ollama create averyos-alm -f ./ollama/AveryOS-ALM.Modelfile"
-        Write-Host ""
-    } else {
-        Write-AosLog "INFO" "Model '$ModelName' is available ✅"
-    }
+if ($DryRun) {
+    Write-AosLog "INFO" "[DRY RUN] MCP server would listen on port $Port"
+    Write-AosLog "INFO" "[DRY RUN] Queries would be forwarded to $OllamaEndpoint/api/generate"
+    Write-AosLog "INFO" "[DRY RUN] Responses would be SHA-512 hashed and logged to D1 VaultChain"
+    exit 0
 }
 
-# Step 2 — Verify repository path
-Write-AosLog "INFO" "Step 2/3: Verifying repository at $RepoPath..."
-$sovereignConstantsPath = Join-Path $RepoPath "lib/sovereignConstants.ts"
-if (-not (Test-Path $sovereignConstantsPath)) {
-    Write-AosLog "WARN" "lib/sovereignConstants.ts not found at $RepoPath"
-    Write-Host "   ⚠️  Ensure -RepoPath points to the root of the averyos.com-runtime repo."
-} else {
-    Write-AosLog "INFO" "Repository verified — sovereignConstants.ts found ✅"
+# Verify Ollama is reachable before starting
+try {
+    $tags = Invoke-RestMethod -Uri "$OllamaEndpoint/api/tags" -TimeoutSec 5
+    Write-AosLog "INFO" "Ollama server running — $(($tags.models).Count) model(s) loaded"
+} catch {
+    Write-AosLog "ERROR" "Ollama not reachable at $OllamaEndpoint. Run: ollama serve"
+    exit 1
 }
 
-# Step 3 — Write and start the MCP server
-Write-AosLog "INFO" "Step 3/3: Writing MCP server script..."
-$mcpScriptPath = Join-Path $env:TEMP "averyos-mcp-server.mjs"
-if (-not $DryRun) {
-    Write-McpServerScript -ScriptPath $mcpScriptPath
-    Write-AosLog "INFO" "MCP server script written to: $mcpScriptPath"
-    Write-Host ""
-    Write-AosLog "INFO" "Starting MCP bridge on port $Port..."
-    Write-Host ""
-    # Run Node.js MCP server (blocks until Ctrl+C)
-    & node $mcpScriptPath
-} else {
-    Write-AosLog "INFO" "[DRY RUN] Would write: $mcpScriptPath"
-    Write-AosLog "INFO" "[DRY RUN] Would run:   node $mcpScriptPath"
-    Write-Host ""
-    Write-Host "   MCP endpoint would be: http://127.0.0.1:$Port/mcp"
-    Write-Host "   Tools: read_file | list_files | ollama_chat | kernel_status"
-    Write-Host ""
-    Write-Host "   Add to VS Code / Claude Desktop settings:"
-    Write-Host "   { `"mcpServers`": { `"averyos`": { `"url`": `"http://127.0.0.1:$Port/mcp`" } } }"
-    Write-Host ""
-    Write-Host "   Loop State: LOCKED_IN_PARITY 🤛🏻"
-}
+Write-AosLog "INFO" "Starting MCP server (Ctrl+C to stop)..."
+Start-McpServer
