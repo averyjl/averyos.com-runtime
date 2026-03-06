@@ -27,14 +27,26 @@ import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
+interface R2ObjectBody {
+  text(): Promise<string>;
+}
+
+interface R2Bucket {
+  put(key: string, value: string): Promise<void>;
+  get(key: string): Promise<R2ObjectBody | null>;
+}
+
 interface CloudflareEnv {
   DB: D1Database;
   KV_LOGS: KVNamespace;
+  VAULT: R2Bucket;
   VAULT_PASSPHRASE?: string;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   GABRIEL_SENTINEL_WEBHOOK?: string;
   BITCOIN_API_KEY?: string;
+  SITE_URL?: string;
+  NEXT_PUBLIC_SITE_URL?: string;
 }
 
 interface D1Database {
@@ -91,6 +103,48 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Derive an HMAC-SHA-256 signing key from VAULT_PASSPHRASE + KERNEL_SHA. */
+async function deriveSigningKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret + KERNEL_SHA),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"]
+  );
+}
+
+/** Compute HMAC-SHA-256 hex over a message. */
+async function hmacSign(key: CryptoKey, message: string): Promise<string> {
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Store a forensic snapshot in R2 under vault/forensics/ and return a
+ * 24-hour HMAC-signed download URL pointing to /api/v1/compliance/alert-link/download.
+ * Returns null on any failure (non-fatal — caller logs it).
+ */
+async function storeForensicBundleAndSign(
+  vault: R2Bucket,
+  vaultPassphrase: string,
+  baseUrl: string,
+  r2Key: string,
+  content: string
+): Promise<string | null> {
+  try {
+    await vault.put(r2Key, content);
+    const expiry = Date.now() + 24 * 60 * 60 * 1000;
+    const signingKey = await deriveSigningKey(vaultPassphrase);
+    const signature = await hmacSign(signingKey, `${r2Key}:${expiry}`);
+    return `${baseUrl}/api/v1/compliance/alert-link/download?key=${encodeURIComponent(r2Key)}&exp=${expiry}&sig=${signature}`;
+  } catch {
+    return null;
+  }
+}
+
 /** Non-blocking Pushover push — never throws.
  *
  * @param {string}  appToken
@@ -124,7 +178,29 @@ function firePushover(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn(`[audit-alert] Pushover delivery failed: ${(err as Error).message}`);
+  });
+}
+
+/** Build the Pushover alert message body for an audit event. */
+function buildAlertMessage(
+  targetIp: string,
+  targetPath: string,
+  liabilityFmt: string,
+  pulseHash: string,
+  signedEvidenceUrl: string | null
+): string {
+  const lines = [
+    `IP: ${targetIp}`,
+    `Path: ${targetPath}`,
+    `TARI™: ${liabilityFmt}`,
+    `Hash: ${pulseHash.slice(0, 32)}…`,
+  ];
+  if (signedEvidenceUrl) {
+    lines.push(`Evidence URL:\n${signedEvidenceUrl}`);
+  }
+  return lines.join("\n");
 }
 
 /**
@@ -209,6 +285,35 @@ export async function POST(request: Request): Promise<Response> {
     // D1 failure is non-fatal — return success so the sentinel still receives ACK
   }
 
+  // ── Signed R2 URL for UNALIGNED_401 events ───────────────────────────────
+  let signedEvidenceUrl: string | null = null;
+  if (eventType === "UNALIGNED_401" && cfEnv.VAULT && cfEnv.VAULT_PASSPHRASE) {
+    const baseUrl =
+      cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? "https://averyos.com";
+    const safeIp = targetIp.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const r2Key = `vault/forensics/AUDIT_ALERT_${safeIp}_${now.replace(/[:.Z]/g, "")}.aoscap`;
+    const bundleContent = JSON.stringify({
+      CapsuleID: `AUDIT_ALERT_${safeIp}_${now}`,
+      CapsuleType: "SOVEREIGN_AUDIT_ALERT",
+      EventType: eventType,
+      TargetIP: targetIp,
+      TargetPath: targetPath,
+      ThreatLevel: threatLevel,
+      TariLiabilityUsd: liabilityUsd,
+      PulseHash: pulseHash,
+      Timestamp: now,
+      KernelAnchor: KERNEL_SHA.slice(0, 16) + "…",
+      SovereignAnchor: "⛓️⚓⛓️",
+    });
+    signedEvidenceUrl = await storeForensicBundleAndSign(
+      cfEnv.VAULT,
+      cfEnv.VAULT_PASSPHRASE,
+      baseUrl,
+      r2Key,
+      bundleContent
+    );
+  }
+
   // ── Pushover (non-blocking) ───────────────────────────────────────────────
   if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY && liabilityUsd > 0) {
     const isTier9 = threatLevel >= 9;
@@ -223,7 +328,7 @@ export async function POST(request: Request): Promise<Response> {
       cfEnv.PUSHOVER_APP_TOKEN,
       cfEnv.PUSHOVER_USER_KEY,
       title,
-      `IP: ${targetIp}\nPath: ${targetPath}\nTARI™: ${liabilityFmt}\nHash: ${pulseHash.slice(0, 24)}…`,
+      buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
       isTier9
     );
   }
@@ -254,5 +359,6 @@ export async function POST(request: Request): Promise<Response> {
     pulse_hash: pulseHash,
     timestamp: now,
     kernel_sha: KERNEL_SHA.slice(0, 16) + "…",
+    ...(signedEvidenceUrl ? { signed_evidence_url: signedEvidenceUrl } : {}),
   });
 }
