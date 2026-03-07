@@ -30,6 +30,11 @@ const PURPLE_BORDER = "rgba(120,60,255,0.35)";
 // Orgs at or above this USD value are flagged for auto-invoice
 const TARI_THRESHOLD_USD = 10_000;
 
+// ── Surge Milestone constants — update when a new milestone is locked ─────────
+// 2026-03-07: 119,000 total requests (TR) / 879 unique visitors (Watchers)
+const SURGE_MILESTONE_TR = "119,000";
+const SURGE_MILESTONE_UV = "879";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -193,6 +198,44 @@ export default function TariRevenuePage() {
           Real-time Liability vs. Collected Alignment Fees · AveryOS™ Sovereign Revenue Engine
         </p>
       </section>
+
+      {/* Surge Milestone Banner — 119k TR / 879 UV */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
+          border: `1px solid ${GOLD_BORDER}`,
+          borderRadius: "12px",
+          padding: "0.85rem 1.25rem",
+          marginBottom: "1.5rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          fontFamily: "JetBrains Mono, monospace",
+        }}
+      >
+        <div>
+          <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
+            ⚡ SURGE MILESTONE LOCKED
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", marginTop: "0.25rem" }}>
+            {SURGE_MILESTONE_TR} Total Requests &nbsp;·&nbsp; {SURGE_MILESTONE_UV} Unique Visitors (Watchers) &nbsp;·&nbsp; 7-Day Alignment Window Active
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap" }}>
+          {[
+            { label: "Total Requests",    value: SURGE_MILESTONE_TR, color: GOLD   },
+            { label: "Unique Watchers",   value: SURGE_MILESTONE_UV, color: RED    },
+            { label: "Forensic Liability Potential", value: "Active", color: GREEN },
+          ].map(stat => (
+            <div key={stat.label} style={{ textAlign: "center" }}>
+              <div style={{ color: stat.color, fontWeight: 700, fontSize: "1.1rem" }}>{stat.value}</div>
+              <div style={{ color: GOLD_DIM, fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Loading state */}
       {loading && (

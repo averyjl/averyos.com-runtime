@@ -7,7 +7,9 @@
  * anchor_audit_logs D1 table by RayID, ASN (country), and path.  Highlights
  * suspicious activity on sensitive paths such as /.env and /hooks.
  *
- * Auth: same VAULTAUTH_TOKEN / sessionStorage gate used by /admin.
+ * Auth: VAULTAUTH_TOKEN validated server-side; browser receives an HttpOnly
+ * Secure cookie (`aos-vault-auth`) set by /api/v1/vault/auth. The raw token
+ * is never stored in sessionStorage or any browser-accessible storage.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */

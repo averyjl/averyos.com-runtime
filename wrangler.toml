@@ -83,6 +83,10 @@ custom_domain = true
 pattern = "terminal.averyos.com"
 custom_domain = true
 
+[[routes]]
+pattern = "lighthouse.averyos.com"
+custom_domain = true
+
 [[r2_buckets]]
 binding = 'VAULT'
 bucket_name = 'cloudflare-managed-42f4b874'
@@ -93,7 +97,7 @@ binding = 'VAULT_R2'
 bucket_name = 'cloudflare-managed-42f4b874'
 
 [[r2_buckets]]
-binding = 'averyos_log_push/'
+binding = 'averyos_log_push'
 bucket_name = 'cloudflare-managed-42f4b874'
 
 # ── Cloudflare Secret Store ────────────────────────────────────────────────────

@@ -61,10 +61,14 @@ FROM kernel_metadata_v005;
 DROP TABLE kernel_metadata_v005;
 
 -- Step 6 — Seed genesis row if table is still empty.
-INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers)
+-- tari_pulse_peers is seeded as 0 (no known peers at genesis) rather than 1
+-- so that the literal matches the column default and avoids a false "peer" count
+-- on legacy databases where the column may not have existed yet.
+INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at)
 SELECT
   'v0.0.0',
   'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
   '000000000',
-  1
+  0,
+  datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM kernel_metadata WHERE id = 1);
