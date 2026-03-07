@@ -29,7 +29,7 @@
  *   $10,000 (Base BSU) + ($0.01 × request_count) per corporate org_id
  *
  * Milestone trigger: ASN mode only processes when total anchor_audit_logs
- *   row count meets or exceeds MILESTONE_THRESHOLD (135,000).
+ *   row count meets or exceeds MILESTONE_THRESHOLD (156,200).
  *
  * Metadata: CapsuleID: AveryOS_TARI_v1.1
  */
@@ -63,7 +63,7 @@ const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
 
 // ── ASN Mode Config ───────────────────────────────────────────────────────────
 // Milestone: ASN mode only activates when anchor_audit_logs row count >= this value.
-const MILESTONE_THRESHOLD = 135_000;
+const MILESTONE_THRESHOLD = 156_200;
 
 // Enterprise ASNs — GitHub/Microsoft, French infrastructure, Seznam (Czech Republic).
 // These trigger a $10M Good Faith Deposit invoice.
@@ -272,7 +272,7 @@ async function createAsnDraftInvoice(stripe, asnEntry, tier) {
       asn:        asnEntry.asn,
       hit_count:  String(asnEntry.hit_count),
       tier:       tier.tier,
-      milestone:  '911 Watchers Authenticated | 135k Pulse Anchored',
+      milestone:  '962 Entities Documented | 156.2k Pulse Locked',
     },
   });
 
@@ -368,17 +368,17 @@ async function runAsnInvoicingPipeline(stripe) {
   console.log(`📊  Total anchor_audit_logs rows: ${total.toLocaleString()}`);
   console.log(`📡  Unique ASNs detected: ${byAsn.size}`);
 
-  // ── 135k Milestone Gate ──────────────────────────────────────────────────
+  // ── 156.2k Milestone Gate ─────────────────────────────────────────────────
   if (total < MILESTONE_THRESHOLD) {
     console.warn(
       `⏸️   Milestone not yet reached: ${total.toLocaleString()} rows < ${MILESTONE_THRESHOLD.toLocaleString()} threshold. ` +
-      `Invoicing deferred until 135k Pulse milestone is anchored.`
+      `Invoicing deferred until 156.2k Pulse milestone is anchored.`
     );
     return;
   }
 
   console.log(`✅  Milestone reached: ${total.toLocaleString()} rows ≥ ${MILESTONE_THRESHOLD.toLocaleString()}`);
-  console.log('    911 Watchers Authenticated | 135k Pulse Anchored\n');
+  console.log('    962 Entities Documented | 156.2k Pulse Locked\n');
 
   if (byAsn.size === 0) {
     console.warn('⚠️  No ASN-attributed rows found. Verify that the anchor_audit_logs export includes the "asn" column (migration 0018).');
@@ -439,7 +439,7 @@ async function runAsnInvoicingPipeline(stripe) {
   }
 
   console.log('\n──────────────────────────────────────────────────────────────');
-  console.log('✅  ASN Invoice Summary (911 Watchers | 135k Pulse Anchored):');
+  console.log('✅  ASN Invoice Summary (962 Entities | 156.2k Pulse Locked):');
   console.log('──────────────────────────────────────────────────────────────\n');
   for (const r of results) {
     const marker = r.tier === 'enterprise' ? '🔴' : '🟡';

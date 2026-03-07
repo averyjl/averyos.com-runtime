@@ -10,21 +10,102 @@ interface CloudflareEnv {
 }
 
 /**
+ * Enterprise ASNs that trigger a $1,000,000 "Sovereign Alignment Deposit".
+ *   36459  — GitHub / Microsoft (US)
+ *   211590 — FBW Networks (France)
+ *   198488 — Colocall Ltd / Kyiv recon probe (UA)
+ */
+const ENTERPRISE_ASNS = new Set(["36459", "211590", "198488"]);
+
+/** Enterprise Alignment Deposit: $1,000,000 USD */
+const ENTERPRISE_DEPOSIT_CENTS = 100_000_000;
+
+/** Individual Genesis Seed License: $101.70 USD (1,017 TARI™) */
+const INDIVIDUAL_LICENSE_CENTS = 10_170;
+
+type PricingTier = "ENTERPRISE_DEPOSIT" | "INDIVIDUAL_LICENSE" | "CUSTOM";
+
+interface PricingResult {
+  liabilityCents: number;
+  productName: string;
+  productDescription: string;
+  pricingTier: PricingTier;
+}
+
+/** Returns true when the ASN belongs to a known enterprise entity. */
+function isEnterpriseAsn(asn: string): boolean {
+  return ENTERPRISE_ASNS.has(asn);
+}
+
+/** Derives the complete pricing result from request parameters. */
+function determinePricing(
+  tariLiability: unknown,
+  asnStr: string,
+  rayIdStr: string,
+  bundleId: string,
+): PricingResult {
+  if (typeof tariLiability === "number" && tariLiability > 0) {
+    return {
+      liabilityCents: Math.round(tariLiability),
+      productName: "AveryOS™ Sovereign Alignment License (12 Months)",
+      productDescription:
+        `TARI™ Liability Resolution — Forensic Evidence Bundle: ${bundleId}. ` +
+        `Payment resolves all recorded TARI™ liability for the target entity and ` +
+        `activates a 12-Month Alignment License under the AveryOS Sovereign Integrity License v1.0.`,
+      pricingTier: "CUSTOM",
+    };
+  }
+
+  if (asnStr && isEnterpriseAsn(asnStr)) {
+    return {
+      liabilityCents: ENTERPRISE_DEPOSIT_CENTS,
+      productName: "AveryOS™ Enterprise Retro-Ingestion Deposit",
+      productDescription:
+        `Sovereign Alignment Verification — ASN ${asnStr} — ` +
+        (rayIdStr
+          ? `Truth-Alignment Required for Forensic RayID: ${rayIdStr}. `
+          : "") +
+        `This $1,000,000 Good Faith Deposit initiates the Enterprise Retro-Ingestion ` +
+        `settlement process under the AveryOS Sovereign Integrity License v1.0. ` +
+        `Forensic Evidence Bundle: ${bundleId}.`,
+      pricingTier: "ENTERPRISE_DEPOSIT",
+    };
+  }
+
+  return {
+    liabilityCents: INDIVIDUAL_LICENSE_CENTS,
+    productName: "AveryOS™ Genesis Seed Individual License",
+    productDescription:
+      `Truth-Alignment Activation — Forensic Evidence Bundle: ${bundleId}. ` +
+      `This 12-Month Genesis Seed License activates sovereign alignment under the ` +
+      `AveryOS Sovereign Integrity License v1.0.`,
+    pricingTier: "INDIVIDUAL_LICENSE",
+  };
+}
+
+/**
  * POST /api/v1/compliance/create-checkout
  *
  * Creates a Stripe Checkout session tied to a specific Forensic Evidence Bundle.
- * The price is dynamically set based on the TARI™ Liability for the target IP.
+ * Pricing is determined by the caller's ASN:
+ *   - Enterprise ASNs (36459, 211590, 198488) → $1,000,000 "Enterprise Retro-Ingestion Deposit"
+ *   - All others → $101.70 "Genesis Seed Individual License"
+ *
+ * The tariLiability field may still be supplied directly to override ASN-derived pricing
+ * (used by the invoice pipeline for custom amounts).
  *
  * Request body:
  *   {
- *     bundleId:     string;   // Evidence bundle ID (e.g. "EVIDENCE_BUNDLE_...")
- *     targetIp:     string;   // IP address of the unaligned entity
- *     tariLiability?: number; // TARI™ liability in USD cents (default: 101700 = $1,017.00)
+ *     bundleId:       string;   // Evidence bundle ID (e.g. "EVIDENCE_BUNDLE_...")
+ *     targetIp:       string;   // IP address of the unaligned entity
+ *     rayId?:         string;   // Cloudflare Ray ID for forensic metadata lock
+ *     asn?:           string;   // ASN of the requesting entity (e.g. "36459")
+ *     tariLiability?: number;   // Override: TARI™ liability in USD cents
  *   }
  *
  * Response: { checkoutUrl: string; sessionId: string }
  *
- * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2
+ * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED
  */
 export async function POST(request: Request) {
   try {
@@ -48,7 +129,7 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
-    const { bundleId, targetIp, tariLiability } = body as Record<string, unknown>;
+    const { bundleId, targetIp, rayId, asn, tariLiability } = body as Record<string, unknown>;
 
     if (typeof bundleId !== "string" || !bundleId.trim()) {
       return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'bundleId is required.');
@@ -58,11 +139,11 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required.');
     }
 
-    // TARI™ liability — default $1,017.00 (101700 cents) for initial alignment entry
-    const liabilityCents =
-      typeof tariLiability === "number" && tariLiability > 0
-        ? Math.round(tariLiability)
-        : 101700;
+    const asnStr = typeof asn === "string" ? asn.trim() : "";
+    const rayIdStr = typeof rayId === "string" ? rayId.trim() : "";
+
+    const { liabilityCents, productName, productDescription, pricingTier } =
+      determinePricing(tariLiability, asnStr, rayIdStr, bundleId);
 
     const siteUrl =
       cfEnv.NEXT_PUBLIC_SITE_URL ??
@@ -79,14 +160,13 @@ export async function POST(request: Request) {
             currency: "usd",
             unit_amount: liabilityCents,
             product_data: {
-              name: "AveryOS™ Sovereign Alignment License (12 Months)",
-              description:
-                `TARI™ Liability Resolution — Forensic Evidence Bundle: ${bundleId}. ` +
-                `Payment resolves all recorded TARI™ liability for the target entity and ` +
-                `activates a 12-Month Alignment License under the AveryOS Sovereign Integrity License v1.0.`,
+              name: productName,
+              description: productDescription,
               metadata: {
                 bundle_id: bundleId.slice(0, 500),
                 target_ip: targetIp.slice(0, 200),
+                ...(asnStr ? { asn: asnStr } : {}),
+                ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
               },
             },
           },
@@ -103,6 +183,9 @@ export async function POST(request: Request) {
         kernel_version: KERNEL_VERSION,
         tari_liability_cents: String(liabilityCents),
         source: "averyos_compliance_portal",
+        milestone: "LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED",
+        ...(asnStr ? { asn: asnStr } : {}),
+        ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
       },
       payment_intent_data: {
         metadata: {
@@ -110,6 +193,8 @@ export async function POST(request: Request) {
           target_ip: targetIp.slice(0, 200),
           kernel_sha: KERNEL_SHA.slice(0, 128),
           kernel_version: KERNEL_VERSION,
+          ...(asnStr ? { asn: asnStr } : {}),
+          ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
         },
         description:
           `AveryOS™ TARI™ Liability Resolution — Bundle: ${bundleId.slice(0, 200)}`,
@@ -122,8 +207,11 @@ export async function POST(request: Request) {
         sessionId: session.id,
         bundleId,
         targetIp,
+        ...(asnStr ? { asn: asnStr } : {}),
+        ...(rayIdStr ? { rayId: rayIdStr } : {}),
         tariLiabilityCents: liabilityCents,
         tariLiabilityUsd: (liabilityCents / 100).toFixed(2),
+        pricingTier,
       },
       { status: 201 }
     );

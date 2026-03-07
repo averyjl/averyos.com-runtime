@@ -376,7 +376,7 @@ export async function syncTariProbeToFirebase(row: {
     timestamp_ns:        row.timestamp_ns,
     synced_at:           iso9Now(),
     kernel_sha:          KERNEL_SHA,
-    milestone:           "911 Watchers Authenticated | 135k Pulse Anchored",
+    milestone:           "962 Entities Documented | 156.2k Pulse Locked",
     creator_lock:        "🤛🏻",
   };
 
@@ -407,3 +407,13 @@ export async function batchSyncTariProbeToFirebase(
   }
   return { synced, skipped };
 }
+
+/**
+ * Alias for syncTariProbeToFirebase — production-ready export used by the
+ * Revenue Gate invoicing pipeline and the create-checkout API route.
+ * Mirrors a single tari_probe row to Firebase once FIREBASE_PRIVATE_KEY is
+ * stored in the Cloudflare Secret Store.
+ *
+ * ⛓️⚓⛓️  LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED
+ */
+export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
