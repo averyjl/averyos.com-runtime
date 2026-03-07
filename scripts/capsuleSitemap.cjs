@@ -4,6 +4,8 @@ const path = require("path");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const registryPath = path.join(process.cwd(), "public", "capsule-registry");
 const outputDir = path.join(process.cwd(), "public");
+const appDir = path.join(process.cwd(), "app");
+const pagesDir = path.join(process.cwd(), "pages");
 
 const normalizeSiteUrl = (value) => {
   if (!value) return null;
@@ -16,11 +18,24 @@ const siteUrl =
   normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
   "https://averyos.com";
 
-
-
 const GENESIS_BLOCK = '938909';
 const KERNEL_ROOT =
   'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+
+// Paths that are redirect sources — excluded from sitemap (canonical is the target)
+const REDIRECT_SOURCES = new Set([
+  '/start',
+  '/pay',
+  '/buy',
+  '/law-stack',
+  '/forensic-proof',
+  '/retroclaim-log',
+  '/license-enforcement',
+]);
+
+// Paths to explicitly exclude (API, private, dynamic params, internals)
+const EXCLUDE_PREFIXES = ['/api/', '/_'];
+const EXCLUDE_EXACT = new Set(['/health']);
 
 const buildSitemapXml = (entries) => {
   const urlTags = entries
@@ -48,6 +63,92 @@ const writeOutputs = (sitemapXml, robotsTxt) => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(path.join(outputDir, "sitemap.xml"), sitemapXml);
   fs.writeFileSync(path.join(outputDir, "robots.txt"), robotsTxt);
+};
+
+// Returns true if the path segment is a dynamic Next.js route like [param] or [...slug]
+const isDynamic = (segment) => segment.startsWith("[");
+
+// Auto-scan the App Router (app/) directory for page.tsx files
+const scanAppRouter = () => {
+  const urls = [];
+  if (!fs.existsSync(appDir)) return urls;
+
+  const walk = (dir, urlPath) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    let hasPage = false;
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const seg = entry.name;
+        // Skip API, private dirs, and dynamic route segments
+        if (seg === "api" || seg.startsWith("_") || isDynamic(seg)) continue;
+        walk(path.join(dir, seg), `${urlPath}/${seg}`);
+      } else if (entry.name === "page.tsx" || entry.name === "page.ts" || entry.name === "page.jsx" || entry.name === "page.js") {
+        hasPage = true;
+      }
+    }
+
+    if (hasPage && urlPath !== "") {
+      urls.push(urlPath);
+    }
+  };
+
+  walk(appDir, "");
+  return urls;
+};
+
+// Auto-scan the Pages Router (pages/) directory for .tsx/.ts/.js/.jsx files
+const scanPagesRouter = () => {
+  const urls = [];
+  if (!fs.existsSync(pagesDir)) return urls;
+
+  const walk = (dir, urlPath) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const seg = entry.name;
+        // Skip API, private dirs, and dynamic route segments
+        if (seg === "api" || seg.startsWith("_") || isDynamic(seg)) continue;
+        walk(path.join(dir, seg), `${urlPath}/${seg}`);
+      } else {
+        const name = entry.name;
+        // Skip migrated, private, dynamic, and non-page files
+        if (name.includes(".migrated")) continue;
+        if (name.startsWith("_")) continue;
+        if (isDynamic(name.replace(/\.[^.]+$/, ""))) continue;
+
+        const ext = path.extname(name);
+        if (![".tsx", ".ts", ".js", ".jsx"].includes(ext)) continue;
+
+        const slug = name.replace(/\.[^.]+$/, ""); // strip extension
+        const fullPath = slug === "index" ? urlPath || "/" : `${urlPath}/${slug}`;
+
+        // Skip index of root (that's the homepage, handled separately)
+        if (fullPath === "/") continue;
+
+        urls.push(fullPath);
+      }
+    }
+  };
+
+  walk(pagesDir, "");
+  return urls;
+};
+
+// Deduplicate and filter a list of URL paths, return as sitemap entries
+const toSitemapEntries = (paths) => {
+  const seen = new Set();
+  return paths
+    .filter((p) => {
+      if (REDIRECT_SOURCES.has(p)) return false;
+      if (EXCLUDE_EXACT.has(p)) return false;
+      if (EXCLUDE_PREFIXES.some((prefix) => p.startsWith(prefix))) return false;
+      if (seen.has(p)) return false;
+      seen.add(p);
+      return true;
+    })
+    .map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
 };
 
 // Load manifest-based capsules (optional legacy support)
@@ -79,60 +180,34 @@ const loadRegistryCapsules = () => {
 };
 
 const main = () => {
-  const staticUrls = [
-    // App Router pages
-    { loc: `${siteUrl}/ai-alignment`, lastmod: null },
-    { loc: `${siteUrl}/evidence-vault`, lastmod: null },
-    { loc: `${siteUrl}/health`, lastmod: null },
-    { loc: `${siteUrl}/ledger`, lastmod: null },
-    { loc: `${siteUrl}/license`, lastmod: null },
-    { loc: `${siteUrl}/licensing`, lastmod: null },
-    { loc: `${siteUrl}/sovereign-anchor`, lastmod: null },
-    { loc: `${siteUrl}/sovereign-anchor/public`, lastmod: null },
-    { loc: `${siteUrl}/studio/tari`, lastmod: null },
-    { loc: `${siteUrl}/the-proof`, lastmod: null },
-    { loc: `${siteUrl}/vault-gate`, lastmod: null },
-    // Pages Router pages
-    { loc: `${siteUrl}/whitepaper`, lastmod: null },
-    { loc: `${siteUrl}/latent-anchor`, lastmod: null },
-    { loc: `${siteUrl}/lawcodex`, lastmod: null },
-    { loc: `${siteUrl}/tari-gate`, lastmod: null },
-    { loc: `${siteUrl}/forensic-proof`, lastmod: null },
-    { loc: `${siteUrl}/law-stack`, lastmod: null },
-    { loc: `${siteUrl}/buy`, lastmod: null },
-    { loc: `${siteUrl}/retroclaim-log`, lastmod: null },
-    { loc: `${siteUrl}/privacy`, lastmod: null },
-    { loc: `${siteUrl}/terms`, lastmod: null },
-    { loc: `${siteUrl}/about`, lastmod: null },
-    { loc: `${siteUrl}/contact`, lastmod: null },
-    { loc: `${siteUrl}/capsules`, lastmod: null },
-    { loc: `${siteUrl}/capsule/resonance-log`, lastmod: null },
-    { loc: `${siteUrl}/certificate`, lastmod: null },
-    { loc: `${siteUrl}/constitution`, lastmod: null },
-    { loc: `${siteUrl}/creator-lock`, lastmod: null },
-    { loc: `${siteUrl}/discover`, lastmod: null },
-    { loc: `${siteUrl}/faq/truthforce`, lastmod: null },
-    { loc: `${siteUrl}/license-enforcement`, lastmod: null },
-    { loc: `${siteUrl}/pay`, lastmod: null },
-    { loc: `${siteUrl}/retroclaim/how-to-license`, lastmod: null },
-    { loc: `${siteUrl}/verify`, lastmod: null },
-  ];
+  const appPaths = scanAppRouter();
+  const pagesPaths = scanPagesRouter();
+
+  // Combine all scanned paths, deduplicate, filter
+  const allPaths = [...appPaths, ...pagesPaths];
+  const scannedEntries = toSitemapEntries(allPaths);
 
   const registry = loadRegistryCapsules();
   const manifest = loadManifestCapsules();
 
+  // Deduplicate against scanned entries using a Set of loc values
+  const scannedLocs = new Set(scannedEntries.map((e) => e.loc));
+  const uniqueRegistry = registry.filter((e) => !scannedLocs.has(e.loc));
+  const uniqueManifest = manifest.filter((e) => !scannedLocs.has(e.loc));
+
   const entries = [
     { loc: siteUrl, lastmod: new Date().toISOString() },
-    ...registry,
-    ...manifest,
-    ...staticUrls,
+    ...scannedEntries,
+    ...uniqueRegistry,
+    ...uniqueManifest,
   ];
 
   const sitemapXml = buildSitemapXml(entries);
   const robotsTxt = buildRobotsTxt();
 
   writeOutputs(sitemapXml, robotsTxt);
-  console.log(`✅ Wrote sitemap with ${entries.length} URL(s)`);
+  console.log(`✅ Wrote sitemap with ${entries.length} URL(s) (${appPaths.length} app-router, ${pagesPaths.length} pages-router scanned)`);
 };
 
 main();
+

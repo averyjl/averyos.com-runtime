@@ -1,0 +1,22 @@
+# wrangler.gabriel-gatekeeper.toml
+# Standalone Cloudflare Worker config for the GabrielOS™ Gabriel Kernel Gatekeeper.
+#
+# Deploy:    npx wrangler deploy --config workers/wrangler.gabriel-gatekeeper.toml
+# Tail logs: npx wrangler tail --config workers/wrangler.gabriel-gatekeeper.toml
+
+name               = "gabriel-gatekeeper"
+main               = "workers/gabriel-gatekeeper.js"
+compatibility_date = "2026-03-01"
+account_id         = "374875d33ef47a741a129bd5e716abff"
+
+[observability]
+enabled            = true
+head_sampling_rate = 1
+
+# ── Cloudflare Secret Store ────────────────────────────────────────────────────
+# Set these via `wrangler secret put <NAME> --config workers/wrangler.gabriel-gatekeeper.toml`
+# or the Cloudflare dashboard.
+#
+#   wrangler secret put BITCOIN_API_KEY --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put GITHUB_WEBHOOK_SECRET --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put GABRIEL_SENTINEL_WEBHOOK --config workers/wrangler.gabriel-gatekeeper.toml

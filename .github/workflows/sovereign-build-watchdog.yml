@@ -81,14 +81,13 @@ jobs:
         id: rca_classify
         env:
           WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          LOGS: ${{ steps.rca_fetch.outputs.LOGS }}
         run: |
           echo "⛓️⚓⛓️ Auto RCA: Classifying failure..."
 
           ROOT_CAUSE="UNKNOWN"
           HEAL_ACTION="MANUAL_REVIEW"
           SEVERITY="HIGH"
-
-          LOGS="${{ steps.rca_fetch.outputs.LOGS }}"
 
           # Known failure patterns → RCA classification
           if echo "$LOGS" | grep -q "namespace_id.*ratelimit\|ratelimit.*namespace_id\|must have valid namespace_id"; then

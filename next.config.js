@@ -22,6 +22,14 @@ const nextConfig = {
 
   async redirects() {
     return [
+      // ── Canonical domain: www → non-www (301 permanent) ──────────────────
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.averyos.com' }],
+        destination: 'https://averyos.com/:path*',
+        permanent: true,
+      },
+      // ── Legacy / convenience routes ───────────────────────────────────────
       { source: '/start', destination: '/', permanent: true },
       { source: '/pay', destination: '/license', permanent: true },
       { source: '/buy', destination: '/license', permanent: true },
