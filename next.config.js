@@ -22,16 +22,13 @@ const nextConfig = {
 
   async redirects() {
     return [
-      // ── Canonical domain: non-www → www (301 permanent) ──────────────────
-      // www.averyos.com is the primary Cloudflare Worker route.
-      // The X-AveryOS-Alignment header is applied to this redirect in
-      // middleware.ts so "Watchers" receive the alignment notice.
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: 'averyos.com' }],
-        destination: 'https://www.averyos.com/:path*',
-        permanent: true,
-      },
+      // NOTE: The canonical domain redirect (averyos.com → www.averyos.com)
+      // is handled in middleware.ts via proper URL construction.
+      // Do NOT use a next.config.js redirect for this — the /:path* template
+      // variable is not substituted correctly in the @opennextjs/cloudflare
+      // Workers build, causing the browser to land on the literal URL
+      // https://www.averyos.com/:path* instead of the actual page.
+      //
       // ── Legacy / convenience routes ───────────────────────────────────────
       { source: '/start', destination: '/', permanent: true },
       { source: '/pay', destination: '/license', permanent: true },
