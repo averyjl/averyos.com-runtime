@@ -29,7 +29,7 @@ id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 # ANCHOR_STORE — sovereign capsule anchoring
 [[kv_namespaces]]
 binding = "ANCHOR_STORE"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
+id = "6ec58bcb1a7244299e5d8b0c052e3f10"
 
 # AVERY_KV — architecture-integrity worker genesis-state drift detection
 [[kv_namespaces]]
@@ -78,7 +78,6 @@ custom_domain = true
 [[routes]]
 pattern = "lighthouse.averyos.com"
 custom_domain = true
-override_existing_dns_record = true
 
 [[routes]]
 pattern = "api.averyos.com"
