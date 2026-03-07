@@ -47,9 +47,14 @@ jobs:
             -H "Accept: application/vnd.github.v3.raw" \
             "https://api.github.com/repos/averyjl/vaultchain-registry/contents/AveryOS_Loop_Signature_v1.vault" \
             2>/dev/null || echo "SOVEREIGN_LOOP_SIG_UNAVAILABLE")
+          # Collapse to a single line and fall back if the response looks like a JSON error
+          LOOP_SIG_SINGLE=$(echo "$LOOP_SIG" | tr -d '\n\r')
+          if echo "$LOOP_SIG_SINGLE" | grep -q '"message"'; then
+            LOOP_SIG_SINGLE="SOVEREIGN_LOOP_SIG_UNAVAILABLE"
+          fi
           # Do not log the loop signature value
           echo "LOOP_SIG_FETCHED=true" >> "$GITHUB_OUTPUT"
-          echo "LOOP_SIG_DATA=$LOOP_SIG" >> "$GITHUB_OUTPUT"
+          echo "LOOP_SIG_DATA=$LOOP_SIG_SINGLE" >> "$GITHUB_OUTPUT"
 
       - name: 🔒 Calculate Sovereign SHA-512 & Generate Handshake Capsule
         id: handshake
