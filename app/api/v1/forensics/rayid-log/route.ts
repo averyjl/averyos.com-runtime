@@ -12,6 +12,7 @@
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
+import { VAULT_COOKIE_NAME } from '../../vault/auth/route';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -38,8 +39,23 @@ export interface RayIdLogRow {
   timestamp: string;
 }
 
+/** Extract the vault auth token from the HttpOnly cookie or legacy x-vault-auth header. */
+function extractToken(request: Request): string {
+  // Prefer the HttpOnly cookie (set by POST /api/v1/vault/auth).
+  const cookieHeader = request.headers.get('cookie') ?? '';
+  const cookieMatch  = cookieHeader
+    .split(';')
+    .map(c => c.trim())
+    .find(c => c.startsWith(`${VAULT_COOKIE_NAME}=`));
+  if (cookieMatch) {
+    return decodeURIComponent(cookieMatch.slice(VAULT_COOKIE_NAME.length + 1));
+  }
+  // Fallback: legacy x-vault-auth header (used by other admin routes).
+  return request.headers.get('x-vault-auth') ?? '';
+}
+
 export async function GET(request: Request) {
-  const token = request.headers.get('x-vault-auth') ?? '';
+  const token = extractToken(request);
 
   try {
     const { env } = await getCloudflareContext({ async: true });

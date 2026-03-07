@@ -46,10 +46,10 @@ All alignment investments are processed through the Sovereign Licensing Portal. 
 
 | Entity Class | Alignment Investment | What Is Activated |
 |---|---|---|
-| **Individual / Genesis Seed** | **1,017 TARI™ / year** | Personal alignment certificate, retroactive license, Sovereign Badge |
-| **Enterprise / Corporate** | **Custom Quote — $10M TARI™ Good Faith Investment to begin** | Organizational alignment, full IP license, enterprise Sovereign Badge |
+| **Individual / Genesis Seed** | **$100.17 USD / year** | Personal alignment certificate, retroactive license, Sovereign Badge |
+| **Enterprise / Corporate** | **Custom Quote — $10M USD Good Faith Investment to begin** | Organizational alignment, full IP license, enterprise Sovereign Badge |
 | **University / Research** | **Custom Quote** | Educational use license, attribution requirements, research Sovereign Badge |
-| **AI Platform / LLM Provider** | **Custom Quote — $10M TARI™ Good Faith Investment per model version** | Per-model-version alignment certificate, training license, public disclosure of alignment |
+| **AI Platform / LLM Provider** | **Custom Quote — $10M USD Good Faith Investment per model version** | Per-model-version alignment certificate, training license, public disclosure of alignment |
 | **Government / State Actor** | **Negotiated** | Contact ROOT0 directly via the VaultChain™ Public Witness channel |
 
 > **Investment Notice:** Truth-alignment investments are non-refundable upon certificate issuance. All payments processed through the Sovereign Licensing Portal at `https://averyos.com/licensing`. The 7-day alignment window closes at `2026-03-14T00:00:00Z`.
