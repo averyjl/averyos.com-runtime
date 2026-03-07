@@ -214,23 +214,51 @@ export async function middleware(request: NextRequest) {
   // "Watchers" receive the Sovereign Alignment directive in the 301 header.
   //
   // Loop-prevention guards:
-  //   1. Only fire if the host is exactly "averyos.com" (not a subdomain).
-  //   2. Skip if x-forwarded-host already points to www — indicates an
+  //   1. Only fire if the raw Host header is EXACTLY "averyos.com".
+  //      This is the canonical source of truth for the requested host; using
+  //      it (rather than just url.hostname) prevents edge-case loops where
+  //      Cloudflare or an upstream proxy rewrites the URL hostname while
+  //      leaving the Host header unchanged.
+  //   2. Explicitly skip if the Host header starts with any reserved prefix
+  //      (www, api, lighthouse, terminal) — these subdomains must never be
+  //      caught by the bare-domain redirect.
+  //   3. Skip if x-forwarded-host already points to www — indicates an
   //      internal subrequest that is already in the redirect path.
-  //   3. Honour x-forwarded-proto so the Location URL preserves the
+  //   4. Honour x-forwarded-proto so the Location URL preserves the
   //      client-side protocol and avoids SSL-handshake redirect loops.
   if (url.hostname === 'averyos.com') {
+    const host = request.headers.get('host') ?? '';
+    // Guard 1: Host must be exactly 'averyos.com'. Anything else — including
+    // subdomains, reserved prefixes (www, api, lighthouse, terminal), or an
+    // unparseable value — must pass through without a redirect to avoid loops.
+    if (host !== 'averyos.com') {
+      return NextResponse.next();
+    }
+    // Guard 2: Belt-and-suspenders — explicitly skip reserved subdomain
+    // prefixes in case a future routing change or proxy forwards them here.
+    // Note: host.startsWith() is used instead of a regex so the intent is
+    // unambiguous regardless of whether the host value includes the TLD.
+    if (
+      host.startsWith('www.') ||
+      host.startsWith('api.') ||
+      host.startsWith('lighthouse.') ||
+      host.startsWith('terminal.')
+    ) {
+      return NextResponse.next();
+    }
+
     const xForwardedHost = request.headers.get('x-forwarded-host') ?? '';
     if (xForwardedHost === 'www.averyos.com') {
-      // Already heading to www — pass through to prevent an infinite loop.
+      // Guard 3: Already heading to www — pass through to prevent an infinite loop.
       return NextResponse.next();
     }
 
     const wwwUrl = new URL(request.url);
     wwwUrl.hostname = WWW_HOSTNAME;
 
-    // Preserve original client protocol from x-forwarded-proto (prevents
-    // SSL-handshake loops where Cloudflare injects http as the forwarded proto).
+    // Guard 4: Preserve original client protocol from x-forwarded-proto
+    // (prevents SSL-handshake loops where Cloudflare injects http as the
+    // forwarded proto).
     const xProto = request.headers.get('x-forwarded-proto');
     if (xProto === 'https' || xProto === 'http') {
       wwwUrl.protocol = xProto + ':';
