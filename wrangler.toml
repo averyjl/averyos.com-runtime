@@ -3,11 +3,6 @@ account_id = "374875d33ef47a741a129bd5e716abff"
 compatibility_date = "2026-02-05"
 main = ".open-next/worker.js"
 compatibility_flags = ["nodejs_compat"]
-# legacy_env = false uses the service-environments PUT endpoint (/workers/services/{name}/environments/{env})
-# instead of the Workers Versions API (/workers/scripts/{name}/versions).
-# The service-environments endpoint requires `Workers KV Storage: Edit` permission on the API token when KV
-# bindings are present. Ensure CLOUDFLARE_API_TOKEN includes `Workers KV Storage: Edit`.
-legacy_env = false
 
 [assets]
 binding = "ASSETS"
@@ -32,16 +27,26 @@ binding = "KV_LOGS"
 id = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
 # ANCHOR_STORE — sovereign capsule anchoring
-# Create with: npx wrangler kv:namespace create ANCHOR_STORE
-# Then replace the id below with the generated namespace ID.
 [[kv_namespaces]]
 binding = "ANCHOR_STORE"
 id = "3ddd05bfb66549fca9e4ad1faccd72bd"
+
+# AVERY_KV — architecture-integrity worker genesis-state drift detection
+[[kv_namespaces]]
+binding = "AVERY_KV"
+id = "3ddd05bfb66549fca9e4ad1faccd72bd"
+
+# AVERYOS_LOGIC_GATES — sovereign logic gate store
+[[kv_namespaces]]
+binding = "AVERYOS_LOGIC_GATES"
+id = "1a5217c91e6c4a568875f2928acb69b9"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "averyos_kernel_db"
 database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+migrations_dir = "migrations"
+# Apply migrations: npx wrangler d1 migrations apply averyos_kernel_db --remote
 
 [observability]
 enabled = true
@@ -66,6 +71,31 @@ custom_domain = true
 pattern = "www.averyos.com"
 custom_domain = true
 
+[[routes]]
+pattern = "anchor.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "lighthouse.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "api.averyos.com"
+custom_domain = true
+
+[[routes]]
+pattern = "terminal.averyos.com"
+custom_domain = true
+
+[[r2_buckets]]
+binding = 'VAULT'
+bucket_name = 'cloudflare-managed-42f4b874'
+
+# VAULT_R2 — architecture integrity session audit logs (scoped under session-logs/integrity/ key prefix)
+[[r2_buckets]]
+binding = 'VAULT_R2'
+bucket_name = 'cloudflare-managed-42f4b874'
+
 # ── Cloudflare Secret Store ────────────────────────────────────────────────────
 # Set these via `wrangler secret put <NAME>` or the Cloudflare dashboard.
 # Do NOT add real values here — this block is documentation only.
@@ -88,80 +118,6 @@ custom_domain = true
 #   wrangler secret put NODE_02_ID              # PC node identifier
 #   wrangler secret put CLOUDFLARE_DNS_API_TOKEN # DNS:Read for TXT anchor verification
 #   wrangler secret put CREATOR_WEBHOOK_URL     # licenseGate.js SIG_MISMATCH notifications
-
-[env.production]
-workers_dev = false
-vars = { SITE_URL = "https://averyos.com", NPM_CONFIG_REGISTRY = "https://registry.npmjs.org/", NEXT_TELEMETRY_DISABLED = "1", NODE_VERSION = "22" }
-
-[[env.production.kv_namespaces]]
-binding = "KV_LOGS"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-[[env.production.kv_namespaces]]
-binding = "ANCHOR_STORE"
-# Create with: npx wrangler kv:namespace create ANCHOR_STORE --env production
-# Replace the id below with the generated namespace ID.
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-[[env.production.kv_namespaces]]
-binding = "AVERYOS_LOGIC_GATES"
-id = "1a5217c91e6c4a568875f2928acb69b9"
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "averyos_kernel_db"
-database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
-
-[[routes]]
-pattern = "anchor.averyos.com"
-custom_domain = true
-
-[[env.production.routes]]
-pattern = "www.averyos.com"
-custom_domain = true
-
-[[r2_buckets]]
-binding = 'VAULT'
-bucket_name = 'cloudflare-managed-42f4b874'
-
-# AVERY_KV — used by the architecture-integrity worker for genesis-state drift detection
-[[kv_namespaces]]
-binding = "AVERY_KV"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-# ── Custom Domains for R2 Edge ────────────────────────────────────────────────
-[[routes]]
-pattern = "lighthouse.averyos.com"
-custom_domain = true
-
-[[routes]]
-pattern = "api.averyos.com"
-custom_domain = true
-
-[[routes]]
-pattern = "terminal.averyos.com"
-custom_domain = true
-
-# VAULT_R2 — architecture integrity session audit logs (shares bucket with VAULT;
-# logs are scoped under the session-logs/integrity/ key prefix to avoid collisions)
-[[r2_buckets]]
-binding = 'VAULT_R2'
-bucket_name = 'cloudflare-managed-42f4b874'
-
-[[env.production.r2_buckets]]
-binding = 'VAULT'
-bucket_name = 'cloudflare-managed-42f4b874'
-
-# AVERY_KV (production)
-[[env.production.kv_namespaces]]
-binding = "AVERY_KV"
-id = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-# VAULT_R2 (production) — architecture integrity session logs (shares bucket with VAULT;
-# scoped under session-logs/integrity/ key prefix)
-[[env.production.r2_buckets]]
-binding = 'VAULT_R2'
-bucket_name = 'cloudflare-managed-42f4b874'
 
 # ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
 # Protects the sovereign kernel from DDoS and probabilistic noise.

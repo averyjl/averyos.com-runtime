@@ -34,6 +34,12 @@ const GOLD_GLOW     = "rgba(255,215,0,0.08)";
 const WHITE         = "#ffffff";
 const RED           = "#ff4444";
 const GREEN         = "#4ade80";
+const ORANGE        = "#f97316";
+
+// Sovereign Amnesty Window — 30 days from declaration date (2026-03-07)
+const AMNESTY_START_DATE = new Date("2026-03-07T00:00:00Z");
+const AMNESTY_END_DATE   = new Date("2026-04-06T00:00:00Z");
+const AMNESTY_DURATION_MS = AMNESTY_END_DATE.getTime() - AMNESTY_START_DATE.getTime();
 
 // ── Quick-access admin panels ─────────────────────────────────────────────────
 
@@ -96,6 +102,105 @@ const ADMIN_PANELS = [
   },
 ];
 
+// ── Amnesty Countdown helper ──────────────────────────────────────────────────
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "EXPIRED";
+  const totalSec = Math.floor(ms / 1000);
+  const days    = Math.floor(totalSec / 86400);
+  const hours   = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function AmnestyCountdown({ amnestyMs }: { amnestyMs: number }) {
+  const expired    = amnestyMs <= 0;
+  const pct        = expired ? 0 : Math.round((amnestyMs / AMNESTY_DURATION_MS) * 100);
+  const borderCol  = expired ? RED : amnestyMs < 86_400_000 ? RED : amnestyMs < 7 * 86_400_000 ? ORANGE : GOLD;
+  const timeStr    = formatCountdown(amnestyMs);
+
+  return (
+    <section
+      style={{
+        background:   expired ? "rgba(60,0,0,0.35)" : GOLD_GLOW,
+        border:       `2px solid ${borderCol}`,
+        borderRadius: "12px",
+        padding:      "1.25rem",
+        marginBottom: "2rem",
+        fontFamily:   "JetBrains Mono, monospace",
+      }}
+    >
+      <div
+        style={{
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "space-between",
+          flexWrap:       "wrap",
+          gap:            "0.5rem",
+          marginBottom:   "0.75rem",
+        }}
+      >
+        <div style={{ color: borderCol, fontWeight: 900, fontSize: "0.85rem", letterSpacing: "0.1em" }}>
+          ⚖️ SOVEREIGN AMNESTY WINDOW {expired ? "— EXPIRED" : "— ACTIVE"}
+        </div>
+        <Link
+          href="/content/amnesty-declaration"
+          style={{ color: GOLD, fontSize: "0.75rem", textDecoration: "underline" }}
+        >
+          View Declaration →
+        </Link>
+      </div>
+
+      <div
+        style={{
+          display:  "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+          gap:      "0.75rem",
+          marginBottom: "0.75rem",
+        }}
+      >
+        {[
+          { label: "Time Remaining",  value: timeStr,                                 color: borderCol },
+          { label: "Window Closes",   value: AMNESTY_END_DATE.toLocaleDateString(),   color: "rgba(255,255,255,0.7)" },
+          { label: "Individual Fee",  value: "$1,000,000",                            color: GREEN },
+          { label: "Enterprise Fee",  value: "$10,000,000",                           color: GREEN },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background:   "rgba(0,0,0,0.3)",
+              border:       "1px solid rgba(255,215,0,0.15)",
+              borderRadius: "8px",
+              padding:      "0.65rem",
+            }}
+          >
+            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem", marginBottom: "0.25rem", letterSpacing: "0.07em" }}>
+              {s.label.toUpperCase()}
+            </div>
+            <div style={{ color: s.color, fontWeight: 700, fontSize: "0.85rem" }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: "4px", height: "6px", overflow: "hidden" }}>
+        <div
+          style={{
+            width:        `${pct}%`,
+            height:       "100%",
+            background:   expired ? RED : `linear-gradient(90deg, ${GOLD}, ${borderCol})`,
+            transition:   "width 1s linear",
+          }}
+        />
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem", marginTop: "0.35rem", textAlign: "right" }}>
+        {expired ? "Amnesty expired — full TARI™ enforcement active" : `${pct}% of window remaining`}
+      </div>
+    </section>
+  );
+}
+
 // ── System status type ────────────────────────────────────────────────────────
 
 interface SystemStatus {
@@ -107,6 +212,18 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [status, setStatus]   = useState<SystemStatus | null>(null);
   const [uiError, setUiError] = useState<AosUiError | null>(null);
+  const [amnestyMs, setAmnestyMs] = useState<number>(
+    Math.max(0, AMNESTY_END_DATE.getTime() - Date.now())
+  );
+
+  // ── Amnesty countdown ticker ──────────────────────────────────────────────
+  useEffect(() => {
+    const tick = () =>
+      setAmnestyMs(Math.max(0, AMNESTY_END_DATE.getTime() - Date.now()));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ── VaultGate auth check ──────────────────────────────────────────────────
   useEffect(() => {
@@ -399,6 +516,9 @@ export default function AdminPage() {
           </div>
         </section>
       )}
+
+      {/* Amnesty Countdown */}
+      <AmnestyCountdown amnestyMs={amnestyMs} />
 
       {/* Kernel anchor */}
       <div

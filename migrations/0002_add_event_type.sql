@@ -1,5 +1,13 @@
 -- TARI Ledger — AveryOS D1 Migration 0002
--- Adds event_type column for sovereign event classification
+-- NO-OP: event_type column is now included in the canonical CREATE TABLE in 0001.
+--
+-- Background: This migration was created to ADD COLUMN event_type to an earlier
+-- version of 0001 that did not include it. Migration 0001 has since been updated
+-- to include all columns (event_type, trust_premium_index, description) so that
+-- fresh deployments are fully set up without needing this ALTER TABLE.
+--
+-- Live databases that already have event_type (from pre-migration-tracking runs
+-- or from the old version of 0002) are unaffected — the column already exists.
+--
 -- Author: Jason Lee Avery (ROOT0)
-
-ALTER TABLE tari_ledger ADD COLUMN event_type TEXT NOT NULL DEFAULT 'HANDSHAKE_SUCCESS';
+SELECT 1; -- no-op sentinel for wrangler compatibility

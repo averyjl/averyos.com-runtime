@@ -15,10 +15,6 @@ account_id      = "374875d33ef47a741a129bd5e716abff"
 
 # ── Cron Trigger ─────────────────────────────────────────────────────────────
 # Fires the `scheduled` handler every hour at :00 UTC.
-# Adjust the cron expression to change frequency, e.g.:
-#   "*/30 * * * *"  — every 30 minutes
-#   "0 * * * *"     — every hour (default)
-#   "0 0 * * *"     — daily at midnight UTC
 [triggers]
 crons = ["0 * * * *"]
 
@@ -46,22 +42,5 @@ binding = "AVERY_KV"
 id      = "3ddd05bfb66549fca9e4ad1faccd72bd"
 
 [[r2_buckets]]
-binding     = "VAULT_R2"
-bucket_name = "cloudflare-managed-42f4b874"
-
-# ── Production environment overrides ─────────────────────────────────────────
-[env.production]
-workers_dev = false
-
-[[env.production.d1_databases]]
-binding       = "DB"
-database_name = "averyos_kernel_db"
-database_id   = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
-
-[[env.production.kv_namespaces]]
-binding = "AVERY_KV"
-id      = "3ddd05bfb66549fca9e4ad1faccd72bd"
-
-[[env.production.r2_buckets]]
 binding     = "VAULT_R2"
 bucket_name = "cloudflare-managed-42f4b874"

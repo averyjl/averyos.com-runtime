@@ -1,6 +1,12 @@
 -- TARI Ledger — AveryOS D1 Migration 0003
--- Adds trust_premium_index and description columns for edge-logging support
+-- NO-OP: trust_premium_index and description columns are now included in the
+-- canonical CREATE TABLE in 0001.
+--
+-- Background: This migration was created to ADD COLUMN trust_premium_index and
+-- description to tari_ledger. Migration 0001 has since been updated to include
+-- all columns so that fresh deployments are fully set up without these ALTER TABLEs.
+--
+-- Live databases that already have these columns are unaffected.
+--
 -- Author: Jason Lee Avery (ROOT0)
-
-ALTER TABLE tari_ledger ADD COLUMN trust_premium_index REAL NOT NULL DEFAULT 0.0;
-ALTER TABLE tari_ledger ADD COLUMN description TEXT;
+SELECT 1; -- no-op sentinel for wrangler compatibility

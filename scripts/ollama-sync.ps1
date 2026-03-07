@@ -227,7 +227,7 @@ if ($DryRun) {
 Write-AosLog "INFO" "Step 4/4: Injecting AveryOS™ Sovereign Kernel System Prompt..."
 $modelfilePath = Join-Path $env:TEMP "AveryOS_Modelfile"
 $modelfileContent = Build-Modelfile -SystemPrompt $SOVEREIGN_SYSTEM_PROMPT
-$sovereignModelName = "averyos-dlm"
+$sovereignModelName = "averyos-alm"
 
 if ($DryRun) {
     Write-AosLog "INFO" "[DRY RUN] Would write Modelfile to: $modelfilePath"

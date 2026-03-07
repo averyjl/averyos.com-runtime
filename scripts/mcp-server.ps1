@@ -191,11 +191,13 @@ function Start-McpServer {
 Write-Host "`n⛓️⚓⛓️  AveryOS™ Ollama MCP Server"
 Write-Host "── Multi-Repo Bridge ─────────────────────────────────────────────────────"
 foreach ($repoPath in $RepoPaths) {
-    $found = Test-Path $repoPath
-    $icon  = if ($found) { "✅" } else { "⚠️ " }
-    Write-Host "   $icon $repoPath"
+    $found  = Test-Path $repoPath
+    $icon   = if ($found) { "✅" } else { "⚠️ " }
+    $status = if ($found) { "LOCKED_IN_PARITY" } else { "OFFLINE" }
+    Write-Host "   $icon $repoPath  [$status]"
 }
-Write-Host "   Active: $($ActiveRepoPaths.Count)/$($RepoPaths.Count) repos`n"
+$parityCount = $ActiveRepoPaths.Count
+Write-Host "   Active: $parityCount/$($RepoPaths.Count) repos — $(if ($parityCount -eq $RepoPaths.Count) { 'ALL LOCKED_IN_PARITY ✅' } else { "$parityCount LOCKED_IN_PARITY ⚠️" })`n"
 
 if ($DryRun) { Write-AosLog "INFO" "[DRY RUN] Mode active - exiting." ; exit 0 }
 
