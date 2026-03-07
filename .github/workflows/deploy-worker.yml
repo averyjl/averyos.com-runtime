@@ -35,7 +35,7 @@ jobs:
               --max-time 15 --retry 2 --retry-delay 3 \
               -A "AveryOS-PreDeployCheck/1.0" \
               "${BASE_URL}${path}")
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "308" ]; then
               echo "✅ ${HTTP_CODE}  ${label}"
             else
               echo "❌ ${HTTP_CODE}  ${label}"
