@@ -16,13 +16,11 @@
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
+import { VAULT_COOKIE_NAME } from '../../../../../lib/vaultCookieConfig';
 
 interface CloudflareEnv {
   VAULT_PASSPHRASE?: string;
 }
-
-// Cookie name used across all admin routes.
-export const VAULT_COOKIE_NAME = "aos-vault-auth";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 /** Max-age for the vault auth cookie in seconds. Configurable via VAULT_COOKIE_TTL_SECONDS. */

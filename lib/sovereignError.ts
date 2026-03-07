@@ -25,6 +25,7 @@ export const AOS_ERROR = {
   // Auth / Access
   MISSING_AUTH:          'MISSING_AUTH',
   INVALID_AUTH:          'INVALID_AUTH',
+  UNAUTHORIZED:          'UNAUTHORIZED',
   VAULT_NOT_CONFIGURED:  'VAULT_NOT_CONFIGURED',
   FORBIDDEN:             'FORBIDDEN',
 
@@ -57,6 +58,7 @@ export const AOS_ERROR = {
 
   // Internal
   INTERNAL_ERROR:        'INTERNAL_ERROR',
+  UNKNOWN:               'UNKNOWN',
   DRIFT_DETECTED:        'DRIFT_DETECTED',
 } as const;
 
