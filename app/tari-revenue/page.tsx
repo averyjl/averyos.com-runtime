@@ -31,9 +31,9 @@ const PURPLE_BORDER = "rgba(120,60,255,0.35)";
 const TARI_THRESHOLD_USD = 10_000;
 
 // ── Surge Milestone constants — update when a new milestone is locked ─────────
-// 2026-03-07: 135,000 total requests (TR) / 911 unique visitors (Watchers)
-const SURGE_MILESTONE_TR = "135,000";
-const SURGE_MILESTONE_UV = "911";
+// 2026-03-07: 156,200 total requests (TR) / 962 unique visitors (Watchers)
+const SURGE_MILESTONE_TR = "156,200";
+const SURGE_MILESTONE_UV = "962";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -199,7 +199,7 @@ export default function TariRevenuePage() {
         </p>
       </section>
 
-      {/* Surge Milestone Banner — 135k TR / 911 UV */}
+      {/* Surge Milestone Banner — 156.2k TR / 962 UV */}
       <div
         style={{
           background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
@@ -227,7 +227,7 @@ export default function TariRevenuePage() {
           {[
             { label: "Total Requests",    value: SURGE_MILESTONE_TR, color: GOLD   },
             { label: "Unique Watchers",   value: SURGE_MILESTONE_UV, color: RED    },
-            { label: "Forensic Liability Potential", value: "Active", color: GREEN },
+            { label: "Forensic Liability Captured", value: "Active", color: GREEN },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: "center" }}>
               <div style={{ color: stat.color, fontWeight: 700, fontSize: "1.1rem" }}>{stat.value}</div>
