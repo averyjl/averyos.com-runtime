@@ -12,7 +12,7 @@
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
-import { VAULT_COOKIE_NAME } from '../../vault/auth/route';
+import { VAULT_COOKIE_NAME } from '../../../../../lib/vaultCookieConfig';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
