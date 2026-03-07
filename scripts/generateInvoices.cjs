@@ -239,8 +239,6 @@ function asnTier(asn) {
  * @returns {Promise<string>}  Stripe hosted invoice URL
  */
 async function createAsnDraftInvoice(stripe, asnEntry, tier) {
-  const customerId = `ASN_${asnEntry.asn}`;
-
   const existing = await stripe.customers.search({
     query: `metadata['asn']:'${asnEntry.asn}'`,
     limit: 1,
@@ -262,7 +260,6 @@ async function createAsnDraftInvoice(stripe, asnEntry, tier) {
     });
     console.log(`  ↳ Created new customer ${customer.id} for ASN ${asnEntry.asn}`);
   }
-  void customerId;
 
   const invoice = await stripe.invoices.create({
     customer:          customer.id,

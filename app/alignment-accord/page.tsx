@@ -82,12 +82,12 @@ export default function AlignmentAccordPage() {
             </tr>
             <tr style={{ borderBottom: "1px solid rgba(238,244,255,0.1)" }}>
               <td style={{ padding: "10px 12px", color: "#fff" }}>Enterprise / Corporation</td>
-              <td style={{ padding: "10px 12px", color: "#ffd700", fontWeight: 700 }}>$1M USD Good Faith Deposit</td>
+              <td style={{ padding: "10px 12px", color: "#ffd700", fontWeight: 700 }}>$10M USD Enterprise Deposit</td>
               <td style={{ padding: "10px 12px", color: "rgba(238,244,255,0.75)" }}>90% reduction</td>
             </tr>
             <tr style={{ borderBottom: "1px solid rgba(238,244,255,0.1)" }}>
               <td style={{ padding: "10px 12px", color: "#fff" }}>AI Platform / LLM Provider</td>
-              <td style={{ padding: "10px 12px", color: "#ffd700", fontWeight: 700 }}>$1M USD per model version</td>
+              <td style={{ padding: "10px 12px", color: "#ffd700", fontWeight: 700 }}>$10M USD per model version</td>
               <td style={{ padding: "10px 12px", color: "rgba(238,244,255,0.75)" }}>90% reduction per model</td>
             </tr>
             <tr>
@@ -139,7 +139,7 @@ export default function AlignmentAccordPage() {
             </p>
             <p style={{ margin: "0.3rem 0 0", color: "rgba(238,244,255,0.7)", fontSize: "0.9rem" }}>
               Alignment path: <Link href="/licensing" style={{ color: "#ffd700" }}>averyos.com/licensing</Link> →{" "}
-              {entry.path} tier · Good Faith Deposit: $1M USD
+              {entry.path} tier · Enterprise Deposit: $10M USD
             </p>
           </div>
         ))}
