@@ -10,7 +10,70 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── Pre-Deploy Site Health Gate ─────────────────────────────────────────────
+  # Runs BEFORE the build.  If the live site is in a broken state (stale schema,
+  # critical route down) this job blocks the deploy so we don't pile a new
+  # deployment on top of a broken one.
+  pre-deploy-health:
+    name: 🛡️ Pre-Deploy Health Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🌐 Live Site Health Check
+        run: |
+          BASE_URL="https://averyos.com"
+          FAILED=0
+          CRITICAL_FAILED=0
+
+          check_route() {
+            local path="$1"
+            local label="${2:-$path}"
+            local critical="${3:-false}"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 --retry 2 --retry-delay 3 \
+              -A "AveryOS-PreDeployCheck/1.0" \
+              "${BASE_URL}${path}")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "✅ ${HTTP_CODE}  ${label}"
+            else
+              echo "❌ ${HTTP_CODE}  ${label}"
+              FAILED=$((FAILED + 1))
+              if [ "$critical" = "true" ]; then
+                CRITICAL_FAILED=$((CRITICAL_FAILED + 1))
+              fi
+            fi
+          }
+
+          echo "=== AveryOS™ Pre-Deploy Health Check — $(date -u) ==="
+          # Critical routes — failure blocks the deploy
+          check_route "/" "Home" "true"
+          check_route "/health" "Health API" "true"
+          # Non-critical routes — failure is logged but does not block
+          check_route "/whitepaper" "Whitepaper"
+          check_route "/license" "License"
+          check_route "/robots.txt" "Robots"
+
+          if [ "$CRITICAL_FAILED" -gt 0 ]; then
+            echo ""
+            echo "❌ $CRITICAL_FAILED CRITICAL route(s) are down on the live site."
+            echo "   Deployment is BLOCKED to prevent deploying on top of a broken site."
+            echo "   Investigate the live site before re-triggering the deploy."
+            echo "⛓️⚓⛓️  DEPLOY HALTED."
+            exit 1
+          elif [ "$FAILED" -gt 0 ]; then
+            echo ""
+            echo "⚠️  $FAILED non-critical route(s) are unhealthy — deployment will proceed."
+            echo "   Investigate after deployment to confirm they recover."
+          else
+            echo ""
+            echo "✅ All pre-deploy health checks passed."
+          fi
+          echo "⛓️⚓⛓️"
+
   deploy:
+    needs: pre-deploy-health
     runs-on: ubuntu-latest
     environment:
       name: production

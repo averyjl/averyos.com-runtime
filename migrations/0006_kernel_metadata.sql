@@ -47,12 +47,14 @@ CREATE TABLE kernel_metadata (
 );
 
 -- Step 4 — Copy existing rows.
--- The literal '000000000' is used for build_timestamp_ms so this statement
--- never references that column from the source table (safe for old schemas).
--- 'id' is omitted so SQLite auto-assigns ids in insertion order — the table
--- is always empty at this point so ids start at 1 as expected.
+-- Literals are used for build_timestamp_ms AND tari_pulse_peers so this
+-- statement never references those columns from the source table.  This is
+-- critical for the production database where kernel_metadata was created
+-- before tari_pulse_peers was added to the schema — selecting that column
+-- from kernel_metadata_v005 would fail with "no such column: tari_pulse_peers".
+-- 'id' is omitted so SQLite auto-assigns ids in insertion order.
 INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at)
-SELECT build_version, kernel_resonance_hash, '000000000', tari_pulse_peers, updated_at
+SELECT build_version, kernel_resonance_hash, '000000000', 0, updated_at
 FROM kernel_metadata_v005;
 
 -- Step 5 — Drop backup.

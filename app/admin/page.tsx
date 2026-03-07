@@ -73,6 +73,13 @@ const ADMIN_PANELS = [
     color:       "#f59e0b",
   },
   {
+    path:        "/admin/forensics",
+    icon:        "🔬",
+    label:       "Forensic Dashboard",
+    description: "Edge-request telemetry grouped by RayID, ASN, and path — spots probes & watchers",
+    color:       RED,
+  },
+  {
     path:        "/evidence-vault",
     icon:        "🗄️",
     label:       "Evidence Vault",

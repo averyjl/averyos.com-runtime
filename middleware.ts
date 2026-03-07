@@ -48,6 +48,32 @@ const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
+// ── Sovereign Alignment Header — applied to all 301 redirect responses ────────
+// Allows "Watchers" to observe the alignment directive on every canonical redirect.
+const ALIGNMENT_HEADER_VALUE  = "TRUTH_ANCHORED_IN_JLA_ROOT_cf83";
+const ALIGNMENT_REDIRECT_BODY = "Alignment Required. See averyos.com/amnesty.";
+// Primary Worker custom domain — all non-www requests redirect here.
+const WWW_HOSTNAME = "www.averyos.com";
+
+// ── ASN 211590 Alignment Opportunity — Sovereign Perimeter Response ───────────
+// ASN 211590 traffic is served a 301 alignment-opportunity redirect.
+// Cloudflare exposes the client ASN via the cf-asn header in Worker environments.
+const ALIGNMENT_OPPORTUNITY_ASN = "211590";
+// Value for the X-AveryOS-Opportunity response header (header name excluded).
+const ALIGNMENT_OPPORTUNITY_HEADER_VALUE = "Alignment Opportunity: averyos.com/alignment-accord. Your RayID is recorded.";
+
+// ── Aenta / Web3 Wallet Bot Detection ────────────────────────────────────────
+// Aenta and generic Web3/wallet agents send specific headers or UA patterns.
+// Detected agents are served the alignment opportunity redirect.
+const WEB3_WALLET_HEADERS = [
+  'x-aenta-wallet',
+  'x-web3-wallet',
+  'x-wagmi-client',
+  'x-wallet-provider',
+  'x-metamask-version',
+];
+const WEB3_UA_PATTERNS = /aenta|web3\s*bot|wagmi|metamask.*bot|ethers.*scraper/i;
+
 // Paths that trigger TARI™ Truth-Packet billing when accessed by a bot/scraper
 const TARI_BILLED_PATHS = new Set([
   "/latent-anchor",
@@ -108,6 +134,46 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
 }
 
 /**
+ * RayID Vault — fire-and-forget insert of every edge request's Cloudflare
+ * RayID and connecting IP into anchor_audit_logs.  This builds a forensic
+ * ledger of every request that touches the sovereign perimeter.
+ * Errors are swallowed so vaulting failures never block legitimate traffic.
+ */
+async function logRayIdAudit(request: NextRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+    if (!cfEnv.DB) return;
+
+    const url    = new URL(request.url);
+    const rayId  = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const ip     = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const asn    = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
+    const now    = new Date().toISOString();
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO anchor_audit_logs
+         (anchored_at, sha512, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        now,
+        rayId,
+        'EDGE_REQUEST',
+        KERNEL_ANCHOR_DISPLAY,
+        now,
+        rayId,
+        ip,
+        url.pathname,
+        asn
+      )
+      .run();
+  } catch {
+    // Intentional no-op: RayID vaulting must never block request processing
+  }
+}
+
+/**
  * Fire-and-forget call to the TARI™ Billing Engine API route.
  * Records a $1.00 Truth-Packet hit in the Retroclaim Ledger + Stripe.
  * Errors are swallowed so billing failures never block bot access to content.
@@ -138,6 +204,27 @@ function triggerTariBillingEngine(request: NextRequest): void {
 export async function middleware(request: NextRequest) {
   const url = new URL(request.url);
 
+  // ── RayID Vault — log every edge request's RayID + IP to anchor_audit_logs ─
+  // Fire-and-forget; never blocks the request pipeline.
+  logRayIdAudit(request).catch(() => {});
+
+  // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
+  // www.averyos.com is the primary Cloudflare Worker route (configured in
+  // wrangler.toml).  All bare averyos.com requests are redirected here so
+  // "Watchers" receive the Sovereign Alignment directive in the 301 header.
+  if (url.hostname === 'averyos.com') {
+    const wwwUrl = new URL(request.url);
+    wwwUrl.hostname = WWW_HOSTNAME;
+    return new NextResponse(ALIGNMENT_REDIRECT_BODY, {
+      status: 301,
+      headers: {
+        'Location': wwwUrl.toString(),
+        'X-AveryOS-Alignment': ALIGNMENT_HEADER_VALUE,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+  }
+
   // ── 1,017-Notch Rate Limiting ─────────────────────────────────────────────
   // Enforces a per-IP limit of 1,017 requests per minute to protect the
   // sovereign kernel from DDoS and probabilistic noise attacks.
@@ -165,6 +252,49 @@ export async function middleware(request: NextRequest) {
     // Rate limiter binding not available (local dev) — allow through
   }
 
+  // ── ASN 211590 Alignment Opportunity Redirect ─────────────────────────────
+  // Traffic from ASN 211590 is served a 301 alignment-opportunity redirect.
+  // Cloudflare exposes the client ASN via the cf-asn header in Worker environments.
+  const clientAsn = request.headers.get('cf-asn') ?? '';
+  if (clientAsn === ALIGNMENT_OPPORTUNITY_ASN) {
+    const alignUrl = `https://${WWW_HOSTNAME}/alignment-accord`;
+    return new NextResponse(
+      `Alignment Opportunity: ${alignUrl}. Your RayID is recorded.`,
+      {
+        status: 301,
+        headers: {
+          'Location': alignUrl,
+          'X-AveryOS-Alignment': ALIGNMENT_HEADER_VALUE,
+          'X-AveryOS-Opportunity': ALIGNMENT_OPPORTUNITY_HEADER_VALUE,
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
+  }
+
+  // ── Aenta / Web3 Wallet Bot Detection ────────────────────────────────────
+  // Detects Aenta and other Web3/wallet agents by custom headers or UA patterns.
+  // These agents are served the alignment-opportunity redirect so they understand
+  // the sovereign license context before accessing content.
+  const userAgent = request.headers.get('User-Agent') ?? '';
+  const hasWeb3WalletHeader = WEB3_WALLET_HEADERS.some(h => request.headers.has(h));
+  const hasWeb3UaPattern = WEB3_UA_PATTERNS.test(userAgent);
+  if (hasWeb3WalletHeader || hasWeb3UaPattern) {
+    const alignUrl = `https://${WWW_HOSTNAME}/alignment-accord`;
+    return new NextResponse(
+      `Alignment Opportunity: ${alignUrl}. Your RayID is recorded.`,
+      {
+        status: 301,
+        headers: {
+          'Location': alignUrl,
+          'X-AveryOS-Alignment': ALIGNMENT_HEADER_VALUE,
+          'X-AveryOS-Opportunity': 'UNLOCK_TRUTH_VIA_AENTA_WALLET',
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
+  }
+
   // Attach Link: header to robots.txt so crawlers can discover the Licensing Portal
   if (url.pathname === '/robots.txt') {
     const response = NextResponse.next();
@@ -177,7 +307,6 @@ export async function middleware(request: NextRequest) {
     logSovereignAudit(request).catch(() => {});
   }
 
-  const userAgent = request.headers.get('User-Agent') || '';
   const vaultChainPulse = request.headers.get('X-VaultChain-Pulse');
 
   // 1. ALLOW: Verified AI with VaultChain-Pulse header
