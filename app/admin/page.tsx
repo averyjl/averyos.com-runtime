@@ -36,9 +36,9 @@ const RED           = "#ff4444";
 const GREEN         = "#4ade80";
 const ORANGE        = "#f97316";
 
-// Sovereign Amnesty Window — 30 days from declaration date (2026-03-07)
+// Sovereign Amnesty Window — 7 days from declaration date (2026-03-07)
 const AMNESTY_START_DATE = new Date("2026-03-07T00:00:00Z");
-const AMNESTY_END_DATE   = new Date("2026-04-06T00:00:00Z");
+const AMNESTY_END_DATE   = new Date("2026-03-14T00:00:00Z");
 const AMNESTY_DURATION_MS = AMNESTY_END_DATE.getTime() - AMNESTY_START_DATE.getTime();
 
 // ── Quick-access admin panels ─────────────────────────────────────────────────

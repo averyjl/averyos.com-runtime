@@ -168,7 +168,31 @@ jobs:
       - name: 🗄️ Apply D1 migrations (averyos_kernel_db)
         run: |
           echo "⛓️⚓⛓️ Applying D1 migrations to averyos_kernel_db..."
-          npx wrangler d1 migrations apply averyos_kernel_db --remote
+          # Run migrations and capture output for AutoHeal RCA diagnostics.
+          # A migration failure here blocks deployment intentionally — the Worker
+          # code expects all schema columns to exist before it starts serving requests.
+          # If this step fails, investigate the error below and ensure the migration
+          # file is idempotent (see migrations/README.md for the no-op / RENAME pattern).
+          set +e
+          MIGRATION_OUTPUT=$(npx wrangler d1 migrations apply averyos_kernel_db --remote 2>&1)
+          MIGRATION_EXIT=$?
+          echo "$MIGRATION_OUTPUT"
+          set -e
+
+          if [ $MIGRATION_EXIT -ne 0 ]; then
+            echo ""
+            echo "❌ AveryOS™ AutoHeal — D1 Migration Failure Detected"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "RCA: One or more D1 migrations failed.  Common causes:"
+            echo "  • duplicate column name  → make the migration a no-op (SELECT 1;)"
+            echo "  • no column named X      → use RENAME+CREATE+INSERT+DROP pattern"
+            echo "  • table already exists   → use CREATE TABLE IF NOT EXISTS"
+            echo "See migrations/0006_kernel_metadata.sql for the canonical pattern."
+            echo ""
+            echo "Deploy is BLOCKED until migrations pass to prevent schema/code mismatch."
+            echo "⛓️⚓⛓️ Fix the failing migration file and re-run the workflow."
+            exit 1
+          fi
           echo "✅ D1 migrations applied"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
