@@ -76,10 +76,6 @@ pattern = "anchor.averyos.com"
 custom_domain = true
 
 [[routes]]
-pattern = "lighthouse.averyos.com"
-custom_domain = true
-
-[[routes]]
 pattern = "api.averyos.com"
 custom_domain = true
 
