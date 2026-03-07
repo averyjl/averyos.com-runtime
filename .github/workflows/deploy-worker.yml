@@ -126,6 +126,45 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
 
+      - name: 🔐 Push gabriel-gatekeeper secrets
+        run: |
+          set +x
+          GK="--config workers/wrangler.gabriel-gatekeeper.toml"
+          pushed=0
+          if [ -n "$GITHUB_PAT" ]; then
+            printf '%s' "$GITHUB_PAT"               | npx wrangler secret put GITHUB_PAT $GK
+            pushed=$((pushed+1))
+          fi
+          if [ -n "$VAULT_PASSPHRASE" ]; then
+            printf '%s' "$VAULT_PASSPHRASE"          | npx wrangler secret put VAULT_PASSPHRASE $GK
+            pushed=$((pushed+1))
+          fi
+          if [ -n "$BITCOIN_API_KEY" ]; then
+            printf '%s' "$BITCOIN_API_KEY"           | npx wrangler secret put BITCOIN_API_KEY $GK
+            pushed=$((pushed+1))
+          fi
+          if [ -n "$GABRIEL_SENTINEL_WEBHOOK" ]; then
+            printf '%s' "$GABRIEL_SENTINEL_WEBHOOK"  | npx wrangler secret put GABRIEL_SENTINEL_WEBHOOK $GK
+            pushed=$((pushed+1))
+          fi
+          if [ -n "$GITHUB_WEBHOOK_SECRET" ]; then
+            printf '%s' "$GITHUB_WEBHOOK_SECRET"     | npx wrangler secret put GITHUB_WEBHOOK_SECRET $GK
+            pushed=$((pushed+1))
+          fi
+          echo "✅ gabriel-gatekeeper: pushed $pushed secret(s)"
+          if [ "$pushed" -eq 0 ]; then
+            echo "⚠️  No gabriel-gatekeeper secrets configured — add GITHUB_PAT, BITCOIN_API_KEY,"
+            echo "   GABRIEL_SENTINEL_WEBHOOK, and GITHUB_WEBHOOK_SECRET to repository secrets."
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN:      ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID:     ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_PAT:                ${{ secrets.GITHUB_PAT }}
+          VAULT_PASSPHRASE:          ${{ secrets.VAULT_PASSPHRASE }}
+          BITCOIN_API_KEY:           ${{ secrets.BITCOIN_API_KEY }}
+          GABRIEL_SENTINEL_WEBHOOK:  ${{ secrets.GABRIEL_SENTINEL_WEBHOOK }}
+          GITHUB_WEBHOOK_SECRET:     ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+
       - name: Deploy to Cloudflare Workers
         run: |
           # Auto-retry on authentication/transient errors

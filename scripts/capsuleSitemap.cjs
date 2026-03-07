@@ -7,6 +7,13 @@ const outputDir = path.join(process.cwd(), "public");
 const appDir = path.join(process.cwd(), "app");
 const pagesDir = path.join(process.cwd(), "pages");
 
+// Valid page file names for the App Router (Next.js convention)
+const APP_PAGE_FILES = new Set(["page.tsx", "page.ts", "page.jsx", "page.js"]);
+// Valid source file extensions for the Pages Router
+const PAGES_EXTENSIONS = new Set([".tsx", ".ts", ".js", ".jsx"]);
+// Strip file extension helper
+const stripExt = (name) => name.replace(/\.[^.]+$/, "");
+
 const normalizeSiteUrl = (value) => {
   if (!value) return null;
   const trimmed = value.trim();
@@ -83,7 +90,7 @@ const scanAppRouter = () => {
         // Skip API, private dirs, and dynamic route segments
         if (seg === "api" || seg.startsWith("_") || isDynamic(seg)) continue;
         walk(path.join(dir, seg), `${urlPath}/${seg}`);
-      } else if (entry.name === "page.tsx" || entry.name === "page.ts" || entry.name === "page.jsx" || entry.name === "page.js") {
+      } else if (APP_PAGE_FILES.has(entry.name)) {
         hasPage = true;
       }
     }
@@ -116,12 +123,13 @@ const scanPagesRouter = () => {
         // Skip migrated, private, dynamic, and non-page files
         if (name.includes(".migrated")) continue;
         if (name.startsWith("_")) continue;
-        if (isDynamic(name.replace(/\.[^.]+$/, ""))) continue;
 
         const ext = path.extname(name);
-        if (![".tsx", ".ts", ".js", ".jsx"].includes(ext)) continue;
+        if (!PAGES_EXTENSIONS.has(ext)) continue;
 
-        const slug = name.replace(/\.[^.]+$/, ""); // strip extension
+        const slug = stripExt(name);
+        if (isDynamic(slug)) continue;
+
         const fullPath = slug === "index" ? urlPath || "/" : `${urlPath}/${slug}`;
 
         // Skip index of root (that's the homepage, handled separately)

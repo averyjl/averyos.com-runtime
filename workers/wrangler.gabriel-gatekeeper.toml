@@ -1,22 +1,63 @@
 # wrangler.gabriel-gatekeeper.toml
-# Standalone Cloudflare Worker config for the GabrielOS™ Gabriel Kernel Gatekeeper.
+# GabrielOS™ Gabriel Kernel v1.6 — Sovereign Gatekeeper Worker
+#
+# Handles:
+#   POST /webhook/github           — GitHub commit anchor ledger
+#   POST /api/gatekeeper/sync      — Hardware persistence sync (Ollama / YubiKey)
+#   GET  /api/gatekeeper/yubikey-challenge — ALF v4.0 YubiKey challenge
+#   POST /api/gatekeeper/alf-verify        — ALF v4.0 license verification
+#   POST /webhook/sentinel         — GabrielOS™ Sentinel audit-alert ingestion
 #
 # Deploy:    npx wrangler deploy --config workers/wrangler.gabriel-gatekeeper.toml
 # Tail logs: npx wrangler tail --config workers/wrangler.gabriel-gatekeeper.toml
+# Apply D1 migrations:
+#   npx wrangler d1 migrations apply averyos_kernel_db --config workers/wrangler.gabriel-gatekeeper.toml --remote
 
 name               = "gabriel-gatekeeper"
 main               = "workers/gabriel-gatekeeper.js"
-compatibility_date = "2026-03-01"
+compatibility_date = "2026-02-05"
+compatibility_flags = ["nodejs_compat"]
 account_id         = "374875d33ef47a741a129bd5e716abff"
 
+# ── Variables (non-secret, matches Cloudflare dashboard) ──────────────────────
+[vars]
+SITE_URL                = "https://averyos.com"
+CLOUDFLARE_DNS_ZONE     = "averyos.com"
+NEXT_TELEMETRY_DISABLED = "1"
+NODE_VERSION            = "22"
+NPM_CONFIG_REGISTRY     = "https://registry.npmjs.org/"
+NODE_01_LABEL           = "Phone Node (NODE_01)"
+NODE_02_LABEL           = "PC Node (NODE_02) — Llama via Ollama"
+NODE_02_LOCAL_MODEL     = "llama3.3:70b"
+GOLDEN_LOCK_MERKLE_ROOT = "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe"
+
+# ── D1 Database — shares averyos_kernel_db with main Worker ───────────────────
+# Tables used:
+#   vaultchain_ledger  — GitHub commit anchors (migration 0017)
+#   sync_logs          — hardware / ALF sync events (migration 0017)
+#   sovereign_audit_logs — Sentinel audit alerts (migration 0007)
+[[d1_databases]]
+binding       = "DB"
+database_name = "averyos_kernel_db"
+database_id   = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+
+# ── Observability ──────────────────────────────────────────────────────────────
 [observability]
 enabled            = true
 head_sampling_rate = 1
 
+[observability.logs]
+enabled            = true
+head_sampling_rate = 1
+persist            = true
+invocation_logs    = true
+
 # ── Cloudflare Secret Store ────────────────────────────────────────────────────
 # Set these via `wrangler secret put <NAME> --config workers/wrangler.gabriel-gatekeeper.toml`
-# or the Cloudflare dashboard.
+# or the Cloudflare dashboard → gabriel-gatekeeper → Settings → Variables and Secrets.
 #
-#   wrangler secret put BITCOIN_API_KEY --config workers/wrangler.gabriel-gatekeeper.toml
-#   wrangler secret put GITHUB_WEBHOOK_SECRET --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put GITHUB_PAT             --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put VAULT_PASSPHRASE       --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put BITCOIN_API_KEY        --config workers/wrangler.gabriel-gatekeeper.toml
 #   wrangler secret put GABRIEL_SENTINEL_WEBHOOK --config workers/wrangler.gabriel-gatekeeper.toml
+#   wrangler secret put GITHUB_WEBHOOK_SECRET  --config workers/wrangler.gabriel-gatekeeper.toml
