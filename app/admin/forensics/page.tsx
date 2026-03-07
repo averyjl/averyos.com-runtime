@@ -93,12 +93,13 @@ export default function ForensicDashboard() {
   const [limit, setLimit]           = useState(500);
 
   // ── VaultGate auth check on mount ────────────────────────────────────────
-  // On mount, probe the forensics API — if the browser carries a valid
-  // `aos-vault-auth` HttpOnly cookie (set by a previous login), the request
-  // will succeed and we skip the password gate.  The token is NEVER stored
-  // in sessionStorage or any browser-accessible storage from this page.
+  // On mount, probe the forensics API with a minimal limit — if the browser
+  // carries a valid `aos-vault-auth` HttpOnly cookie (set by a previous login),
+  // the request will succeed and we skip the password gate.  The token is NEVER
+  // stored in sessionStorage or any browser-accessible storage from this page.
+  const AUTH_PROBE_LIMIT = 1; // minimal — only used to verify cookie validity
   useEffect(() => {
-    fetch("/api/v1/forensics/rayid-log?limit=1", { credentials: "same-origin" })
+    fetch(`/api/v1/forensics/rayid-log?limit=${AUTH_PROBE_LIMIT}`, { credentials: "same-origin" })
       .then(r => {
         if (r.ok) { setAuthed(true); }
         setChecking(false);

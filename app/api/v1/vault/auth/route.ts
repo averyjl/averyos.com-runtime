@@ -24,6 +24,11 @@ interface CloudflareEnv {
 // Cookie name used across all admin routes.
 export const VAULT_COOKIE_NAME = "aos-vault-auth";
 
+// ── Constants ──────────────────────────────────────────────────────────────
+/** Max-age for the vault auth cookie in seconds. Configurable via VAULT_COOKIE_TTL_SECONDS. */
+const VAULT_COOKIE_MAX_AGE_SEC =
+  parseInt(process.env.VAULT_COOKIE_TTL_SECONDS ?? "", 10) || 4 * 60 * 60; // default: 4 hours
+
 // Cookie settings — Secure flag is set on production; HttpOnly always.
 function buildCookieHeader(token: string, maxAgeSec: number): string {
   const parts = [
@@ -57,13 +62,12 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Invalid VAULTAUTH_TOKEN", 401);
     }
 
-    // Auth succeeded — set a 4-hour HttpOnly Secure cookie.
-    const maxAge = 4 * 60 * 60; // 4 hours in seconds
+    // Auth succeeded — set an HttpOnly Secure cookie for the configured TTL.
     return new Response(JSON.stringify({ ok: true, message: "Authenticated" }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Set-Cookie": buildCookieHeader(submittedToken, maxAge),
+        "Set-Cookie": buildCookieHeader(submittedToken, VAULT_COOKIE_MAX_AGE_SEC),
       },
     });
   } catch (err) {
