@@ -31,9 +31,9 @@ const PURPLE_BORDER = "rgba(120,60,255,0.35)";
 const TARI_THRESHOLD_USD = 10_000;
 
 // ── Surge Milestone constants — update when a new milestone is locked ─────────
-// 2026-03-07: 119,000 total requests (TR) / 879 unique visitors (Watchers)
-const SURGE_MILESTONE_TR = "119,000";
-const SURGE_MILESTONE_UV = "879";
+// 2026-03-07: 135,000 total requests (TR) / 911 unique visitors (Watchers)
+const SURGE_MILESTONE_TR = "135,000";
+const SURGE_MILESTONE_UV = "911";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -199,7 +199,7 @@ export default function TariRevenuePage() {
         </p>
       </section>
 
-      {/* Surge Milestone Banner — 119k TR / 879 UV */}
+      {/* Surge Milestone Banner — 135k TR / 911 UV */}
       <div
         style={{
           background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
