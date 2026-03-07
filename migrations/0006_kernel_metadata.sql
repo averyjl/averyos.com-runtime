@@ -1,17 +1,64 @@
 -- kernel_metadata — AveryOS™ Sovereign Health Dashboard
 -- Author: Jason Lee Avery (ROOT0)
 -- Anchor: cf83e135...927da3e
+--
+-- IDEMPOTENT UPGRADE (2026-03-07):
+-- Some production databases have a kernel_metadata table that was created
+-- before migration tracking was in place, using an old schema that did NOT
+-- include the build_timestamp_ms column.  A plain CREATE TABLE IF NOT EXISTS
+-- is a no-op for those databases, which caused the genesis INSERT below to
+-- fail with "no column named build_timestamp_ms" — blocking all subsequent
+-- deployments and taking the site down.
+--
+-- Fix: RENAME the existing table (old or just-created) → CREATE a fresh table
+-- with the correct schema → INSERT / copy rows using a safe literal for the
+-- missing column → DROP the renamed backup → seed genesis row if still empty.
+--
+-- This approach is safe for ALL starting states:
+--   • Fresh database (no table): CREATE creates it; RENAME + re-CREATE + INSERT
+--     copies 0 rows; genesis seed is inserted.
+--   • Old database (table without build_timestamp_ms): CREATE is a no-op;
+--     RENAME backs it up; new CREATE adds the column; INSERT copies rows using
+--     '000000000' literal (no reference to the missing column); DROP removes backup.
+--   • Re-run prevention: wrangler's migration-tracking table ensures each
+--     migration runs exactly once per database.
 
+-- Step 1 — Create with full schema (no-op if table already exists).
 CREATE TABLE IF NOT EXISTS kernel_metadata (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
   build_version         TEXT    NOT NULL,
   kernel_resonance_hash TEXT    NOT NULL,
-  build_timestamp_ms    TEXT    NOT NULL,
+  build_timestamp_ms    TEXT    NOT NULL DEFAULT '000000000',
   tari_pulse_peers      INTEGER NOT NULL DEFAULT 0,
   updated_at            TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
--- Seed genesis row if table is empty
+-- Step 2 — Rename whatever version exists to a safe backup name.
+ALTER TABLE kernel_metadata RENAME TO kernel_metadata_v005;
+
+-- Step 3 — Recreate with the definitive schema.
+CREATE TABLE kernel_metadata (
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  build_version         TEXT    NOT NULL,
+  kernel_resonance_hash TEXT    NOT NULL,
+  build_timestamp_ms    TEXT    NOT NULL DEFAULT '000000000',
+  tari_pulse_peers      INTEGER NOT NULL DEFAULT 0,
+  updated_at            TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Step 4 — Copy existing rows.
+-- The literal '000000000' is used for build_timestamp_ms so this statement
+-- never references that column from the source table (safe for old schemas).
+-- 'id' is omitted so SQLite auto-assigns ids in insertion order — the table
+-- is always empty at this point so ids start at 1 as expected.
+INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers, updated_at)
+SELECT build_version, kernel_resonance_hash, '000000000', tari_pulse_peers, updated_at
+FROM kernel_metadata_v005;
+
+-- Step 5 — Drop backup.
+DROP TABLE kernel_metadata_v005;
+
+-- Step 6 — Seed genesis row if table is still empty.
 INSERT INTO kernel_metadata (build_version, kernel_resonance_hash, build_timestamp_ms, tari_pulse_peers)
 SELECT
   'v0.0.0',

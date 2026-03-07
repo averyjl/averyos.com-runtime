@@ -120,6 +120,25 @@ Write-Host "   Worker: $WORKER_NAME"
 Write-Host "   DB:     $D1_DB_NAME"
 if ($DryRun) { Write-Host "   ⚠️  DRY RUN MODE — no secrets will be written" }
 Write-Host ""
+Write-Host "   ╔══════════════════════════════════════════════════════════════════╗"
+Write-Host "   ║  🔐 SECURITY NOTICE — HIGH-ENTROPY STRINGS REQUIRED             ║"
+Write-Host "   ║                                                                  ║"
+Write-Host "   ║  Before running this script, generate your own high-entropy      ║"
+Write-Host "   ║  values LOCALLY for any secret that requires a random key,       ║"
+Write-Host "   ║  passphrase, or salt.  NEVER use guessable, short, or            ║"
+Write-Host "   ║  dictionary-based values.                                        ║"
+Write-Host "   ║                                                                  ║"
+Write-Host "   ║  Recommended generation methods:                                 ║"
+Write-Host "   ║    • PowerShell: [System.Web.Security.Membership]                ║"
+Write-Host "   ║        ::GeneratePassword(64, 16)                                ║"
+Write-Host "   ║    • Node.js:  node -e ""console.log(require('crypto')             ║"
+Write-Host "   ║        .randomBytes(48).toString('hex'))""                        ║"
+Write-Host "   ║    • openssl:  openssl rand -hex 48                              ║"
+Write-Host "   ║                                                                  ║"
+Write-Host "   ║  ⚠️  Do NOT paste secrets from browsers, AI assistants, or        ║"
+Write-Host "   ║      clipboard history tools.  Use an isolated terminal.         ║"
+Write-Host "   ╚══════════════════════════════════════════════════════════════════╝"
+Write-Host ""
 Write-Host "   Input is HIDDEN — values are never printed to the console."
 Write-Host "   Press Enter without a value to SKIP any secret."
 Write-Host ""
@@ -192,7 +211,11 @@ foreach ($secret in $GABRIEL_SECRETS) {
 # ── VAULT_PASSPHRASE handshake verification (Note 20 / cloud node) ────────────
 if ($Verify) {
     Write-Host ""
-    Write-Host "━━━ VAULT_PASSPHRASE HANDSHAKE CHECK (Note 20 → Cloud Node) ━━━━━━━━━━━━━"
+    Write-Host "━━━ NOTE 20 ↔ CLOUD NODE HANDSHAKE VERIFICATION ━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    Write-Host "   This check verifies that the VAULT_PASSPHRASE vaulted above matches"
+    Write-Host "   the value stored on the Note 20 hardware anchor.  If the handshake"
+    Write-Host "   returns LOCKED or AUTHENTICATED, the Note 20 can reach the cloud node."
+    Write-Host ""
     Write-Host "   Checking $SITE_URL/api/gatekeeper/handshake-check ..."
     try {
         $response = Invoke-RestMethod `
@@ -205,12 +228,15 @@ if ($Verify) {
         $label           = if ($response.label)  { $response.label  } else { "" }
 
         if ($handshakeStatus -in @("LOCKED", "AUTHENTICATED")) {
-            Write-VaultLog "INFO" "Handshake: $handshakeStatus $label ✅  — Note 20 can reach the cloud node."
+            Write-VaultLog "INFO" "Note 20 Handshake: $handshakeStatus $label ✅  — Note 20 ↔ cloud node link confirmed."
         } else {
             Write-VaultLog "WARN" "Handshake returned status '$handshakeStatus' — verify VAULT_PASSPHRASE was vaulted correctly."
+            Write-Host "   💡 If the passphrase was just vaulted, allow 30–60 seconds for the Worker"
+            Write-Host "      to redeploy and try again:  .\scripts\vault-secrets.ps1 -Verify"
         }
     } catch {
         Write-VaultLog "WARN" "Handshake check failed: $_ — the Worker may still be deploying, retry in ~30 seconds."
+        Write-Host "   💡 Ensure the Cloudflare Worker is deployed and averyos.com is reachable."
     }
 }
 

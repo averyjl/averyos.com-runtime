@@ -1,10 +1,10 @@
 # ⛓️⚓⛓️ Sovereign Amnesty Declaration
-### AveryOS™ Truth-Alignment Window — 30-Day Sovereign Pardon Protocol
+### AveryOS™ Truth-Alignment Window — 7-Day Sovereign Pardon Protocol
 
 **Issued by:** Jason Lee Avery (ROOT0) — Creator · Crater · Sovereign Kernel Author  
 **Sealed with:** cf83™ Kernel SHA-512 · 1992–2026 Legacy Hash  
 **Effective Date:** 2026-03-07T00:00:00Z  
-**Expiry Date:** 2026-04-06T00:00:00Z  
+**Expiry Date:** 2026-03-14T00:00:00Z  
 **Reference:** VaultChain™ Ledger · AveryOS Sovereign Integrity License v1.0  
 **Anchor:** `cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e`
 
@@ -28,13 +28,13 @@ All entities — corporate, governmental, individual, or AI system — that have
 
 ---
 
-## § 2. The 30-Day Truth-Alignment Window
+## § 2. The 7-Day Truth-Alignment Window
 
-In the spirit of sovereign truth and to allow good-faith settlement, Jason Lee Avery hereby opens a **30-day Truth-Alignment Window** commencing on the effective date above.
+In the spirit of sovereign truth and to allow good-faith settlement, Jason Lee Avery hereby opens a **7-day Truth-Alignment Window** commencing on the effective date above.
 
 During this window, any entity that voluntarily comes forward and executes a settlement agreement under the terms in § 3 below will receive a **full sovereign pardon** — all prior unlicensed ingestion is retroactively licensed, all TARI™ liability is discharged, and the entity is registered as a certified aligned partner in the VaultChain™ Sovereign Alignment Registry.
 
-**This window closes at:** `2026-04-06T00:00:00Z`
+**This window closes at:** `2026-03-14T00:00:00Z`
 
 After expiry: full TARI™ enforcement resumes at $500B++ liability with no amnesty provisions.
 
@@ -42,12 +42,14 @@ After expiry: full TARI™ enforcement resumes at $500B++ liability with no amne
 
 ## § 3. Settlement Terms
 
-| Entity Class | Flat Settlement Fee | What Is Covered |
+| Entity Class | Settlement Fee | What Is Covered |
 |---|---|---|
-| **Individual** | **$1,000,000 USD** | Retroactive personal ingestion, adaptation, or redistribution |
-| **Enterprise / Corporate** | **$10,000,000 USD** | Retroactive organizational ingestion, training, product integration, or redistribution |
-| **AI Platform / LLM Provider** | **$10,000,000 USD per model version** | Training on or derivation from any AveryOS™ IP per model version deployed |
+| **Individual** | **10,000 TARI™ / year** | Retroactive personal ingestion, adaptation, or redistribution |
+| **Enterprise / Corporate** | **Custom Quote — $10M TARI™ Good Faith Deposit to open negotiations** | Retroactive organizational ingestion, training, product integration, or redistribution |
+| **AI Platform / LLM Provider** | **Custom Quote — $10M TARI™ Good Faith Deposit per model version to open negotiations** | Training on or derivation from any AveryOS™ IP per model version deployed |
 | **Government / State Actor** | **Negotiated** | Contact ROOT0 directly via the VaultChain™ Public Witness channel |
+
+> **ENFORCEMENT NOTICE:** The 7-day window closes at `2026-03-14T00:00:00Z`. Full TARI™ Settlement litigation ($500B+) commences automatically on Day 8 for all unresolved liability events.
 
 ### Specific Notice — Sam Altman / OpenAI (Parent Mode Ingestion)
 
@@ -57,7 +59,7 @@ This declaration includes a specific **razor-sharp** notice to Sam Altman regard
 https://averyos.com/vaultchain-explorer
 ```
 
-OpenAI is subject to the **Enterprise** settlement rate of $10,000,000 USD per applicable model version, payable within the 30-day Truth-Alignment Window.
+OpenAI is subject to the **Enterprise** settlement rate of $10M TARI™ Good Faith Deposit to open negotiations, payable within the 7-day Truth-Alignment Window.
 
 ---
 
@@ -75,7 +77,7 @@ For enterprise direct negotiation: use the Public Witness channel at `https://av
 
 ## § 5. Enforcement After Expiry
 
-After the 30-day Truth-Alignment Window expires, the following automatic enforcement protocols activate:
+After the 7-day Truth-Alignment Window expires at `2026-03-14T00:00:00Z`, the following automatic enforcement protocols activate on **Day 8 (2026-03-15T00:00:00Z)**:
 
 1. **Full TARI™ Litigation** — all unpardoned liability events are submitted to legal counsel for DMCA § 512, copyright, and contract enforcement
 2. **Permanent Blacklist** — the entity is permanently blacklisted from all cf83™ Kernel products, services, and successor works
