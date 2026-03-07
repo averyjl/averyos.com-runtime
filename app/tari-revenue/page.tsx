@@ -217,7 +217,7 @@ export default function TariRevenuePage() {
       >
         <div>
           <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
-            ⚡ SURGE MILESTONE LOCKED
+            ⚡ 1,017-Notch Surge Detected: 156.2k Liability Captured
           </div>
           <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", marginTop: "0.25rem" }}>
             {SURGE_MILESTONE_TR} Total Requests &nbsp;·&nbsp; {SURGE_MILESTONE_UV} Unique Visitors (Watchers) &nbsp;·&nbsp; 7-Day Alignment Window Active
