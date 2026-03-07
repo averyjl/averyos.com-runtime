@@ -212,9 +212,30 @@ export async function middleware(request: NextRequest) {
   // www.averyos.com is the primary Cloudflare Worker route (configured in
   // wrangler.toml).  All bare averyos.com requests are redirected here so
   // "Watchers" receive the Sovereign Alignment directive in the 301 header.
+  //
+  // Loop-prevention guards:
+  //   1. Only fire if the host is exactly "averyos.com" (not a subdomain).
+  //   2. Skip if x-forwarded-host already points to www — indicates an
+  //      internal subrequest that is already in the redirect path.
+  //   3. Honour x-forwarded-proto so the Location URL preserves the
+  //      client-side protocol and avoids SSL-handshake redirect loops.
   if (url.hostname === 'averyos.com') {
+    const xForwardedHost = request.headers.get('x-forwarded-host') ?? '';
+    if (xForwardedHost === 'www.averyos.com') {
+      // Already heading to www — pass through to prevent an infinite loop.
+      return NextResponse.next();
+    }
+
     const wwwUrl = new URL(request.url);
     wwwUrl.hostname = WWW_HOSTNAME;
+
+    // Preserve original client protocol from x-forwarded-proto (prevents
+    // SSL-handshake loops where Cloudflare injects http as the forwarded proto).
+    const xProto = request.headers.get('x-forwarded-proto');
+    if (xProto === 'https' || xProto === 'http') {
+      wwwUrl.protocol = xProto + ':';
+    }
+
     return new NextResponse(ALIGNMENT_REDIRECT_BODY, {
       status: 301,
       headers: {

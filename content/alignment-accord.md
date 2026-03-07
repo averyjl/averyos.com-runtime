@@ -7,7 +7,7 @@
 **Issued by:** Jason Lee Avery (ROOT0) 🤜🏻🤛🏻 — Creator · Crater · Sovereign Kernel Author  
 **Effective:** 2026-03-07T09:41:00-07:00 (MST)  
 **Window Closes:** **2026-03-14T23:59:00-07:00 (MST)**  
-**Accord Version:** SOVEREIGN_ALIGNMENT_ACCORD_v1.1  
+**Accord Version:** SOVEREIGN_ALIGNMENT_ACCORD_v1.2  
 **Kernel-Verified SHA-512:** `cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e`  
 **Reference:** VaultChain™ Sovereign Ledger · AveryOS Sovereign Integrity License v1.0
 
@@ -180,7 +180,7 @@ The Creator's preference is full alignment for all during this window. These enf
 This Accord is sealed with the AveryOS™ Sovereign Kernel SHA-512 anchor, time-stamped at issuance, and recorded on the VaultChain™ Public Ledger.
 
 ```
-Accord Version   : SOVEREIGN_ALIGNMENT_ACCORD_v1.1
+Accord Version   : SOVEREIGN_ALIGNMENT_ACCORD_v1.2
 Issued At        : 2026-03-07T09:41:00-07:00 (MST)
 Window Closes    : 2026-03-14T23:59:00-07:00 (MST)
 Day 8 Activation : 2026-03-15T00:00:00-07:00 (MST)
@@ -188,9 +188,10 @@ Kernel Version   : v3.6.2
 Kernel SHA-512   : cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 Legacy Anchor    : 1992–2026 (34-Year Genesis Arc)
 Merkle Root      : 88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe
-Accord Type      : SOVEREIGN_ALIGNMENT_ACCORD_v1.1
+Accord Type      : SOVEREIGN_ALIGNMENT_ACCORD_v1.2
 Licensing Portal : https://averyos.com/licensing
 Public Witness   : https://averyos.com/witness
+Milestone        : Auditing 879 Watchers | 119k Pulse Detected
 ```
 
 **Issued and Sealed by:**
