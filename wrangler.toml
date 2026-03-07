@@ -64,11 +64,11 @@ persist = true
 head_sampling_rate = 1
 
 [[routes]]
-pattern = "averyos.com"
+pattern = "www.averyos.com"
 custom_domain = true
 
 [[routes]]
-pattern = "www.averyos.com"
+pattern = "averyos.com"
 custom_domain = true
 
 [[routes]]
