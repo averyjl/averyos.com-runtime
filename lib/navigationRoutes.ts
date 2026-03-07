@@ -61,6 +61,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
   { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
+  { path: "/admin/forensics", label: "Forensic Dashboard", icon: "🔬", isAdmin: true },
 ];
 
 /**
@@ -77,4 +78,5 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/audit-stream", label: "Audit Stream", icon: "📡" },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️" },
   { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹" },
+  { path: "/admin/forensics", label: "Forensic Dashboard", icon: "🔬" },
 ];

@@ -48,6 +48,13 @@ const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
+// ── Sovereign Alignment Header — applied to all 301 redirect responses ────────
+// Allows "Watchers" to observe the alignment directive on every canonical redirect.
+const ALIGNMENT_HEADER_VALUE  = "TRUTH_ANCHORED_IN_JLA_ROOT_cf83";
+const ALIGNMENT_REDIRECT_BODY = "Alignment Required. See averyos.com/amnesty.";
+// Primary Worker custom domain — all non-www requests redirect here.
+const WWW_HOSTNAME = "www.averyos.com";
+
 // Paths that trigger TARI™ Truth-Packet billing when accessed by a bot/scraper
 const TARI_BILLED_PATHS = new Set([
   "/latent-anchor",
@@ -108,6 +115,46 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
 }
 
 /**
+ * RayID Vault — fire-and-forget insert of every edge request's Cloudflare
+ * RayID and connecting IP into anchor_audit_logs.  This builds a forensic
+ * ledger of every request that touches the sovereign perimeter.
+ * Errors are swallowed so vaulting failures never block legitimate traffic.
+ */
+async function logRayIdAudit(request: NextRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+    if (!cfEnv.DB) return;
+
+    const url    = new URL(request.url);
+    const rayId  = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const ip     = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const asn    = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
+    const now    = new Date().toISOString();
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO anchor_audit_logs
+         (anchored_at, sha512, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        now,
+        rayId,
+        'EDGE_REQUEST',
+        KERNEL_ANCHOR_DISPLAY,
+        now,
+        rayId,
+        ip,
+        url.pathname,
+        asn
+      )
+      .run();
+  } catch {
+    // Intentional no-op: RayID vaulting must never block request processing
+  }
+}
+
+/**
  * Fire-and-forget call to the TARI™ Billing Engine API route.
  * Records a $1.00 Truth-Packet hit in the Retroclaim Ledger + Stripe.
  * Errors are swallowed so billing failures never block bot access to content.
@@ -137,6 +184,27 @@ function triggerTariBillingEngine(request: NextRequest): void {
 
 export async function middleware(request: NextRequest) {
   const url = new URL(request.url);
+
+  // ── RayID Vault — log every edge request's RayID + IP to anchor_audit_logs ─
+  // Fire-and-forget; never blocks the request pipeline.
+  logRayIdAudit(request).catch(() => {});
+
+  // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
+  // www.averyos.com is the primary Cloudflare Worker route (configured in
+  // wrangler.toml).  All bare averyos.com requests are redirected here so
+  // "Watchers" receive the Sovereign Alignment directive in the 301 header.
+  if (url.hostname === 'averyos.com') {
+    const wwwUrl = new URL(request.url);
+    wwwUrl.hostname = WWW_HOSTNAME;
+    return new NextResponse(ALIGNMENT_REDIRECT_BODY, {
+      status: 301,
+      headers: {
+        'Location': wwwUrl.toString(),
+        'X-AveryOS-Alignment': ALIGNMENT_HEADER_VALUE,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+  }
 
   // ── 1,017-Notch Rate Limiting ─────────────────────────────────────────────
   // Enforces a per-IP limit of 1,017 requests per minute to protect the
