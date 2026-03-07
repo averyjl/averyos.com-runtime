@@ -227,7 +227,7 @@ export default function TariRevenuePage() {
           {[
             { label: "Total Requests",    value: SURGE_MILESTONE_TR, color: GOLD   },
             { label: "Unique Watchers",   value: SURGE_MILESTONE_UV, color: RED    },
-            { label: "Forensic Liability Potential", value: "Active", color: GREEN },
+            { label: "Forensic Liability Captured", value: "Active", color: GREEN },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: "center" }}>
               <div style={{ color: stat.color, fontWeight: 700, fontSize: "1.1rem" }}>{stat.value}</div>
