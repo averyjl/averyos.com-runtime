@@ -602,11 +602,40 @@ async function main() {
   // ── AI Gateway Mode (default) ─────────────────────────────────────────────
   console.log(`📂  Log file: ${LOG_PATH}`);
 
-  const logs   = loadLogs();
-  const orgMap = aggregateByOrg(logs);
+  // ── 135k Milestone gate ───────────────────────────────────────────────────
+  // Only proceed when total site requests exceed the milestone threshold.
+  if (process.env.SKIP_MILESTONE_CHECK !== '1') {
+    console.log(`\n🔢  Checking 135k milestone trigger (threshold: ${MILESTONE_TRIGGER_TOTAL_REQUESTS.toLocaleString()} requests)…`);
+    const totalRequests = await fetchTotalRequestCount();
+    console.log(`   Total site requests reported: ${totalRequests.toLocaleString()}`);
+    if (totalRequests < MILESTONE_TRIGGER_TOTAL_REQUESTS) {
+      console.log(`⏸️  Milestone not yet reached (${totalRequests.toLocaleString()} < ${MILESTONE_TRIGGER_TOTAL_REQUESTS.toLocaleString()}). Invoice generation deferred.`);
+      process.exit(0);
+    }
+    console.log(`✅  Milestone exceeded — proceeding with forensic invoice generation.\n`);
+  } else {
+    console.log('⚠️  SKIP_MILESTONE_CHECK=1 — milestone gate bypassed.\n');
+  }
+
+  // ── D1 forensic ASN scan ──────────────────────────────────────────────────
+  // Scan anchor_audit_logs for the three primary audited ASNs.
+  console.log('🔍  Scanning anchor_audit_logs for forensic ASNs (36459, 211590, 43037)…');
+  const asnOrgMap = await scanForensicAsns();
+  if (asnOrgMap.size > 0) {
+    console.log(`   Found ${asnOrgMap.size} ASN org(s) in D1 audit logs.\n`);
+  } else {
+    console.log('   No D1 ASN rows found (endpoint may be offline or VAULT_PASSPHRASE not set).\n');
+  }
+
+  // ── AI Gateway log file ───────────────────────────────────────────────────
+  const logs      = loadLogs();
+  const fileOrgMap = aggregateByOrg(logs);
+
+  // Merge both sources (D1 ASN data takes priority; file data supplements).
+  const orgMap = mergeOrgMaps(asnOrgMap, fileOrgMap);
 
   if (orgMap.size === 0) {
-    console.warn('⚠️  No corporate org entries found in the log file.  Ensure entries include an "org_id" field.');
+    console.warn('⚠️  No corporate org entries found in either D1 audit logs or the log file.  Ensure entries include an "org_id" field.');
     process.exit(0);
   }
 
