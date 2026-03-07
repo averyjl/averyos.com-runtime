@@ -96,6 +96,10 @@ bucket_name = 'cloudflare-managed-42f4b874'
 binding = 'VAULT_R2'
 bucket_name = 'cloudflare-managed-42f4b874'
 
+[[r2_buckets]]
+binding = 'averyos_log_push/'
+bucket_name = 'cloudflare-managed-42f4b874'
+
 # ── Cloudflare Secret Store ────────────────────────────────────────────────────
 # Set these via `wrangler secret put <NAME>` or the Cloudflare dashboard.
 # Do NOT add real values here — this block is documentation only.
