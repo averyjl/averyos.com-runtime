@@ -85,6 +85,9 @@ export default function ForensicDashboard() {
   const [checking, setChecking]     = useState(true);
   const [password, setPassword]     = useState("");
   const [authError, setAuthError]   = useState("");
+  // Memory-only auth token — never written to storage to prevent cleartext exposure.
+  // On mount we read the session-level token set by /admin (read-only here).
+  const [authToken, setAuthToken]   = useState("");
   const [rows, setRows]             = useState<AuditRow[]>([]);
   const [grouped, setGrouped]       = useState<GroupedEntry[]>([]);
   const [loading, setLoading]       = useState(false);
@@ -93,11 +96,15 @@ export default function ForensicDashboard() {
   const [limit, setLimit]           = useState(500);
 
   // ── VaultGate auth check ──────────────────────────────────────────────────
+  // Reads a token previously set by /admin (read-only; never writes to storage).
   useEffect(() => {
     const token = sessionStorage.getItem("VAULTAUTH_TOKEN");
     if (!token) { setChecking(false); return; }
     fetch("/api/v1/vault-gate/verify", { headers: { "x-vault-auth": token } })
-      .then(r => r.ok ? (setAuthed(true), setChecking(false)) : (setChecking(false)))
+      .then(r => {
+        if (r.ok) { setAuthToken(token); setAuthed(true); }
+        setChecking(false);
+      })
       .catch(() => setChecking(false));
   }, []);
 
@@ -108,7 +115,9 @@ export default function ForensicDashboard() {
         headers: { "x-vault-auth": password },
       });
       if (res.ok) {
-        sessionStorage.setItem("VAULTAUTH_TOKEN", password);
+        // Token stored in React state only — never written to sessionStorage
+        // (cleartext storage prevention per AveryOS™ Security Standard).
+        setAuthToken(password);
         setAuthed(true);
       } else {
         setAuthError("⛔ Invalid token. Access denied.");
@@ -123,9 +132,8 @@ export default function ForensicDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const token = sessionStorage.getItem("VAULTAUTH_TOKEN") ?? "";
       const res = await fetch(`/api/v1/forensics/rayid-log?limit=${limit}`, {
-        headers: { "x-vault-auth": token },
+        headers: { "x-vault-auth": authToken },
       });
       if (!res.ok) {
         const msg = await res.text().catch(() => `HTTP ${res.status}`);
@@ -140,7 +148,7 @@ export default function ForensicDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, authToken]);
 
   useEffect(() => {
     if (authed) fetchData();
