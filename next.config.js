@@ -38,6 +38,12 @@ const nextConfig = {
       { source: '/forensic-proof', destination: '/licensing#forensic-proof', permanent: true },
       { source: '/retroclaim-log', destination: '/licensing#retroclaim', permanent: true },
       { source: '/license-enforcement', destination: '/licensing#enforcement', permanent: true },
+      // ── Alignment Accord — primary index for all 301 alignment redirects ──
+      { source: '/accord',           destination: '/alignment-accord', permanent: true },
+      { source: '/amnesty',          destination: '/alignment-accord', permanent: true },
+      { source: '/align',            destination: '/alignment-accord', permanent: true },
+      { source: '/settlement',       destination: '/alignment-accord', permanent: true },
+      { source: '/tari-accord',      destination: '/alignment-accord', permanent: true },
     ];
   },
 };

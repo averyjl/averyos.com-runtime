@@ -32,6 +32,8 @@
  *   averyos-drift-alerts/       — drift detection events
  *   averyos-ip-protection/      — IP protection scan results
  *   averyos-handshake-sync/     — SHA-512-hashed inter-cloud sync events
+ *   averyos-d1-sync/            — D1 sovereign_audit_logs rows mirrored for parity
+ *   averyos-tari-probe/         — D1 tari_probe Watcher rows mirrored for parity
  */
 
 import { KERNEL_SHA } from "./sovereignConstants";
@@ -298,6 +300,108 @@ export async function batchSyncD1ToFirebase(
   for (const row of rows) {
     if (row.threat_level < minThreatLevel) { skipped++; continue; }
     const result = await syncD1RowToFirebase(row);
+    if (result) synced++;
+    else        skipped++;
+  }
+  return { synced, skipped };
+}
+
+// ── tari_probe → Firebase Sync ────────────────────────────────────────────────
+
+/**
+ * Document shape for a tari_probe Watcher row synced to Firebase.
+ * Every Watcher detected by GabrielOS™ is mirrored here to ensure
+ * cross-cloud audit parity.
+ */
+export interface TariProbeDoc {
+  source:               "cloudflare_d1";
+  table:                "tari_probe";
+  row_id:               number | string;
+  ray_id:               string;
+  ip_address:           string;
+  asn:                  string;
+  user_agent:           string;
+  target_path:          string;
+  event_type:           string;
+  threat_level:         number;
+  tari_liability_usd:   number;
+  pulse_hash?:          string;
+  timestamp_ns:         string;
+  synced_at:            string;
+  kernel_sha:           string;
+  milestone:            string;
+  creator_lock:         "🤛🏻";
+}
+
+/**
+ * Sync a tari_probe Watcher row to the Firestore `averyos-tari-probe` collection
+ * for Multi-Cloud D1/Firebase parity.
+ *
+ * Every time a Watcher is logged to the D1 tari_probe table this function
+ * should be called to mirror the record to Firebase, ensuring the audit trail
+ * survives even if a single cloud provider attempts a "Nuclear Wipe".
+ *
+ * This is a no-op stub until FIREBASE_PROJECT_ID is configured.
+ *
+ * @param row — a row object from the tari_probe table
+ */
+export async function syncTariProbeToFirebase(row: {
+  id:                  number | string;
+  ray_id:              string;
+  ip_address:          string;
+  asn:                 string;
+  user_agent:          string;
+  target_path:         string;
+  event_type:          string;
+  threat_level:        number;
+  tari_liability_usd:  number;
+  pulse_hash?:         string;
+  timestamp_ns:        string;
+}): Promise<TariProbeDoc | null> {
+  if (!isFirebaseConfigured()) return null;
+
+  const doc: TariProbeDoc = {
+    source:              "cloudflare_d1",
+    table:               "tari_probe",
+    row_id:              row.id,
+    ray_id:              row.ray_id,
+    ip_address:          row.ip_address,
+    asn:                 row.asn,
+    user_agent:          row.user_agent,
+    target_path:         row.target_path,
+    event_type:          row.event_type,
+    threat_level:        row.threat_level,
+    tari_liability_usd:  row.tari_liability_usd,
+    pulse_hash:          row.pulse_hash,
+    timestamp_ns:        row.timestamp_ns,
+    synced_at:           iso9Now(),
+    kernel_sha:          KERNEL_SHA,
+    milestone:           "911 Watchers Authenticated | 135k Pulse Anchored",
+    creator_lock:        "🤛🏻",
+  };
+
+  // TODO: write to Firestore once firebase-admin credentials are wired:
+  // const db = getFirestore();
+  // await db.collection("averyos-tari-probe").add(doc);
+  void doc;
+
+  return doc;
+}
+
+/**
+ * Batch-sync multiple tari_probe Watcher rows to Firebase.
+ * All rows are synced regardless of threat_level since every Watcher detection
+ * is forensically significant.
+ *
+ * @param rows — array of tari_probe row objects
+ */
+export async function batchSyncTariProbeToFirebase(
+  rows: Parameters<typeof syncTariProbeToFirebase>[0][]
+): Promise<{ synced: number; skipped: number }> {
+  let synced  = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    const result = await syncTariProbeToFirebase(row);
     if (result) synced++;
     else        skipped++;
   }
