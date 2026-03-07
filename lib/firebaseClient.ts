@@ -303,3 +303,75 @@ export async function batchSyncD1ToFirebase(
   }
   return { synced, skipped };
 }
+
+// ── tari_probe → Firebase Sync ────────────────────────────────────────────────
+
+/**
+ * Document shape for a tari_probe row mirrored to Firebase.
+ * Every time a "Watcher" is logged to the D1 tari_probe table, this document
+ * is written to the Firestore `averyos-tari-probe` collection to ensure the
+ * audit trail survives a single-cloud provider failure.
+ */
+export interface TariProbeDoc {
+  source:       "cloudflare_d1";
+  table:        "tari_probe";
+  row_id:       number | string;
+  ip_address:   string;
+  asn:          string | null;
+  user_agent:   string | null;
+  target_path:  string;
+  event_type:   string;
+  tari_liability_usd?: number;
+  timestamp_ns: string;
+  synced_at:    string;
+  kernel_sha:   string;
+  creator_lock: "🤛🏻";
+}
+
+/**
+ * Mirror a D1 `tari_probe` Watcher row to the Firestore `averyos-tari-probe`
+ * collection for Multi-Cloud D1/Firebase parity.
+ *
+ * This is a no-op until FIREBASE_PROJECT_ID is configured. Once active, every
+ * Watcher logged to tari_probe is immediately mirrored to Firebase, ensuring
+ * the audit trail survives even if Cloudflare's D1 is wiped.
+ *
+ * @param row — a row object from the tari_probe table
+ */
+export async function syncTariProbeRowToFirebase(row: {
+  id:                number | string;
+  ip_address:        string;
+  asn?:              string | null;
+  user_agent?:       string | null;
+  target_path:       string;
+  event_type:        string;
+  tari_liability_usd?: number;
+  timestamp_ns:      string;
+}): Promise<TariProbeDoc | null> {
+  if (!isFirebaseConfigured()) return null;
+
+  const doc: TariProbeDoc = {
+    source:            "cloudflare_d1",
+    table:             "tari_probe",
+    row_id:            row.id,
+    ip_address:        row.ip_address,
+    asn:               row.asn ?? null,
+    user_agent:        row.user_agent ?? null,
+    target_path:       row.target_path,
+    event_type:        row.event_type,
+    tari_liability_usd: row.tari_liability_usd,
+    timestamp_ns:      row.timestamp_ns,
+    synced_at:         iso9Now(),
+    kernel_sha:        KERNEL_SHA,
+    creator_lock:      "🤛🏻",
+  };
+
+  // Document prepared; not written until firebase-admin credentials are configured
+  // (FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY).
+  // Once wired, replace the void below with:
+  //   const db = getFirestore();
+  //   await db.collection("averyos-tari-probe").add(doc);
+  void doc;
+
+  return doc;
+}

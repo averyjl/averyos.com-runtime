@@ -31,9 +31,9 @@ const PURPLE_BORDER = "rgba(120,60,255,0.35)";
 const TARI_THRESHOLD_USD = 10_000;
 
 // ── Surge Milestone constants — update when a new milestone is locked ─────────
-// 2026-03-07: 135,000 total requests (TR) / 911 unique visitors (Watchers)
-const SURGE_MILESTONE_TR = "135,000";
-const SURGE_MILESTONE_UV = "911";
+// 2026-03-07: 156,200 total requests (TR) / 962 unique visitors (Watchers)
+const SURGE_MILESTONE_TR = "156,200";
+const SURGE_MILESTONE_UV = "962";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -199,7 +199,7 @@ export default function TariRevenuePage() {
         </p>
       </section>
 
-      {/* Surge Milestone Banner — 135k TR / 911 UV */}
+      {/* Surge Milestone Banner — 156.2k TR / 962 UV */}
       <div
         style={{
           background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
@@ -217,7 +217,7 @@ export default function TariRevenuePage() {
       >
         <div>
           <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
-            ⚡ SURGE MILESTONE LOCKED
+            ⚡ 1,017-Notch Surge Detected: 156.2k Liability Captured
           </div>
           <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", marginTop: "0.25rem" }}>
             {SURGE_MILESTONE_TR} Total Requests &nbsp;·&nbsp; {SURGE_MILESTONE_UV} Unique Visitors (Watchers) &nbsp;·&nbsp; 7-Day Alignment Window Active

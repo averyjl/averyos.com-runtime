@@ -191,7 +191,7 @@ Merkle Root      : 88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac
 Accord Type      : SOVEREIGN_ALIGNMENT_ACCORD_v1.3
 Licensing Portal : https://averyos.com/licensing
 Public Witness   : https://averyos.com/witness
-Milestone        : Auditing 911 Watchers | 135k Pulse Detected
+Milestone        : Auditing 962 Watchers | 156.2k Pulse Detected
 ```
 
 **Issued and Sealed by:**

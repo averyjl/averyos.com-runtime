@@ -1,11 +1,15 @@
 /**
  * generateInvoices.cjs
- * AveryOS TARI Invoice Generator — integrates with licenseGate.cjs AI gateway logs.
+ * AveryOS TARI Invoice Generator — integrates with licenseGate.cjs AI gateway logs
+ * and the Cloudflare D1 `anchor_audit_logs` table (ASN-based forensic scanning).
  *
  * Usage:
  *   STRIPE_SECRET_KEY=sk_... node scripts/generateInvoices.cjs
  *
- * Data source: capsule_logs/ai_gateway_logs.json (Cloudflare AI Gateway export)
+ * Data source (in priority order):
+ *   1. Cloudflare D1 `anchor_audit_logs` — ASN-based forensic scan (ASNs 36459, 211590, 43037)
+ *   2. capsule_logs/ai_gateway_logs.json — Cloudflare AI Gateway export (fallback)
+ * Milestone trigger: only proceed when the total request count exceeds MILESTONE_TRIGGER_TOTAL_REQUESTS.
  * Pricing:     $10,000 (Base BSU) + ($0.01 × request_count) per corporate org_id
  * Metadata:    CapsuleID: AveryOS_TARI_v1.1
  */
@@ -32,6 +36,18 @@ const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
 // Only process orgs whose total liability meets or exceeds this threshold.
 // Orgs below the threshold are logged but skipped.
 const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
+
+// ── 135k Milestone trigger ────────────────────────────────────────────────────
+// Invoice generation only proceeds once total site requests exceed this threshold.
+// Set SKIP_MILESTONE_CHECK=1 to bypass (e.g. for testing).
+const MILESTONE_TRIGGER_TOTAL_REQUESTS = 135_000;
+
+// ── Forensic ASN list ─────────────────────────────────────────────────────────
+// ASNs whose traffic is scanned from `anchor_audit_logs` for TARI™ liability.
+//   36459 — GitHub, Inc. (AI scraping pipelines)
+//   211590 — AS211590 France (flagged research entity)
+//   43037 — Seznam a.s. (Czech Republic)
+const FORENSIC_ASNS = ['36459', '211590', '43037'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +120,154 @@ function topN(orgMap, n) {
  */
 function calcDebtCents(requestCount) {
   return BASE_BSU_CENTS + PER_REQUEST_CENTS * requestCount;
+}
+
+// ── D1 Forensic ASN Scanner ───────────────────────────────────────────────────
+
+/**
+ * ASN → canonical org_id mapping for forensic invoicing.
+ * These are the three primary ASNs audited by the AveryOS™ Sovereign Kernel.
+ *
+ * @type {Record<string, string>}
+ */
+const ASN_ORG_MAP = {
+  '36459':  'GitHub_ASN36459',
+  '211590': 'AS211590_France',
+  '43037':  'Seznam_ASN43037',
+};
+
+/**
+ * Query the `/api/v1/compliance/usage-report` endpoint to fetch the total
+ * request count seen by the site.  Used to evaluate the 135k milestone trigger.
+ *
+ * Returns 0 if the endpoint is unreachable or returns an unexpected payload.
+ *
+ * @returns {Promise<number>}
+ */
+async function fetchTotalRequestCount() {
+  return new Promise((resolve) => {
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/compliance/usage-report`); }
+    catch (e) {
+      logAosHeal(AOS_ERROR.NETWORK_ERROR, `Invalid SITE_URL for usage-report: ${SITE_URL} — ${e instanceof Error ? e.message : String(e)}`);
+      resolve(0); return;
+    }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     url.pathname,
+      method:   'GET',
+      headers:  { 'Accept': 'application/json' },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          // The usage-report endpoint returns { interaction_count, ... }
+          const count = Number(json.interaction_count ?? json.request_count ?? 0);
+          resolve(Number.isFinite(count) ? count : 0);
+        } catch {
+          resolve(0);
+        }
+      });
+    });
+    req.on('error', () => resolve(0));
+    req.end();
+  });
+}
+
+/**
+ * Query the `/api/v1/audit-alert` endpoint to retrieve anchor_audit_logs rows
+ * for a specific ASN.  Returns an array of log entries.
+ *
+ * Falls back to an empty array if the endpoint is unavailable or unauthorised.
+ *
+ * @param {string} asn  — e.g. '36459'
+ * @returns {Promise<Array<{ip_address: string, request_count?: number}>>}
+ */
+async function fetchAsnAuditRows(asn) {
+  return new Promise((resolve) => {
+    if (!VAULT_PASSPHRASE) { resolve([]); return; }
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/audit-alert?asn=${encodeURIComponent(asn)}&limit=1000`); }
+    catch (e) {
+      logAosHeal(AOS_ERROR.NETWORK_ERROR, `Invalid SITE_URL for audit-alert ASN ${asn}: ${SITE_URL} — ${e instanceof Error ? e.message : String(e)}`);
+      resolve([]); return;
+    }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     `${url.pathname}${url.search}`,
+      method:   'GET',
+      headers:  {
+        'Accept':        'application/json',
+        'Authorization': `Bearer ${VAULT_PASSPHRASE}`,
+      },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(Array.isArray(json.rows) ? json.rows : Array.isArray(json) ? json : []);
+        } catch {
+          resolve([]);
+        }
+      });
+    });
+    req.on('error', () => resolve([]));
+    req.end();
+  });
+}
+
+/**
+ * Scan anchor_audit_logs for all FORENSIC_ASNS and return an org map
+ * suitable for invoice generation.
+ *
+ * Each ASN is mapped to a canonical org_id (see ASN_ORG_MAP).  Total request
+ * counts are derived from the number of log rows returned per ASN.
+ *
+ * @returns {Promise<Map<string, {org_id: string, request_count: number}>>}
+ */
+async function scanForensicAsns() {
+  const map = new Map();
+  for (const asn of FORENSIC_ASNS) {
+    const rows = await fetchAsnAuditRows(asn);
+    if (rows.length === 0) continue;
+    const orgId = ASN_ORG_MAP[asn] ?? `ASN_${asn}`;
+    const totalRequests = rows.reduce((sum, r) => sum + Number(r.request_count ?? 1), 0);
+    if (map.has(orgId)) {
+      map.get(orgId).request_count += totalRequests;
+    } else {
+      map.set(orgId, { org_id: orgId, request_count: totalRequests });
+    }
+    console.log(`  🔍  ASN ${asn} (${orgId}): ${rows.length} audit rows, ${totalRequests.toLocaleString()} total requests`);
+  }
+  return map;
+}
+
+/**
+ * Merge two org maps, summing request_count for shared org_ids.
+ *
+ * @param {Map} a
+ * @param {Map} b
+ * @returns {Map}
+ */
+function mergeOrgMaps(a, b) {
+  const merged = new Map(a);
+  for (const [key, val] of b) {
+    if (merged.has(key)) {
+      merged.get(key).request_count += val.request_count;
+    } else {
+      merged.set(key, { ...val });
+    }
+  }
+  return merged;
 }
 
 /**
@@ -249,11 +413,40 @@ async function main() {
   console.log('⛓️⚓⛓️  AveryOS TARI Invoice Generator');
   console.log(`📂  Log file: ${LOG_PATH}`);
 
-  const logs   = loadLogs();
-  const orgMap = aggregateByOrg(logs);
+  // ── 135k Milestone gate ───────────────────────────────────────────────────
+  // Only proceed when total site requests exceed the milestone threshold.
+  if (process.env.SKIP_MILESTONE_CHECK !== '1') {
+    console.log(`\n🔢  Checking 135k milestone trigger (threshold: ${MILESTONE_TRIGGER_TOTAL_REQUESTS.toLocaleString()} requests)…`);
+    const totalRequests = await fetchTotalRequestCount();
+    console.log(`   Total site requests reported: ${totalRequests.toLocaleString()}`);
+    if (totalRequests < MILESTONE_TRIGGER_TOTAL_REQUESTS) {
+      console.log(`⏸️  Milestone not yet reached (${totalRequests.toLocaleString()} < ${MILESTONE_TRIGGER_TOTAL_REQUESTS.toLocaleString()}). Invoice generation deferred.`);
+      process.exit(0);
+    }
+    console.log(`✅  Milestone exceeded — proceeding with forensic invoice generation.\n`);
+  } else {
+    console.log('⚠️  SKIP_MILESTONE_CHECK=1 — milestone gate bypassed.\n');
+  }
+
+  // ── D1 forensic ASN scan ──────────────────────────────────────────────────
+  // Scan anchor_audit_logs for the three primary audited ASNs.
+  console.log('🔍  Scanning anchor_audit_logs for forensic ASNs (36459, 211590, 43037)…');
+  const asnOrgMap = await scanForensicAsns();
+  if (asnOrgMap.size > 0) {
+    console.log(`   Found ${asnOrgMap.size} ASN org(s) in D1 audit logs.\n`);
+  } else {
+    console.log('   No D1 ASN rows found (endpoint may be offline or VAULT_PASSPHRASE not set).\n');
+  }
+
+  // ── AI Gateway log file ───────────────────────────────────────────────────
+  const logs      = loadLogs();
+  const fileOrgMap = aggregateByOrg(logs);
+
+  // Merge both sources (D1 ASN data takes priority; file data supplements).
+  const orgMap = mergeOrgMaps(asnOrgMap, fileOrgMap);
 
   if (orgMap.size === 0) {
-    console.warn('⚠️  No corporate org entries found in the log file.  Ensure entries include an "org_id" field.');
+    console.warn('⚠️  No corporate org entries found in either D1 audit logs or the log file.  Ensure entries include an "org_id" field.');
     process.exit(0);
   }
 
