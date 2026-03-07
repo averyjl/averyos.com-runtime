@@ -40,6 +40,8 @@ GOLDEN_LOCK_MERKLE_ROOT = "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04a
 binding       = "DB"
 database_name = "averyos_kernel_db"
 database_id   = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+migrations_dir = "../migrations"
+# Apply migrations: npx wrangler d1 migrations apply averyos_kernel_db --remote
 
 # ── Observability ──────────────────────────────────────────────────────────────
 [observability]

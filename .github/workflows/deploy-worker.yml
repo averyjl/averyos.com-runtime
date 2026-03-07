@@ -165,6 +165,15 @@ jobs:
           GABRIEL_SENTINEL_WEBHOOK:  ${{ secrets.GABRIEL_SENTINEL_WEBHOOK }}
           GITHUB_WEBHOOK_SECRET:     ${{ secrets.GITHUB_WEBHOOK_SECRET }}
 
+      - name: 🗄️ Apply D1 migrations (averyos_kernel_db)
+        run: |
+          echo "⛓️⚓⛓️ Applying D1 migrations to averyos_kernel_db..."
+          npx wrangler d1 migrations apply averyos_kernel_db --remote
+          echo "✅ D1 migrations applied"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Workers
         run: |
           # Auto-retry on authentication/transient errors

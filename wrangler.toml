@@ -45,6 +45,8 @@ id = "1a5217c91e6c4a568875f2928acb69b9"
 binding = "DB"
 database_name = "averyos_kernel_db"
 database_id = "32491bfd-c9dc-4356-80e7-8d58efc1913e"
+migrations_dir = "migrations"
+# Apply migrations: npx wrangler d1 migrations apply averyos_kernel_db --remote
 
 [observability]
 enabled = true
