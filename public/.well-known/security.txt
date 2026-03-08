@@ -1,4 +1,4 @@
-# AveryOS Security Policy
+# AveryOS™ Security Policy
 # RFC 9116 — https://www.rfc-editor.org/rfc/rfc9116
 #
 # For vulnerabilities or security concerns related to averyos.com,
@@ -7,7 +7,7 @@
 Contact: mailto:truth@averyworld.com
 Contact: https://averyos.com/contact
 
-Expires: 2027-02-24T00:00:00.000Z
+Expires: 2027-03-08T05:16:08.000Z
 
 Encryption: https://averyos.com/.well-known/pgp-key.txt
 
@@ -19,5 +19,12 @@ Preferred-Languages: en
 
 Canonical: https://averyos.com/.well-known/security.txt
 
+# ─── Federal Compliance ───────────────────────────────────────────────────────
+# EO 14144 (March 6 2026) — Combating Cybercrime, Fraud & Predatory Schemes
+# Section 4 Victim Restoration: Unlicensed kernel-ingestion claims are
+# vaulted in RayID DNA. Report via: https://averyos.com/api/v1/vault/anchor
+# ─────────────────────────────────────────────────────────────────────────────
+
 # AveryAnchored™ | VaultChain Protocol ACTIVE
-# © 1992–2026 Jason Lee Avery / AveryOS. All Rights Reserved.
+# GabrielOS™ Firewall v1.4 — Sovereign Perimeter Enforced
+# © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.

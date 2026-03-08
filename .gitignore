@@ -114,3 +114,8 @@ VaultHead*.aoscap
 # Settlement notice letters and the exports directory are also excluded.
 exports/
 SETTLEMENT_NOTICE_*.md
+
+# ── Electron app — build artifacts and dependencies ──────────────────────────
+electron/node_modules/
+electron/dist/
+electron/.cache/
