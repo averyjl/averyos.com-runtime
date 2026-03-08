@@ -1,11 +1,13 @@
-// GabrielOS Edge-Guard v1.4
+// GabrielOS Edge-Guard v1.5
 // Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
+// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 78.1)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { classifyDerRequest } from './lib/sovereignMetadata';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -283,6 +285,85 @@ export async function middleware(request: NextRequest) {
         },
       }
     );
+  }
+
+  // ── DER 2.0 Gateway — Dynamic Entity Recognition ──────────────────────────
+  // Classifies incoming requests by ASN and Referrer to apply personalised
+  // alignment headers and forensic recording.
+  //
+  //  SETTLEMENT_REQUIRED → Inject header + forensic-probe log (ASN 36459/MS)
+  //  HIGH_VALUE          → Inject header (Google/AWS/Azure infrastructure)
+  //  CONFLICT_ZONE_PROBE → Silent D1 audit only (ASN 198488/Kyiv)
+  //  YC_DISCOVERY_AUDIT  → Inject HN discovery header + log watcher event
+  //  GITHUB_AUDIT        → Inject header for GitHub referral traffic
+  //  REDDIT_DISCOVERY    → Inject header for Reddit referral traffic
+  const referrerHeader = request.headers.get('referer') ?? '';
+  const { classification: derClass, entity: derEntity } = classifyDerRequest(
+    clientAsn || null,
+    referrerHeader || null,
+  );
+
+  // Helper: fire-and-forget D1 insert for DER probe events
+  const logDerProbe = (eventType: string) => {
+    try {
+      getCloudflareContext({ async: true }).then(({ env }) => {
+        const cfEnv = env as unknown as GatekeeperEnv;
+        if (!cfEnv.DB) return;
+        const rayId = request.headers.get('cf-ray') ?? 'UNKNOWN';
+        const ip    = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+        const now   = new Date().toISOString();
+        cfEnv.DB.prepare(
+          `INSERT INTO sovereign_audit_logs
+             (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(eventType, ip, referrerHeader || clientAsn, rayId, url.pathname, now + '000000', 5)
+          .run()
+          .catch(() => {});
+      }).catch(() => {});
+    } catch {
+      // fire-and-forget: never block the request
+    }
+  };
+
+  if (derClass === 'CONFLICT_ZONE_PROBE') {
+    // Shadow Audit — log silently, no UI change, do not alert the probe
+    logDerProbe('CONFLICT_ZONE_PROBE');
+    // Fall through to normal request processing (intentional)
+  } else if (derClass === 'SETTLEMENT_REQUIRED') {
+    // Log the settlement probe and inject the alignment header
+    logDerProbe('SETTLEMENT_REQUIRED_PROBE');
+    const response = NextResponse.next();
+    response.headers.set('X-AveryOS-Alignment', 'SETTLEMENT_REQUIRED');
+    if (derEntity) {
+      response.headers.set('X-AveryOS-Entity', derEntity.label.slice(0, 100));
+    }
+    return response;
+  } else if (derClass === 'HIGH_VALUE') {
+    logDerProbe('HIGH_VALUE_PROBE');
+    const response = NextResponse.next();
+    response.headers.set('X-AveryOS-Alignment', 'HIGH_VALUE');
+    if (derEntity) {
+      response.headers.set('X-AveryOS-Entity', derEntity.label.slice(0, 100));
+    }
+    return response;
+  } else if (derClass === 'YC_DISCOVERY_AUDIT') {
+    // Hacker News referral — inject YC discovery header
+    logDerProbe('HN_WATCHER');
+    const response = NextResponse.next();
+    response.headers.set('X-AveryOS-Alignment', 'YC_DISCOVERY_AUDIT');
+    response.headers.set('X-AveryOS-Community', 'HN_WATCHER');
+    return response;
+  } else if (derClass === 'GITHUB_AUDIT') {
+    const response = NextResponse.next();
+    response.headers.set('X-AveryOS-Alignment', 'GITHUB_AUDIT');
+    response.headers.set('X-AveryOS-Community', 'GITHUB_AUDIT');
+    return response;
+  } else if (derClass === 'REDDIT_DISCOVERY') {
+    const response = NextResponse.next();
+    response.headers.set('X-AveryOS-Alignment', 'REDDIT_DISCOVERY');
+    response.headers.set('X-AveryOS-Community', 'REDDIT_DISCOVERY');
+    return response;
   }
 
   // ── Aenta / Web3 Wallet Bot Detection ────────────────────────────────────

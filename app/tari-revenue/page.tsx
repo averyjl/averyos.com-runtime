@@ -62,6 +62,15 @@ interface ComplianceUsageData {
   timestamp: string;
 }
 
+interface TaiMilestone {
+  id: number;
+  title: string;
+  description: string;
+  phase: string;
+  category: string;
+  accomplished_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -115,6 +124,7 @@ function RevenueTooltip({ active, payload, label }: RevenueTooltipProps) {
 export default function TariRevenuePage() {
   const [revenue, setRevenue] = useState<TariRevenueData | null>(null);
   const [usage, setUsage] = useState<ComplianceUsageData | null>(null);
+  const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,6 +159,18 @@ export default function TariRevenuePage() {
         }
       } catch (err) {
         if (!cancelled) setUsageError(err instanceof Error ? err.message : "Network error");
+      }
+
+      // Fetch MILESTONE accomplishments from /api/v1/tai/accomplishments
+      try {
+        const res = await fetch("/api/v1/tai/accomplishments?category=MILESTONE", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as { rows?: TaiMilestone[]; accomplishments?: TaiMilestone[] };
+          const rows = data.rows ?? data.accomplishments ?? [];
+          if (!cancelled) setMilestones(rows);
+        }
+      } catch {
+        // milestone fetch is best-effort — suppress errors
       }
 
       if (!cancelled) setLoading(false);
@@ -524,6 +546,43 @@ export default function TariRevenuePage() {
           Each invoice includes the AveryOS™ forensic metadata and is held in Draft state until Sovereign Administrator approval.
         </p>
       </section>
+
+      {/* MILESTONE Accomplishments — live from /api/v1/tai/accomplishments */}
+      {milestones.length > 0 && (
+        <section
+          className="card"
+          style={{
+            background: PURPLE_DEEP,
+            border: `1px solid ${GOLD_BORDER}`,
+            borderRadius: "12px",
+            padding: "1.25rem",
+            fontFamily: "JetBrains Mono, monospace",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+            🏆 TAI™ MILESTONE LOG — Live from D1 VaultChain
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            {milestones.slice(0, 5).map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  background: "rgba(255,215,0,0.04)",
+                  border: `1px solid ${GOLD_BORDER}`,
+                  borderRadius: "6px",
+                  padding: "0.6rem 0.85rem",
+                }}
+              >
+                <div style={{ color: WHITE, fontWeight: 600, fontSize: "0.8rem" }}>{m.title}</div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.72rem", marginTop: "0.2rem" }}>
+                  {m.phase} · {m.accomplished_at ? new Date(m.accomplished_at).toLocaleDateString() : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

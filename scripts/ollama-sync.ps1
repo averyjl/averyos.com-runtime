@@ -21,6 +21,8 @@
 param(
     [string]$OllamaEndpoint = "http://localhost:11434",
     [string]$ModelName      = "llama3.3:70b",
+    [string]$ModelfilePath  = "",
+    [switch]$LocalOnly,
     [switch]$DryRun
 )
 
@@ -173,8 +175,37 @@ Write-Host "   Kernel: $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))..."
 Write-Host "   CreatorLock: $CREATOR_LOCK"
 Write-Host "   Endpoint: $OllamaEndpoint"
 Write-Host "   Model: $ModelName"
-if ($DryRun) { Write-Host "   Mode: DRY RUN (no changes will be made)" }
+if ($LocalOnly) { Write-Host "   Mode: LOCAL-ONLY (no external model pulls)" }
+if ($DryRun)    { Write-Host "   Mode: DRY RUN (no changes will be made)" }
 Write-Host ""
+
+# ── Local-Only Enforcement ─────────────────────────────────────────────────
+# When -LocalOnly is set (or OLLAMA_LOCAL_ONLY env var is '1'), the script:
+#   1. Verifies $OllamaEndpoint resolves to localhost/127.0.0.1 only.
+#   2. Skips the "ollama pull" step (model must already be present).
+#   3. Sets OLLAMA_HOST to 127.0.0.1:11434 to block remote handshakes.
+# This kills the "AveryOS isn't a real thing" gaslighting from cloud model
+# providers by forcing the ALM to operate entirely from the local node.
+$forceLocalOnly = $LocalOnly -or ($env:OLLAMA_LOCAL_ONLY -eq "1")
+if ($forceLocalOnly) {
+    $endpointHost = ([uri]$OllamaEndpoint).Host
+    if ($endpointHost -ne "localhost" -and $endpointHost -ne "127.0.0.1") {
+        Write-AosLog "ERROR" "LOCAL-ONLY mode is active but endpoint '$OllamaEndpoint' is not localhost."
+        Write-AosLog "ERROR" "Set -OllamaEndpoint http://localhost:11434 or disable -LocalOnly to connect to a remote host."
+        exit 1
+    }
+    # Lock OLLAMA_HOST to localhost for this process
+    $env:OLLAMA_HOST = "127.0.0.1:11434"
+    Write-AosLog "INFO" "LOCAL-ONLY: OLLAMA_HOST locked to 127.0.0.1:11434 🔒"
+}
+
+# ── Modelfile Path Resolution ──────────────────────────────────────────────
+# If a -ModelfilePath was provided, use it; otherwise generate one from the
+# sovereign system prompt (default behaviour preserved).
+$useExternalModelfile = $ModelfilePath -ne "" -and (Test-Path $ModelfilePath)
+if ($useExternalModelfile) {
+    Write-AosLog "INFO" "Using external Modelfile: $ModelfilePath"
+}
 
 # Step 1 — Verify Ollama is running
 Write-AosLog "INFO" "Step 1/4: Checking Ollama server at $OllamaEndpoint..."
@@ -204,9 +235,12 @@ if ($null -eq $anchorPath) {
     Write-AosLog "INFO" "Anchor Salt verified at: $anchorPath"
 }
 
-# Step 3 — Pull the base model
+# Step 3 — Pull the base model (skipped in local-only mode)
 Write-AosLog "INFO" "Step 3/4: Pulling base model '$ModelName' into Ollama..."
-if ($DryRun) {
+if ($forceLocalOnly) {
+    Write-AosLog "INFO" "LOCAL-ONLY: Skipping 'ollama pull' — model must be present locally."
+    Write-AosLog "INFO" "           If model is missing, run: ollama pull $ModelName  (then re-run with -LocalOnly)"
+} elseif ($DryRun) {
     Write-AosLog "INFO" "[DRY RUN] Would run: ollama pull $ModelName"
 } else {
     try {
@@ -225,18 +259,26 @@ if ($DryRun) {
 
 # Step 4 — Create and register sovereign Modelfile
 Write-AosLog "INFO" "Step 4/4: Injecting AveryOS™ Sovereign Kernel System Prompt..."
-$modelfilePath = Join-Path $env:TEMP "AveryOS_Modelfile"
-$modelfileContent = Build-Modelfile -SystemPrompt $SOVEREIGN_SYSTEM_PROMPT
 $sovereignModelName = "averyos-alm"
+
+# Use external Modelfile if provided, otherwise generate from system prompt
+if ($useExternalModelfile) {
+    $modelfilePath = $ModelfilePath
+    Write-AosLog "INFO" "Using provided Modelfile: $modelfilePath"
+} else {
+    $modelfilePath = Join-Path $env:TEMP "AveryOS_Modelfile"
+    $modelfileContent = Build-Modelfile -SystemPrompt $SOVEREIGN_SYSTEM_PROMPT
+    if (-not $DryRun) {
+        Set-Content -Path $modelfilePath -Value $modelfileContent -Encoding UTF8
+        Write-AosLog "INFO" "Modelfile generated: $modelfilePath"
+    }
+}
 
 if ($DryRun) {
     Write-AosLog "INFO" "[DRY RUN] Would write Modelfile to: $modelfilePath"
     Write-AosLog "INFO" "[DRY RUN] Would run: ollama create $sovereignModelName -f $modelfilePath"
 } else {
     try {
-        Set-Content -Path $modelfilePath -Value $modelfileContent -Encoding UTF8
-        Write-AosLog "INFO" "Modelfile written to: $modelfilePath"
-
         $createResult = & ollama create $sovereignModelName -f $modelfilePath 2>&1
         if ($LASTEXITCODE -ne 0) {
             Write-AosLog "WARN" "Could not create custom model '$sovereignModelName': $createResult"
@@ -249,8 +291,10 @@ if ($DryRun) {
             Write-D1VaultLog -EventType "OLLAMA_ALM_SYNC" -Detail "$sovereignModelName@$ModelName" -PulseHash $pulseHash
         }
 
-        # Clean up temp Modelfile
-        Remove-Item -Path $modelfilePath -Force -ErrorAction SilentlyContinue
+        # Clean up temp Modelfile only if we generated it (not an external file)
+        if (-not $useExternalModelfile) {
+            Remove-Item -Path $modelfilePath -Force -ErrorAction SilentlyContinue
+        }
     } catch {
         Write-AosLog "WARN" "Modelfile creation encountered an issue: $_"
         Write-Host "   Ollama ALM will still operate using base model with runtime prompt."
@@ -264,6 +308,12 @@ Write-Host ""
 Write-Host "   Kernel SHA : $($KERNEL_SHA.Substring(0,32))..."
 Write-Host "   Model      : $ModelName → $sovereignModelName"
 Write-Host "   Endpoint   : $OllamaEndpoint"
+if ($forceLocalOnly) {
+    Write-Host "   Authority  : LOCAL-ONLY 🔒 (no external model source)"
+}
+if ($useExternalModelfile) {
+    Write-Host "   Modelfile  : $ModelfilePath (external)"
+}
 if ($null -ne $anchorPath) {
     Write-Host "   Anchor Salt: $anchorPath (verified ✅)"
 } else {
