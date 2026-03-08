@@ -188,8 +188,14 @@ Write-Host ""
 # providers by forcing the ALM to operate entirely from the local node.
 $forceLocalOnly = $LocalOnly -or ($env:OLLAMA_LOCAL_ONLY -eq "1")
 if ($forceLocalOnly) {
-    $endpointHost = ([uri]$OllamaEndpoint).Host
-    if ($endpointHost -ne "localhost" -and $endpointHost -ne "127.0.0.1") {
+    try {
+        $endpointHost = ([uri]$OllamaEndpoint).Host
+    } catch {
+        Write-AosLog "ERROR" "LOCAL-ONLY mode is active but '$OllamaEndpoint' is not a valid URI."
+        Write-AosLog "ERROR" "Set -OllamaEndpoint http://localhost:11434"
+        exit 1
+    }
+    if ([string]::IsNullOrEmpty($endpointHost) -or ($endpointHost -ne "localhost" -and $endpointHost -ne "127.0.0.1")) {
         Write-AosLog "ERROR" "LOCAL-ONLY mode is active but endpoint '$OllamaEndpoint' is not localhost."
         Write-AosLog "ERROR" "Set -OllamaEndpoint http://localhost:11434 or disable -LocalOnly to connect to a remote host."
         exit 1

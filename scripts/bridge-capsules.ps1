@@ -101,13 +101,8 @@ if (-not (Test-Path $capsuleSubDir) -and -not $DryRun) {
     New-Item -ItemType Directory -Path $capsuleSubDir -Force | Out-Null
 }
 
-# ── Step 2: Download .aoscap manifests from R2 ───────────────────────────────
-Write-AosLog "INFO" "Step 2/4: Downloading .aoscap manifests from R2..."
-$wrangler = Get-WranglerPath
-
-# List objects in the R2 bucket under the capsule prefix
-$r2ListCmd = "$wrangler r2 object get $R2BucketName --list --prefix=$R2_CAPSULE_PREFIX 2>&1"
-Write-AosLog "INFO" "Listing R2 objects: $r2ListCmd"
+# ── Step 2: Scan for .aoscap manifests (local + optional R2 download) ────────
+Write-AosLog "INFO" "Step 2/4: Scanning for .aoscap manifests..."
 
 $capsuleDir   = Join-Path $PSScriptRoot ".." "capsules"
 $manifestDir  = Join-Path $PSScriptRoot ".." "public" "manifest" "capsules"
@@ -124,6 +119,22 @@ $aoscapFiles = @()
 if (Test-Path $capsuleDir) {
     $aoscapFiles = Get-ChildItem -Path $capsuleDir -Filter "*.aoscap" -ErrorAction SilentlyContinue
     Write-AosLog "INFO" "Found $($aoscapFiles.Count) .aoscap source file(s)."
+}
+
+# If no local files found, attempt R2 download via Wrangler CLI
+if ($capsuleFiles.Count -eq 0 -and $aoscapFiles.Count -eq 0) {
+    Write-AosLog "INFO" "No local manifests found — attempting R2 download via Wrangler..."
+    $wrangler = Get-WranglerPath
+    try {
+        $r2Output = & $wrangler.Split()[0] $wrangler.Split()[1..99] r2 object list $R2BucketName 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-AosLog "INFO" "R2 list succeeded. Manual download required; re-run after syncing manifests."
+        } else {
+            Write-AosLog "WARN" "R2 list failed: $r2Output. Ensure CLOUDFLARE_API_TOKEN is set."
+        }
+    } catch {
+        Write-AosLog "WARN" "Wrangler not available for R2 download: $_"
+    }
 }
 
 # ── Step 3: Create symlinks / copies in ALM knowledge folder ─────────────────
@@ -152,9 +163,14 @@ foreach ($file in ($capsuleFiles + $aoscapFiles)) {
                     Write-AosLog "INFO" "  Copied (no symlink perms): $($file.Name)"
                 }
             } else {
-                # Unix: ln -sf
-                $null = & ln -sf $file.FullName $destPath 2>&1
-                Write-AosLog "INFO" "  Linked (ln -sf): $($file.Name)"
+                # Unix: ln -sf (check availability first)
+                if (Get-Command "ln" -ErrorAction SilentlyContinue) {
+                    $null = & ln -sf $file.FullName $destPath 2>&1
+                    Write-AosLog "INFO" "  Linked (ln -sf): $($file.Name)"
+                } else {
+                    Copy-Item -Path $file.FullName -Destination $destPath -Force
+                    Write-AosLog "INFO" "  Copied (ln not available): $($file.Name)"
+                }
             }
             $linkedCount++
         } catch {
