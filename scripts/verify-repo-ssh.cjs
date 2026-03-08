@@ -22,7 +22,7 @@
 
 "use strict";
 
-const { execSync, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -106,7 +106,9 @@ function detectYubiKey() {
 // ── GitHub API helpers (visibility check) ────────────────────────────────────
 
 /**
- * Checks if a repository is private via the GitHub API.
+ * Checks if a repository is private via the GitHub REST API.
+ * Uses Node.js https module instead of curl to keep the token out of the
+ * process list (command-line arguments are visible to other users via ps).
  * Returns: "private" | "public" | "unknown"
  */
 function checkRepoVisibility(repoName) {
@@ -115,18 +117,37 @@ function checkRepoVisibility(repoName) {
     return "unknown";
   }
 
-  try {
-    const stdout = execSync(
-      `curl -sf -H "Authorization: Bearer ${ghToken}" ` +
-        `-H "Accept: application/vnd.github+json" ` +
-        `https://api.github.com/repos/${GITHUB_ORG}/${repoName}`,
-      { timeout: 10000, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
-    );
-    const data = JSON.parse(stdout);
-    return data.private === true ? "private" : "public";
-  } catch {
-    return "unknown";
-  }
+  return new Promise((resolve) => {
+    const https = require("https");
+    const options = {
+      hostname: "api.github.com",
+      path: `/repos/${GITHUB_ORG}/${encodeURIComponent(repoName)}`,
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${ghToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "AveryOS-SSH-Auditor/1.0",
+      },
+      timeout: 10000,
+    };
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        try {
+          const data = JSON.parse(body);
+          resolve(data.private === true ? "private" : "public");
+        } catch {
+          resolve("unknown");
+        }
+      });
+    });
+
+    req.on("error", () => resolve("unknown"));
+    req.on("timeout", () => { req.destroy(); resolve("unknown"); });
+    req.end();
+  });
 }
 
 // ── SSH probe ─────────────────────────────────────────────────────────────────
@@ -200,7 +221,7 @@ async function main() {
     log(`  ${tag} ${bold(label)}`);
 
     // 1. Visibility check
-    const visibility = checkRepoVisibility(repo.name);
+    const visibility = await checkRepoVisibility(repo.name);
     if (visibility === "public") {
       fail(`Repo is PUBLIC — sovereign perimeter BREACH! Investigate immediately.`);
       if (repo.sensitivity === "ULTRA-PRIVATE") ultraPrivateFailed.push(repo.name);
