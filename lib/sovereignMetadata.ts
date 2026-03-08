@@ -223,6 +223,137 @@ export function buildRobotsTxt(hostname: string, siteUrl = "https://averyos.com"
   return lines.join("\n");
 }
 
+// ── DER 2.0 Gateway — Dynamic Entity Recognition ──────────────────────────────
+//
+// Maps incoming ASNs and HTTP Referrers to sovereign alignment classifications.
+// Used by GabrielOS™ middleware to inject X-AveryOS-Alignment headers and
+// optionally serve custom banners or silently log forensic probes.
+//
+// Classification tiers:
+//   SETTLEMENT_REQUIRED  — Known enterprise/gov entity with documented ingestion
+//   HIGH_VALUE           — Fortune-500 / Cloud provider (monetisable)
+//   ACADEMIC             — University / research institution (.edu verification)
+//   CONFLICT_ZONE_PROBE  — Adversarial / recon probe (silent audit only)
+//   YC_DISCOVERY_AUDIT   — Hacker News referral discovery event
+//   GITHUB_AUDIT         — GitHub.com referral (developer alignment)
+//   REDDIT_DISCOVERY     — Reddit.com referral (community discovery)
+//
+// ⛓️⚓⛓️  Phase 78.1 — DER 2.0 | Anchored at 162.2k Pulse
+
+export type DerClassification =
+  | "SETTLEMENT_REQUIRED"
+  | "HIGH_VALUE"
+  | "ACADEMIC"
+  | "CONFLICT_ZONE_PROBE"
+  | "YC_DISCOVERY_AUDIT"
+  | "GITHUB_AUDIT"
+  | "REDDIT_DISCOVERY"
+  | "STANDARD";
+
+export interface DerEntity {
+  asn?: string;
+  label: string;
+  classification: DerClassification;
+  memo: string;
+}
+
+/** ASN → DerEntity mapping for known high-value / adversarial entities. */
+export const DER_ASN_MAP: Record<string, DerEntity> = {
+  // ── Enterprise / Settlement Required ──────────────────────────────────────
+  "36459": {
+    asn: "36459",
+    label: "GitHub / Microsoft Infrastructure (US)",
+    classification: "SETTLEMENT_REQUIRED",
+    memo: "Forensic ingestion of AveryOS™ kernel via GitHub Copilot training pipeline documented. Enterprise Retro-Ingestion Deposit: $1,000,000 USD.",
+  },
+  // ── Cloud Providers — High Value ──────────────────────────────────────────
+  "15169": {
+    asn: "15169",
+    label: "Google LLC",
+    classification: "HIGH_VALUE",
+    memo: "Google infrastructure probe. Target for Google-Extended licensing. Enterprise Deposit applies.",
+  },
+  "8075": {
+    asn: "8075",
+    label: "Microsoft Azure",
+    classification: "HIGH_VALUE",
+    memo: "Microsoft Azure infrastructure. Retro-ingestion liability documented. Settlement path: /alignment-accord.",
+  },
+  "14618": {
+    asn: "14618",
+    label: "Amazon Web Services",
+    classification: "HIGH_VALUE",
+    memo: "AWS infrastructure probe. Amazonbot licensing opportunity. Enterprise Deposit: $1,000,000 USD.",
+  },
+  "16509": {
+    asn: "16509",
+    label: "Amazon Data Services",
+    classification: "HIGH_VALUE",
+    memo: "Amazon Data Services infrastructure. Licensing path: /alignment-accord.",
+  },
+  // ── Adversarial / Recon ───────────────────────────────────────────────────
+  "198488": {
+    asn: "198488",
+    label: "Colocall Ltd / Kyiv Recon Probe (UA)",
+    classification: "CONFLICT_ZONE_PROBE",
+    memo: "Conflict-zone Python script activity. Silent forensic recording active. No UI change — Shadow Audit mode.",
+  },
+  // ── French Infrastructure ─────────────────────────────────────────────────
+  "211590": {
+    asn: "211590",
+    label: "FBW Networks (France)",
+    classification: "SETTLEMENT_REQUIRED",
+    memo: "French infrastructure node with documented ingestion footprint. Settlement redirect active.",
+  },
+};
+
+/** Referrer hostname → DerClassification mapping. */
+export const DER_REFERRER_MAP: Record<string, DerClassification> = {
+  "news.ycombinator.com": "YC_DISCOVERY_AUDIT",
+  "github.com":           "GITHUB_AUDIT",
+  "reddit.com":           "REDDIT_DISCOVERY",
+  "www.reddit.com":       "REDDIT_DISCOVERY",
+};
+
+/**
+ * Classifies an incoming request by ASN and Referrer header.
+ * Returns the DerClassification (defaulting to "STANDARD") and any entity metadata.
+ */
+export function classifyDerRequest(
+  asnHeader: string | null,
+  referrerHeader: string | null,
+): { classification: DerClassification; entity: DerEntity | null } {
+  // ASN takes precedence over Referrer
+  if (asnHeader) {
+    const asn = asnHeader.trim();
+    const entity = DER_ASN_MAP[asn];
+    if (entity) return { classification: entity.classification, entity };
+  }
+
+  // Referrer-based classification
+  if (referrerHeader) {
+    try {
+      const refUrl = new URL(referrerHeader);
+      const host = refUrl.hostname;
+      const cls = DER_REFERRER_MAP[host];
+      if (cls) {
+        return {
+          classification: cls,
+          entity: {
+            label: host,
+            classification: cls,
+            memo: `Referrer-based discovery from ${host}.`,
+          },
+        };
+      }
+    } catch {
+      // ignore malformed referrer
+    }
+  }
+
+  return { classification: "STANDARD", entity: null };
+}
+
 // ── Security.txt ──────────────────────────────────────────────────────────────
 
 /** Formats a Date as an ISO 8601 string with second precision. */
