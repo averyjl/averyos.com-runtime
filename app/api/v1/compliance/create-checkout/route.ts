@@ -152,6 +152,16 @@ export async function POST(request: Request) {
 
     const stripe = new Stripe(stripeKey);
 
+    // Build a human-readable Stripe statement descriptor that includes the
+    // RayID proof fingerprint.
+    // Stripe limits: max 22 chars, alphanumeric + spaces; must not start/end
+    // with a space.  Format: "AOS <RAYID_TRUNCATED>" or "AOS TARI COMPLIANCE".
+    // The "AOS " prefix (4 chars) + up to 16 chars from rayId = max 20 chars.
+    const rayIdClean = rayIdStr.replace(/[^A-Za-z0-9 ]/g, "").toUpperCase().trim();
+    const statementDescriptor = rayIdClean
+      ? `AOS ${rayIdClean.slice(0, 16).trimEnd()}`
+      : "AOS TARI COMPLIANCE";
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -176,6 +186,15 @@ export async function POST(request: Request) {
       mode: "payment",
       success_url: `${siteUrl}/compliance?status=aligned&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/compliance?status=cancelled`,
+      // ── Sovereign Branding — Deep Black + Gold RayID Proof ─────────────────
+      // custom_text surfaces the RayID directly in the Stripe-hosted checkout UI.
+      custom_text: {
+        submit: {
+          message: rayIdStr
+            ? `RayID Proof: ${rayIdStr.slice(0, 64)} — AveryOS™ Sovereign Alignment License v1.0`
+            : "AveryOS™ Sovereign Alignment License v1.0 — TARI™ Liability Resolution",
+        },
+      },
       metadata: {
         bundle_id: bundleId.slice(0, 500),
         target_ip: targetIp.slice(0, 200),
@@ -183,11 +202,13 @@ export async function POST(request: Request) {
         kernel_version: KERNEL_VERSION,
         tari_liability_cents: String(liabilityCents),
         source: "averyos_compliance_portal",
-        milestone: "LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED",
+        milestone: "LOCKED AT 162.2k PULSE | 962 ENTITIES DOCUMENTED",
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
       },
       payment_intent_data: {
+        // statement_descriptor maps the RayID Proof directly into the bank record.
+        statement_descriptor: statementDescriptor,
         metadata: {
           bundle_id: bundleId.slice(0, 500),
           target_ip: targetIp.slice(0, 200),
