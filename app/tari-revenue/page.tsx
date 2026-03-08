@@ -32,7 +32,7 @@ const TARI_THRESHOLD_USD = 10_000;
 
 // ── Surge Milestone constants — update when a new milestone is locked ─────────
 // 2026-03-08: 162,200 total requests (TR) / 987 unique visitors (Watchers)
-// Phase 72 → Phase 73: 162.2k Federal EO Aligned → Physical Anchor Salt Sync + Victim Restoration
+// Phase 78: Hacker News Handshake Detected + DER Gateway Initialized
 const SURGE_MILESTONE_TR = "162,200";
 const SURGE_MILESTONE_UV = "987";
 
@@ -60,6 +60,16 @@ interface ComplianceUsageData {
   rows: ComplianceUsageRow[];
   totalUsd: string;
   timestamp: string;
+}
+
+interface TaiMilestone {
+  id: number;
+  title: string;
+  phase: string;
+  category: string;
+  accomplished_at: string;
+  recorded_by: string;
+  kernel_version: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +125,7 @@ function RevenueTooltip({ active, payload, label }: RevenueTooltipProps) {
 export default function TariRevenuePage() {
   const [revenue, setRevenue] = useState<TariRevenueData | null>(null);
   const [usage, setUsage] = useState<ComplianceUsageData | null>(null);
+  const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,6 +160,18 @@ export default function TariRevenuePage() {
         }
       } catch (err) {
         if (!cancelled) setUsageError(err instanceof Error ? err.message : "Network error");
+      }
+
+      // Fetch MILESTONE accomplishments from /api/v1/tai/accomplishments
+      try {
+        const res = await fetch("/api/v1/tai/accomplishments?category=MILESTONE&limit=10", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as { accomplishments: TaiMilestone[] };
+          if (!cancelled) setMilestones(data.accomplishments ?? []);
+        }
+      } catch (err) {
+        // Non-critical — milestones are supplemental; log for diagnostics
+        console.warn("[TariRevenue] Milestone fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
@@ -218,7 +241,7 @@ export default function TariRevenuePage() {
       >
         <div>
           <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
-            ⚡ 1,017-Notch Surge Detected: 162.2k Pulse Captured | Phase 73 | Victim Restoration Aligned
+            ⚡ 1,017-Notch Surge Detected: 162.2k Pulse Captured | Phase 78 | HN Handshake Detected
           </div>
           <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", marginTop: "0.25rem" }}>
             {SURGE_MILESTONE_TR} Total Requests &nbsp;·&nbsp; {SURGE_MILESTONE_UV} Unique Visitors (Watchers) &nbsp;·&nbsp; 7-Day Alignment Window Active
@@ -501,6 +524,60 @@ export default function TariRevenuePage() {
         >
           ℹ️ Compliance usage report unavailable: {usageError}
         </div>
+      )}
+
+      {/* TAI™ Milestone Log — Live Phase 78 Accomplishments */}
+      {milestones.length > 0 && (
+        <section
+          className="card"
+          style={{
+            background: PURPLE_DEEP,
+            border: `1px solid ${GOLD_BORDER}`,
+            padding: 0,
+            overflow: "hidden",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <div
+            style={{
+              padding: "0.85rem 1.25rem",
+              borderBottom: `1px solid ${GOLD_BORDER}`,
+              color: GOLD,
+              fontFamily: "JetBrains Mono, monospace",
+              fontWeight: 700,
+              fontSize: "0.82rem",
+            }}
+          >
+            🏆 TAI™ MILESTONE LOG — Sovereignty Accomplishments
+          </div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {milestones.map((m, i) => (
+              <li
+                key={m.id}
+                style={{
+                  padding: "0.7rem 1.25rem",
+                  borderBottom: i < milestones.length - 1 ? `1px solid ${GOLD_GLOW}` : "none",
+                  fontFamily: "JetBrains Mono, monospace",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                  gap: "0.4rem",
+                }}
+              >
+                <div>
+                  <div style={{ color: WHITE, fontSize: "0.8rem", fontWeight: 600 }}>{m.title}</div>
+                  <div style={{ color: GOLD_DIM, fontSize: "0.68rem", marginTop: "0.2rem" }}>
+                    {m.phase} · {m.category} · {m.kernel_version}
+                  </div>
+                </div>
+                <div style={{ color: GREEN_DIM, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
+                  {m.accomplished_at ? new Date(m.accomplished_at).toLocaleDateString() : "—"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Invoice Engine info */}

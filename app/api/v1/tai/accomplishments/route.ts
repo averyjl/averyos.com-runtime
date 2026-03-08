@@ -145,8 +145,8 @@ export async function GET(request: Request) {
     return Response.json({
       accomplishments: results,
       total: results.length,
-      phase_current: "Phase 73",
-      milestone: "162.2k Pulse | 987 Entities | Victim Restoration Aligned",
+      phase_current: "Phase 78",
+      milestone: "162.2k Pulse | 987 Watchers | HN Handshake Detected | DER Gateway Active",
       kernel_version: KERNEL_VERSION,
       timestamp: formatIso9(new Date()),
     });

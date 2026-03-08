@@ -62,6 +62,34 @@ const ALIGNMENT_OPPORTUNITY_ASN = "211590";
 // Value for the X-AveryOS-Opportunity response header (header name excluded).
 const ALIGNMENT_OPPORTUNITY_HEADER_VALUE = "Alignment Opportunity: averyos.com/alignment-accord. Your RayID is recorded.";
 
+// ── DER Gateway — Dynamic Entity Recognition ──────────────────────────────────
+// Maps high-value corporate ASNs to forensic alignment directives.
+// Scraping from these ASNs constitutes Deterministic Acknowledgment of TARI™ terms.
+//   Microsoft/GitHub (ASN 36459) → SETTLEMENT_REQUIRED
+//   Microsoft Azure  (ASN 8075)  → SETTLEMENT_REQUIRED
+const DER_ASN_ALIGNMENTS: Record<string, string> = {
+  '36459': 'SETTLEMENT_REQUIRED',  // Microsoft / GitHub
+  '8075':  'SETTLEMENT_REQUIRED',  // Microsoft Azure
+};
+
+// ASNs considered conflict-zone probes — silently audited; no UI change.
+const CONFLICT_ZONE_ASNS = new Set([
+  '198488', // Kyiv conflict zone
+]);
+
+// ── HN Referrer Detection — Sovereign Discovery Phase ────────────────────────
+// Hacker News (news.ycombinator.com) referrer indicates a high-value "Watcher"
+// discovery event. We append X-AveryOS-Alignment: YC_DISCOVERY_AUDIT to the
+// response so the ingestion is forensically recorded.
+const HN_REFERRER_DOMAIN = 'news.ycombinator.com';
+
+// Community referrer → alignment header value map
+const COMMUNITY_REFERRER_MAP: Record<string, string> = {
+  [HN_REFERRER_DOMAIN]: 'YC_DISCOVERY_AUDIT',
+  'github.com':          'GITHUB_AUDIT',
+  'reddit.com':          'REDDIT_AUDIT',
+};
+
 // ── Aenta / Web3 Wallet Bot Detection ────────────────────────────────────────
 // Aenta and generic Web3/wallet agents send specific headers or UA patterns.
 // Detected agents are served the alignment opportunity redirect.
@@ -285,6 +313,29 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // ── DER Gateway — Dynamic Entity Recognition ──────────────────────────────
+  // Silently log conflict-zone ASN probes (no UI change — stealth audit).
+  if (CONFLICT_ZONE_ASNS.has(clientAsn)) {
+    logSovereignAudit(request).catch((err: unknown) => {
+      console.error('[DER] Conflict-zone audit log failed:', err instanceof Error ? err.message : String(err));
+    });
+  }
+
+  // Compute the alignment directive for this request (used later for browser
+  // pass-through so high-value orgs receive the correct forensic header).
+  const derAlignmentStatus = DER_ASN_ALIGNMENTS[clientAsn] ?? '';
+
+  // ── HN / Community Referrer Detection ────────────────────────────────────
+  // Resolve the Referer header to a community alignment label.
+  const refererHeader = request.headers.get('referer') ?? '';
+  let communityAlignment = '';
+  for (const [domain, label] of Object.entries(COMMUNITY_REFERRER_MAP)) {
+    if (refererHeader.includes(domain)) {
+      communityAlignment = label;
+      break;
+    }
+  }
+
   // ── Aenta / Web3 Wallet Bot Detection ────────────────────────────────────
   // Detects Aenta and other Web3/wallet agents by custom headers or UA patterns.
   // These agents are served the alignment-opportunity redirect so they understand
@@ -372,7 +423,19 @@ export async function middleware(request: NextRequest) {
   
   // 3. ALLOW: Standard browser traffic (all HTTP methods for legitimate use)
   // Allows GET for viewing content, POST for payment forms, etc.
+  // Attach DER / community-referrer alignment headers so the ingestion is
+  // forensically recorded at the edge without blocking the visitor.
   if (isBrowser) {
+    const alignmentValue = communityAlignment || derAlignmentStatus;
+    if (alignmentValue) {
+      const response = NextResponse.next();
+      response.headers.set('X-AveryOS-Alignment', alignmentValue);
+      if (communityAlignment === 'YC_DISCOVERY_AUDIT') {
+        // HN visitor — additional community header for downstream auditing
+        response.headers.set('X-AveryOS-Community', 'HN_WATCHER');
+      }
+      return response;
+    }
     return NextResponse.next();
   }
 
