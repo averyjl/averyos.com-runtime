@@ -94,10 +94,12 @@ function buildWhitepaperData() {
 
   const sha512 = createHash("sha512").update(rawContent, "utf8").digest("hex");
   const buildTimestamp = iso9Now();
-  // Render Markdown → HTML → inject KaTeX math → sanitize
+  // Render Markdown → HTML → sanitize → inject KaTeX math
+  // KaTeX must be applied AFTER DOMPurify sanitization: DOMPurify strips SVG/MathML
+  // which would destroy KaTeX-rendered elements if applied before sanitization.
   const rawHtml = marked(rawContent, { async: false }) as string;
-  const mathHtml = renderKatexInHtml(rawHtml);
-  const html = sanitizeHtml(mathHtml);
+  const sanitized = sanitizeHtml(rawHtml);
+  const html = renderKatexInHtml(sanitized);
 
   return { sha512, buildTimestamp, html };
 }
