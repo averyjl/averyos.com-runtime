@@ -22,6 +22,7 @@ import { headers } from "next/headers";
 const BLOCKED_BOTS = [
   "GPTBot",
   "CCBot",
+  "ClaudeBot",
   "anthropic-ai",
   "Claude-Web",
   "Google-Extended",

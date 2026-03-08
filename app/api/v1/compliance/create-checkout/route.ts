@@ -2,11 +2,13 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
   NEXT_PUBLIC_SITE_URL?: string;
   SITE_URL?: string;
+  DB?: unknown;
 }
 
 /**
@@ -61,13 +63,13 @@ function determinePricing(
       liabilityCents: ENTERPRISE_DEPOSIT_CENTS,
       productName: "AveryOS™ Enterprise Retro-Ingestion Deposit",
       productDescription:
-        `Sovereign Alignment Verification — ASN ${asnStr} — ` +
         (rayIdStr
-          ? `Truth-Alignment Required for Forensic RayID: ${rayIdStr}. `
-          : "") +
+          ? `Sovereign Alignment Verification — RayID: ${rayIdStr} — `
+          : `Sovereign Alignment Verification — ASN ${asnStr} — `) +
         `This $1,000,000 Good Faith Deposit initiates the Enterprise Retro-Ingestion ` +
         `settlement process under the AveryOS Sovereign Integrity License v1.0. ` +
-        `Forensic Evidence Bundle: ${bundleId}.`,
+        `Forensic Evidence Bundle: ${bundleId}. ` +
+        `Victim Restoration Case ID: ${rayIdStr || bundleId}`,
       pricingTier: "ENTERPRISE_DEPOSIT",
     };
   }
@@ -76,7 +78,10 @@ function determinePricing(
     liabilityCents: INDIVIDUAL_LICENSE_CENTS,
     productName: "AveryOS™ Genesis Seed Individual License",
     productDescription:
-      `Truth-Alignment Activation — Forensic Evidence Bundle: ${bundleId}. ` +
+      (rayIdStr
+        ? `Sovereign Alignment Verification — RayID: ${rayIdStr} — `
+        : `Truth-Alignment Activation — `) +
+      `Forensic Evidence Bundle: ${bundleId}. ` +
       `This 12-Month Genesis Seed License activates sovereign alignment under the ` +
       `AveryOS Sovereign Integrity License v1.0.`,
     pricingTier: "INDIVIDUAL_LICENSE",
@@ -105,7 +110,7 @@ function determinePricing(
  *
  * Response: { checkoutUrl: string; sessionId: string }
  *
- * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED
+ * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED
  */
 export async function POST(request: Request) {
   try {
@@ -202,7 +207,9 @@ export async function POST(request: Request) {
         kernel_version: KERNEL_VERSION,
         tari_liability_cents: String(liabilityCents),
         source: "averyos_compliance_portal",
-        milestone: "LOCKED AT 162.2k PULSE | 962 ENTITIES DOCUMENTED",
+        milestone: "LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED",
+        // Federal EO Victim Restoration Case ID — maps RayID to restitution claim
+        victim_restoration_case_id: (rayIdStr || bundleId).slice(0, 200),
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
       },
@@ -221,6 +228,19 @@ export async function POST(request: Request) {
           `AveryOS™ TARI™ Liability Resolution — Bundle: ${bundleId.slice(0, 200)}`,
       },
     });
+
+    // Auto-track checkout creation as a LEGAL accomplishment (cast needed: DB type is opaque here)
+    if (cfEnv.DB) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      autoTrackAccomplishment(cfEnv.DB as any, {
+        title: `Compliance Checkout Created — ${pricingTier}`,
+        description: `Stripe checkout session ${session.id.slice(0, 16)} created. Liability: $${(liabilityCents / 100).toFixed(2)} USD. Bundle: ${bundleId.slice(0, 50)}.`,
+        category: "LEGAL",
+        bundle_id: bundleId,
+        ray_id: rayIdStr || undefined,
+        asn: asnStr || undefined,
+      });
+    }
 
     return Response.json(
       {

@@ -5,7 +5,11 @@ const nextConfig = {
   // bundle does not attempt to initialise jsdom (a Node.js-only library) at
   // module-evaluation time, which would crash the edge runtime and produce
   // 500 errors on pages that import sanitizeHtml (e.g. the Whitepaper).
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom'],
+  // katex is only used in app/whitepaper/page.tsx (force-static) — pre-rendered
+  // at build time, never executed by the Cloudflare Worker at request time.
+  // Externalising it prevents katex (~6.7 MB) from being bundled into
+  // handler.mjs, keeping the gzip-compressed worker under the 3 MiB free-tier limit.
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex'],
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },

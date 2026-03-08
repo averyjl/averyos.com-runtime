@@ -80,6 +80,13 @@ const ADMIN_PANELS = [
     color:       RED,
   },
   {
+    path:        "/admin/tai-accomplishments",
+    icon:        "⚡",
+    label:       "TAI™ Accomplishments",
+    description: "Sovereign milestone registry — SHA-512 sealed capsules with auto-tracking & Phase markers",
+    color:       "#D4AF37",
+  },
+  {
     path:        "/evidence-vault",
     icon:        "🗄️",
     label:       "Evidence Vault",

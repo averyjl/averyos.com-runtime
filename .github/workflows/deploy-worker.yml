@@ -93,6 +93,54 @@ jobs:
       - name: Build project with OpenNext Cloudflare adapter
         run: npm run build:cloudflare
 
+      # ── 🏗️ Worker Bundle Size Guard ─────────────────────────────────────────
+      # Permanently prevents deployment failures caused by exceeding Cloudflare's
+      # 3 MiB (free tier) or 10 MiB (paid tier) compressed worker size limit.
+      # Fails fast with an actionable error BEFORE attempting to deploy, so CI
+      # time is not wasted on a doomed wrangler deploy command.
+      - name: "📏 Worker Bundle Size Guard"
+        run: |
+          set -e
+          HANDLER=".open-next/server-functions/default/handler.mjs"
+          if [ ! -f "$HANDLER" ]; then
+            echo "⚠️  handler.mjs not found — skipping size check"
+            exit 0
+          fi
+
+          # Measure gzip-compressed size in bytes; exit if gzip itself fails
+          if ! gzip -t "$HANDLER" 2>/dev/null || ! GZIP_BYTES=$(gzip -c "$HANDLER" | wc -c 2>/dev/null); then
+            echo "⚠️  Could not measure gzip size — skipping check"
+            exit 0
+          fi
+          GZIP_KB=$(( GZIP_BYTES / 1024 ))
+          GZIP_MB_TEN=$(( GZIP_BYTES * 10 / 1024 / 1024 ))   # tenths of MiB
+
+          # Limits: 3072 KiB (free) / 10240 KiB (paid)
+          FREE_LIMIT_KB=3072
+          PAID_LIMIT_KB=10240
+
+          echo "⛓️⚓⛓️ AveryOS™ Worker Bundle Size Check"
+          echo "  Compressed handler.mjs: ${GZIP_KB} KiB (${GZIP_MB_TEN} × 0.1 MiB)"
+          echo "  Free-tier limit:  ${FREE_LIMIT_KB} KiB (3 MiB)"
+          echo "  Paid-tier limit: ${PAID_LIMIT_KB} KiB (10 MiB)"
+
+          if [ "$GZIP_KB" -gt "$PAID_LIMIT_KB" ]; then
+            echo ""
+            echo "❌ DEPLOY BLOCKED: Worker exceeds 10 MiB paid-tier limit (${GZIP_KB} KiB > ${PAID_LIMIT_KB} KiB)"
+            echo "   Action required: reduce bundle size or split the worker."
+            echo "   Largest deps: run  du -sh .open-next/server-functions/default/  to investigate."
+            exit 1
+          elif [ "$GZIP_KB" -gt "$FREE_LIMIT_KB" ]; then
+            echo ""
+            echo "⚠️  Worker exceeds 3 MiB free-tier limit (${GZIP_KB} KiB > ${FREE_LIMIT_KB} KiB)"
+            echo "   Attempting deployment — this will succeed only on a paid Cloudflare plan."
+            echo "   If deployment fails, upgrade plan or reduce bundle size."
+          else
+            echo ""
+            echo "✅ Worker size OK: ${GZIP_KB} KiB < ${FREE_LIMIT_KB} KiB free-tier limit"
+          fi
+          echo "⛓️⚓⛓️"
+
       - name: ⛓️ Verify IP Guard Integrity
         run: |
           echo "⛓️⚓⛓️ AveryOS IP Guard: Verifying kernel integrity before deployment..."

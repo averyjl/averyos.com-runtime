@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA, KERNEL_VERSION } from '../../../../lib/sovereignConstants';
 import { formatIso9 } from '../../../../lib/timePrecision';
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
+import { autoTrackAccomplishment } from '../../../../lib/taiAutoTracker';
 
 /**
  * GET /api/v1/generate-evidence?ip=<target-ip>
@@ -186,6 +187,15 @@ export async function GET(request: Request) {
       .replace(/\.\d+$/, '')
       .slice(0, 18);
     const fileName = `EVIDENCE_BUNDLE_${safeIp}_${safeTs}.aoscap`;
+
+    // Auto-track this evidence-bundle generation as a TAI™ FORENSIC accomplishment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTrackAccomplishment(cfEnv.DB as any, {
+      title: `Evidence Bundle Generated — ${safeIp}`,
+      description: `Forensic .aoscap bundle sealed for IP ${ip}. Pulse hash: ${pulseHash.slice(0, 32)}…`,
+      category: "FORENSIC",
+      bundle_id: `EVIDENCE_BUNDLE_${safeIp}_${safeTs}`,
+    });
 
     return new Response(JSON.stringify(bundle, null, 2), {
       status: 200,
