@@ -66,10 +66,14 @@ const buildRobotsTxt = () => {
   );
 };
 
-const writeOutputs = (sitemapXml, robotsTxt) => {
+const writeOutputs = (sitemapXml) => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(path.join(outputDir, "sitemap.xml"), sitemapXml);
-  fs.writeFileSync(path.join(outputDir, "robots.txt"), robotsTxt);
+  // NOTE: public/robots.txt is intentionally NOT written here.
+  // app/robots.ts handles dynamic per-subdomain robots.txt via the Next.js
+  // Metadata API. Writing a static public/robots.txt would shadow the dynamic
+  // handler in Cloudflare Workers (ASSETS binding takes priority), causing the
+  // LLM-scraper blocking rules to be silently bypassed.
 };
 
 // Returns true if the path segment is a dynamic Next.js route like [param] or [...slug]
@@ -211,9 +215,8 @@ const main = () => {
   ];
 
   const sitemapXml = buildSitemapXml(entries);
-  const robotsTxt = buildRobotsTxt();
 
-  writeOutputs(sitemapXml, robotsTxt);
+  writeOutputs(sitemapXml);
   console.log(`✅ Wrote sitemap with ${entries.length} URL(s) (${appPaths.length} app-router, ${pagesPaths.length} pages-router scanned)`);
 };
 

@@ -421,8 +421,12 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files
+     * - public folder static assets (images, xml, txt)
+     *
+     * sitemap.xml and robots.txt are explicitly excluded so they bypass the
+     * canonical-domain 301 redirect gate and are served directly by their
+     * respective Route Handlers without an extra round-trip.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
