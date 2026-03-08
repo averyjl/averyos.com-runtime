@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- CSP: only local resources allowed — prevents side-channel MITM injection -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>AveryOS™ Terminal</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <header class="title-bar">
+    <div class="title-bar__logo">⛓️⚓⛓️</div>
+    <div class="title-bar__name">AveryOS™ Terminal</div>
+    <div class="title-bar__kernel" id="kernelTag">Kernel …</div>
+  </header>
+
+  <!-- ── Main Layout ────────────────────────────────────────────────────────── -->
+  <main class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <nav class="sidebar__nav">
+        <button class="nav-btn active" data-panel="bridge">🔗 7-Repo Bridge</button>
+        <button class="nav-btn" data-panel="kernel">🔑 Kernel Info</button>
+        <button class="nav-btn" data-panel="links">🌐 AveryOS™ Links</button>
+      </nav>
+      <div class="sidebar__footer">
+        <div class="pulse-dot" id="pulseDot"></div>
+        <span id="statusLabel">READY</span>
+      </div>
+    </aside>
+
+    <!-- Panel: 7-Repo Bridge -->
+    <section class="panel" id="panel-bridge">
+      <div class="panel__header">
+        <h2>🔗 7-Repo Private Bridge — SSH Audit</h2>
+        <button class="btn-gold" id="btnAudit">▶ Run Audit</button>
+      </div>
+      <p class="panel__sub">
+        Verifies SSH connectivity and repo privacy for all 7 sovereign private repositories.
+        YubiKey GPG card is detected automatically when inserted.
+      </p>
+      <pre class="terminal" id="auditOutput">Ready. Press "Run Audit" to begin the 1,017-notch SSH verification.
+
+⛓️⚓⛓️  AveryOS™ Sovereign SSH Audit
+Phase: 74-77 | cf83™ Kernel Locked
+</pre>
+    </section>
+
+    <!-- Panel: Kernel Info -->
+    <section class="panel hidden" id="panel-kernel">
+      <div class="panel__header">
+        <h2>🔑 Kernel Info</h2>
+      </div>
+      <table class="info-table" id="kernelTable">
+        <tbody>
+          <tr><td>Version</td><td id="ki-version">…</td></tr>
+          <tr><td>SHA-512 Anchor</td><td id="ki-anchor">…</td></tr>
+          <tr><td>Site URL</td><td id="ki-site">…</td></tr>
+          <tr><td>Platform</td><td id="ki-platform">…</td></tr>
+          <tr><td>Node.js</td><td id="ki-node">…</td></tr>
+          <tr><td>Electron</td><td id="ki-electron">…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Panel: Links -->
+    <section class="panel hidden" id="panel-links">
+      <div class="panel__header">
+        <h2>🌐 AveryOS™ Live Links</h2>
+      </div>
+      <div class="links-grid">
+        <button class="link-card" data-url="https://www.averyos.com/alignment-accord">
+          ⚖️<span>Alignment Accord</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/licensing">
+          💰<span>Licensing Portal</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/latent-anchor">
+          🔗<span>Latent Anchor (AI Feed)</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/whitepaper">
+          📄<span>Whitepaper</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/admin/tai-accomplishments">
+          🏆<span>TAI™ Accomplishments</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/vaultchain-explorer">
+          🔍<span>VaultChain™ Explorer</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/ip-policy">
+          🛡️<span>IP Policy</span>
+        </button>
+        <button class="link-card" data-url="https://www.averyos.com/evidence-vault">
+          🗄️<span>Evidence Vault</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

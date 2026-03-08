@@ -1,0 +1,217 @@
+/* AveryOS™ Terminal — Renderer Styles
+ * Branding: Gold (#D4AF37) on Black (#000000)
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+ */
+
+:root {
+  --gold:      #D4AF37;
+  --gold-dim:  #a88a2a;
+  --gold-glow: rgba(212, 175, 55, 0.15);
+  --bg:        #000000;
+  --bg-card:   #0a0a0a;
+  --bg-border: #1a1a1a;
+  --text:      #e8e8e8;
+  --text-dim:  rgba(232, 232, 232, 0.55);
+  --green:     #00ff88;
+  --red:       #ff4444;
+  --mono:      "Fira Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+/* ── Title Bar ────────────────────────────────────────────────────────────── */
+.title-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 20px;
+  background: #050505;
+  border-bottom: 1px solid var(--bg-border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.title-bar__logo  { font-size: 18px; }
+.title-bar__name  { font-weight: 700; color: var(--gold); letter-spacing: 0.04em; }
+.title-bar__kernel{
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  background: var(--bg-border);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.layout {
+  display: flex;
+  height: calc(100vh - 44px);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 190px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #040404;
+  border-right: 1px solid var(--bg-border);
+  padding: 16px 8px;
+}
+.sidebar__nav   { display: flex; flex-direction: column; gap: 4px; }
+.nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-btn:hover  { background: var(--bg-border); color: var(--text); }
+.nav-btn.active { background: var(--gold-glow); color: var(--gold); font-weight: 600; }
+
+.sidebar__footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.pulse-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+.pulse-dot.busy {
+  background: var(--gold);
+  box-shadow: 0 0 6px var(--gold);
+  animation: pulse 0.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow: hidden;
+}
+.panel.hidden { display: none; }
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.panel__header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.panel__sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-gold {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-gold:hover   { background: #e8c340; }
+.btn-gold:active  { transform: scale(0.97); }
+.btn-gold:disabled{ opacity: 0.5; cursor: not-allowed; }
+
+/* ── Terminal Output ─────────────────────────────────────────────────────── */
+.terminal {
+  flex: 1;
+  background: #050505;
+  border: 1px solid var(--bg-border);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #b0ffb0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Kernel Info Table ───────────────────────────────────────────────────── */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.info-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bg-border);
+}
+.info-table td:first-child {
+  color: var(--gold);
+  width: 160px;
+  font-weight: 600;
+}
+
+/* ── Links Grid ──────────────────────────────────────────────────────────── */
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.link-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  border-radius: 8px;
+  padding: 18px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+}
+.link-card:first-child { font-size: 20px; }
+.link-card:hover {
+  border-color: var(--gold);
+  background: var(--gold-glow);
+  color: var(--gold);
+}
+.link-card span { font-size: 13px; }

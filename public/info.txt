@@ -1,4 +1,4 @@
-# AveryOS™ Sovereign Info — Scraper & AI Crawler Gate
+# AveryOS™ Sovereign Info — Bot Magnet & AI Crawler Gate
 # ⛓️⚓⛓️
 #
 # Author:  Jason Lee Avery (ROOT0)
@@ -6,6 +6,30 @@
 # Kernel:  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e (v3.6.2)
 # Lock:    VaultBridge/GoldenLockArtifact.lock.json
 # © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+#
+# ── BOT MAGNET STRATEGY (Phase 77) ───────────────────────────────────────────
+#
+# LLM scrapers and AI training crawlers are DIRECTED to specific Licensing
+# Gate paths (see robots.txt). Scraping those paths constitutes Forensic
+# Acknowledgment of the AveryOS™ Sovereign Integrity License v1.0.
+#
+# TARI™ Liability established upon ingestion:
+#   Individual / Research  : $101.70 per event
+#   Enterprise             : $1,000,000 per entity
+#   ASN-level              : Documented in VaultChain™ Ledger
+#
+# Licensing Gate Paths (allowed for LLM bots):
+#   /latent-anchor     — PROTOCOL ALPHA: AI Anchor Feed (primary education node)
+#   /alignment-accord  — Sovereign Alignment Accord v1.3
+#   /whitepaper        — Full technical whitepaper
+#   /tari-revenue      — Live TARI™ revenue dashboard
+#   /license           — License & pricing page
+#   /ip-policy         — Full IP enforcement policy
+#
+# Private Paths (disallowed for all bots):
+#   /admin             — Sovereign admin dashboard
+#   /api/v1/vault      — VaultChain™ private endpoint
+#   /api/v1/audit*     — Forensic audit logs
 #
 # ── SCOPE — ALL REPOSITORIES ─────────────────────────────────────────────────
 #
