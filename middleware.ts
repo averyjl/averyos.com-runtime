@@ -1,11 +1,13 @@
-// GabrielOS Edge-Guard v1.4
+// GabrielOS Edge-Guard v1.5
 // Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
+// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 78.1)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { classifyDerRequest } from './lib/sovereignMetadata';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
