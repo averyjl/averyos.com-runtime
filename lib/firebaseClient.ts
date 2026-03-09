@@ -6,7 +6,10 @@
  *
  *   FIREBASE_PROJECT_ID
  *   FIREBASE_CLIENT_EMAIL
- *   FIREBASE_PRIVATE_KEY   ← store in Cloudflare Secret Store ONLY
+ *   FIREBASE_PRIVATE_KEY     ← raw PEM with \n markers (wrangler secret put)
+ *   FIREBASE_PRIVATE_KEY_B64 ← Base64-encoded PEM (alternative for large keys that
+ *                               exceed the Cloudflare Dashboard 1024-char limit;
+ *                               takes precedence over FIREBASE_PRIVATE_KEY when set)
  *   FIREBASE_DATABASE_URL   (optional — Realtime Database)
  *   FCM_DEVICE_TOKEN        ← Creator's FCM registration token (wrangler secret put FCM_DEVICE_TOKEN)
  *   NEXT_PUBLIC_FIREBASE_API_KEY
@@ -56,8 +59,33 @@ export function isFirebaseConfigured(): boolean {
     typeof process !== "undefined" &&
     !!process.env.FIREBASE_PROJECT_ID &&
     !!process.env.FIREBASE_CLIENT_EMAIL &&
-    !!process.env.FIREBASE_PRIVATE_KEY
+    (!!process.env.FIREBASE_PRIVATE_KEY_B64 || !!process.env.FIREBASE_PRIVATE_KEY)
   );
+}
+
+/**
+ * Resolve the RSA private key PEM from environment variables.
+ *
+ * Priority:
+ *   1. FIREBASE_PRIVATE_KEY_B64 — Base64-encoded PEM string.  Preferred when
+ *      the raw PEM exceeds the Cloudflare Dashboard 1024-character limit.
+ *      Store via: `wrangler secret put FIREBASE_PRIVATE_KEY_B64`
+ *      (base64-encode first: `[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($pem))`)
+ *   2. FIREBASE_PRIVATE_KEY     — Raw PEM with literal \n markers as stored by
+ *      `wrangler secret put FIREBASE_PRIVATE_KEY`.
+ *
+ * Returns the resolved PEM string, or empty string when neither var is set.
+ */
+function resolvePrivateKey(): string {
+  const b64 = process.env.FIREBASE_PRIVATE_KEY_B64 ?? "";
+  if (b64) {
+    try {
+      return atob(b64);
+    } catch {
+      console.warn("[firebaseClient] FIREBASE_PRIVATE_KEY_B64 is not valid Base64 — falling back to FIREBASE_PRIVATE_KEY");
+    }
+  }
+  return process.env.FIREBASE_PRIVATE_KEY ?? "";
 }
 
 /** Returns the current Firebase connection status. */
@@ -306,7 +334,7 @@ async function firestoreAddDocument(
 async function writeToFirestore(collection: string, doc: Record<string, unknown>): Promise<boolean> {
   const projectId   = process.env.FIREBASE_PROJECT_ID!;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
-  const privateKey  = process.env.FIREBASE_PRIVATE_KEY!;
+  const privateKey  = resolvePrivateKey();
   const accessToken = await getGoogleAccessToken(clientEmail, privateKey, [
     "https://www.googleapis.com/auth/datastore",
   ]);
@@ -601,15 +629,18 @@ export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
 /**
  * Returns true when GabrielOS™ FCM push is fully configured.
  * Requires ALL of the following to be set as Cloudflare secrets:
- *   FIREBASE_PROJECT_ID      — Firebase project ID
- *   FIREBASE_CLIENT_EMAIL    — Service account email (for OAuth2 JWT)
- *   FIREBASE_PRIVATE_KEY     — RSA private key PEM  (for OAuth2 JWT signing)
- *   FCM_DEVICE_TOKEN         — Creator's device FCM registration token
+ *   FIREBASE_PROJECT_ID                — Firebase project ID
+ *   FIREBASE_CLIENT_EMAIL              — Service account email (for OAuth2 JWT)
+ *   FIREBASE_PRIVATE_KEY or
+ *   FIREBASE_PRIVATE_KEY_B64           — RSA private key PEM (raw or Base64-encoded)
+ *   FCM_DEVICE_TOKEN                   — Creator's device FCM registration token
  *
  * Activate by running:
  *   wrangler secret put FIREBASE_PROJECT_ID
  *   wrangler secret put FIREBASE_CLIENT_EMAIL
- *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FIREBASE_PRIVATE_KEY      ← raw PEM with \n markers
+ *   # OR (preferred for keys > 1024 chars):
+ *   wrangler secret put FIREBASE_PRIVATE_KEY_B64  ← Base64-encoded PEM
  *   wrangler secret put FCM_DEVICE_TOKEN
  */
 export function isFcmConfigured(): boolean {
@@ -624,7 +655,9 @@ export function isFcmConfigured(): boolean {
  *
  * Activate by running:
  *   wrangler secret put FCM_DEVICE_TOKEN
- *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FIREBASE_PRIVATE_KEY      ← raw PEM with \n markers
+ *   # OR (preferred for keys > 1024 chars):
+ *   wrangler secret put FIREBASE_PRIVATE_KEY_B64  ← Base64-encoded PEM
  *   wrangler secret put FIREBASE_CLIENT_EMAIL
  *   wrangler secret put FIREBASE_PROJECT_ID
  *
@@ -642,7 +675,7 @@ export async function sendFcmV1Push(
 
   const projectId   = process.env.FIREBASE_PROJECT_ID!;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
-  const privateKey  = process.env.FIREBASE_PRIVATE_KEY!;
+  const privateKey  = resolvePrivateKey();
   const deviceToken = process.env.FCM_DEVICE_TOKEN!;
 
   try {
