@@ -9,7 +9,12 @@ const nextConfig = {
   // at build time, never executed by the Cloudflare Worker at request time.
   // Externalising it prevents katex (~6.7 MB) from being bundled into
   // handler.mjs, keeping the gzip-compressed worker under the 3 MiB free-tier limit.
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex'],
+  // lucide-react ships ESM-only icon bundles that are large when fully inlined.
+  // Marking it external prevents the icon tree from being bundled into handler.mjs.
+  // .aoscap files and JSON capsule manifests are served as static files from
+  // public/manifest/capsules/ — they are never imported by server modules, so
+  // webpack never includes them in the Worker bundle automatically.
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'lucide-react'],
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
@@ -48,6 +53,10 @@ const nextConfig = {
       { source: '/align',            destination: '/alignment-accord', permanent: true },
       { source: '/settlement',       destination: '/alignment-accord', permanent: true },
       { source: '/tari-accord',      destination: '/alignment-accord', permanent: true },
+      // ── Sitemap convenience redirect ──────────────────────────────────────
+      // Allows Google Search Console to index via /sitemap (without extension)
+      // while the canonical URL remains /sitemap.xml
+      { source: '/sitemap', destination: '/sitemap.xml', permanent: false },
     ];
   },
 };

@@ -22,7 +22,7 @@
 
 param(
     [string]$KnowledgeDir = (Join-Path $env:USERPROFILE ".averyos" "alm-knowledge"),
-    [string]$R2BucketName = ($env:R2_BUCKET_NAME ?? "averyos-capsules"),
+    [string]$R2BucketName = $(if ($env:R2_BUCKET_NAME) { $env:R2_BUCKET_NAME } else { "averyos-capsules" }),
     [switch]$DryRun
 )
 

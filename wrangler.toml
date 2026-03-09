@@ -4,6 +4,12 @@ compatibility_date = "2026-02-05"
 main = ".open-next/worker.js"
 compatibility_flags = ["nodejs_compat"]
 
+# ── Build configuration ────────────────────────────────────────────────────────
+# Tells Cloudflare Workers CI and local `wrangler dev` the correct build command.
+# This runs BEFORE wrangler bundles the worker, ensuring .open-next/ is populated.
+[build]
+command = "npm run build:cloudflare"
+
 [assets]
 binding = "ASSETS"
 directory = ".open-next/assets"
@@ -122,6 +128,8 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put NODE_02_ID              # PC node identifier
 #   wrangler secret put CLOUDFLARE_DNS_API_TOKEN # DNS:Read for TXT anchor verification
 #   wrangler secret put CREATOR_WEBHOOK_URL     # licenseGate.js SIG_MISMATCH notifications
+#   wrangler secret put FCM_SERVER_KEY          # Firebase Cloud Messaging Legacy API server key (Tier-9 push)
+#   wrangler secret put FCM_DEVICE_TOKEN        # FCM device/topic token for GabrielOS™ mobile push
 
 # ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
 # Protects the sovereign kernel from DDoS and probabilistic noise.
@@ -134,3 +142,13 @@ type = "ratelimit"
 name = "RATE_LIMITER"
 namespace_id = "1017"
 simple = { limit = 1017, period = 60 }
+
+# ── Wrangler Rate Limiting Rules (1,017-Notch Protection) ────────────────────
+# These [[unsafe.bindings]] rules protect the DER event endpoints from DDoS.
+# Each rule enforces 1,017 requests per 60-second window per IP address.
+# Applied to the most sensitive sovereign API routes.
+#
+# Note: production [[rate_limiting]] rules with enforcement_response are set via
+# the Cloudflare dashboard (Firewall → Rate Limiting) for zero-downtime updates.
+# The wrangler-level ratelimit binding above handles programmatic enforcement
+# in middleware.ts (Worker-side gate).

@@ -72,6 +72,14 @@ interface TaiMilestone {
   kernel_version: string;
 }
 
+interface TariStatsData {
+  hn_watcher_count: number;
+  der_settlement_count: number;
+  watcher_liability_accrued: number;
+  total_entries: number;
+  timestamp: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -126,14 +134,19 @@ export default function TariRevenuePage() {
   const [revenue, setRevenue] = useState<TariRevenueData | null>(null);
   const [usage, setUsage] = useState<ComplianceUsageData | null>(null);
   const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
+  const [stats, setStats] = useState<TariStatsData | null>(null);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sseStatus, setSseStatus] = useState<"connecting" | "live" | "polling">("connecting");
 
   useEffect(() => {
     let cancelled = false;
+    let sseSource: EventSource | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-    async function fetchData() {
+    async function fetchAllData() {
+      if (cancelled) return;
       setLoading(true);
 
       // Fetch 24h revenue from /api/tari-revenue (Pages Router)
@@ -170,19 +183,93 @@ export default function TariRevenuePage() {
           if (!cancelled) setMilestones(data.accomplishments ?? []);
         }
       } catch (err) {
-        // Non-critical — milestones are supplemental; log for diagnostics
         console.warn("[TariRevenue] Milestone fetch failed:", err instanceof Error ? err.message : String(err));
+      }
+
+      // Fetch watcher / DER settlement counts from /api/v1/tari-stats (Phase 78.3)
+      try {
+        const res = await fetch("/api/v1/tari-stats", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as TariStatsData;
+          if (!cancelled) setStats(data);
+        }
+      } catch (err) {
+        // Non-critical — watcher stats are supplemental
+        console.warn("[TariRevenue] Tari-stats fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
     }
 
-    fetchData();
-    const interval = setInterval(fetchData, 30_000);
+    // ── SSE Real-Time Watcher Stream (primary) ─────────────────────────────
+    // Connect to /api/v1/audit-stream for live Tier-9 event notifications.
+    // Falls back to 30-second polling if SSE is unavailable.
+    function connectSse() {
+      if (typeof EventSource === "undefined") {
+        setSseStatus("polling");
+        return;
+      }
+      try {
+        sseSource = new EventSource("/api/v1/audit-stream");
+        setSseStatus("connecting");
+
+        sseSource.onopen = () => {
+          if (!cancelled) setSseStatus("live");
+        };
+
+        sseSource.onmessage = (event) => {
+          if (cancelled) return;
+          try {
+            const parsed = JSON.parse(event.data as string) as Partial<{
+              event_type: string;
+              threat_level: number;
+              tari_liability_usd: number;
+              timestamp_ns: string;
+            }>;
+            // Re-fetch all data on any Tier-9 event to update the liability counter
+            if (parsed.threat_level && parsed.threat_level >= 9) {
+              fetchAllData().catch(() => {});
+            }
+          } catch {
+            // Non-JSON SSE message — ignore
+          }
+        };
+
+        sseSource.onerror = () => {
+          if (cancelled) return;
+          sseSource?.close();
+          sseSource = null;
+          setSseStatus("polling");
+          // Fall back to 30-second polling
+          if (!pollInterval) {
+            pollInterval = setInterval(fetchAllData, 30_000);
+          }
+        };
+      } catch {
+        setSseStatus("polling");
+      }
+    }
+
+    // Initial data fetch + SSE connection
+    // SSE handles real-time updates; polling starts only if SSE fails or is unavailable
+    fetchAllData().catch(() => {});
+    connectSse();
+
+    // Start polling as a safety fallback if SSE is not yet live after 15 seconds
+    const sseTimeoutId = setTimeout(() => {
+      if (!cancelled && sseStatus !== "live" && !pollInterval) {
+        setSseStatus("polling");
+        pollInterval = setInterval(fetchAllData, 30_000);
+      }
+    }, 15_000);
+
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      clearTimeout(sseTimeoutId);
+      sseSource?.close();
+      if (pollInterval) clearInterval(pollInterval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build bar chart data from usage rows (top 10 by liability)
@@ -214,6 +301,10 @@ export default function TariRevenuePage() {
         }}
       >
         ⚡ TARI™ REVENUE DASHBOARD — ALIGNMENT FEES &nbsp;·&nbsp; AVERYOS™
+        &nbsp;·&nbsp;
+        <span style={{ fontSize: "0.7rem", color: sseStatus === "live" ? GREEN : GOLD_DIM }}>
+          {sseStatus === "live" ? "🔴 SSE LIVE" : sseStatus === "connecting" ? "⏳ Connecting…" : "⟳ POLLING"}
+        </span>
       </div>
 
       <section className="hero" style={{ paddingBottom: "1rem" }}>
@@ -334,6 +425,55 @@ export default function TariRevenuePage() {
           }}
         >
           ⚠️ Revenue API unavailable: {revenueError}
+        </div>
+      )}
+
+      {/* Liability Accrued — HN Watcher & DER Settlement Counter (Phase 78.3) */}
+      {stats && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
+            border: `1px solid ${GOLD_BORDER}`,
+            borderRadius: "12px",
+            padding: "0.85rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", marginBottom: "0.75rem", letterSpacing: "0.06em" }}>
+            📡 LIABILITY ACCRUED — DER 2.0 Watcher Counter
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {[
+              { label: "HN Watchers Logged",      value: stats.hn_watcher_count.toLocaleString(),          color: GOLD  },
+              { label: "DER Settlements Logged",  value: stats.der_settlement_count.toLocaleString(),       color: RED   },
+              { label: "Watcher Liability (USD)", value: formatUsd(stats.watcher_liability_accrued),        color: GREEN },
+              { label: "Total Ledger Entries",    value: stats.total_entries.toLocaleString(),              color: WHITE },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                style={{
+                  background: PURPLE_DEEP,
+                  border: `1px solid ${GOLD_BORDER}`,
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                }}
+              >
+                <div style={{ fontSize: "0.68rem", color: GOLD_DIM, marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  {stat.label}
+                </div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stat.color }}>
+                  {stat.value}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

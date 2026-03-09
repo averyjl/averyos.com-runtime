@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "chat.mcp.gallery.enabled": true,
     "git.autofetch": true,
     "chat.mcp.serverSampling": {
@@ -33,3 +34,23 @@
         }
     }
 }
+=======
+  "github.copilot.chat.mcpServers": {
+    "averyos-mcp-bridge": {
+      "command": "pwsh.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/mcp-server.ps1"],
+      "env": {
+        "AVERYOS_MCP_ENV": "production"
+      }
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell",
+      "args": ["-NoProfile"]
+    }
+  }
+}
+>>>>>>> db35510fee0c7588e714ef1b5d5d6a72f70514fc

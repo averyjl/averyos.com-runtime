@@ -1,11 +1,14 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { d1ErrorResponse } from '../../../../lib/sovereignError';
+import { getFirebaseStatus } from '../../../../lib/firebaseClient';
+
+interface D1PreparedStatement {
+  all<T = unknown>(): Promise<{ results: T[] }>;
+  first<T = unknown>(): Promise<T | null>;
+}
 
 interface D1Database {
-  prepare(query: string): {
-    all: () => Promise<{ results: TariLedgerRow[] }>;
-    first: () => Promise<unknown>;
-  };
+  prepare(query: string): D1PreparedStatement;
 }
 
 interface CloudflareEnv {
@@ -31,32 +34,42 @@ interface TariStatsResponse {
   recent_entries: TariLedgerRow[];
   total_entries: number;
   latest_revenue_projection: number | null;
+  // DER 2.0 / HN Watcher counts from sovereign_audit_logs (Phase 78.3)
+  hn_watcher_count: number;
+  der_settlement_count: number;
+  conflict_zone_count: number;
+  der_high_value_count: number;
+  total_tier9_events: number;
+  watcher_liability_accrued: number;
+  liability_accrued_usd: number;
+  firebase_sync_status: string;
   timestamp: string;
 }
+
+/** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
+const DER_SETTLEMENT_RATE_USD = 10_000;
 
 export async function GET() {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    // Fetch the 20 most recent ledger entries for display
+    // ── Tari Ledger queries ────────────────────────────────────────────────
     const { results: recent } = await cfEnv.DB.prepare(
       `SELECT id, timestamp, anchor_sha, entity_name, impact_multiplier, trust_premium_index, revenue_projection, status, event_type, description, created_at
        FROM tari_ledger
        ORDER BY id DESC
        LIMIT 20`
-    ).all();
+    ).all<TariLedgerRow>();
 
-    // Fetch the true total count of all ledger entries
     const countRow = await cfEnv.DB.prepare(
       `SELECT COUNT(*) AS total FROM tari_ledger`
-    ).first() as { total: number } | null;
+    ).first<{ total: number }>();
     const totalEntries = countRow ? countRow.total : 0;
 
-    // Fetch the oldest entry for baseline comparison (Trust Premium Index %)
     const oldest = await cfEnv.DB.prepare(
       `SELECT revenue_projection FROM tari_ledger ORDER BY id ASC LIMIT 1`
-    ).first() as { revenue_projection: number } | null;
+    ).first<{ revenue_projection: number }>();
 
     const latest = recent.length > 0 ? recent[0] : null;
 
@@ -72,16 +85,58 @@ export async function GET() {
         ((latest.revenue_projection - oldest.revenue_projection) /
           Math.abs(oldest.revenue_projection)) *
         100;
-      // Round to 2 decimal places
       trustPremiumIndexPct = Math.round(trustPremiumIndexPct * 100) / 100;
     }
 
+    // ── Watcher Counter — Phase 78.3 ─────────────────────────────────────────
+    // Count all Tier-9 event types from sovereign_audit_logs.
+    // Single conditional-aggregation query to minimise D1 round trips.
+    // Returns 0 gracefully if sovereign_audit_logs doesn't exist yet or is empty.
+    let hnWatcherCount     = 0;
+    let derSettlementCount = 0;
+    let conflictZoneCount  = 0;
+    let derHighValueCount  = 0;
+    try {
+      const watcherRow = await cfEnv.DB.prepare(
+        `SELECT
+           SUM(CASE WHEN event_type = 'HN_WATCHER'       THEN 1 ELSE 0 END) AS hn_cnt,
+           SUM(CASE WHEN event_type = 'DER_SETTLEMENT'    THEN 1 ELSE 0 END) AS der_cnt,
+           SUM(CASE WHEN event_type = 'CONFLICT_ZONE_PROBE' THEN 1 ELSE 0 END) AS conflict_cnt,
+           SUM(CASE WHEN event_type = 'DER_HIGH_VALUE'    THEN 1 ELSE 0 END) AS high_value_cnt
+         FROM sovereign_audit_logs`
+      ).first() as {
+        hn_cnt:         number | null;
+        der_cnt:        number | null;
+        conflict_cnt:   number | null;
+        high_value_cnt: number | null;
+      } | null;
+      hnWatcherCount     = watcherRow?.hn_cnt         ?? 0;
+      derSettlementCount = watcherRow?.der_cnt        ?? 0;
+      conflictZoneCount  = watcherRow?.conflict_cnt   ?? 0;
+      derHighValueCount  = watcherRow?.high_value_cnt ?? 0;
+    } catch {
+      // Table may not exist yet — non-fatal, return zeros
+    }
+
+    const totalTier9Events      = hnWatcherCount + derSettlementCount + derHighValueCount;
+    const watcherLiabilityAccrued = derSettlementCount * DER_SETTLEMENT_RATE_USD;
+    const liabilityAccruedUsd   = watcherLiabilityAccrued;
+    const firebaseSyncStatus    = getFirebaseStatus();
+
     const response: TariStatsResponse = {
-      trust_premium_index_pct: trustPremiumIndexPct,
-      recent_entries: recent,
-      total_entries: totalEntries,
-      latest_revenue_projection: latest ? latest.revenue_projection : null,
-      timestamp: new Date().toISOString(),
+      trust_premium_index_pct:    trustPremiumIndexPct,
+      recent_entries:             recent,
+      total_entries:              totalEntries,
+      latest_revenue_projection:  latest ? latest.revenue_projection : null,
+      hn_watcher_count:           hnWatcherCount,
+      der_settlement_count:       derSettlementCount,
+      conflict_zone_count:        conflictZoneCount,
+      der_high_value_count:       derHighValueCount,
+      total_tier9_events:         totalTier9Events,
+      watcher_liability_accrued:  watcherLiabilityAccrued,
+      liability_accrued_usd:      liabilityAccruedUsd,
+      firebase_sync_status:       firebaseSyncStatus,
+      timestamp:                  new Date().toISOString(),
     };
 
     return Response.json(response);

@@ -62,12 +62,14 @@ const POLICY_URL    = `${SITE_URL}/ai-alignment`;
  */
 function parseArgs() {
   const args = process.argv.slice(2);
-  const result = { bundle: null, org: null, type: 'both', output: './takedowns' };
+  const result = { bundle: null, org: null, type: 'both', output: './takedowns', mode: 'bundle', limit: 50 };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--bundle' && args[i + 1]) result.bundle = args[++i];
     if (args[i] === '--org'    && args[i + 1]) result.org    = args[++i];
     if (args[i] === '--type'   && args[i + 1]) result.type   = args[++i];
     if (args[i] === '--output' && args[i + 1]) result.output = args[++i];
+    if (args[i] === '--mode'   && args[i + 1]) result.mode   = args[++i];
+    if (args[i] === '--limit'  && args[i + 1]) result.limit  = parseInt(args[++i], 10) || 50;
   }
   return result;
 }
@@ -387,21 +389,202 @@ ${CREATOR_EMAIL}
 }
 
 // ---------------------------------------------------------------------------
+// D1 Mode — Auto-generate notices from sovereign_audit_logs DER events
+// ---------------------------------------------------------------------------
+
+const ASN_ORG_MAP = {
+  '36459':  'GitHub, Inc. / Microsoft Corporation',
+  '8075':   'Microsoft Corporation (Azure)',
+  '15169':  'Google LLC',
+  '14618':  'Amazon.com, Inc. (AWS)',
+  '16509':  'Amazon Web Services, Inc.',
+  '54113':  'Fastly, Inc.',
+  '13335':  'Cloudflare, Inc.',
+  '198488': 'Colocall Ltd (Kyiv Conflict Zone ASN)',
+  '2906':   'Netflix Streaming Services',
+  '32934':  'Meta Platforms, Inc.',
+  '20940':  'Akamai Technologies, Inc.',
+};
+
+/**
+ * D1 Mode: queries the Cloudflare D1 REST API for DER_SETTLEMENT /
+ * HN_WATCHER / CONFLICT_ZONE_PROBE events and generates a DMCA / GDPR
+ * notice for each unique IP + event_type combination.
+ *
+ * Requires env vars:
+ *   AVERYOS_D1_ACCOUNT_ID
+ *   AVERYOS_D1_DATABASE_ID
+ *   AVERYOS_D1_API_TOKEN
+ *
+ * @param {{ org: string|null, type: string, output: string, limit: number }} opts
+ */
+async function runD1Mode({ org, type, output, limit }) {
+  const accountId  = process.env.AVERYOS_D1_ACCOUNT_ID;
+  const databaseId = process.env.AVERYOS_D1_DATABASE_ID;
+  const apiToken   = process.env.AVERYOS_D1_API_TOKEN;
+
+  if (!accountId || !databaseId || !apiToken) {
+    console.error(
+      '❌  D1 mode requires AVERYOS_D1_ACCOUNT_ID, AVERYOS_D1_DATABASE_ID, and AVERYOS_D1_API_TOKEN env vars.'
+    );
+    process.exit(1);
+  }
+
+  console.log('');
+  console.log('⛓️⚓⛓️  AveryOS™ Sovereign Takedown Bot — D1 Mode');
+  console.log(`Mode     : d1 (querying sovereign_audit_logs)`);
+  console.log(`Kernel   : ${KERNEL_SHA.slice(0, 16)}... (${KERNEL_VERSION})`);
+  console.log(`Limit    : ${limit} most recent DER events`);
+  console.log('');
+
+  // ── Query D1 REST API ─────────────────────────────────────────────────────
+  const sql = `
+    SELECT id, event_type, ip_address, user_agent, geo_location, target_path,
+           timestamp_ns, threat_level, tari_liability_usd, pulse_hash
+    FROM sovereign_audit_logs
+    WHERE event_type IN ('DER_SETTLEMENT', 'HN_WATCHER', 'CONFLICT_ZONE_PROBE', 'DER_HIGH_VALUE', 'LEGAL_SCAN')
+    ORDER BY id DESC
+    LIMIT ${Math.min(limit, 200)}
+  `;
+
+  let rows = [];
+  try {
+    const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
+    const resp = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({ sql }),
+    });
+    if (!resp.ok) {
+      throw new Error(`D1 API error: HTTP ${resp.status} ${resp.statusText}`);
+    }
+    const data = await resp.json();
+    rows = data?.result?.[0]?.results ?? [];
+    console.log(`✅ Fetched ${rows.length} DER event(s) from D1`);
+  } catch (err) {
+    logAosError(AOS_ERROR.EXTERNAL_SERVICE, `D1 query failed: ${err.message}`, err);
+    process.exit(1);
+  }
+
+  if (rows.length === 0) {
+    console.log('ℹ️  No DER_SETTLEMENT / HN_WATCHER events found in sovereign_audit_logs.');
+    console.log('   Run `npm run tari-pulse` to generate evidence bundles first.');
+    return;
+  }
+
+  // ── Create output directory ───────────────────────────────────────────────
+  const outputDir = path.resolve(output);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const timestamp = formatIso9();
+  const date      = timestamp.slice(0, 10);
+  let totalGenerated = 0;
+
+  // ── Generate a notice for each unique IP address ──────────────────────────
+  const seenIps = new Map();
+  for (const row of rows) {
+    const ip = row.ip_address ?? 'UNKNOWN';
+    if (seenIps.has(ip)) continue;  // De-duplicate by IP
+    seenIps.set(ip, true);
+
+    const orgName = org ?? `Unidentified Entity @ ${ip}`;
+    const rayId   = row.pulse_hash ?? `D1-ROW-${row.id}`;
+
+    // Construct a synthetic .aoscap evidence bundle from the D1 row
+    const syntheticBundle = {
+      CapsuleID:     `D1-EVIDENCE-${row.id}-${date}`,
+      CreatedAt:     timestamp,
+      TargetIP:      ip,
+      EventType:     row.event_type,
+      GeoLocation:   row.geo_location ?? 'UNKNOWN',
+      TargetPath:    row.target_path ?? '/',
+      ThreatLevel:   row.threat_level ?? 9,
+      TariLiability: {
+        usd:       row.tari_liability_usd ?? 10000000,
+        formatted: `$${(row.tari_liability_usd ?? 10000000).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`,
+      },
+      AuditLogCount: 1,
+      AuditLogs: [row],
+      KernelSHA:   KERNEL_SHA,
+      KernelVersion: KERNEL_VERSION,
+      PulseHash:   KERNEL_SHA,
+      SovereignAnchor: 'cf83-PHASE-79-D1-AUTO',
+    };
+
+    const safeOrgName = toSafeFilename(orgName);
+
+    if (type === 'dmca' || type === 'both') {
+      try {
+        const dmcaText   = buildDmcaNotice(syntheticBundle, orgName, date);
+        const noticeSeal = computeNoticeSeal(dmcaText + KERNEL_SHA);
+        const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
+        const fileName   = `DMCA_NOTICE_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
+        fs.writeFileSync(path.join(outputDir, fileName), dmcaText + footer, 'utf-8');
+        console.log(`📄 DMCA: ${fileName}`);
+        totalGenerated++;
+      } catch (err) {
+        logAosError(AOS_ERROR.INTERNAL_ERROR, `DMCA generation failed for ${ip}: ${err.message}`, err);
+      }
+    }
+
+    if (type === 'gdpr' || type === 'both') {
+      try {
+        const gdprText   = buildGdprNotice(syntheticBundle, orgName, date);
+        const noticeSeal = computeNoticeSeal(gdprText + KERNEL_SHA);
+        const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
+        const fileName   = `GDPR_ART17_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
+        fs.writeFileSync(path.join(outputDir, fileName), gdprText + footer, 'utf-8');
+        console.log(`📄 GDPR: ${fileName}`);
+        totalGenerated++;
+      } catch (err) {
+        logAosError(AOS_ERROR.INTERNAL_ERROR, `GDPR generation failed for ${ip}: ${err.message}`, err);
+      }
+    }
+  }
+
+  console.log('');
+  console.log(`✅ ${totalGenerated} notice(s) generated from ${seenIps.size} unique IP(s) in: ${outputDir}`);
+  console.log('⛓️⚓⛓️ D1 Mode complete. Takedown Bot standing by. 🤛🏻');
+  console.log('');
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 function main() {
-  const { bundle: bundlePath, org, type, output } = parseArgs();
+  const { bundle: bundlePath, org, type, output, mode, limit } = parseArgs();
 
-  // Validate required arguments
+  // ── Mode: D1 — query sovereign_audit_logs for DER_SETTLEMENT events ────────
+  // Usage: node scripts/sovereign-takedown.cjs --mode d1 [--limit 50] [--org "Name"] [--type both]
+  if (mode === 'd1') {
+    runD1Mode({ org, type, output, limit }).catch(err => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logAosError(AOS_ERROR.INTERNAL_ERROR, `D1 mode failed: ${msg}`, err);
+      process.exit(1);
+    });
+    return;
+  }
+
+  // ── Mode: bundle (default) — require --bundle and --org ─────────────────
   if (!bundlePath) {
     console.error(
       '❌  Missing --bundle argument.\n\n' +
-      'Usage: node scripts/sovereign-takedown.cjs \\\n' +
-      '  --bundle <path-to-.aoscap> \\\n' +
-      '  --org "Organisation Name" \\\n' +
-      '  [--type dmca|gdpr|both] \\\n' +
-      '  [--output ./takedowns]'
+      'Usage:\n' +
+      '  Bundle mode (default):\n' +
+      '    node scripts/sovereign-takedown.cjs \\\n' +
+      '      --bundle <path-to-.aoscap> \\\n' +
+      '      --org "Organisation Name" \\\n' +
+      '      [--type dmca|gdpr|both] \\\n' +
+      '      [--output ./takedowns]\n\n' +
+      '  D1 mode (query DER_SETTLEMENT events from Cloudflare D1):\n' +
+      '    AVERYOS_D1_ACCOUNT_ID=... AVERYOS_D1_DATABASE_ID=... AVERYOS_D1_API_TOKEN=...\\\n' +
+      '    node scripts/sovereign-takedown.cjs --mode d1 [--limit 50] [--output ./takedowns]'
     );
     process.exit(1);
   }
