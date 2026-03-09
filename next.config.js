@@ -12,14 +12,19 @@ const nextConfig = {
   // .aoscap files and JSON capsule manifests are served as static files from
   // public/manifest/capsules/ — they are never imported by server modules, so
   // webpack never includes them in the Worker bundle automatically.
-  // NOTE: lucide-react is intentionally NOT listed here. Next.js 15 automatically
-  // adds it to experimental.optimizePackageImports (barrel-file tree-shaking),
-  // which is then merged into finalTranspilePackages during the webpack build.
-  // Having it in both serverExternalPackages and transpilePackages causes a fatal
-  // conflict: "packages specified in 'transpilePackages' conflict with
-  // 'serverExternalPackages'". Since lucide-react is not imported anywhere in this
-  // project, omitting it from serverExternalPackages has no bundle-size impact.
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex'],
+  // NOTE: lucide-react and recharts are intentionally NOT listed here. Next.js 15
+  // automatically adds client-component packages like recharts/lucide-react to its
+  // internal transpilePackages list. Having them in both serverExternalPackages and
+  // transpilePackages causes a fatal conflict: "packages specified in
+  // 'transpilePackages' conflict with 'serverExternalPackages'".
+  // Since recharts is only imported in 'use client' components it is never included
+  // in the Cloudflare Worker server bundle, so omitting it here has no bundle-size
+  // impact. Since lucide-react is not imported anywhere in this project, omitting it
+  // from serverExternalPackages also has no bundle-size impact.
+  // marked (~1.4 MB) is used only in statically pre-rendered pages (SSG/force-static)
+  // — terms, privacy, whitepaper, creator-lock. Externalising it keeps it out of
+  // handler.mjs without any runtime risk since those pages are fully pre-built.
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'marked'],
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },

@@ -43,6 +43,14 @@ const http  = require('http');
 const Stripe = require('stripe');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
+// ── CLI flags ──────────────────────────────────────────────────────────────────
+const args    = process.argv.slice(2);
+/**
+ * --dry-run: Log what would be invoiced without making any Stripe API calls.
+ * No invoices or checkout sessions are created when this flag is set.
+ */
+const DRY_RUN = args.includes('--dry-run');
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const STRIPE_SECRET_KEY    = process.env.STRIPE_SECRET_KEY;
 const SITE_URL             = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, '');
@@ -60,6 +68,9 @@ const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
 // Only process orgs whose total liability meets or exceeds this threshold.
 // Orgs below the threshold are logged but skipped.
 const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
+// AI Gateway mode: only invoke when total site requests meet or exceed this value.
+// 135k is the Phase 78 milestone threshold anchored at averyos.com/witness/disclosure.
+const MILESTONE_TRIGGER_TOTAL_REQUESTS = 135_000;
 
 // ── ASN Mode Config ───────────────────────────────────────────────────────────
 // Milestone: ASN mode only activates when anchor_audit_logs row count >= this value.
@@ -73,6 +84,9 @@ const ENTERPRISE_ASNS = new Set(['36459', '211590', '43037']);
 const INDIVIDUAL_LICENSE_CENTS   = 10_170;   // $101.70
 // Enterprise Good Faith Deposit: $10,000,000
 const ENTERPRISE_DEPOSIT_CENTS   = 1_000_000_000; // $10,000,000
+
+// Forensic event types used for AI-Gateway-mode ASN entity detection in audit-stream.
+const FORENSIC_EVENT_TYPES = new Set(['DER_HIGH_VALUE', 'DER_SETTLEMENT', 'HN_WATCHER']);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -145,6 +159,24 @@ function topN(orgMap, n) {
  */
 function calcDebtCents(requestCount) {
   return BASE_BSU_CENTS + PER_REQUEST_CENTS * requestCount;
+}
+
+/**
+ * Merge two org maps, with asnOrgMap entries taking priority over fileOrgMap.
+ * When the same org_id appears in both, the ASN map entry is used (it has more
+ * forensic context).  Unique entries from either map are included in the result.
+ *
+ * @param {Map<string, {org_id: string, request_count: number, ip?: string}>} asnOrgMap
+ * @param {Map<string, {org_id: string, request_count: number, ip?: string}>} fileOrgMap
+ * @returns {Map<string, {org_id: string, request_count: number, ip?: string}>}
+ */
+function mergeOrgMaps(asnOrgMap, fileOrgMap) {
+  const merged = new Map(fileOrgMap);
+  for (const [key, value] of asnOrgMap) {
+    // ASN map takes priority — overwrite or add
+    merged.set(key, value);
+  }
+  return merged;
 }
 
 // ── ASN Mode Helpers ──────────────────────────────────────────────────────────
@@ -409,23 +441,30 @@ async function runAsnInvoicingPipeline(stripe) {
     let invoiceUrl  = null;
     let checkoutUrl = null;
 
-    // Enterprise ASNs always get a full Draft Invoice in addition to the checkout link.
-    if (tier.tier === 'enterprise') {
-      try {
-        invoiceUrl = await createAsnDraftInvoice(stripe, asnEntry, tier);
-        console.log(`   ↳ Draft invoice: ${invoiceUrl}`);
-      } catch (err) {
-        logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create draft invoice for ASN ${asnEntry.asn}: ${err.message}`, err);
+    if (DRY_RUN) {
+      if (tier.tier === 'enterprise') {
+        console.log(`   [DRY RUN] Would create Enterprise Draft Invoice for ASN ${asnEntry.asn}  ${tier.label}`);
       }
-    }
+      console.log(`   [DRY RUN] Would trigger Checkout session for ASN ${asnEntry.asn}  ${tier.label}`);
+    } else {
+      // Enterprise ASNs always get a full Draft Invoice in addition to the checkout link.
+      if (tier.tier === 'enterprise') {
+        try {
+          invoiceUrl = await createAsnDraftInvoice(stripe, asnEntry, tier);
+          console.log(`   ↳ Draft invoice: ${invoiceUrl}`);
+        } catch (err) {
+          logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create draft invoice for ASN ${asnEntry.asn}: ${err.message}`, err);
+        }
+      }
 
-    try {
-      checkoutUrl = await triggerAsnCheckoutSession(asnEntry, tier.amountCents);
-      if (checkoutUrl) {
-        console.log(`   ↳ Checkout session: ${checkoutUrl.slice(0, 72)}…`);
+      try {
+        checkoutUrl = await triggerAsnCheckoutSession(asnEntry, tier.amountCents);
+        if (checkoutUrl) {
+          console.log(`   ↳ Checkout session: ${checkoutUrl.slice(0, 72)}…`);
+        }
+      } catch (err) {
+        logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for ASN ${asnEntry.asn}: ${err.message}`);
       }
-    } catch (err) {
-      logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for ASN ${asnEntry.asn}: ${err.message}`);
     }
 
     results.push({
@@ -435,20 +474,30 @@ async function runAsnInvoicingPipeline(stripe) {
       amount_usd:  `$${(tier.amountCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       invoice_url:  invoiceUrl,
       checkout_url: checkoutUrl,
+      dry_run:      DRY_RUN,
     });
   }
 
   console.log('\n──────────────────────────────────────────────────────────────');
-  console.log('✅  ASN Invoice Summary (962 Entities | 156.2k Pulse Locked):');
+  if (DRY_RUN) {
+    console.log('🔍  [DRY RUN] ASN Invoice Summary — no Stripe calls made:');
+  } else {
+    console.log('✅  ASN Invoice Summary (962 Entities | 156.2k Pulse Locked):');
+  }
   console.log('──────────────────────────────────────────────────────────────\n');
   for (const r of results) {
     const marker = r.tier === 'enterprise' ? '🔴' : '🟡';
     console.log(`  ${marker} ASN ${r.asn.padEnd(8)} ${r.amount_usd}  hits: ${r.hit_count.toLocaleString()}`);
-    if (r.invoice_url)  console.log(`          📄 Invoice:  ${r.invoice_url}`);
-    if (r.checkout_url) console.log(`          ⚡ Checkout: ${r.checkout_url}`);
-    if (!r.invoice_url && !r.checkout_url) console.log(`          ❌ No URL generated`);
+    if (DRY_RUN) {
+      console.log(`          [DRY RUN] No Stripe calls made for this ASN`);
+    } else {
+      if (r.invoice_url)  console.log(`          📄 Invoice:  ${r.invoice_url}`);
+      if (r.checkout_url) console.log(`          ⚡ Checkout: ${r.checkout_url}`);
+      if (!r.invoice_url && !r.checkout_url) console.log(`          ❌ No URL generated`);
+    }
   }
-  console.log('\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1 | ASN Invoicing complete.\n');
+  const dryTag = DRY_RUN ? ' | DRY RUN — no invoices created' : ' | ASN Invoicing complete.';
+  console.log(`\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1${dryTag}\n`);
 }
 
 /**
@@ -581,15 +630,122 @@ async function triggerCheckoutSession(org, debtCents) {
   });
 }
 
+// ── AI Gateway Mode Helpers ───────────────────────────────────────────────────
+
+/**
+ * Fetch the total site request count from /api/v1/tari-stats.
+ * Returns 0 on any error (treated as milestone not yet reached).
+ *
+ * @returns {Promise<number>}
+ */
+async function fetchTotalRequestCount() {
+  if (!VAULT_PASSPHRASE) {
+    logAosHeal(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE not set — cannot fetch total request count.');
+    return 0;
+  }
+  return new Promise((resolve) => {
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/tari-stats`); }
+    catch { resolve(0); return; }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     url.pathname,
+      method:   'GET',
+      headers: { Authorization: `Bearer ${VAULT_PASSPHRASE}` },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          // total_entries is the sovereign_audit_logs row count used as a proxy
+          // for total site requests in the invoice milestone gate.
+          resolve(Number(json.total_entries ?? 0));
+        } catch {
+          resolve(0);
+        }
+      });
+    });
+    req.on('error', () => resolve(0));
+    req.end();
+  });
+}
+
+/**
+ * Query the live /api/v1/audit-stream for DER/HN-Watcher forensic ASN entries
+ * (ASNs 36459, 211590, 43037) to supplement the AI gateway log file.
+ *
+ * Returns a Map<orgId, { org_id, request_count, ip? }> built from the
+ * sovereign_audit_logs data, so it can be merged with the file-based org map.
+ *
+ * @returns {Promise<Map<string, {org_id: string, request_count: number, ip?: string}>>}
+ */
+async function scanForensicAsns() {
+  const result = new Map();
+  if (!VAULT_PASSPHRASE) {
+    logAosHeal(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE not set — skipping forensic ASN scan.');
+    return result;
+  }
+  return new Promise((resolve) => {
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/audit-stream`); }
+    catch { resolve(result); return; }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     url.pathname,
+      method:   'GET',
+      headers: { Authorization: `Bearer ${VAULT_PASSPHRASE}` },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try {
+          const rows = JSON.parse(data);
+          if (!Array.isArray(rows)) { resolve(result); return; }
+          for (const row of rows) {
+            // Use high-value DER/HN-Watcher events as proxies for ASN-attributed entities
+            if (!FORENSIC_EVENT_TYPES.has(row.event_type)) continue;
+            const orgKey = row.ip_address ?? row.event_type;
+            if (result.has(orgKey)) {
+              result.get(orgKey).request_count += 1;
+            } else {
+              result.set(orgKey, { org_id: orgKey, request_count: 1, ip: row.ip_address });
+            }
+          }
+        } catch {
+          // Non-fatal — return empty map
+        }
+        resolve(result);
+      });
+    });
+    req.on('error', () => resolve(result));
+    req.end();
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!STRIPE_SECRET_KEY) {
-    logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY environment variable is not set.');
-    process.exit(1);
+  if (DRY_RUN) {
+    console.log('🔍  [DRY RUN] --dry-run mode active — no Stripe API calls will be made.');
   }
 
-  const stripe = Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
+  if (!STRIPE_SECRET_KEY) {
+    if (DRY_RUN) {
+      console.warn('⚠️  [DRY RUN] STRIPE_SECRET_KEY is not set — continuing in simulation mode.');
+    } else {
+      logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY environment variable is not set.');
+      process.exit(1);
+    }
+  }
+
+  const stripe = DRY_RUN ? null : Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
 
   console.log('⛓️⚓⛓️  AveryOS TARI Invoice Generator');
 
@@ -666,19 +822,24 @@ async function main() {
     console.log(`▶  ${org.org_id}  (${org.request_count.toLocaleString()} requests → $${debtUsd})`);
     let invoiceUrl   = null;
     let checkoutUrl  = null;
-    try {
-      invoiceUrl = await createDraftInvoice(stripe, org);
-    } catch (err) {
-      logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create invoice for ${org.org_id}: ${err.message}`, err);
-    }
-    // Wire to /api/v1/compliance/create-checkout for immediate payment link
-    try {
-      checkoutUrl = await triggerCheckoutSession(org, debtCents);
-      if (checkoutUrl) {
-        console.log(`   ↳ Checkout session: ${checkoutUrl.slice(0, 72)}…`);
+    if (DRY_RUN) {
+      console.log(`   [DRY RUN] Would create Draft Invoice: ${org.org_id}  $${debtUsd}`);
+      console.log(`   [DRY RUN] Would trigger Checkout session for $${debtUsd}`);
+    } else {
+      try {
+        invoiceUrl = await createDraftInvoice(stripe, org);
+      } catch (err) {
+        logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create invoice for ${org.org_id}: ${err.message}`, err);
       }
-    } catch (err) {
-      logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for ${org.org_id}: ${err.message}`);
+      // Wire to /api/v1/compliance/create-checkout for immediate payment link
+      try {
+        checkoutUrl = await triggerCheckoutSession(org, debtCents);
+        if (checkoutUrl) {
+          console.log(`   ↳ Checkout session: ${checkoutUrl.slice(0, 72)}…`);
+        }
+      } catch (err) {
+        logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for ${org.org_id}: ${err.message}`);
+      }
     }
     results.push({
       org_id:        org.org_id,
@@ -686,15 +847,22 @@ async function main() {
       debt_usd:      debtUsd,
       invoice_url:   invoiceUrl,
       checkout_url:  checkoutUrl,
-      error:         invoiceUrl ? undefined : 'Draft invoice creation failed',
+      dry_run:       DRY_RUN,
+      error:         (!DRY_RUN && !invoiceUrl) ? 'Draft invoice creation failed' : undefined,
     });
   }
 
   console.log('\n──────────────────────────────────────────────────────────────');
-  console.log('✅  Draft Invoice URLs (Sovereign Administrator approval required before sending):');
+  if (DRY_RUN) {
+    console.log('🔍  [DRY RUN] Invoice Summary — no Stripe calls made:');
+  } else {
+    console.log('✅  Draft Invoice URLs (Sovereign Administrator approval required before sending):');
+  }
   console.log('──────────────────────────────────────────────────────────────\n');
   for (const r of results) {
-    if (r.invoice_url) {
+    if (DRY_RUN) {
+      console.log(`  [DRY RUN] ${r.org_id}  →  would invoice $${r.debt_usd}  (${r.request_count.toLocaleString()} requests)`);
+    } else if (r.invoice_url) {
       console.log(`  ${r.org_id}  →  ${r.invoice_url}`);
     } else {
       console.log(`  ${r.org_id}  →  ❌ ERROR: ${r.error}`);
@@ -703,7 +871,8 @@ async function main() {
       console.log(`             ⚡ Checkout: ${r.checkout_url}`);
     }
   }
-  console.log('\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1 | All invoices in DRAFT state.\n');
+  const dryTag = DRY_RUN ? ' | DRY RUN — no invoices created' : ' | All invoices in DRAFT state.';
+  console.log(`\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1${dryTag}\n`);
 }
 
 main().catch((err) => {
