@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
-import { syncD1RowToFirebase } from "../../../../lib/firebaseClient";
+import { syncD1RowToFirebase, sendFcmV1Push, isFcmConfigured } from "../../../../lib/firebaseClient";
 
 /**
  * POST /api/v1/audit-alert
@@ -48,9 +48,11 @@ interface CloudflareEnv {
   BITCOIN_API_KEY?: string;
   SITE_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
-  /** Firebase Cloud Messaging Legacy API server key for Tier-9 mobile push. */
-  FCM_SERVER_KEY?: string;
-  /** FCM device/topic token to receive Tier-9 push notifications. */
+  /** Firebase service account — required for FCM HTTP v1 push (sendFcmV1Push). */
+  FIREBASE_PROJECT_ID?: string;
+  FIREBASE_CLIENT_EMAIL?: string;
+  FIREBASE_PRIVATE_KEY?: string;
+  /** FCM device/topic token to receive Tier-9 push notifications (FCM HTTP v1). */
   FCM_DEVICE_TOKEN?: string;
 }
 
@@ -70,25 +72,33 @@ interface KVNamespace {
 
 // TARI™ liability schedule
 const TARI_LIABILITY: Record<string, number> = {
-  UNALIGNED_401:    1017.00,
-  ALIGNMENT_DRIFT:  5000.00,
-  PAYMENT_FAILED:  10000.00,
-  POW_SOLVED:          0.00,
+  UNALIGNED_401:          1017.00,
+  ALIGNMENT_DRIFT:        5000.00,
+  PAYMENT_FAILED:        10000.00,
+  POW_SOLVED:                0.00,
   // DER 2.0 / HN Watcher event types (Phase 78.3)
-  HN_WATCHER:          0.00,  // Forensic discovery signal — no direct liability, but Tier-9 alert
-  DER_HIGH_VALUE:   1017.00,  // Corporate entity recognition entry fee
-  DER_SETTLEMENT:  10000.00,  // Active settlement trigger
+  HN_WATCHER:                0.00,  // Forensic discovery signal — no direct liability, but Tier-9 alert
+  DER_HIGH_VALUE:         1017.00,  // Corporate entity recognition entry fee
+  DER_SETTLEMENT:        10000.00,  // Active settlement trigger
+  // Middleware-generated event types (Phase 78.5) — recorded for audit completeness
+  CONFLICT_ZONE_PROBE:       0.00,  // Adversarial recon probe — silent audit, Tier-9
+  LEGAL_SCAN:                0.00,  // Corporate legal monitoring — threat level 10
+  PEER_ACCESS:               0.00,  // General peer access — low threat, informational
 };
 
 const THREAT_LEVELS: Record<string, number> = {
-  PAYMENT_FAILED:  9,
-  ALIGNMENT_DRIFT: 8,
-  UNALIGNED_401:   7,
-  POW_SOLVED:      3,
+  PAYMENT_FAILED:         9,
+  ALIGNMENT_DRIFT:        8,
+  UNALIGNED_401:          7,
+  POW_SOLVED:             3,
   // DER 2.0 / HN Watcher — all Tier-9 (Phase 78.3)
-  HN_WATCHER:      9,
-  DER_HIGH_VALUE:  9,
-  DER_SETTLEMENT:  9,
+  HN_WATCHER:             9,
+  DER_HIGH_VALUE:         9,
+  DER_SETTLEMENT:         9,
+  // Middleware-generated event types (Phase 78.5)
+  CONFLICT_ZONE_PROBE:    9,   // Adversarial probe — Tier-9 forensic alert
+  LEGAL_SCAN:            10,   // Corporate legal monitoring — highest threat
+  PEER_ACCESS:            1,   // General peer access — informational
 };
 
 async function computePulseHash(
@@ -156,44 +166,6 @@ async function storeForensicBundleAndSign(
   } catch {
     return null;
   }
-}
-
-/** Non-blocking Firebase Cloud Messaging push for Tier-9 events — never throws.
- *
- * Uses the FCM Legacy HTTP API (POST to fcm.googleapis.com/fcm/send).
- * Activate by setting FCM_SERVER_KEY and FCM_DEVICE_TOKEN in the Cloudflare
- * Secret Store (`wrangler secret put FCM_SERVER_KEY`).
- *
- * @param serverKey   FCM Legacy server key
- * @param deviceToken FCM device or topic token to target
- * @param title       Notification title
- * @param body        Notification body
- */
-function fireFcmPush(
-  serverKey: string,
-  deviceToken: string,
-  title: string,
-  body: string
-): void {
-  fetch("https://fcm.googleapis.com/fcm/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `key=${serverKey}`,
-    },
-    body: JSON.stringify({
-      to: deviceToken,
-      notification: { title, body, sound: "default" },
-      data: {
-        kernel_sha: KERNEL_SHA.slice(0, 16) + "…",
-        sovereign_anchor: "⛓️⚓⛓️",
-        creator_lock: "🤛🏻",
-      },
-      priority: "high",
-    }),
-  }).catch((err) => {
-    console.warn(`[audit-alert] FCM delivery failed: ${(err as Error).message}`);
-  });
 }
 
 /** Non-blocking Pushover push — never throws.
@@ -411,22 +383,32 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking) ─────────
+  // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking, FCM HTTP v1) ──
   // Secondary push channel alongside Pushover for maximum Tier-9 alert delivery.
-  // Activate by setting FCM_SERVER_KEY and FCM_DEVICE_TOKEN in Cloudflare secrets:
-  //   wrangler secret put FCM_SERVER_KEY
+  // Uses FCM HTTP v1 OAuth2 (service account JWT) via sendFcmV1Push() from firebaseClient.
+  // Activate by setting all Firebase + FCM secrets in the Cloudflare Secret Store:
+  //   wrangler secret put FIREBASE_PROJECT_ID
+  //   wrangler secret put FIREBASE_CLIENT_EMAIL
+  //   wrangler secret put FIREBASE_PRIVATE_KEY
   //   wrangler secret put FCM_DEVICE_TOKEN
-  if (threatLevel >= 9 && cfEnv.FCM_SERVER_KEY && cfEnv.FCM_DEVICE_TOKEN) {
+  if (threatLevel >= 9 && isFcmConfigured()) {
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
     });
-    fireFcmPush(
-      cfEnv.FCM_SERVER_KEY,
-      cfEnv.FCM_DEVICE_TOKEN,
+    sendFcmV1Push(
       `🚨 TIER-9 GabrielOS™: ${eventType}`,
       buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
-    );
+      {
+        kernel_sha:       KERNEL_SHA.slice(0, 16) + "…",
+        sovereign_anchor: "⛓️⚓⛓️",
+        creator_lock:     "🤛🏻",
+        event_type:       eventType,
+        threat_level:     String(threatLevel),
+      },
+    ).catch((err: unknown) => {
+      console.warn(`[audit-alert] FCM HTTP v1 push failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 
   // ── GabrielOS™ Sentinel — Tier-9 forward (non-blocking) ──────────────────

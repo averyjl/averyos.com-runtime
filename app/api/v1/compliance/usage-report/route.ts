@@ -25,11 +25,17 @@ interface PulseRow {
   timestamp_ns: string;
 }
 
+interface EventTypeBreakdownRow {
+  event_type: string;
+  count: number;
+}
+
 /**
  * GET /api/v1/compliance/usage-report
  * Returns a Technical Usage Report for the requesting IP's /24 subnet.
- * Counts interactions in sovereign_audit_logs and returns associated SHA-512 pulses.
- * Standard audit requirement for enterprise transparency.
+ * Counts interactions in sovereign_audit_logs, returns pulse timestamps,
+ * and provides an event-type breakdown for enterprise transparency.
+ * Phase 78.5: expanded with per-event-type aggregation.
  */
 export async function GET(request: Request) {
   try {
@@ -84,7 +90,22 @@ export async function GET(request: Request) {
       .bind(ipRange)
       .all<PulseRow>();
 
+    // Per-event-type breakdown for this IP range
+    const { results: breakdownRows } = await cfEnv.DB.prepare(
+      `SELECT event_type, COUNT(*) AS count
+       FROM sovereign_audit_logs
+       WHERE ip_address LIKE ?
+       GROUP BY event_type
+       ORDER BY count DESC`
+    )
+      .bind(ipRange)
+      .all<EventTypeBreakdownRow>();
+
     const sha512Pulses: string[] = pulseRows.map((row) => row.timestamp_ns);
+    const eventTypeBreakdown: Record<string, number> = {};
+    for (const row of breakdownRows) {
+      eventTypeBreakdown[row.event_type] = row.count;
+    }
 
     const displayRange = octets.length === 4
       ? `${octets[0]}.${octets[1]}.${octets[2]}.0/24`
@@ -94,6 +115,7 @@ export async function GET(request: Request) {
       report_type: 'TECHNICAL_USAGE_REPORT',
       ip_range: displayRange,
       interaction_count: interactionCount,
+      event_type_breakdown: eventTypeBreakdown,
       sha512_pulses: sha512Pulses,
       kernel_anchor: KERNEL_SHA,
       generated_at: new Date().toISOString(),
