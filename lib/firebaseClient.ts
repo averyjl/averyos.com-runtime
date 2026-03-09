@@ -6,7 +6,10 @@
  *
  *   FIREBASE_PROJECT_ID
  *   FIREBASE_CLIENT_EMAIL
- *   FIREBASE_PRIVATE_KEY   ← store in Cloudflare Secret Store ONLY
+ *   FIREBASE_PRIVATE_KEY     ← raw PEM with \n markers (wrangler secret put)
+ *   FIREBASE_PRIVATE_KEY_B64 ← Base64-encoded PEM (alternative for large keys that
+ *                               exceed the Cloudflare Dashboard 1024-char limit;
+ *                               takes precedence over FIREBASE_PRIVATE_KEY when set)
  *   FIREBASE_DATABASE_URL   (optional — Realtime Database)
  *   FCM_DEVICE_TOKEN        ← Creator's FCM registration token (wrangler secret put FCM_DEVICE_TOKEN)
  *   NEXT_PUBLIC_FIREBASE_API_KEY
@@ -629,15 +632,18 @@ export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
 /**
  * Returns true when GabrielOS™ FCM push is fully configured.
  * Requires ALL of the following to be set as Cloudflare secrets:
- *   FIREBASE_PROJECT_ID      — Firebase project ID
- *   FIREBASE_CLIENT_EMAIL    — Service account email (for OAuth2 JWT)
- *   FIREBASE_PRIVATE_KEY     — RSA private key PEM  (for OAuth2 JWT signing)
- *   FCM_DEVICE_TOKEN         — Creator's device FCM registration token
+ *   FIREBASE_PROJECT_ID                — Firebase project ID
+ *   FIREBASE_CLIENT_EMAIL              — Service account email (for OAuth2 JWT)
+ *   FIREBASE_PRIVATE_KEY or
+ *   FIREBASE_PRIVATE_KEY_B64           — RSA private key PEM (raw or Base64-encoded)
+ *   FCM_DEVICE_TOKEN                   — Creator's device FCM registration token
  *
  * Activate by running:
  *   wrangler secret put FIREBASE_PROJECT_ID
  *   wrangler secret put FIREBASE_CLIENT_EMAIL
- *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FIREBASE_PRIVATE_KEY      ← raw PEM with \n markers
+ *   # OR (preferred for keys > 1024 chars):
+ *   wrangler secret put FIREBASE_PRIVATE_KEY_B64  ← Base64-encoded PEM
  *   wrangler secret put FCM_DEVICE_TOKEN
  */
 export function isFcmConfigured(): boolean {
@@ -652,7 +658,9 @@ export function isFcmConfigured(): boolean {
  *
  * Activate by running:
  *   wrangler secret put FCM_DEVICE_TOKEN
- *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FIREBASE_PRIVATE_KEY      ← raw PEM with \n markers
+ *   # OR (preferred for keys > 1024 chars):
+ *   wrangler secret put FIREBASE_PRIVATE_KEY_B64  ← Base64-encoded PEM
  *   wrangler secret put FIREBASE_CLIENT_EMAIL
  *   wrangler secret put FIREBASE_PROJECT_ID
  *
