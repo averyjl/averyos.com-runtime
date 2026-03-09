@@ -49,7 +49,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   if (!hash || !/^[a-fA-F0-9]{16,128}$/.test(hash)) {
     return Response.json(
-      { error: 'INVALID_HASH', detail: 'Hash must be a 16–128 character hex string (SHA-512 or partial)' },
+      {
+        error: 'INVALID_HASH',
+        // 128 chars = full SHA-512; 16–127 chars = partial prefix (for Genesis Anchor lookups
+        // where only the first N hex chars of the kernel SHA are provided as a shorthand)
+        detail: 'Hash must be a 16–128 character hex string (SHA-512 or partial prefix)',
+      },
       { status: 400 },
     );
   }

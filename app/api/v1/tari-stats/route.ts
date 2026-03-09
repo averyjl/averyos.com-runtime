@@ -128,7 +128,7 @@ export async function GET() {
     let firebaseSyncStatus = 'PENDING_CREDENTIALS';
     try {
       const syncResult = await syncD1RowToFirebase({
-        id:              Date.now(),
+        id:              `tari-stats-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         event_type:      'TARI_STATS_SYNC',
         ip_address:      '0.0.0.0',
         target_path:     '/api/v1/tari-stats',

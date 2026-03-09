@@ -230,16 +230,21 @@ export default function TariRevenuePage() {
     }
 
     // Initial data fetch + SSE connection
+    // SSE handles real-time updates; polling starts only if SSE fails or is unavailable
     fetchAllData().catch(() => {});
     connectSse();
 
-    // Polling fallback (always runs if SSE unavailable)
-    if (sseStatus !== "live") {
-      pollInterval = setInterval(fetchAllData, 30_000);
-    }
+    // Start polling as a safety fallback if SSE is not yet live after 15 seconds
+    const sseTimeoutId = setTimeout(() => {
+      if (!cancelled && sseStatus !== "live" && !pollInterval) {
+        setSseStatus("polling");
+        pollInterval = setInterval(fetchAllData, 30_000);
+      }
+    }, 15_000);
 
     return () => {
       cancelled = true;
+      clearTimeout(sseTimeoutId);
       sseSource?.close();
       if (pollInterval) clearInterval(pollInterval);
     };

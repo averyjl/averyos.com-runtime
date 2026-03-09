@@ -46,6 +46,7 @@ interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
   first<T = unknown>(): Promise<T | null>;
+  all<T = unknown>(): Promise<{ results: T[] }>;
 }
 
 /** $10,000,000.00 Enterprise Retro-Ingestion Deposit — hardlocked per AveryOS Constitution v1.17 */
@@ -101,7 +102,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (!cfEnv.STRIPE_SECRET_KEY) {
-    return aosErrorResponse(AOS_ERROR.MISSING_CONFIG, "STRIPE_SECRET_KEY not configured.");
+    return aosErrorResponse(AOS_ERROR.BINDING_MISSING, "STRIPE_SECRET_KEY not configured.");
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
@@ -121,7 +122,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (!TIER9_EVENT_TYPES.has(eventType)) {
     return aosErrorResponse(
-      AOS_ERROR.INVALID_PARAM,
+      AOS_ERROR.INVALID_FIELD,
       `event_type must be one of: ${[...TIER9_EVENT_TYPES].join(", ")}`
     );
   }
@@ -133,9 +134,7 @@ export async function POST(request: Request): Promise<Response> {
   const now = formatIso9();
 
   // ── Stripe invoice generation ─────────────────────────────────────────────
-  const stripe = new Stripe(cfEnv.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-02-25.clover" as Parameters<typeof Stripe>[1]["apiVersion"],
-  });
+  const stripe = new Stripe(cfEnv.STRIPE_SECRET_KEY);
 
   const baseUrl = cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? "https://averyos.com";
   const evidenceUrl = `${baseUrl}/evidence-vault`;
@@ -226,7 +225,7 @@ export async function POST(request: Request): Promise<Response> {
     stripeStatus = "finalized";
   } catch (stripeErr: unknown) {
     const msg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr);
-    return aosErrorResponse(AOS_ERROR.EXTERNAL_SERVICE, `Stripe invoice creation failed: ${msg}`);
+    return aosErrorResponse(AOS_ERROR.STRIPE_ERROR, `Stripe invoice creation failed: ${msg}`);
   }
 
   // ── D1 — log the invoice event ────────────────────────────────────────────
@@ -253,15 +252,17 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── TAI Accomplishment — auto-track invoice generation ───────────────────
-  autoTrackAccomplishment({
-    title:   `Entity Invoice Generated — ${orgName} (ASN ${asnStr})`,
-    description:
-      `Stripe invoice ${stripeInvoiceId} generated for $${ENTERPRISE_DEPOSIT_USD.toLocaleString()} ` +
-      `Enterprise Retro-Ingestion Deposit. Event: ${eventType}. ` +
-      `Ray ID: ${rayId || "N/A"}. Forensic anchor: cf83-PHASE-79.`,
-    phase:    "Phase 79",
-    category: "LEGAL",
-  });
+  if (cfEnv.DB) {
+    autoTrackAccomplishment(cfEnv.DB as Parameters<typeof autoTrackAccomplishment>[0], {
+      title:   `Entity Invoice Generated — ${orgName} (ASN ${asnStr})`,
+      description:
+        `Stripe invoice ${stripeInvoiceId} generated for $${ENTERPRISE_DEPOSIT_USD.toLocaleString()} ` +
+        `Enterprise Retro-Ingestion Deposit. Event: ${eventType}. ` +
+        `Ray ID: ${rayId || "N/A"}. Forensic anchor: cf83-PHASE-79.`,
+      phase:    "Phase 79",
+      category: "LEGAL",
+    });
+  }
 
   return Response.json({
     status:               "INVOICE_GENERATED",
@@ -314,12 +315,14 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const { results } = await cfEnv.DB.prepare(
+    // Use all() to return multiple rows; .first() would only return a single row
+    const queryResult = await cfEnv.DB.prepare(
       `SELECT id, ip_address, timestamp_ns, tari_liability_usd, pulse_hash
        FROM sovereign_audit_logs
        WHERE event_type = 'DER_SETTLEMENT'
        ORDER BY id DESC LIMIT 50`
-    ).first<{ results: SettlementRow[] }>() as unknown as { results: SettlementRow[] } ?? { results: [] };
+    ).all<SettlementRow>();
+    const results: SettlementRow[] = queryResult?.results ?? [];
 
     return Response.json({
       status:          "OK",

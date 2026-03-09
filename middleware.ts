@@ -248,8 +248,9 @@ function triggerTariBillingEngine(request: NextRequest): void {
  */
 async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
   try {
-    const { env } = await getCloudflareContext({ async: true });
-    const cfEnv = env as unknown as GatekeeperEnv;
+    const ctx = await getCloudflareContext({ async: true });
+    if (!ctx?.env) return;
+    const cfEnv = ctx.env as unknown as GatekeeperEnv;
 
     const url       = new URL(request.url);
     const ip        = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
