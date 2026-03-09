@@ -59,33 +59,36 @@ export function isFirebaseConfigured(): boolean {
     typeof process !== "undefined" &&
     !!process.env.FIREBASE_PROJECT_ID &&
     !!process.env.FIREBASE_CLIENT_EMAIL &&
-    (!!process.env.FIREBASE_PRIVATE_KEY_B64 || !!process.env.FIREBASE_PRIVATE_KEY)
+    !!(process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_B64)
   );
 }
 
 /**
- * Resolve the RSA private key PEM from environment variables.
+ * Resolve the Firebase RSA private key PEM from environment variables.
  *
- * Priority:
- *   1. FIREBASE_PRIVATE_KEY_B64 — Base64-encoded PEM string.  Preferred when
- *      the raw PEM exceeds the Cloudflare Dashboard 1024-character limit.
- *      Store via: `wrangler secret put FIREBASE_PRIVATE_KEY_B64`
- *      (base64-encode first: `[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($pem))`)
- *   2. FIREBASE_PRIVATE_KEY     — Raw PEM with literal \n markers as stored by
- *      `wrangler secret put FIREBASE_PRIVATE_KEY`.
+ * Supports two storage strategies to work around the Cloudflare Dashboard
+ * 1024-character secret limit (RSA PEM keys are ~1.7 KB):
  *
- * Returns the resolved PEM string, or empty string when neither var is set.
+ *   FIREBASE_PRIVATE_KEY_B64  — Base64-encoded PEM (preferred for Dashboard UI)
+ *     Store:  [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($key))
+ *     Decode: atob() at runtime before passing to normalisePem().
+ *             atob() is available in Cloudflare Workers and Node.js ≥ 16.
+ *
+ *   FIREBASE_PRIVATE_KEY      — Raw or \n-escaped PEM (use with wrangler secret put)
+ *
+ * Priority: FIREBASE_PRIVATE_KEY_B64 > FIREBASE_PRIVATE_KEY
  */
-function resolvePrivateKey(): string {
-  const b64 = process.env.FIREBASE_PRIVATE_KEY_B64 ?? "";
+export function resolveFirebasePrivateKey(): string {
+  const b64 = typeof process !== "undefined" ? process.env.FIREBASE_PRIVATE_KEY_B64 : undefined;
   if (b64) {
+    // Decode the Base64-encoded PEM stored via the Cloudflare Dashboard.
     try {
       return atob(b64);
     } catch {
-      console.warn("[firebaseClient] FIREBASE_PRIVATE_KEY_B64 is not valid Base64 — falling back to FIREBASE_PRIVATE_KEY");
+      console.warn("[firebaseClient] FIREBASE_PRIVATE_KEY_B64 is not valid Base64; falling back to FIREBASE_PRIVATE_KEY");
     }
   }
-  return process.env.FIREBASE_PRIVATE_KEY ?? "";
+  return (typeof process !== "undefined" ? process.env.FIREBASE_PRIVATE_KEY : undefined) ?? "";
 }
 
 /** Returns the current Firebase connection status. */
@@ -334,7 +337,7 @@ async function firestoreAddDocument(
 async function writeToFirestore(collection: string, doc: Record<string, unknown>): Promise<boolean> {
   const projectId   = process.env.FIREBASE_PROJECT_ID!;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
-  const privateKey  = resolvePrivateKey();
+  const privateKey  = resolveFirebasePrivateKey();
   const accessToken = await getGoogleAccessToken(clientEmail, privateKey, [
     "https://www.googleapis.com/auth/datastore",
   ]);
@@ -675,7 +678,7 @@ export async function sendFcmV1Push(
 
   const projectId   = process.env.FIREBASE_PROJECT_ID!;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
-  const privateKey  = resolvePrivateKey();
+  const privateKey  = resolveFirebasePrivateKey();
   const deviceToken = process.env.FCM_DEVICE_TOKEN!;
 
   try {
