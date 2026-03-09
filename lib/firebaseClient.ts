@@ -8,6 +8,7 @@
  *   FIREBASE_CLIENT_EMAIL
  *   FIREBASE_PRIVATE_KEY   ← store in Cloudflare Secret Store ONLY
  *   FIREBASE_DATABASE_URL   (optional — Realtime Database)
+ *   FCM_DEVICE_TOKEN        ← Creator's FCM registration token (wrangler secret put FCM_DEVICE_TOKEN)
  *   NEXT_PUBLIC_FIREBASE_API_KEY
  *   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
  *   NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -22,6 +23,10 @@
  *   GitHub logs.  The logFirebaseHandshake() function below computes and records
  *   a SHA-512 hash of every inter-cloud handshake to the VaultChain™, enabling
  *   real-time detection of "Watcher Drift" between GPT/Gemini/Meta loops.
+ *
+ * Firestore writes use the Firebase REST API with OAuth2 service account JWT
+ * authentication — fully compatible with Cloudflare Workers (no firebase-admin
+ * SDK required).  FCM push uses the HTTP v1 API (not legacy server key).
  *
  * Until credentials are provided, all functions return a "PENDING_CREDENTIALS"
  * status gracefully — no errors, no crashes.
@@ -131,44 +136,219 @@ async function sha512hex(input: string): Promise<string> {
     .join("");
 }
 
-// ── Stub functions (active once Firebase credentials are provided) ─────────────
+// ── Google OAuth2 service account JWT helpers ─────────────────────────────────
 
 /**
- * Log a resonance ping to Firestore.
- * Currently a no-op stub — activates when FIREBASE_PROJECT_ID is set.
+ * Normalise a Firebase private key from the Cloudflare Secret Store.
+ * Handles both:
+ *   • raw PEM  (newlines already present)
+ *   • escaped PEM (literal \n stored by wrangler secret put)
  */
-export async function logResonancePing(doc: ResonancePingDoc): Promise<void> {
-  if (!isFirebaseConfigured()) return;
-  // TODO: implement with firebase-admin once credentials are provided
-  // const db = getFirestore();
-  // await db.collection("averyos-resonance").add(doc);
-  void doc;
+function normalisePem(raw: string): string {
+  return raw.replace(/\\n/g, "\n").trim();
 }
 
 /**
- * Update the live model alignment state in Firestore.
- * Currently a no-op stub — activates when FIREBASE_PROJECT_ID is set.
+ * Base64url-encode a Uint8Array or ArrayBuffer (RFC 4648 §5, no padding).
+ * Uses only globals available in Cloudflare Workers and Node.js ≥ 16.
+ */
+function base64urlEncode(data: Uint8Array | ArrayBuffer): string {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+/**
+ * Import a PKCS8 PEM-encoded RSA private key for RS256 signing via Web Crypto.
+ * Works in both Cloudflare Workers and Node.js ≥ 22.
+ */
+async function importRsaPrivateKey(pemKey: string): Promise<CryptoKey> {
+  const pem = normalisePem(pemKey);
+  const b64 = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  const binary = atob(b64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return crypto.subtle.importKey(
+    "pkcs8",
+    bytes.buffer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+/**
+ * Obtain a Google OAuth2 access token via service account JWT (RFC 7523).
+ * Fully compatible with Cloudflare Workers — uses Web Crypto API for RSA signing.
+ *
+ * @param clientEmail — Firebase service account email
+ * @param privateKey  — RSA private key PEM (raw or with escaped \n)
+ * @param scopes      — OAuth2 scopes required (Firestore and/or FCM)
+ * @returns           access_token string, or null on failure
+ */
+async function getGoogleAccessToken(
+  clientEmail: string,
+  privateKey: string,
+  scopes: string[]
+): Promise<string | null> {
+  try {
+    const enc        = new TextEncoder();
+    const now        = Math.floor(Date.now() / 1000);
+    const headerB64  = base64urlEncode(enc.encode(JSON.stringify({ alg: "RS256", typ: "JWT" })));
+    const payloadB64 = base64urlEncode(enc.encode(JSON.stringify({
+      iss:   clientEmail,
+      sub:   clientEmail,
+      aud:   "https://oauth2.googleapis.com/token",
+      iat:   now,
+      exp:   now + 3600,
+      scope: scopes.join(" "),
+    })));
+
+    const signingInput = `${headerB64}.${payloadB64}`;
+    const cryptoKey    = await importRsaPrivateKey(privateKey);
+    const signature    = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      cryptoKey,
+      enc.encode(signingInput)
+    );
+    const jwt = `${signingInput}.${base64urlEncode(signature)}`;
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method:  "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body:    new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion:  jwt,
+      }).toString(),
+    });
+
+    if (!tokenRes.ok) {
+      console.warn(`[firebaseClient] OAuth2 token error ${tokenRes.status}`);
+      return null;
+    }
+    const { access_token } = await tokenRes.json() as { access_token: string };
+    return access_token ?? null;
+  } catch (err) {
+    console.warn(`[firebaseClient] getGoogleAccessToken failed: ${(err as Error).message}`);
+    return null;
+  }
+}
+
+// ── Firestore REST API write helpers ─────────────────────────────────────────
+
+type FirestoreValue =
+  | { stringValue: string }
+  | { integerValue: string }
+  | { doubleValue: number }
+  | { booleanValue: boolean }
+  | { nullValue: null }
+  | { mapValue: { fields: Record<string, FirestoreValue> } };
+
+function toFirestoreValue(v: unknown): FirestoreValue {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === "boolean") return { booleanValue: v };
+  if (typeof v === "number")  return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === "string")  return { stringValue: v };
+  if (typeof v === "object") {
+    const fields: Record<string, FirestoreValue> = {};
+    for (const [key, val] of Object.entries(v as Record<string, unknown>))
+      fields[key] = toFirestoreValue(val);
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(v) };
+}
+
+function toFirestoreFields(doc: Record<string, unknown>): Record<string, FirestoreValue> {
+  const fields: Record<string, FirestoreValue> = {};
+  for (const [key, val] of Object.entries(doc)) fields[key] = toFirestoreValue(val);
+  return fields;
+}
+
+/**
+ * Write a document to a Firestore collection via the REST API (auto-generated ID).
+ * Non-throwing — logs a warning on failure.
+ */
+async function firestoreAddDocument(
+  projectId: string,
+  collection: string,
+  doc: Record<string, unknown>,
+  accessToken: string
+): Promise<void> {
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${collection}`;
+    const res = await fetch(url, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ fields: toFirestoreFields(doc) }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.warn(`[firebaseClient] Firestore write to ${collection} failed (${res.status}): ${body.slice(0, 200)}`);
+    }
+  } catch (err) {
+    console.warn(`[firebaseClient] firestoreAddDocument(${collection}) threw: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Obtain a Firestore-scoped access token and write a document — one helper call.
+ * Returns false if credentials are absent or the token request fails (non-throwing).
+ */
+async function writeToFirestore(collection: string, doc: Record<string, unknown>): Promise<boolean> {
+  const projectId   = process.env.FIREBASE_PROJECT_ID!;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
+  const privateKey  = process.env.FIREBASE_PRIVATE_KEY!;
+  const accessToken = await getGoogleAccessToken(clientEmail, privateKey, [
+    "https://www.googleapis.com/auth/datastore",
+  ]);
+  if (!accessToken) return false;
+  await firestoreAddDocument(projectId, collection, doc, accessToken);
+  return true;
+}
+
+// ── Live Firestore functions (active once credentials are provided) ────────────
+
+/**
+ * Log a resonance ping to the `averyos-resonance` Firestore collection.
+ * Activates when FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and
+ * FIREBASE_PRIVATE_KEY are configured.
+ */
+export async function logResonancePing(doc: ResonancePingDoc): Promise<void> {
+  if (!isFirebaseConfigured()) return;
+  await writeToFirestore("averyos-resonance", doc as unknown as Record<string, unknown>);
+}
+
+/**
+ * Update the live model alignment state in the `averyos-model-registry` collection.
+ * Activates when FIREBASE_PROJECT_ID is set.
  */
 export async function updateModelRegistry(
   modelId: string,
   update: Partial<ModelRegistryDoc>
 ): Promise<void> {
   if (!isFirebaseConfigured()) return;
-  // TODO: implement with firebase-admin once credentials are provided
-  // const db = getFirestore();
-  // await db.collection("averyos-model-registry").doc(modelId).set(update, { merge: true });
-  void modelId;
-  void update;
+  await writeToFirestore("averyos-model-registry", {
+    model_id:   modelId,
+    ...update,
+    updated_at: iso9Now(),
+    kernel_sha: KERNEL_SHA,
+  });
 }
 
 /**
- * Log a drift detection alert to Firestore.
- * Currently a no-op stub — activates when FIREBASE_PROJECT_ID is set.
+ * Log a drift detection alert to the `averyos-drift-alerts` Firestore collection.
+ * Activates when FIREBASE_PROJECT_ID is set.
  */
 export async function logDriftAlert(doc: DriftAlertDoc): Promise<void> {
   if (!isFirebaseConfigured()) return;
-  // TODO: write to Firestore once firebase-admin once credentials are provided
-  void doc;
+  await writeToFirestore("averyos-drift-alerts", doc as unknown as Record<string, unknown>);
 }
 
 /**
@@ -210,9 +390,8 @@ export async function logFirebaseHandshake(
     creator_lock: "🤛🏻",
   };
 
-  // TODO: write to Firestore once firebase-admin credentials are wired:
-  // const db = getFirestore();
-  // await db.collection("averyos-handshake-sync").add(doc);
+  // Write to Firestore — non-blocking fire-and-forget
+  void writeToFirestore("averyos-handshake-sync", doc as unknown as Record<string, unknown>);
 
   return doc;
 }
@@ -242,9 +421,9 @@ export interface D1SyncDoc {
  * Sync a D1 sovereign_audit_logs row to the Firestore
  * `averyos-d1-sync` collection for Multi-Cloud D1/Firebase parity.
  *
- * This is a no-op stub until FIREBASE_PROJECT_ID is configured.
- * Once active, every Tier-7+ audit event in D1 is mirrored to Firestore
- * in real time, enabling cross-cloud drift detection.
+ * Activates once FIREBASE_PROJECT_ID is configured — writes via Firestore
+ * REST API (no firebase-admin SDK required).  Every Tier-7+ audit event in
+ * D1 is mirrored to Firestore in real time, enabling cross-cloud drift detection.
  *
  * @param row — a row object from sovereign_audit_logs
  */
@@ -276,10 +455,8 @@ export async function syncD1RowToFirebase(row: {
     creator_lock:      "🤛🏻",
   };
 
-  // TODO: write to Firestore once firebase-admin credentials are wired:
-  // const db = getFirestore();
-  // await db.collection("averyos-d1-sync").add(doc);
-  void doc;
+  // Write to Firestore — non-blocking fire-and-forget
+  void writeToFirestore("averyos-d1-sync", doc as unknown as Record<string, unknown>);
 
   return doc;
 }
@@ -341,7 +518,8 @@ export interface TariProbeDoc {
  * should be called to mirror the record to Firebase, ensuring the audit trail
  * survives even if a single cloud provider attempts a "Nuclear Wipe".
  *
- * This is a no-op stub until FIREBASE_PROJECT_ID is configured.
+ * Activates once FIREBASE_PROJECT_ID is configured — writes via Firestore
+ * REST API (no firebase-admin SDK required).
  *
  * @param row — a row object from the tari_probe table
  */
@@ -380,10 +558,8 @@ export async function syncTariProbeToFirebase(row: {
     creator_lock:        "🤛🏻",
   };
 
-  // TODO: write to Firestore once firebase-admin credentials are wired:
-  // const db = getFirestore();
-  // await db.collection("averyos-tari-probe").add(doc);
-  void doc;
+  // Write to Firestore — non-blocking fire-and-forget
+  void writeToFirestore("averyos-tari-probe", doc as unknown as Record<string, unknown>);
 
   return doc;
 }
@@ -417,3 +593,85 @@ export async function batchSyncTariProbeToFirebase(
  * ⛓️⚓⛓️  LOCKED AT 156.2k PULSE | 962 ENTITIES DOCUMENTED
  */
 export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
+
+// ── GabrielOS™ FCM HTTP v1 Push ───────────────────────────────────────────────
+
+/**
+ * Returns true when GabrielOS™ FCM push is fully configured.
+ * Requires all Firebase service account credentials (for OAuth2 JWT) PLUS
+ * the Creator's FCM device registration token.
+ *
+ * Activate by running:
+ *   wrangler secret put FCM_DEVICE_TOKEN   ← Creator's phone registration token
+ *   (FIREBASE_PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY also required)
+ */
+export function isFcmConfigured(): boolean {
+  return isFirebaseConfigured() && !!process.env.FCM_DEVICE_TOKEN;
+}
+
+/**
+ * Send a GabrielOS™ FCM HTTP v1 push notification to the Creator's registered device.
+ *
+ * Uses OAuth2 service account JWT (FCM HTTP v1 API) — not the deprecated legacy
+ * server-key approach.  Fully compatible with Cloudflare Workers via Web Crypto API.
+ *
+ * Activate by running:
+ *   wrangler secret put FCM_DEVICE_TOKEN
+ *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FIREBASE_CLIENT_EMAIL
+ *   wrangler secret put FIREBASE_PROJECT_ID
+ *
+ * @param title — notification title
+ * @param body  — notification body text
+ * @param data  — optional string key-value data payload (passed alongside notification)
+ * @returns     true on successful delivery, false if not configured or delivery failed
+ */
+export async function sendFcmV1Push(
+  title: string,
+  body: string,
+  data?: Record<string, string>
+): Promise<boolean> {
+  if (!isFcmConfigured()) return false;
+
+  const projectId   = process.env.FIREBASE_PROJECT_ID!;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
+  const privateKey  = process.env.FIREBASE_PRIVATE_KEY!;
+  const deviceToken = process.env.FCM_DEVICE_TOKEN!;
+
+  try {
+    const accessToken = await getGoogleAccessToken(clientEmail, privateKey, [
+      "https://www.googleapis.com/auth/firebase.messaging",
+    ]);
+    if (!accessToken) return false;
+
+    const url = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
+    const payload: Record<string, unknown> = {
+      message: {
+        token:        deviceToken,
+        notification: { title, body },
+        android:      { priority: "high" },
+        apns:         { payload: { aps: { sound: "default" } } },
+        ...(data ? { data } : {}),
+      },
+    };
+
+    const res = await fetch(url, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.warn(`[firebaseClient] FCM HTTP v1 failed (${res.status}): ${errBody.slice(0, 200)}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn(`[firebaseClient] sendFcmV1Push failed: ${(err as Error).message}`);
+    return false;
+  }
+}

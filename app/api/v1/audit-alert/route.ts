@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
+import { sendFcmV1Push } from "../../../../lib/firebaseClient";
 
 /**
  * POST /api/v1/audit-alert
@@ -340,6 +341,26 @@ export async function POST(request: Request): Promise<Response> {
       title,
       buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
       isTier9
+    );
+  }
+
+  // ── GabrielOS™ FCM HTTP v1 — Tier-9 push (non-blocking) ─────────────────
+  // Fires in parallel with Pushover for all Tier-9 events (threat_level ≥ 9).
+  // Activates once FCM_DEVICE_TOKEN + Firebase service account are configured.
+  if (threatLevel >= 9) {
+    const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+    void sendFcmV1Push(
+      `🚨 TIER-9 GabrielOS™ ALERT: ${eventType}`,
+      buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
+      {
+        event_type:   eventType,
+        threat_level: String(threatLevel),
+        pulse_hash:   pulseHash.slice(0, 16),
+        kernel_sha:   KERNEL_SHA.slice(0, 16),
+      }
     );
   }
 

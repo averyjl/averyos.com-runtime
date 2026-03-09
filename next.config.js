@@ -11,10 +11,28 @@ const nextConfig = {
   // handler.mjs, keeping the gzip-compressed worker under the 3 MiB free-tier limit.
   // lucide-react ships ESM-only icon bundles that are large when fully inlined.
   // Marking it external prevents the icon tree from being bundled into handler.mjs.
+  // firebase-admin is a Node.js-only SDK; it is NOT used at runtime in this
+  // project (we use the Firebase REST API via fetch instead), but marking it
+  // external prevents accidental inlining if it appears in any import chain.
   // .aoscap files and JSON capsule manifests are served as static files from
   // public/manifest/capsules/ — they are never imported by server modules, so
   // webpack never includes them in the Worker bundle automatically.
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'lucide-react'],
+  serverExternalPackages: [
+    'stripe',
+    'isomorphic-dompurify',
+    'jsdom',
+    'katex',
+    'lucide-react',
+    'firebase-admin',
+  ],
+
+  // optimizePackageImports: enable tree-shaking for icon/component libraries
+  // that export a large number of named exports. Next.js will only bundle the
+  // specific icons/components actually used in the application, significantly
+  // reducing the Worker bundle size for builds that use these libraries.
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+  },
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
