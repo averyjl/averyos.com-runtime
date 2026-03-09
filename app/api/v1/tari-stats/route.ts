@@ -44,9 +44,7 @@ interface TariStatsResponse {
   total_tier9_events: number;
   watcher_liability_accrued: number;
   liability_accrued_usd: number;
-  // Phase 78.5 — Middleware-generated event counts
-  legal_scan_count: number;
-  peer_access_count: number;
+  // Phase 78.5 — Firebase sync status
   firebase_sync_status: string;
   timestamp: string;
 }
@@ -150,8 +148,6 @@ export async function GET() {
       total_tier9_events:         totalTier9Events,
       watcher_liability_accrued:  watcherLiabilityAccrued,
       liability_accrued_usd:      liabilityAccruedUsd,
-      legal_scan_count:           legalScanCount,
-      peer_access_count:          peerAccessCount,
       firebase_sync_status:       firebaseSyncStatus,
       timestamp:                  new Date().toISOString(),
     };

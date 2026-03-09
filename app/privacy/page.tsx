@@ -4,6 +4,8 @@ import { marked } from "marked";
 import AnchorBanner from "../../components/AnchorBanner";
 import { sanitizeHtml } from "../../lib/sanitizeHtml";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Privacy Policy • AveryOS",
   description: "AveryOS Privacy Policy - Cryptographically anchored to the AveryOS Encrypted Deterministic Kernel",

@@ -1,16 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+// Recharts is excluded from the SSR bundle via ssr:false to keep the
+// Cloudflare Worker under the 3 MiB compressed size limit.
+const LiabilityBarChart = dynamic(() => import("./LiabilityBarChart"), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        background: "#0a0015",
+        border: "1px solid rgba(255,215,0,0.35)",
+        borderRadius: "12px",
+        padding: "1.25rem",
+        marginBottom: "1.5rem",
+        minHeight: "260px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "rgba(255,215,0,0.55)",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: "0.8rem",
+      }}
+    >
+      💰 Loading Liability Chart…
+    </div>
+  ),
+});
 
 // ---------------------------------------------------------------------------
 // Deep Purple & Gold theme — AveryOS™ TARI™ Revenue Dashboard
@@ -94,40 +111,6 @@ function formatUsd(value: string | number) {
     currency: "USD",
     minimumFractionDigits: 2,
   });
-}
-
-// ---------------------------------------------------------------------------
-// Custom tooltip
-// ---------------------------------------------------------------------------
-
-interface RevenueTooltipProps {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number }>;
-  label?: string;
-}
-
-function RevenueTooltip({ active, payload, label }: RevenueTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      style={{
-        background: PURPLE_DEEP,
-        border: `1px solid ${GOLD_BORDER}`,
-        borderRadius: "6px",
-        padding: "0.4rem 0.65rem",
-        fontFamily: "monospace",
-        fontSize: "0.72rem",
-        color: GOLD,
-      }}
-    >
-      <div style={{ color: GOLD_DIM, marginBottom: "2px" }}>{label}</div>
-      {payload.map((p) => (
-        <div key={p.name}>
-          {formatUsd(p.value)}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -484,68 +467,7 @@ export default function TariRevenuePage() {
       )}
 
       {/* Liability vs. Collected Chart — top corporate orgs */}
-      {chartData.length > 0 && (
-        <div
-          style={{
-            background: PURPLE_DEEP,
-            border: `1px solid ${GOLD_BORDER}`,
-            borderRadius: "12px",
-            padding: "1.25rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div
-            style={{
-              color: GOLD,
-              fontFamily: "JetBrains Mono, monospace",
-              fontWeight: 700,
-              fontSize: "0.82rem",
-              marginBottom: "0.75rem",
-              letterSpacing: "0.06em",
-            }}
-          >
-            💰 TOP CORPORATE LIABILITY — Uncollected Alignment Fees
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 24, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,215,0,0.08)" vertical={false} />
-              <XAxis
-                dataKey="org"
-                tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
-                axisLine={false}
-                tickLine={false}
-                angle={-30}
-                textAnchor="end"
-              />
-              <YAxis
-                tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
-              />
-              <Tooltip content={<RevenueTooltip />} cursor={{ fill: GOLD_GLOW }} />
-              <Bar dataKey="liability" maxBarSize={32} radius={[3, 3, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.liability >= TARI_THRESHOLD_USD ? RED : GOLD}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div
-            style={{
-              marginTop: "0.5rem",
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: "0.68rem",
-              color: GOLD_DIM,
-            }}
-          >
-            🔴 Red = Above $10,000 threshold (auto-invoice eligible) &nbsp;|&nbsp; 🟡 Gold = Below threshold
-          </div>
-        </div>
-      )}
+      <LiabilityBarChart chartData={chartData} threshold={TARI_THRESHOLD_USD} />
 
       {/* Compliance Usage Table */}
       {usage && usage.rows.length > 0 && (

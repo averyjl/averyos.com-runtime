@@ -17,10 +17,11 @@ const nextConfig = {
   // internal transpilePackages list. Having them in both serverExternalPackages and
   // transpilePackages causes a fatal conflict: "packages specified in
   // 'transpilePackages' conflict with 'serverExternalPackages'".
-  // Since recharts is only imported in 'use client' components it is never included
-  // in the Cloudflare Worker server bundle, so omitting it here has no bundle-size
-  // impact. Since lucide-react is not imported anywhere in this project, omitting it
-  // from serverExternalPackages also has no bundle-size impact.
+  // recharts is excluded from the Worker server bundle via `ssr: false` dynamic
+  // imports in app/audit-stream/ResonancePulseChart.tsx and
+  // app/tari-revenue/LiabilityBarChart.tsx — this saves ~95 KiB gzip vs including
+  // it in handler.mjs. Since lucide-react is not imported anywhere in this project,
+  // omitting it from serverExternalPackages also has no bundle-size impact.
   // marked (~1.4 MB) is used only in statically pre-rendered pages (SSG/force-static)
   // — terms, privacy, whitepaper, creator-lock. Externalising it keeps it out of
   // handler.mjs without any runtime risk since those pages are fully pre-built.
