@@ -39,6 +39,8 @@ interface TariStatsResponse {
   der_settlement_count: number;
   conflict_zone_count: number;
   der_high_value_count: number;
+  legal_scan_count: number;
+  peer_access_count: number;
   total_tier9_events: number;
   watcher_liability_accrued: number;
   liability_accrued_usd: number;
@@ -143,6 +145,8 @@ export async function GET() {
       der_settlement_count:       derSettlementCount,
       conflict_zone_count:        conflictZoneCount,
       der_high_value_count:       derHighValueCount,
+      legal_scan_count:           legalScanCount,
+      peer_access_count:          peerAccessCount,
       total_tier9_events:         totalTier9Events,
       watcher_liability_accrued:  watcherLiabilityAccrued,
       liability_accrued_usd:      liabilityAccruedUsd,
