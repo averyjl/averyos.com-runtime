@@ -145,7 +145,7 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     const ip = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
     const ua = request.headers.get('user-agent') ?? 'UNKNOWN';
     const colo = request.headers.get('cf-ray')?.split('-')[1] ?? 'UNKNOWN';
-    const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler/i.test(ua);
+    const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
     const timestampNs = Date.now().toString() + '000000';
 
     await cfEnv.DB.prepare(
