@@ -26,6 +26,17 @@ export interface AuditStreamEntry {
   target_path: string;
   timestamp_ns: string;
   threat_level: number | null;
+  tari_liability_usd?: number | null;
+}
+
+/** Public SSE event shape — strips PII (no ip_address). */
+interface SseAuditEvent {
+  id: number;
+  event_type: string;
+  threat_level: number | null;
+  tari_liability_usd: number | null;
+  timestamp_ns: string;
+  forensic_pulse: string;
 }
 
 /** Format a nanosecond timestamp string as a Forensic Pulse: YYYY-MM-DD.HHMMSSmmm000000 */
@@ -43,7 +54,147 @@ function formatForensicPulse(timestamp_ns: string): string {
   return `${datePart}.${compact}`;
 }
 
+// ── SSE constants ──────────────────────────────────────────────────────────────
+/** How long to wait between D1 polls in the SSE stream (ms). */
+const SSE_POLL_INTERVAL_MS = 5_000;
+/** Number of poll iterations before closing the SSE connection (~25 s total). */
+const SSE_POLL_COUNT = 4;
+
+/**
+ * Query recent audit events from D1 since a given id (exclusive).
+ * Returns up to `limit` rows ordered by id ASC (oldest first so SSE consumers
+ * receive events in chronological order).
+ */
+async function queryEventsSinceId(
+  db: D1Database,
+  sinceId: number,
+  limit = 50
+): Promise<SseAuditEvent[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, event_type, threat_level, tari_liability_usd, timestamp_ns
+       FROM sovereign_audit_logs
+       WHERE id > ?
+       ORDER BY id ASC
+       LIMIT ?`
+    )
+    .bind(sinceId, limit)
+    .all<AuditStreamEntry>();
+
+  return results.map((row) => ({
+    id:                 row.id,
+    event_type:         row.event_type,
+    threat_level:       row.threat_level ?? null,
+    tari_liability_usd: row.tari_liability_usd ?? null,
+    timestamp_ns:       row.timestamp_ns,
+    forensic_pulse:     formatForensicPulse(row.timestamp_ns),
+  }));
+}
+
 export async function GET(request: Request) {
+  const acceptHeader = request.headers.get('Accept') ?? '';
+  const wantsSSE = acceptHeader.includes('text/event-stream');
+
+  // ── SSE branch — EventSource (tari-revenue dashboard) ────────────────────
+  // No auth required for the SSE stream; PII (ip_address) is not included.
+  // Polls D1 every 5 seconds for new events and emits them as SSE data.
+  // Connection closes after ~25 seconds; EventSource auto-reconnects.
+  if (wantsSSE) {
+    try {
+      const { env } = await getCloudflareContext({ async: true });
+      const cfEnv = env as unknown as CloudflareEnv;
+
+      // Ensure table exists (idempotent)
+      await cfEnv.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS sovereign_audit_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_type TEXT NOT NULL,
+          ip_address TEXT NOT NULL,
+          user_agent TEXT,
+          geo_location TEXT,
+          target_path TEXT NOT NULL,
+          timestamp_ns TEXT NOT NULL,
+          threat_level INTEGER DEFAULT 1,
+          tari_liability_usd REAL,
+          pulse_hash TEXT
+        )`
+      ).run();
+
+      const encoder = new TextEncoder();
+      const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+      const writer = writable.getWriter();
+
+      const writeEvent = async (event: SseAuditEvent) => {
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+      const writeKeepAlive = async () => {
+        await writer.write(encoder.encode(': keepalive\n\n'));
+      };
+
+      // Async stream pump — send recent events then poll for new ones
+      (async () => {
+        try {
+          // Bootstrap: send the 50 most recent rows immediately
+          const { results: seed } = await cfEnv.DB
+            .prepare(
+              `SELECT id, event_type, threat_level, tari_liability_usd, timestamp_ns
+               FROM sovereign_audit_logs
+               ORDER BY id DESC
+               LIMIT 50`
+            )
+            .all<AuditStreamEntry>();
+
+          // Reverse so events are in chronological order
+          const seedEvents: SseAuditEvent[] = seed
+            .reverse()
+            .map((row) => ({
+              id:                 row.id,
+              event_type:         row.event_type,
+              threat_level:       row.threat_level ?? null,
+              tari_liability_usd: row.tari_liability_usd ?? null,
+              timestamp_ns:       row.timestamp_ns,
+              forensic_pulse:     formatForensicPulse(row.timestamp_ns),
+            }));
+
+          for (const evt of seedEvents) {
+            await writeEvent(evt);
+          }
+
+          let lastId = seedEvents.length > 0 ? seedEvents[seedEvents.length - 1].id : 0;
+
+          // Poll for new events SSE_POLL_COUNT × SSE_POLL_INTERVAL_MS, then close
+          for (let i = 0; i < SSE_POLL_COUNT; i++) {
+            await new Promise<void>((resolve) => setTimeout(resolve, SSE_POLL_INTERVAL_MS));
+            const newEvents = await queryEventsSinceId(cfEnv.DB, lastId);
+            for (const evt of newEvents) {
+              await writeEvent(evt);
+              lastId = evt.id;
+            }
+            await writeKeepAlive();
+          }
+        } catch (err) {
+          console.warn(`[audit-stream] SSE pump error: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+          try { await writer.close(); } catch { /* already closed */ }
+        }
+      })();
+
+      return new Response(readable, {
+        status: 200,
+        headers: {
+          'Content-Type':  'text/event-stream',
+          'Cache-Control': 'no-cache, no-store',
+          'Connection':    'keep-alive',
+          'X-Accel-Buffering': 'no',
+        },
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return d1ErrorResponse(message, 'sovereign_audit_logs');
+    }
+  }
+
+  // ── Standard JSON branch (authenticated) ─────────────────────────────────
   // Accepts Bearer scheme (SovereignAuditStream) and Handshake scheme (SovereignAuditLog)
   const authHeader = request.headers.get('Authorization') ?? '';
   let token = '';
