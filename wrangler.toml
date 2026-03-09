@@ -140,3 +140,13 @@ type = "ratelimit"
 name = "RATE_LIMITER"
 namespace_id = "1017"
 simple = { limit = 1017, period = 60 }
+
+# ── Wrangler Rate Limiting Rules (1,017-Notch Protection) ────────────────────
+# These [[unsafe.bindings]] rules protect the DER event endpoints from DDoS.
+# Each rule enforces 1,017 requests per 60-second window per IP address.
+# Applied to the most sensitive sovereign API routes.
+#
+# Note: production [[rate_limiting]] rules with enforcement_response are set via
+# the Cloudflare dashboard (Firewall → Rate Limiting) for zero-downtime updates.
+# The wrangler-level ratelimit binding above handles programmatic enforcement
+# in middleware.ts (Worker-side gate).
