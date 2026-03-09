@@ -44,6 +44,9 @@ interface TariStatsResponse {
   total_tier9_events: number;
   watcher_liability_accrued: number;
   liability_accrued_usd: number;
+  // Phase 78.5 — Middleware-generated event counts
+  legal_scan_count: number;
+  peer_access_count: number;
   firebase_sync_status: string;
   timestamp: string;
 }
@@ -90,8 +93,8 @@ export async function GET() {
       trustPremiumIndexPct = Math.round(trustPremiumIndexPct * 100) / 100;
     }
 
-    // ── Watcher Counter — Phase 78.3 ─────────────────────────────────────────
-    // Count all Tier-9 event types from sovereign_audit_logs.
+    // ── Watcher Counter — Phase 78.3 / Phase 78.5 ─────────────────────────────
+    // Count all Tier-9 event types + middleware-generated event types from sovereign_audit_logs.
     // Single conditional-aggregation query to minimise D1 round trips.
     // Returns 0 gracefully if sovereign_audit_logs doesn't exist yet or is empty.
     let hnWatcherCount     = 0;
@@ -128,7 +131,7 @@ export async function GET() {
       // Table may not exist yet — non-fatal, return zeros
     }
 
-    const totalTier9Events      = hnWatcherCount + derSettlementCount + derHighValueCount;
+    const totalTier9Events      = hnWatcherCount + derSettlementCount + derHighValueCount + conflictZoneCount;
     const watcherLiabilityAccrued = derSettlementCount * DER_SETTLEMENT_RATE_USD;
     const liabilityAccruedUsd   = watcherLiabilityAccrued;
     const firebaseSyncStatus    = getFirebaseStatus();
@@ -147,6 +150,8 @@ export async function GET() {
       total_tier9_events:         totalTier9Events,
       watcher_liability_accrued:  watcherLiabilityAccrued,
       liability_accrued_usd:      liabilityAccruedUsd,
+      legal_scan_count:           legalScanCount,
+      peer_access_count:          peerAccessCount,
       firebase_sync_status:       firebaseSyncStatus,
       timestamp:                  new Date().toISOString(),
     };
