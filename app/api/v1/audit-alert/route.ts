@@ -65,27 +65,25 @@ interface KVNamespace {
 
 // TARI™ liability schedule
 const TARI_LIABILITY: Record<string, number> = {
-  UNALIGNED_401:         1017.00,
-  ALIGNMENT_DRIFT:       5000.00,
-  PAYMENT_FAILED:        10000.00,
-  POW_SOLVED:            0.00,
-  // Tier-9 DER events — high-value entity detections
-  HN_WATCHER:            10000000.00,   // Hacker News watcher → $10M retro-ingestion deposit
-  DER_SETTLEMENT:        10000000.00,   // DER settlement required → $10M enterprise deposit
-  CONFLICT_ZONE_PROBE:   10000000.00,   // Conflict-zone (Kyiv ASN 198488) probe → $10M sovereign surcharge
-  DER_HIGH_VALUE:        10000000.00,   // Microsoft/Google/AWS/Azure ASN detection → $10M deposit
+  UNALIGNED_401:    1017.00,
+  ALIGNMENT_DRIFT:  5000.00,
+  PAYMENT_FAILED:  10000.00,
+  POW_SOLVED:          0.00,
+  // DER 2.0 / HN Watcher event types (Phase 78.3)
+  HN_WATCHER:          0.00,  // Forensic discovery signal — no direct liability, but Tier-9 alert
+  DER_HIGH_VALUE:   1017.00,  // Corporate entity recognition entry fee
+  DER_SETTLEMENT:  10000.00,  // Active settlement trigger
 };
 
 const THREAT_LEVELS: Record<string, number> = {
-  PAYMENT_FAILED:        9,
-  ALIGNMENT_DRIFT:       8,
-  UNALIGNED_401:         7,
-  POW_SOLVED:            3,
-  // Tier-9 DER events
-  HN_WATCHER:            9,
-  DER_SETTLEMENT:        9,
-  CONFLICT_ZONE_PROBE:   9,
-  DER_HIGH_VALUE:        9,
+  PAYMENT_FAILED:  9,
+  ALIGNMENT_DRIFT: 8,
+  UNALIGNED_401:   7,
+  POW_SOLVED:      3,
+  // DER 2.0 / HN Watcher — all Tier-9 (Phase 78.3)
+  HN_WATCHER:      9,
+  DER_HIGH_VALUE:  9,
+  DER_SETTLEMENT:  9,
 };
 
 async function computePulseHash(
@@ -325,7 +323,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── Pushover (non-blocking) ───────────────────────────────────────────────
-  if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY && liabilityUsd > 0) {
+  // Fire for any event with TARI liability OR any Tier-9 event (threat level ≥ 9),
+  // so that DER HIGH_VALUE / HN_WATCHER signals always trigger mobile alerts.
+  if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY && (liabilityUsd > 0 || threatLevel >= 9)) {
     const isTier9 = threatLevel >= 9;
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",

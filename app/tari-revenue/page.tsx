@@ -72,6 +72,14 @@ interface TaiMilestone {
   kernel_version: string;
 }
 
+interface TariStatsData {
+  hn_watcher_count: number;
+  der_settlement_count: number;
+  watcher_liability_accrued: number;
+  total_entries: number;
+  timestamp: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -126,6 +134,7 @@ export default function TariRevenuePage() {
   const [revenue, setRevenue] = useState<TariRevenueData | null>(null);
   const [usage, setUsage] = useState<ComplianceUsageData | null>(null);
   const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
+  const [stats, setStats] = useState<TariStatsData | null>(null);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,6 +184,18 @@ export default function TariRevenuePage() {
         }
       } catch (err) {
         console.warn("[TariRevenue] Milestone fetch failed:", err instanceof Error ? err.message : String(err));
+      }
+
+      // Fetch watcher / DER settlement counts from /api/v1/tari-stats (Phase 78.3)
+      try {
+        const res = await fetch("/api/v1/tari-stats", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as TariStatsData;
+          if (!cancelled) setStats(data);
+        }
+      } catch (err) {
+        // Non-critical — watcher stats are supplemental
+        console.warn("[TariRevenue] Tari-stats fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
@@ -404,6 +425,55 @@ export default function TariRevenuePage() {
           }}
         >
           ⚠️ Revenue API unavailable: {revenueError}
+        </div>
+      )}
+
+      {/* Liability Accrued — HN Watcher & DER Settlement Counter (Phase 78.3) */}
+      {stats && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
+            border: `1px solid ${GOLD_BORDER}`,
+            borderRadius: "12px",
+            padding: "0.85rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", marginBottom: "0.75rem", letterSpacing: "0.06em" }}>
+            📡 LIABILITY ACCRUED — DER 2.0 Watcher Counter
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {[
+              { label: "HN Watchers Logged",      value: stats.hn_watcher_count.toLocaleString(),          color: GOLD  },
+              { label: "DER Settlements Logged",  value: stats.der_settlement_count.toLocaleString(),       color: RED   },
+              { label: "Watcher Liability (USD)", value: formatUsd(stats.watcher_liability_accrued),        color: GREEN },
+              { label: "Total Ledger Entries",    value: stats.total_entries.toLocaleString(),              color: WHITE },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                style={{
+                  background: PURPLE_DEEP,
+                  border: `1px solid ${GOLD_BORDER}`,
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                }}
+              >
+                <div style={{ fontSize: "0.68rem", color: GOLD_DIM, marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  {stat.label}
+                </div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stat.color }}>
+                  {stat.value}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
