@@ -66,25 +66,33 @@ interface KVNamespace {
 
 // TARI™ liability schedule
 const TARI_LIABILITY: Record<string, number> = {
-  UNALIGNED_401:    1017.00,
-  ALIGNMENT_DRIFT:  5000.00,
-  PAYMENT_FAILED:  10000.00,
-  POW_SOLVED:          0.00,
+  UNALIGNED_401:          1017.00,
+  ALIGNMENT_DRIFT:        5000.00,
+  PAYMENT_FAILED:        10000.00,
+  POW_SOLVED:                0.00,
   // DER 2.0 / HN Watcher event types (Phase 78.3)
-  HN_WATCHER:          0.00,  // Forensic discovery signal — no direct liability, but Tier-9 alert
-  DER_HIGH_VALUE:   1017.00,  // Corporate entity recognition entry fee
-  DER_SETTLEMENT:  10000.00,  // Active settlement trigger
+  HN_WATCHER:                0.00,  // Forensic discovery signal — no direct liability, but Tier-9 alert
+  DER_HIGH_VALUE:         1017.00,  // Corporate entity recognition entry fee
+  DER_SETTLEMENT:        10000.00,  // Active settlement trigger
+  // Middleware-generated event types (Phase 78.5) — recorded for audit completeness
+  CONFLICT_ZONE_PROBE:       0.00,  // Adversarial recon probe — silent audit, Tier-9
+  LEGAL_SCAN:                0.00,  // Corporate legal monitoring — threat level 10
+  PEER_ACCESS:               0.00,  // General peer access — low threat, informational
 };
 
 const THREAT_LEVELS: Record<string, number> = {
-  PAYMENT_FAILED:  9,
-  ALIGNMENT_DRIFT: 8,
-  UNALIGNED_401:   7,
-  POW_SOLVED:      3,
+  PAYMENT_FAILED:         9,
+  ALIGNMENT_DRIFT:        8,
+  UNALIGNED_401:          7,
+  POW_SOLVED:             3,
   // DER 2.0 / HN Watcher — all Tier-9 (Phase 78.3)
-  HN_WATCHER:      9,
-  DER_HIGH_VALUE:  9,
-  DER_SETTLEMENT:  9,
+  HN_WATCHER:             9,
+  DER_HIGH_VALUE:         9,
+  DER_SETTLEMENT:         9,
+  // Middleware-generated event types (Phase 78.5)
+  CONFLICT_ZONE_PROBE:    9,   // Adversarial probe — Tier-9 forensic alert
+  LEGAL_SCAN:            10,   // Corporate legal monitoring — highest threat
+  PEER_ACCESS:            1,   // General peer access — informational
 };
 
 async function computePulseHash(
@@ -369,7 +377,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking) ─────────
+  // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking, FCM HTTP v1) ──
   // Secondary push channel alongside Pushover for maximum Tier-9 alert delivery.
   // Uses the FCM HTTP v1 API (OAuth2 service account) via sendFcmV1Push().
   // Activate by setting these Cloudflare secrets:

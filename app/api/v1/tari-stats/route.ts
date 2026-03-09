@@ -42,6 +42,9 @@ interface TariStatsResponse {
   total_tier9_events: number;
   watcher_liability_accrued: number;
   liability_accrued_usd: number;
+  // Phase 78.5 — Middleware-generated event counts
+  legal_scan_count: number;
+  peer_access_count: number;
   firebase_sync_status: string;
   timestamp: string;
 }
@@ -88,37 +91,45 @@ export async function GET() {
       trustPremiumIndexPct = Math.round(trustPremiumIndexPct * 100) / 100;
     }
 
-    // ── Watcher Counter — Phase 78.3 ─────────────────────────────────────────
-    // Count all Tier-9 event types from sovereign_audit_logs.
+    // ── Watcher Counter — Phase 78.3 / Phase 78.5 ─────────────────────────────
+    // Count all Tier-9 event types + middleware-generated event types from sovereign_audit_logs.
     // Single conditional-aggregation query to minimise D1 round trips.
     // Returns 0 gracefully if sovereign_audit_logs doesn't exist yet or is empty.
     let hnWatcherCount     = 0;
     let derSettlementCount = 0;
     let conflictZoneCount  = 0;
     let derHighValueCount  = 0;
+    let legalScanCount     = 0;
+    let peerAccessCount    = 0;
     try {
       const watcherRow = await cfEnv.DB.prepare(
         `SELECT
-           SUM(CASE WHEN event_type = 'HN_WATCHER'       THEN 1 ELSE 0 END) AS hn_cnt,
-           SUM(CASE WHEN event_type = 'DER_SETTLEMENT'    THEN 1 ELSE 0 END) AS der_cnt,
+           SUM(CASE WHEN event_type = 'HN_WATCHER'         THEN 1 ELSE 0 END) AS hn_cnt,
+           SUM(CASE WHEN event_type = 'DER_SETTLEMENT'      THEN 1 ELSE 0 END) AS der_cnt,
            SUM(CASE WHEN event_type = 'CONFLICT_ZONE_PROBE' THEN 1 ELSE 0 END) AS conflict_cnt,
-           SUM(CASE WHEN event_type = 'DER_HIGH_VALUE'    THEN 1 ELSE 0 END) AS high_value_cnt
+           SUM(CASE WHEN event_type = 'DER_HIGH_VALUE'      THEN 1 ELSE 0 END) AS high_value_cnt,
+           SUM(CASE WHEN event_type = 'LEGAL_SCAN'          THEN 1 ELSE 0 END) AS legal_scan_cnt,
+           SUM(CASE WHEN event_type = 'PEER_ACCESS'         THEN 1 ELSE 0 END) AS peer_access_cnt
          FROM sovereign_audit_logs`
       ).first() as {
-        hn_cnt:         number | null;
-        der_cnt:        number | null;
-        conflict_cnt:   number | null;
-        high_value_cnt: number | null;
+        hn_cnt:          number | null;
+        der_cnt:         number | null;
+        conflict_cnt:    number | null;
+        high_value_cnt:  number | null;
+        legal_scan_cnt:  number | null;
+        peer_access_cnt: number | null;
       } | null;
-      hnWatcherCount     = watcherRow?.hn_cnt         ?? 0;
-      derSettlementCount = watcherRow?.der_cnt        ?? 0;
-      conflictZoneCount  = watcherRow?.conflict_cnt   ?? 0;
-      derHighValueCount  = watcherRow?.high_value_cnt ?? 0;
+      hnWatcherCount     = watcherRow?.hn_cnt          ?? 0;
+      derSettlementCount = watcherRow?.der_cnt         ?? 0;
+      conflictZoneCount  = watcherRow?.conflict_cnt    ?? 0;
+      derHighValueCount  = watcherRow?.high_value_cnt  ?? 0;
+      legalScanCount     = watcherRow?.legal_scan_cnt  ?? 0;
+      peerAccessCount    = watcherRow?.peer_access_cnt ?? 0;
     } catch {
       // Table may not exist yet — non-fatal, return zeros
     }
 
-    const totalTier9Events      = hnWatcherCount + derSettlementCount + derHighValueCount;
+    const totalTier9Events      = hnWatcherCount + derSettlementCount + derHighValueCount + conflictZoneCount;
     const watcherLiabilityAccrued = derSettlementCount * DER_SETTLEMENT_RATE_USD;
     const liabilityAccruedUsd   = watcherLiabilityAccrued;
     const firebaseSyncStatus    = getFirebaseStatus();
@@ -135,6 +146,8 @@ export async function GET() {
       total_tier9_events:         totalTier9Events,
       watcher_liability_accrued:  watcherLiabilityAccrued,
       liability_accrued_usd:      liabilityAccruedUsd,
+      legal_scan_count:           legalScanCount,
+      peer_access_count:          peerAccessCount,
       firebase_sync_status:       firebaseSyncStatus,
       timestamp:                  new Date().toISOString(),
     };
