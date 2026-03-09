@@ -31,8 +31,15 @@ interface TariStatsResponse {
   recent_entries: TariLedgerRow[];
   total_entries: number;
   latest_revenue_projection: number | null;
+  // DER 2.0 / HN Watcher counts from sovereign_audit_logs (Phase 78.3)
+  hn_watcher_count: number;
+  der_settlement_count: number;
+  watcher_liability_accrued: number;
   timestamp: string;
 }
+
+/** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
+const DER_SETTLEMENT_RATE_USD = 10_000;
 
 export async function GET() {
   try {
@@ -76,11 +83,35 @@ export async function GET() {
       trustPremiumIndexPct = Math.round(trustPremiumIndexPct * 100) / 100;
     }
 
+    // ── Watcher Counter — Phase 78.3 ─────────────────────────────────────────
+    // Count HN_WATCHER and DER_SETTLEMENT events logged via /api/v1/audit-alert.
+    // Single conditional-aggregation query to minimise D1 round trips.
+    // Returns 0 gracefully if sovereign_audit_logs doesn't exist yet or is empty.
+    let hnWatcherCount = 0;
+    let derSettlementCount = 0;
+    try {
+      const watcherRow = await cfEnv.DB.prepare(
+        `SELECT
+           SUM(CASE WHEN event_type = 'HN_WATCHER'     THEN 1 ELSE 0 END) AS hn_cnt,
+           SUM(CASE WHEN event_type = 'DER_SETTLEMENT'  THEN 1 ELSE 0 END) AS der_cnt
+         FROM sovereign_audit_logs`
+      ).first() as { hn_cnt: number | null; der_cnt: number | null } | null;
+      hnWatcherCount    = watcherRow?.hn_cnt  ?? 0;
+      derSettlementCount = watcherRow?.der_cnt ?? 0;
+    } catch {
+      // Table may not exist yet — non-fatal, return zeros
+    }
+
+    const watcherLiabilityAccrued = derSettlementCount * DER_SETTLEMENT_RATE_USD;
+
     const response: TariStatsResponse = {
       trust_premium_index_pct: trustPremiumIndexPct,
       recent_entries: recent,
       total_entries: totalEntries,
       latest_revenue_projection: latest ? latest.revenue_projection : null,
+      hn_watcher_count: hnWatcherCount,
+      der_settlement_count: derSettlementCount,
+      watcher_liability_accrued: watcherLiabilityAccrued,
       timestamp: new Date().toISOString(),
     };
 
