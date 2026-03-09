@@ -9,12 +9,17 @@ const nextConfig = {
   // at build time, never executed by the Cloudflare Worker at request time.
   // Externalising it prevents katex (~6.7 MB) from being bundled into
   // handler.mjs, keeping the gzip-compressed worker under the 3 MiB free-tier limit.
-  // lucide-react ships ESM-only icon bundles that are large when fully inlined.
-  // Marking it external prevents the icon tree from being bundled into handler.mjs.
   // .aoscap files and JSON capsule manifests are served as static files from
   // public/manifest/capsules/ — they are never imported by server modules, so
   // webpack never includes them in the Worker bundle automatically.
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'lucide-react'],
+  // NOTE: lucide-react is intentionally NOT listed here. Next.js 15 automatically
+  // adds it to experimental.optimizePackageImports (barrel-file tree-shaking),
+  // which is then merged into finalTranspilePackages during the webpack build.
+  // Having it in both serverExternalPackages and transpilePackages causes a fatal
+  // conflict: "packages specified in 'transpilePackages' conflict with
+  // 'serverExternalPackages'". Since lucide-react is not imported anywhere in this
+  // project, omitting it from serverExternalPackages has no bundle-size impact.
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex'],
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
