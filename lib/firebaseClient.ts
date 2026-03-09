@@ -251,7 +251,9 @@ type FirestoreValue =
 function toFirestoreValue(v: unknown): FirestoreValue {
   if (v === null || v === undefined) return { nullValue: null };
   if (typeof v === "boolean") return { booleanValue: v };
-  if (typeof v === "number")  return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === "number") {
+    return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  }
   if (typeof v === "string")  return { stringValue: v };
   if (typeof v === "object") {
     const fields: Record<string, FirestoreValue> = {};
@@ -598,12 +600,17 @@ export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
 
 /**
  * Returns true when GabrielOS™ FCM push is fully configured.
- * Requires all Firebase service account credentials (for OAuth2 JWT) PLUS
- * the Creator's FCM device registration token.
+ * Requires ALL of the following to be set as Cloudflare secrets:
+ *   FIREBASE_PROJECT_ID      — Firebase project ID
+ *   FIREBASE_CLIENT_EMAIL    — Service account email (for OAuth2 JWT)
+ *   FIREBASE_PRIVATE_KEY     — RSA private key PEM  (for OAuth2 JWT signing)
+ *   FCM_DEVICE_TOKEN         — Creator's device FCM registration token
  *
  * Activate by running:
- *   wrangler secret put FCM_DEVICE_TOKEN   ← Creator's phone registration token
- *   (FIREBASE_PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY also required)
+ *   wrangler secret put FIREBASE_PROJECT_ID
+ *   wrangler secret put FIREBASE_CLIENT_EMAIL
+ *   wrangler secret put FIREBASE_PRIVATE_KEY
+ *   wrangler secret put FCM_DEVICE_TOKEN
  */
 export function isFcmConfigured(): boolean {
   return isFirebaseConfigured() && !!process.env.FCM_DEVICE_TOKEN;
