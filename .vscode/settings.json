@@ -1,0 +1,56 @@
+{
+<<<<<<< HEAD
+    "chat.mcp.gallery.enabled": true,
+    "git.autofetch": true,
+    "chat.mcp.serverSampling": {
+        "Global in Code: io.github.github/github-mcp-server": {
+            "allowedModels": [
+                "copilot/gpt-5.3-codex",
+                "copilot/claude-opus-4.6",
+                "copilot/claude-sonnet-4.6",
+                "copilot/gpt-4o"
+            ]
+        }
+    },
+    "security.workspace.trust.untrustedFiles": "open",
+    "chat.mcp.discovery.enabled": {
+        "claude-desktop": true
+    },
+    "mcpServers": {
+        "averyos-bridge": {
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoProfile",
+                "-File",
+                "C:\\Users\\Jason Lee Avery\\_repos\\averyos.com-runtime\\scripts\\mcp-server.ps1"
+            ],
+            "type": "stdio",
+            "env": {
+                "AOS_KERNEL_ROOT": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+            },
+            "tools": ["read_capsule", "verify_sha", "bridge_vault"]
+        }
+    }
+}
+=======
+  "github.copilot.chat.mcpServers": {
+    "averyos-mcp-bridge": {
+      "command": "pwsh.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/mcp-server.ps1"],
+      "env": {
+        "AVERYOS_MCP_ENV": "production"
+      }
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell",
+      "args": ["-NoProfile"]
+    }
+  }
+}
+>>>>>>> db35510fee0c7588e714ef1b5d5d6a72f70514fc

@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
-import { sendFcmV1Push } from "../../../../lib/firebaseClient";
+import { syncD1RowToFirebase } from "../../../../lib/firebaseClient";
 
 /**
  * POST /api/v1/audit-alert
@@ -48,6 +48,10 @@ interface CloudflareEnv {
   BITCOIN_API_KEY?: string;
   SITE_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
+  /** Firebase Cloud Messaging Legacy API server key for Tier-9 mobile push. */
+  FCM_SERVER_KEY?: string;
+  /** FCM device/topic token to receive Tier-9 push notifications. */
+  FCM_DEVICE_TOKEN?: string;
 }
 
 interface D1Database {
@@ -152,6 +156,44 @@ async function storeForensicBundleAndSign(
   } catch {
     return null;
   }
+}
+
+/** Non-blocking Firebase Cloud Messaging push for Tier-9 events — never throws.
+ *
+ * Uses the FCM Legacy HTTP API (POST to fcm.googleapis.com/fcm/send).
+ * Activate by setting FCM_SERVER_KEY and FCM_DEVICE_TOKEN in the Cloudflare
+ * Secret Store (`wrangler secret put FCM_SERVER_KEY`).
+ *
+ * @param serverKey   FCM Legacy server key
+ * @param deviceToken FCM device or topic token to target
+ * @param title       Notification title
+ * @param body        Notification body
+ */
+function fireFcmPush(
+  serverKey: string,
+  deviceToken: string,
+  title: string,
+  body: string
+): void {
+  fetch("https://fcm.googleapis.com/fcm/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `key=${serverKey}`,
+    },
+    body: JSON.stringify({
+      to: deviceToken,
+      notification: { title, body, sound: "default" },
+      data: {
+        kernel_sha: KERNEL_SHA.slice(0, 16) + "…",
+        sovereign_anchor: "⛓️⚓⛓️",
+        creator_lock: "🤛🏻",
+      },
+      priority: "high",
+    }),
+  }).catch((err) => {
+    console.warn(`[audit-alert] FCM delivery failed: ${(err as Error).message}`);
+  });
 }
 
 /** Non-blocking Pushover push — never throws.
@@ -267,6 +309,7 @@ export async function POST(request: Request): Promise<Response> {
   const threatLevel  = THREAT_LEVELS[eventType]  ?? 7;
 
   // ── D1 — bootstrap + insert ───────────────────────────────────────────────
+  let insertedId: number | null = null;
   try {
     await cfEnv.DB.prepare(
       `CREATE TABLE IF NOT EXISTS sovereign_audit_logs (
@@ -290,8 +333,32 @@ export async function POST(request: Request): Promise<Response> {
     )
       .bind(eventType, targetIp, targetPath, now, threatLevel, liabilityUsd, pulseHash)
       .run();
+
+    // Retrieve the newly inserted row ID for Firebase sync
+    const lastRow = await cfEnv.DB.prepare(
+      `SELECT id FROM sovereign_audit_logs ORDER BY id DESC LIMIT 1`
+    ).first() as { id: number } | null;
+    insertedId = lastRow?.id ?? null;
   } catch {
     // D1 failure is non-fatal — return success so the sentinel still receives ACK
+  }
+
+  // ── Multi-Cloud D1 → Firebase Sync (non-blocking) ────────────────────────
+  // Mirror every Tier-7+ audit event to Firestore for cross-cloud parity.
+  // Activates automatically once FIREBASE_PROJECT_ID is set in Cloudflare secrets.
+  if (insertedId !== null && threatLevel >= 7) {
+    syncD1RowToFirebase({
+      id:                insertedId,
+      event_type:        eventType,
+      ip_address:        targetIp,
+      target_path:       targetPath,
+      threat_level:      threatLevel,
+      tari_liability_usd: liabilityUsd,
+      pulse_hash:        pulseHash,
+      timestamp_ns:      now,
+    }).catch((err: unknown) => {
+      console.warn(`[audit-alert] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 
   // ── Signed R2 URL for UNALIGNED_401 events ───────────────────────────────
@@ -344,23 +411,21 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // ── GabrielOS™ FCM HTTP v1 — Tier-9 push (non-blocking) ─────────────────
-  // Fires in parallel with Pushover for all Tier-9 events (threat_level ≥ 9).
-  // Activates once FCM_DEVICE_TOKEN + Firebase service account are configured.
-  if (threatLevel >= 9) {
+  // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking) ─────────
+  // Secondary push channel alongside Pushover for maximum Tier-9 alert delivery.
+  // Activate by setting FCM_SERVER_KEY and FCM_DEVICE_TOKEN in Cloudflare secrets:
+  //   wrangler secret put FCM_SERVER_KEY
+  //   wrangler secret put FCM_DEVICE_TOKEN
+  if (threatLevel >= 9 && cfEnv.FCM_SERVER_KEY && cfEnv.FCM_DEVICE_TOKEN) {
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
     });
-    void sendFcmV1Push(
-      `🚨 TIER-9 GabrielOS™ ALERT: ${eventType}`,
+    fireFcmPush(
+      cfEnv.FCM_SERVER_KEY,
+      cfEnv.FCM_DEVICE_TOKEN,
+      `🚨 TIER-9 GabrielOS™: ${eventType}`,
       buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
-      {
-        event_type:   eventType,
-        threat_level: String(threatLevel),
-        pulse_hash:   pulseHash.slice(0, 16),
-        kernel_sha:   KERNEL_SHA.slice(0, 16),
-      }
     );
   }
 
