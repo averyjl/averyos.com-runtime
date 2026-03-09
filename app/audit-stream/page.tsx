@@ -1,17 +1,35 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
 import SovereignErrorBanner from "../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
+
+// Recharts is excluded from the SSR bundle via ssr:false to keep the
+// Cloudflare Worker under the 3 MiB compressed size limit.
+const ResonancePulseChart = dynamic(() => import("./ResonancePulseChart"), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        background: "#0a0015",
+        border: "1px solid rgba(255,215,0,0.35)",
+        borderRadius: "12px",
+        padding: "1.25rem",
+        marginBottom: "1.5rem",
+        minHeight: "200px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "rgba(255,215,0,0.55)",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: "0.8rem",
+      }}
+    >
+      📡 Loading Resonance Pulse…
+    </div>
+  ),
+});
 
 // ---------------------------------------------------------------------------
 // Deep Purple & Gold theme — AveryOS™ Mobile Command Center
@@ -77,7 +95,6 @@ interface AuditStreamEntry {
 }
 
 const POLL_INTERVAL_MS = 4000;
-const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // 10-Point Sovereign Roadmap
@@ -149,125 +166,6 @@ function SovereignRoadmapSection() {
         ))}
       </div>
     </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Custom tooltip for the Resonance Pulse chart
-// ---------------------------------------------------------------------------
-
-interface PulseTooltipProps {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number }>;
-  label?: string;
-}
-
-function PulseTooltip({ active, payload, label }: PulseTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      style={{
-        background: PURPLE_DEEP,
-        border: `1px solid ${GOLD_BORDER}`,
-        borderRadius: "6px",
-        padding: "0.4rem 0.65rem",
-        fontFamily: "monospace",
-        fontSize: "0.72rem",
-        color: GOLD,
-      }}
-    >
-      <div style={{ color: GOLD_DIM, marginBottom: "2px" }}>{label}:00</div>
-      {payload.map((p) => (
-        <div key={p.name}>
-          {p.value} UNALIGNED_401 hit{p.value !== 1 ? "s" : ""}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Resonance Pulse Chart — UNALIGNED_401 hits over last 24 hours
-// ---------------------------------------------------------------------------
-
-function buildHourlyBuckets(entries: AuditStreamEntry[]): Array<{ hour: string; hits: number }> {
-  const now = Date.now();
-  const buckets: number[] = Array(24).fill(0);
-
-  for (const e of entries) {
-    if (e.event_type !== "UNALIGNED_401") continue;
-    // timestamp_ns is a nanosecond string; parse the first 13 digits as milliseconds
-    const ms = Number(e.timestamp_ns.slice(0, 13));
-    if (isNaN(ms)) continue;
-    const ageMs = now - ms;
-    if (ageMs < 0 || ageMs > TWENTY_FOUR_HOURS_MS) continue;
-    const hourIndex = Math.floor(ageMs / (60 * 60 * 1000)); // 0 = most recent hour
-    if (hourIndex < 24) buckets[hourIndex]++;
-  }
-
-  // Reverse so index 0 = oldest hour (23h ago), index 23 = most recent
-  return buckets
-    .slice()
-    .reverse()
-    .map((hits, i) => ({
-      hour: `${String(23 - i).padStart(2, "0")}h`,
-      hits,
-    }));
-}
-
-function ResonancePulseChart({ entries }: { entries: AuditStreamEntry[] }) {
-  const chartData = buildHourlyBuckets(entries);
-
-  return (
-    <div
-      style={{
-        background: PURPLE_DEEP,
-        border: `1px solid ${GOLD_BORDER}`,
-        borderRadius: "12px",
-        padding: "1.25rem",
-        marginBottom: "1.5rem",
-      }}
-    >
-      <div
-        style={{
-          color: GOLD,
-          fontFamily: "JetBrains Mono, monospace",
-          fontWeight: 700,
-          fontSize: "0.82rem",
-          marginBottom: "0.75rem",
-          letterSpacing: "0.06em",
-        }}
-      >
-        📡 RESONANCE PULSE — UNALIGNED_401 Hits · Last 24 Hours
-      </div>
-      <ResponsiveContainer width="100%" height={180}>
-        <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="rgba(255,215,0,0.08)"
-            vertical={false}
-          />
-          <XAxis
-            dataKey="hour"
-            tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
-            axisLine={false}
-            tickLine={false}
-            interval={2}
-          />
-          <YAxis
-            tick={{ fill: GOLD_DIM, fontSize: 9, fontFamily: "monospace" }}
-            axisLine={false}
-            tickLine={false}
-            allowDecimals={false}
-          />
-          <Tooltip
-            content={<PulseTooltip />}
-            cursor={{ fill: GOLD_GLOW }}
-          />
-          <Bar dataKey="hits" fill={GOLD} maxBarSize={24} radius={[3, 3, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
   );
 }
 
