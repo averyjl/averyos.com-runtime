@@ -128,6 +128,8 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put NODE_02_ID              # PC node identifier
 #   wrangler secret put CLOUDFLARE_DNS_API_TOKEN # DNS:Read for TXT anchor verification
 #   wrangler secret put CREATOR_WEBHOOK_URL     # licenseGate.js SIG_MISMATCH notifications
+#   wrangler secret put FCM_SERVER_KEY          # Firebase Cloud Messaging Legacy API server key (Tier-9 push)
+#   wrangler secret put FCM_DEVICE_TOKEN        # FCM device/topic token for GabrielOS™ mobile push
 
 # ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
 # Protects the sovereign kernel from DDoS and probabilistic noise.
