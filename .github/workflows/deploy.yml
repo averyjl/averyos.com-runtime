@@ -11,8 +11,6 @@ on:
       - '**.sha512'
       - 'capsule_logs/**'
       - 'vaultchain-registry/**'
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:

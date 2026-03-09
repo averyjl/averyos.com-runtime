@@ -4,6 +4,12 @@ compatibility_date = "2026-02-05"
 main = ".open-next/worker.js"
 compatibility_flags = ["nodejs_compat"]
 
+# ── Build configuration ────────────────────────────────────────────────────────
+# Tells Cloudflare Workers CI and local `wrangler dev` the correct build command.
+# This runs BEFORE wrangler bundles the worker, ensuring .open-next/ is populated.
+[build]
+command = "npm run build:cloudflare"
+
 [assets]
 binding = "ASSETS"
 directory = ".open-next/assets"
