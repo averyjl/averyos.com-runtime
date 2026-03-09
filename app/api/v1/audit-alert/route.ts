@@ -65,17 +65,27 @@ interface KVNamespace {
 
 // TARI™ liability schedule
 const TARI_LIABILITY: Record<string, number> = {
-  UNALIGNED_401:   1017.00,
-  ALIGNMENT_DRIFT: 5000.00,
-  PAYMENT_FAILED:  10000.00,
-  POW_SOLVED:      0.00,
+  UNALIGNED_401:         1017.00,
+  ALIGNMENT_DRIFT:       5000.00,
+  PAYMENT_FAILED:        10000.00,
+  POW_SOLVED:            0.00,
+  // Tier-9 DER events — high-value entity detections
+  HN_WATCHER:            10000000.00,   // Hacker News watcher → $10M retro-ingestion deposit
+  DER_SETTLEMENT:        10000000.00,   // DER settlement required → $10M enterprise deposit
+  CONFLICT_ZONE_PROBE:   10000000.00,   // Conflict-zone (Kyiv ASN 198488) probe → $10M sovereign surcharge
+  DER_HIGH_VALUE:        10000000.00,   // Microsoft/Google/AWS/Azure ASN detection → $10M deposit
 };
 
 const THREAT_LEVELS: Record<string, number> = {
-  PAYMENT_FAILED:  9,
-  ALIGNMENT_DRIFT: 8,
-  UNALIGNED_401:   7,
-  POW_SOLVED:      3,
+  PAYMENT_FAILED:        9,
+  ALIGNMENT_DRIFT:       8,
+  UNALIGNED_401:         7,
+  POW_SOLVED:            3,
+  // Tier-9 DER events
+  HN_WATCHER:            9,
+  DER_SETTLEMENT:        9,
+  CONFLICT_ZONE_PROBE:   9,
+  DER_HIGH_VALUE:        9,
 };
 
 async function computePulseHash(

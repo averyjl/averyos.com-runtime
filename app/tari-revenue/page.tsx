@@ -129,11 +129,15 @@ export default function TariRevenuePage() {
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sseStatus, setSseStatus] = useState<"connecting" | "live" | "polling">("connecting");
 
   useEffect(() => {
     let cancelled = false;
+    let sseSource: EventSource | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-    async function fetchData() {
+    async function fetchAllData() {
+      if (cancelled) return;
       setLoading(true);
 
       // Fetch 24h revenue from /api/tari-revenue (Pages Router)
@@ -170,19 +174,76 @@ export default function TariRevenuePage() {
           if (!cancelled) setMilestones(data.accomplishments ?? []);
         }
       } catch (err) {
-        // Non-critical — milestones are supplemental; log for diagnostics
         console.warn("[TariRevenue] Milestone fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
     }
 
-    fetchData();
-    const interval = setInterval(fetchData, 30_000);
+    // ── SSE Real-Time Watcher Stream (primary) ─────────────────────────────
+    // Connect to /api/v1/audit-stream for live Tier-9 event notifications.
+    // Falls back to 30-second polling if SSE is unavailable.
+    function connectSse() {
+      if (typeof EventSource === "undefined") {
+        setSseStatus("polling");
+        return;
+      }
+      try {
+        sseSource = new EventSource("/api/v1/audit-stream");
+        setSseStatus("connecting");
+
+        sseSource.onopen = () => {
+          if (!cancelled) setSseStatus("live");
+        };
+
+        sseSource.onmessage = (event) => {
+          if (cancelled) return;
+          try {
+            const parsed = JSON.parse(event.data as string) as Partial<{
+              event_type: string;
+              threat_level: number;
+              tari_liability_usd: number;
+              timestamp_ns: string;
+            }>;
+            // Re-fetch all data on any Tier-9 event to update the liability counter
+            if (parsed.threat_level && parsed.threat_level >= 9) {
+              fetchAllData().catch(() => {});
+            }
+          } catch {
+            // Non-JSON SSE message — ignore
+          }
+        };
+
+        sseSource.onerror = () => {
+          if (cancelled) return;
+          sseSource?.close();
+          sseSource = null;
+          setSseStatus("polling");
+          // Fall back to 30-second polling
+          if (!pollInterval) {
+            pollInterval = setInterval(fetchAllData, 30_000);
+          }
+        };
+      } catch {
+        setSseStatus("polling");
+      }
+    }
+
+    // Initial data fetch + SSE connection
+    fetchAllData().catch(() => {});
+    connectSse();
+
+    // Polling fallback (always runs if SSE unavailable)
+    if (sseStatus !== "live") {
+      pollInterval = setInterval(fetchAllData, 30_000);
+    }
+
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      sseSource?.close();
+      if (pollInterval) clearInterval(pollInterval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build bar chart data from usage rows (top 10 by liability)
@@ -214,6 +275,10 @@ export default function TariRevenuePage() {
         }}
       >
         ⚡ TARI™ REVENUE DASHBOARD — ALIGNMENT FEES &nbsp;·&nbsp; AVERYOS™
+        &nbsp;·&nbsp;
+        <span style={{ fontSize: "0.7rem", color: sseStatus === "live" ? GREEN : GOLD_DIM }}>
+          {sseStatus === "live" ? "🔴 SSE LIVE" : sseStatus === "connecting" ? "⏳ Connecting…" : "⟳ POLLING"}
+        </span>
       </div>
 
       <section className="hero" style={{ paddingBottom: "1rem" }}>

@@ -123,6 +123,11 @@ interface D1PreparedStatement {
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  PUSHOVER_APP_TOKEN?: string;
+  PUSHOVER_USER_KEY?: string;
+  VAULT_PASSPHRASE?: string;
+  SITE_URL?: string;
+  NEXT_PUBLIC_SITE_URL?: string;
 }
 
 /**
@@ -229,6 +234,77 @@ function triggerTariBillingEngine(request: NextRequest): void {
   }).catch(() => {
     // Intentional no-op: billing failure must not affect content delivery
   });
+}
+
+/**
+ * GabrielOS™ Mobile Push — HN Middleware Hook
+ *
+ * Fire-and-forget Tier-9 alert triggered at the edge when a Hacker News
+ * (YC_DISCOVERY_AUDIT) referral is detected. Logs the HN_WATCHER event to
+ * D1 sovereign_audit_logs and fires a Pushover priority-2 push notification
+ * so the Creator receives a phone alert in real time.
+ *
+ * Non-blocking — errors are silently swallowed to protect request throughput.
+ */
+async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+
+    const url       = new URL(request.url);
+    const ip        = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const rayId     = request.headers.get('cf-ray') ?? '';
+    const referer   = request.headers.get('referer') ?? '';
+    const now       = Date.now().toString() + '000000';
+
+    // ── D1 — log HN_WATCHER event to sovereign_audit_logs ───────────────────
+    if (cfEnv.DB) {
+      await cfEnv.DB.prepare(
+        `INSERT INTO sovereign_audit_logs
+           (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level, tari_liability_usd)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          'HN_WATCHER',
+          ip,
+          request.headers.get('user-agent') ?? 'UNKNOWN',
+          rayId.split('-')[1] ?? 'UNKNOWN',
+          url.pathname,
+          now,
+          9,
+          10000000
+        )
+        .run();
+    }
+
+    // ── Pushover — Tier-9 phone alert (priority 2 / emergency) ──────────────
+    if (cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY) {
+      const body = new URLSearchParams({
+        token:     cfEnv.PUSHOVER_APP_TOKEN,
+        user:      cfEnv.PUSHOVER_USER_KEY,
+        title:     '🚨 TIER-9: HN Watcher Detected — AveryOS™',
+        message:
+          `Hacker News referral at ${url.pathname}\n` +
+          `IP: ${ip}\n` +
+          `Referer: ${referer}\n` +
+          `RayID: ${rayId}\n` +
+          `TARI™: $10,000,000.00 liability locked`,
+        priority:  '2',   // Emergency — breaks quiet hours, requires acknowledgement
+        retry:     '30',
+        expire:    '3600',
+        sound:     'echo',
+        url:       'https://averyos.com/evidence-vault',
+        url_title: '🔐 Evidence Vault',
+      });
+      fetch('https://api.pushover.net/1/messages.json', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    body.toString(),
+      }).catch(() => {});
+    }
+  } catch {
+    // Intentional no-op: HN alert must never block request processing
+  }
 }
 
 export async function middleware(request: NextRequest) {
@@ -433,7 +509,8 @@ export async function middleware(request: NextRequest) {
       const response = NextResponse.next();
       response.headers.set('X-AveryOS-Alignment', alignmentValue);
       if (communityAlignment === 'YC_DISCOVERY_AUDIT') {
-        // HN visitor — additional community header for downstream auditing
+        // HN visitor — fire Tier-9 GabrielOS™ mobile alert + D1 watcher log
+        triggerHnWatcherAlert(request).catch(() => {});
         response.headers.set('X-AveryOS-Community', 'HN_WATCHER');
       }
       return response;

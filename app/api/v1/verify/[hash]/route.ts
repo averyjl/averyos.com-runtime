@@ -1,9 +1,12 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { BADGE_STATUS_ACTIVE } from '../../../../../lib/sovereignConstants';
+import { BADGE_STATUS_ACTIVE, KERNEL_SHA, KERNEL_VERSION } from '../../../../../lib/sovereignConstants';
 import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 
 interface D1PreparedStatement {
-  bind(...args: unknown[]): { first<T = unknown>(): Promise<T | null> };
+  bind(...args: unknown[]): {
+    first<T = unknown>(): Promise<T | null>;
+    all<T = unknown>(): Promise<{ results: T[] }>;
+  };
 }
 
 interface D1Database {
@@ -26,6 +29,17 @@ interface AlignmentRow {
   status: string;
 }
 
+interface CapsuleAnchorRow {
+  id: number;
+  anchored_at: string;
+  sha512: string;
+  event_type: string | null;
+  kernel_sha: string | null;
+  ray_id: string | null;
+  ip_address: string | null;
+  path: string | null;
+}
+
 interface RouteParams {
   params: Promise<{ hash: string }>;
 }
@@ -33,9 +47,9 @@ interface RouteParams {
 export async function GET(_request: Request, { params }: RouteParams) {
   const { hash } = await params;
 
-  if (!hash || !/^[a-fA-F0-9]{128}$/.test(hash)) {
+  if (!hash || !/^[a-fA-F0-9]{16,128}$/.test(hash)) {
     return Response.json(
-      { error: 'INVALID_HASH', detail: 'Hash must be a 128-character SHA-512 hex string' },
+      { error: 'INVALID_HASH', detail: 'Hash must be a 16–128 character hex string (SHA-512 or partial)' },
       { status: 400 },
     );
   }
@@ -44,8 +58,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    // Check both alignment_hash (certificate) and badge_hash (legacy badge)
-    const row = await cfEnv.DB.prepare(
+    // ── 1. Check sovereign_alignments (alignment certificate / badge hash) ──
+    const alignRow = await cfEnv.DB.prepare(
       `SELECT partner_id, partner_name, email, alignment_type, settlement_id,
               tari_reference, valid_until, aligned_at, status
        FROM sovereign_alignments
@@ -55,69 +69,113 @@ export async function GET(_request: Request, { params }: RouteParams) {
       .bind(hash, hash)
       .first<AlignmentRow>();
 
-    if (!row) {
-      return Response.json(
-        {
-          resonance: 'DRIFT_ALERT',
-          alignment_hash: hash,
-          detail:
-            'No sovereign alignment found for this hash. Certificate unknown or not yet issued.',
-        },
-        { status: 404 },
-      );
-    }
-
-    if (row.status !== BADGE_STATUS_ACTIVE) {
-      return Response.json(
-        {
-          resonance: 'DRIFT_ALERT',
-          alignment_hash: hash,
-          partner_id: row.partner_id,
-          partner_name: row.partner_name,
-          alignment_type: row.alignment_type,
-          aligned_at: row.aligned_at,
-          status: row.status,
-          detail:
-            'Alignment certificate has been revoked. Entity is no longer in sovereign alignment.',
-        },
-        { status: 410 },
-      );
-    }
-
-    // Check certificate expiry when valid_until is set
-    if (row.valid_until) {
-      const expiry = new Date(row.valid_until);
-      if (!isNaN(expiry.getTime()) && expiry < new Date()) {
+    if (alignRow) {
+      if (alignRow.status !== BADGE_STATUS_ACTIVE) {
         return Response.json(
           {
             resonance: 'DRIFT_ALERT',
             alignment_hash: hash,
-            partner_id: row.partner_id,
-            partner_name: row.partner_name,
-            alignment_type: row.alignment_type,
-            valid_until: row.valid_until,
-            detail:
-              'Alignment certificate has expired. Entity must renew their TARI™ settlement.',
+            partner_id: alignRow.partner_id,
+            partner_name: alignRow.partner_name,
+            alignment_type: alignRow.alignment_type,
+            aligned_at: alignRow.aligned_at,
+            status: alignRow.status,
+            detail: 'Alignment certificate has been revoked. Entity is no longer in sovereign alignment.',
           },
           { status: 410 },
         );
       }
+      if (alignRow.valid_until) {
+        const expiry = new Date(alignRow.valid_until);
+        if (!isNaN(expiry.getTime()) && expiry < new Date()) {
+          return Response.json(
+            {
+              resonance: 'DRIFT_ALERT',
+              alignment_hash: hash,
+              partner_id: alignRow.partner_id,
+              partner_name: alignRow.partner_name,
+              alignment_type: alignRow.alignment_type,
+              valid_until: alignRow.valid_until,
+              detail: 'Alignment certificate has expired. Entity must renew their TARI™ settlement.',
+            },
+            { status: 410 },
+          );
+        }
+      }
+      return Response.json({
+        resonance:      'HIGH_FIDELITY_SUCCESS',
+        hash_type:      'ALIGNMENT_CERTIFICATE',
+        alignment_hash: hash,
+        partner_id:     alignRow.partner_id,
+        partner_name:   alignRow.partner_name,
+        email:          alignRow.email,
+        alignment_type: alignRow.alignment_type,
+        settlement_id:  alignRow.settlement_id,
+        tari_reference: alignRow.tari_reference,
+        valid_until:    alignRow.valid_until,
+        aligned_at:     alignRow.aligned_at,
+        status:         alignRow.status,
+        verified_at:    new Date().toISOString(),
+        kernel_sha:     KERNEL_SHA.slice(0, 16) + '…',
+        kernel_version: KERNEL_VERSION,
+      });
     }
 
-    return Response.json({
-      resonance: 'HIGH_FIDELITY_SUCCESS',
-      alignment_hash: hash,
-      partner_id: row.partner_id,
-      partner_name: row.partner_name,
-      email: row.email,
-      alignment_type: row.alignment_type,
-      settlement_id: row.settlement_id,
-      tari_reference: row.tari_reference,
-      valid_until: row.valid_until,
-      aligned_at: row.aligned_at,
-      status: row.status,
-      verified_at: new Date().toISOString(),
-    });
+    // ── 2. Check anchor_audit_logs (VaultChain™ capsule / ray ID anchor) ────
+    // Searches by SHA-512 column (capsule hash) or Ray ID
+    const capsuleRow = await cfEnv.DB.prepare(
+      `SELECT id, anchored_at, sha512, event_type, kernel_sha, ray_id, ip_address, path
+       FROM anchor_audit_logs
+       WHERE sha512 = ? OR ray_id = ?
+       ORDER BY id DESC
+       LIMIT 1`,
+    )
+      .bind(hash, hash)
+      .first<CapsuleAnchorRow>();
+
+    if (capsuleRow) {
+      return Response.json({
+        resonance:      'HIGH_FIDELITY_SUCCESS',
+        hash_type:      'VAULTCHAIN_CAPSULE',
+        sha512:         capsuleRow.sha512,
+        event_type:     capsuleRow.event_type,
+        ray_id:         capsuleRow.ray_id,
+        anchored_at:    capsuleRow.anchored_at,
+        kernel_sha:     capsuleRow.kernel_sha ?? KERNEL_SHA.slice(0, 16) + '…',
+        kernel_version: KERNEL_VERSION,
+        ip_address:     capsuleRow.ip_address,
+        path:           capsuleRow.path,
+        verified_at:    new Date().toISOString(),
+        detail:         'VaultChain™ anchor verified. This hash is permanently recorded on the AveryOS™ sovereign ledger.',
+      });
+    }
+
+    // ── 3. Check if it matches the Kernel SHA (Genesis Anchor) ──────────────
+    if (KERNEL_SHA.startsWith(hash) || hash === KERNEL_SHA) {
+      return Response.json({
+        resonance:      'HIGH_FIDELITY_SUCCESS',
+        hash_type:      'GENESIS_KERNEL_ANCHOR',
+        sha512:         KERNEL_SHA,
+        event_type:     'ROOT0_GENESIS',
+        anchored_at:    '2026-02-22T00:00:00.000000000Z',
+        kernel_version: KERNEL_VERSION,
+        detail:         'cf83™ Kernel Root — Genesis Anchor. This is the primary sovereign truth anchor for all AveryOS™ capsules.',
+        disclosure_url: `https://averyos.com/witness/disclosure/${KERNEL_SHA}`,
+        verified_at:    new Date().toISOString(),
+      });
+    }
+
+    // ── 4. Not found ─────────────────────────────────────────────────────────
+    return Response.json(
+      {
+        resonance:    'DRIFT_ALERT',
+        hash:         hash,
+        detail:       'No sovereign alignment found for this hash. Certificate unknown or not yet anchored on VaultChain™.',
+        vaultchain_url: 'https://averyos.com/vaultchain-explorer',
+        kernel_sha:   KERNEL_SHA.slice(0, 16) + '…',
+      },
+      { status: 404 },
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);

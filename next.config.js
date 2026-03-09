@@ -48,6 +48,10 @@ const nextConfig = {
       { source: '/align',            destination: '/alignment-accord', permanent: true },
       { source: '/settlement',       destination: '/alignment-accord', permanent: true },
       { source: '/tari-accord',      destination: '/alignment-accord', permanent: true },
+      // ── Sitemap convenience redirect ──────────────────────────────────────
+      // Allows Google Search Console to index via /sitemap (without extension)
+      // while the canonical URL remains /sitemap.xml
+      { source: '/sitemap', destination: '/sitemap.xml', permanent: false },
     ];
   },
 };
