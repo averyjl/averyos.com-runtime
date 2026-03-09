@@ -75,6 +75,10 @@ interface TaiMilestone {
 interface TariStatsData {
   hn_watcher_count: number;
   der_settlement_count: number;
+  conflict_zone_count: number;
+  der_high_value_count: number;
+  legal_scan_count: number;
+  peer_access_count: number;
   watcher_liability_accrued: number;
   total_entries: number;
   timestamp: string;
@@ -453,6 +457,8 @@ export default function TariRevenuePage() {
             {[
               { label: "HN Watchers Logged",      value: stats.hn_watcher_count.toLocaleString(),          color: GOLD  },
               { label: "DER Settlements Logged",  value: stats.der_settlement_count.toLocaleString(),       color: RED   },
+              { label: "Legal Scans Logged",      value: stats.legal_scan_count.toLocaleString(),           color: RED   },
+              { label: "Peer Access Events",      value: stats.peer_access_count.toLocaleString(),          color: WHITE },
               { label: "Watcher Liability (USD)", value: formatUsd(stats.watcher_liability_accrued),        color: GREEN },
               { label: "Total Ledger Entries",    value: stats.total_entries.toLocaleString(),              color: WHITE },
             ].map((stat) => (
