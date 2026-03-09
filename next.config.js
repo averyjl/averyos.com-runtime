@@ -14,7 +14,18 @@ const nextConfig = {
   // .aoscap files and JSON capsule manifests are served as static files from
   // public/manifest/capsules/ — they are never imported by server modules, so
   // webpack never includes them in the Worker bundle automatically.
-  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'lucide-react'],
+  // marked is used only in server-rendered pages (whitepaper, terms, privacy) —
+  // externalising it prevents the Markdown parser (~900 KB) from being bundled
+  // into handler.mjs; esbuild resolves it from node_modules at build time.
+  serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'lucide-react', 'marked'],
+
+  experimental: {
+    // Enable named-export tree-shaking for heavy client-side packages.
+    // For recharts this means only the specific chart primitives used in each
+    // page are bundled into the client JS chunk instead of the full library
+    // (~1.7 MB → significantly smaller per-page payload).
+    optimizePackageImports: ['recharts'],
+  },
   
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
