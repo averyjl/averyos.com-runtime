@@ -14,7 +14,30 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { buildKaasLineItem, getAsnFeeUsd } from "../kaas/pricing";
+import { buildKaasLineItem, getAsnFeeUsd, getAsnFeeLabel, getAsnTier } from "../kaas/pricing";
+
+// ── Re-exports ────────────────────────────────────────────────────────────────
+// These are re-exported so callers can use onrampLogic as a single import point
+// for all KaaS pricing helpers without reaching into lib/kaas/pricing directly.
+export { buildKaasLineItem } from "../kaas/pricing";
+
+// ── KaaS display helpers ──────────────────────────────────────────────────────
+
+/**
+ * Return a human-readable price label for the given ASN (e.g. "$1,017.00").
+ * Suitable for UI display, invoice descriptions, and audit notices.
+ */
+export function kaasDisplayPrice(asn: string): string {
+  return getAsnFeeLabel(asn);
+}
+
+/**
+ * Resolve the KaaS tier (1–10) for a given ASN string.
+ * Tier-10 = Microsoft/Azure; Tier-9 = Google; Tier-8 = GitHub; Tier-1 = default.
+ */
+export function resolveKaasTier(asn: string): number {
+  return getAsnTier(asn);
+}
 
 export interface OnrampSessionParams {
   /** Unique machine / agent identifier (SHA-256 of UUID+MAC+hostname or ray_id). */
