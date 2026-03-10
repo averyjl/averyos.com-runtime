@@ -63,6 +63,11 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
   { path: "/admin/forensics", label: "Forensic Dashboard", icon: "🔬", isAdmin: true },
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡", isAdmin: true },
+  { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️", isAdmin: true },
+  { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰", isAdmin: true },
+  // Public compliance tools
+  { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
+  { path: "/licensing/agentic",         label: "Agentic Settlement",    icon: "🤖" },
 ];
 
 /**
@@ -81,4 +86,6 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹" },
   { path: "/admin/forensics", label: "Forensic Dashboard", icon: "🔬" },
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡" },
+  { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️" },
+  { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰" },
 ];
