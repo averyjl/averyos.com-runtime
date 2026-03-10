@@ -167,11 +167,11 @@ export async function POST(request: Request): Promise<Response> {
   const parentCompany     = sanitise(body.parent_company);
   const ingestionTimestamp = sanitise(body.ingestion_timestamp);
   const corpusHash        = sanitise(body.corpus_hash, 200);
-  const asnRaw            = sanitise(body.asn ?? (request.headers.get?.("cf-asn") ?? ""), 20);
+  const asnRaw            = sanitise(body.asn ?? ((request.headers as Headers).get("cf-asn") ?? ""), 20);
   const orgName           = sanitise(body.org_name);
-  const ip                = (request.headers as Headers).get?.("cf-connecting-ip") ?? "UNKNOWN";
-  const rayId             = (request.headers as Headers).get?.("cf-ray") ?? "UNKNOWN";
-  const countryCode       = (request.headers as Headers).get?.("cf-ipcountry") ?? "UNKNOWN";
+  const ip                = (request.headers as Headers).get("cf-connecting-ip") ?? "UNKNOWN";
+  const rayId             = (request.headers as Headers).get("cf-ray") ?? "UNKNOWN";
+  const countryCode       = (request.headers as Headers).get("cf-ipcountry") ?? "UNKNOWN";
   const asn               = asnRaw.replace(/^AS/i, "").trim() || "UNKNOWN";
 
   // At minimum we require a self-identification field

@@ -96,7 +96,7 @@ const ALIGNMENT_ENTITIES = [
   },
   {
     entity:    "Verified Partner",
-    asn:       "LICENSED",
+    asn:       "N/A",
     alignment: 100,
     status:    "ALIGNED",
     color:     GREEN,

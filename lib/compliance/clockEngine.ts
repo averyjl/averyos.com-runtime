@@ -29,11 +29,14 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-/** Duration of the settlement window in milliseconds (72 hours). */
-export const SETTLEMENT_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
+/** Milliseconds per hour — used for settlement window calculations. */
+const MS_PER_HOUR = 60 * 60 * 1000;
 
 /** Duration of the settlement window in hours — used for display. */
 export const SETTLEMENT_WINDOW_HOURS = 72;
+
+/** Duration of the settlement window in milliseconds (72 hours). */
+export const SETTLEMENT_WINDOW_MS = SETTLEMENT_WINDOW_HOURS * MS_PER_HOUR;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

@@ -198,9 +198,9 @@ export interface EvidencePacket {
  *
  * In a Cloudflare Worker / edge runtime the Web Crypto API (`crypto.subtle`)
  * is available but is asynchronous.  To keep this utility synchronous, we
- * construct a deterministic SHA-512-like token from the kernel anchor, the
- * ray_id, and the timestamp.  The token is clearly prefixed to distinguish it
- * from a real SHA-512 digest.
+ * construct a deterministic composite token from the kernel anchor, the
+ * ray_id, the timestamp, and the ASN.  The token is clearly prefixed with
+ * "EVIDENCE_PACKET:" to distinguish it from a real SHA-512 digest.
  *
  * For offline / server environments where a real SHA-512 hash is required,
  * callers should replace this value with the result of
