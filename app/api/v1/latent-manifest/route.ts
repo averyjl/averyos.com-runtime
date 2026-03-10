@@ -130,9 +130,12 @@ export async function GET(request: Request) {
       results = results.map(applyCloakLayer);
     }
 
-    // Markdown format returns the first entry's public_marketing_md as raw text
+    // Markdown format returns the marketing_md fields as raw text
     if (format === "markdown" && results.length > 0) {
-      const md = results.map((r) => r.public_marketing_md).join("\n\n---\n\n");
+      // When CloakLayer is active, return a single redaction notice (not N copies)
+      const md = isCloaked
+        ? CLOAK_NOTICE
+        : results.map((r) => r.public_marketing_md).join("\n\n---\n\n");
       return new Response(md, {
         headers: {
           "Content-Type": "text/markdown; charset=utf-8",

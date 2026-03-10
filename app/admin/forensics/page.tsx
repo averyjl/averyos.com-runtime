@@ -150,9 +150,10 @@ export default function ForensicDashboard() {
       setGrouped(groupRows(data.rows ?? []));
       setLastRefresh(new Date().toISOString());
 
-      // ── Rate Limiter Block Count (Phase 8) ────────────────────────────────
-      // Fetch the count of RATE_LIMITED events from tari-stats for the dashboard badge.
-      // Uses the existing /api/v1/tari-stats endpoint — non-critical, fire-and-forget.
+      // ── Tari Ledger Entry Count (Phase 8 — Rate Limit Dashboard) ─────────
+      // Fetches total TARI™ ledger entries from /api/v1/tari-stats to surface
+      // overall sovereign audit activity alongside the rate-limit block events.
+      // The `total_entries` field is the COUNT(*) of `tari_ledger` rows.
       fetch("/api/v1/tari-stats", { credentials: "same-origin" })
         .then(r => r.ok ? r.json() : null)
         .then((stats: { total_entries?: number } | null) => {
@@ -321,7 +322,7 @@ export default function ForensicDashboard() {
           { label: "Unique IPs", value: new Set(rows.map(r => r.ip_address)).size, color: ORANGE },
           { label: "⚠️ Suspicious Paths", value: sensitiveRows.reduce((s, g) => s + g.count, 0), color: RED },
           ...(rateLimitCount !== null
-            ? [{ label: "🛑 RATE_LIMITER Blocks (Ledger)", value: rateLimitCount, color: "#ff8800" }]
+            ? [{ label: "📊 TARI™ Ledger Entries (Rate Limit Gate)", value: rateLimitCount, color: "#ff8800" }]
             : []),
         ].map(stat => (
           <div key={stat.label} style={{
