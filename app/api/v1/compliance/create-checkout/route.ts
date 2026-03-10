@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { buildKaasLineItem, getAsnTier } from "../../../../../lib/kaas/pricing";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
@@ -11,32 +12,7 @@ interface CloudflareEnv {
   DB?: unknown;
 }
 
-/**
- * Phase 86 — Top-5 Corporate ASN Elevated Alignment Fee Schedule.
- * These ASNs trigger a $10,000,000 "Technical Utilization Fee" per the
- * AveryOS Sovereign Integrity License v1.0, Phase 86 enforcement.
- *   36459  — GitHub / Microsoft (US)
- *   8075   — Microsoft Azure (US)
- *   15169  — Google LLC (US)
- *   16509  — Amazon.com (US)
- *   14618  — Amazon Technologies (US)
- */
-const PHASE_86_ENTERPRISE_ASNS = new Set(["36459", "8075", "15169", "16509", "14618"]);
-
-/**
- * Legacy enterprise ASNs (pre-Phase 86) that trigger a $1,000,000 "Sovereign Alignment Deposit".
- *   211590 — FBW Networks (France)
- *   198488 — Colocall Ltd / Kyiv recon probe (UA)
- */
-const ENTERPRISE_ASNS = new Set(["211590", "198488"]);
-
-/** Phase 86 Enterprise Technical Utilization Fee: $10,000,000 USD */
-const PHASE_86_FEE_CENTS = 1_000_000_000;
-
-/** Enterprise Alignment Deposit: $1,000,000 USD */
-const ENTERPRISE_DEPOSIT_CENTS = 100_000_000;
-
-/** Individual Genesis Seed License: $101.70 USD (1,017 TARI™) */
+/** Individual Genesis Seed License: $101.70 USD (1,017 TARI™) — used when no ASN is provided */
 const INDIVIDUAL_LICENSE_CENTS = 10_170;
 
 type PricingTier = "PHASE_86_ENTERPRISE" | "ENTERPRISE_DEPOSIT" | "INDIVIDUAL_LICENSE" | "CUSTOM";
@@ -48,7 +24,9 @@ interface PricingResult {
   pricingTier: PricingTier;
 }
 
-/** Derives the complete pricing result from request parameters. */
+/** Derives the complete pricing result from request parameters.
+ * Phase 97: If an ASN is provided without a tariLiability override, delegates to
+ * buildKaasLineItem() from lib/kaas/pricing.ts for consistent tier-based pricing. */
 function determinePricing(
   tariLiability: unknown,
   asnStr: string,
@@ -67,39 +45,29 @@ function determinePricing(
     };
   }
 
-  // Phase 86 — Top-5 corporate ASN elevated fee: $10,000,000 USD
-  if (asnStr && PHASE_86_ENTERPRISE_ASNS.has(asnStr)) {
+  if (asnStr) {
+    // Phase 97 — Delegate to KaaS pricing engine for ASN-based fee schedule.
+    // buildKaasLineItem() handles all tier levels (Tier-1 through Tier-10).
+    const lineItem = buildKaasLineItem(asnStr);
+    const tier     = getAsnTier(asnStr);
+    const pricingTier: PricingTier =
+      tier >= 9 ? "PHASE_86_ENTERPRISE" :
+      tier >= 7 ? "ENTERPRISE_DEPOSIT"  :
+      "INDIVIDUAL_LICENSE";
+
+    const rayPrefix = rayIdStr
+      ? `RayID: ${rayIdStr} — `
+      : `ASN ${asnStr} — `;
+
     return {
-      liabilityCents: PHASE_86_FEE_CENTS,
-      productName: "AveryOS™ Phase 86 Enterprise Technical Utilization Fee",
-      productDescription:
-        (rayIdStr
-          ? `Phase 86 Sovereign Enforcement — RayID: ${rayIdStr} — `
-          : `Phase 86 Sovereign Enforcement — ASN ${asnStr} — `) +
-        `$10,000,000 USD Technical Utilization Fee per the AveryOS Sovereign Integrity License v1.0, ` +
-        `Phase 86 Enforcement. Forensic Evidence Bundle: ${bundleId}. ` +
-        `Victim Restoration Case ID: ${rayIdStr || bundleId}`,
-      pricingTier: "PHASE_86_ENTERPRISE",
+      liabilityCents:     lineItem.fee_usd_cents,
+      productName:        `AveryOS™ KaaS ${lineItem.fee_name} — ${lineItem.fee_label}`,
+      productDescription: `${rayPrefix}${lineItem.description} Forensic Evidence Bundle: ${bundleId}.`,
+      pricingTier,
     };
   }
 
-  // Legacy enterprise ASNs — $1,000,000 Sovereign Alignment Deposit
-  if (asnStr && ENTERPRISE_ASNS.has(asnStr)) {
-    return {
-      liabilityCents: ENTERPRISE_DEPOSIT_CENTS,
-      productName: "AveryOS™ Enterprise Retro-Ingestion Deposit",
-      productDescription:
-        (rayIdStr
-          ? `Sovereign Alignment Verification — RayID: ${rayIdStr} — `
-          : `Sovereign Alignment Verification — ASN ${asnStr} — `) +
-        `This $1,000,000 Good Faith Deposit initiates the Enterprise Retro-Ingestion ` +
-        `settlement process under the AveryOS Sovereign Integrity License v1.0. ` +
-        `Forensic Evidence Bundle: ${bundleId}. ` +
-        `Victim Restoration Case ID: ${rayIdStr || bundleId}`,
-      pricingTier: "ENTERPRISE_DEPOSIT",
-    };
-  }
-
+  // No ASN provided — fall back to individual license (Tier-1)
   return {
     liabilityCents: INDIVIDUAL_LICENSE_CENTS,
     productName: "AveryOS™ Genesis Seed Individual License",
