@@ -224,13 +224,14 @@ export default function AlignmentCheckPage() {
         let parsedUrl: URL;
         try {
           parsedUrl = new URL(textToScan);
-        } catch {
-          setError("Please enter a valid URL (e.g. https://example.com/page).");
+        } catch (urlErr) {
+          const detail = urlErr instanceof Error ? urlErr.message : String(urlErr);
+          setError(`Invalid URL — ${detail}. Example: https://www.anthropic.com/legal/usage-policy`);
           setStage("input");
           return;
         }
         if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-          setError("Only http:// and https:// URLs are supported.");
+          setError(`Unsupported protocol "${parsedUrl.protocol}" — only https:// URLs are accepted.`);
           setStage("input");
           return;
         }
