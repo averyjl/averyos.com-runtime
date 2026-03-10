@@ -1,0 +1,185 @@
+name: "⛓️ Sovereign Takedown Bot — Auto DMCA/GDPR Notice Generator"
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+# 1. Manual dispatch: provide bundle path, org name, notice type.
+# 2. Scheduled weekly run to auto-generate notices from evidence bundles
+#    committed to the repository.
+# 3. Push to main when new evidence bundles are added to evidence/ directory.
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_path:
+        description: "Path to the .aoscap evidence bundle (relative to repo root)"
+        required: false
+        default: ""
+      org_name:
+        description: "Infringing organisation name"
+        required: false
+        default: ""
+      notice_type:
+        description: "Notice type: dmca | gdpr | both"
+        required: false
+        default: "both"
+  schedule:
+    # Weekly: every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "evidence/*.aoscap"
+      - "evidence/**/*.aoscap"
+
+jobs:
+  sovereign-takedown:
+    name: "Generate Sovereign Takedown Notices"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: "⛓️ Checkout AveryOS™ Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── Setup Node.js ────────────────────────────────────────────────────────
+      - name: "🔧 Setup Node.js 22"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      # ── Install dependencies ─────────────────────────────────────────────────
+      - name: "📦 Install dependencies"
+        run: npm ci
+
+      # ── Create output directory ─────────────────────────────────────────────
+      - name: "📁 Prepare takedown output directory"
+        run: mkdir -p takedowns
+
+      # ── Run for a specific bundle (manual dispatch) ─────────────────────────
+      - name: "⚖️ Generate takedown notice (manual dispatch)"
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_path != '' && inputs.org_name != '' }}
+        env:
+          CREATOR_NAME: "Jason Lee Avery"
+          CREATOR_EMAIL: "truth@averyworld.com"
+        run: |
+          node scripts/sovereign-takedown.cjs \
+            --bundle "${{ inputs.bundle_path }}" \
+            --org "${{ inputs.org_name }}" \
+            --type "${{ inputs.notice_type }}" \
+            --output ./takedowns
+
+      # ── Auto-run for all bundles in evidence/ (scheduled / push trigger) ────
+      - name: "🔍 Discover evidence bundles"
+        id: discover
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.bundle_path == '' }}
+        run: |
+          # Limit to 20 bundles per run to prevent runaway processing;
+          # increase the head -20 cap manually if more are needed.
+          bundles=$(find evidence/ -name "*.aoscap" 2>/dev/null | head -20 | tr '\n' '|')
+          echo "bundles=${bundles}" >> "$GITHUB_OUTPUT"
+          count=$(echo "${bundles}" | tr '|' '\n' | grep -c '.aoscap' || echo 0)
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: "⚖️ Auto-generate notices for discovered bundles"
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.bundle_path == '') && steps.discover.outputs.count != '0' }}
+        env:
+          CREATOR_NAME: "Jason Lee Avery"
+          CREATOR_EMAIL: "truth@averyworld.com"
+        run: |
+          exit_code=0
+          IFS='|' read -ra BUNDLES <<< "${{ steps.discover.outputs.bundles }}"
+          for bundle in "${BUNDLES[@]}"; do
+            if [[ -n "$bundle" ]]; then
+              echo "▶ Processing bundle: $bundle"
+              org_name=$(basename "$bundle" .aoscap | sed 's/_/ /g')
+              if ! node scripts/sovereign-takedown.cjs \
+                --bundle "$bundle" \
+                --org "$org_name" \
+                --type both \
+                --output ./takedowns; then
+                echo "⚠ Notice generation failed for: $bundle (continuing with remaining bundles)"
+                exit_code=1
+              fi
+            fi
+          done
+          # Exit non-zero only if ALL bundles failed — partial success is acceptable
+          processed=$(ls takedowns/*.txt 2>/dev/null | wc -l || echo 0)
+          if [[ "$processed" -eq 0 && "$exit_code" -ne 0 ]]; then
+            echo "❌ All bundles failed to generate notices."
+            exit 1
+          fi
+
+      # ── List generated notices ───────────────────────────────────────────────
+      - name: "📄 List generated takedown notices"
+        run: |
+          if ls takedowns/*.txt 2>/dev/null; then
+            echo "✅ Takedown notices generated:"
+            ls -la takedowns/
+          else
+            echo "ℹ️ No takedown notices generated (no eligible evidence bundles found)."
+          fi
+
+      # ── Upload notices as workflow artifact ─────────────────────────────────
+      - name: "📤 Upload takedown notices as artifact"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "sovereign-takedown-notices-${{ github.run_number }}"
+          path: "takedowns/"
+          retention-days: 90
+
+      # ── Auto-draft GitHub Issue for review ──────────────────────────────────
+      - name: "📋 Draft GitHub Issue for Creator review"
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_path != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const takedownDir = 'takedowns';
+            let body = '## ⚖️ Sovereign Takedown Notice — Review Required\n\n';
+            body += `**Kernel:** v3.6.2 | **Anchor:** ⛓️⚓⛓️\n\n`;
+            body += `**Organisation:** \`${{ inputs.org_name || 'Auto-detected' }}\`\n`;
+            body += `**Bundle:** \`${{ inputs.bundle_path || 'Auto-scanned' }}\`\n`;
+            body += `**Notice Type:** \`${{ inputs.notice_type || 'both' }}\`\n\n`;
+            body += '### Notices Generated\n\n';
+            try {
+              const files = fs.readdirSync(takedownDir).filter(f => f.endsWith('.txt'));
+              if (files.length === 0) {
+                body += '_No notices generated (check evidence bundle format)._\n';
+              } else {
+                for (const file of files.slice(0, 3)) {
+                  const content = fs.readFileSync(path.join(takedownDir, file), 'utf8');
+                  body += `<details>\n<summary>${file}</summary>\n\n\`\`\`\n${content.slice(0, 2000)}${content.length > 2000 ? '\n…[truncated]' : ''}\n\`\`\`\n\n</details>\n\n`;
+                }
+              }
+            } catch (e) {
+              body += `_Could not read takedown directory: ${e.message}_\n`;
+            }
+            body += `\n---\n_Sovereign Takedown Bot run #${{ github.run_number }} — review and send via truth@averyworld.com_`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚖️ DMCA Notice Draft — ${{ inputs.org_name || 'Auto-detected' }} — Run #${{ github.run_number }}`,
+              body,
+              labels: ['sovereign-takedown', 'legal', 'needs-review'],
+            });
+
+      # ── Summary ─────────────────────────────────────────────────────────────
+      - name: "📊 Sovereign Anchor Summary"
+        run: |
+          echo "⛓️⚓⛓️ AveryOS™ Sovereign Takedown Bot"
+          echo "Kernel: v3.6.2"
+          echo "SHA-512: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+          echo "Run: #${{ github.run_number }}"
+          echo "Trigger: ${{ github.event_name }}"
+          count=$(ls takedowns/*.txt 2>/dev/null | wc -l || echo 0)
+          echo "Notices generated: $count"
+          echo "🤜🏻"
+          echo "⛓️⚓⛓️"
