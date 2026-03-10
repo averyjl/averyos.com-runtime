@@ -1,12 +1,23 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { KERNEL_SHA, KERNEL_VERSION } from '../../../../../lib/sovereignConstants';
 import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
+import { buildEvidencePacket, resolveJurisdiction, formatEvidenceNotice }
+  from '../../../../../lib/forensics/globalVault';
 
 /**
  * GET /api/v1/evidence/[rayid]
  *
  * Fetches the raw Cloudflare telemetry JSON evidence bundle for a given
  * Cloudflare RayID from VAULT_R2 (stored at evidence/${rayid}.json).
+ *
+ * Roadmap Gate 2.3: Wires buildEvidencePacket() from globalVault.ts to
+ * produce a downloadable multi-jurisdictional evidence packet alongside
+ * the raw telemetry data.
+ *
+ * Query params:
+ *   format=packet  — Return the full evidence packet (JSON) from globalVault.ts
+ *   format=notice  — Return human-readable NOV text from formatEvidenceNotice()
+ *   format=raw     — Return raw R2 telemetry (default)
  *
  * Auth: Bearer token matching VAULT_PASSPHRASE
  *       (same gate as /api/v1/audit-stream).
@@ -74,6 +85,56 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   const raw = await obj.text();
+  const telemetry = JSON.parse(raw) as Record<string, unknown>;
+
+  // ── Roadmap Gate 2.3: Build multi-jurisdictional evidence packet ──────────
+  const url    = new URL(request.url);
+  const format = url.searchParams.get("format") ?? "raw";
+
+  if (format === "packet" || format === "notice") {
+    // Extract metadata from the telemetry bundle
+    const asn         = String(telemetry.asn         ?? telemetry.client_asn    ?? "");
+    const ipAddress   = String(telemetry.ip_address  ?? telemetry.client_ip     ?? "");
+    const countryCode = String(telemetry.country     ?? telemetry.client_country ?? "US");
+    const orgName     = String(telemetry.org_name    ?? telemetry.ingestion_intent ?? "");
+    const ingestionIntent = String(telemetry.ingestion_intent ?? "UNKNOWN");
+
+    // Resolve tier from ASN (import from pricing at build time)
+    const jurisdiction = resolveJurisdiction(countryCode);
+
+    const evidencePacket = buildEvidencePacket({
+      ray_id:           rayid,
+      asn,
+      ip_address:       ipAddress,
+      country_code:     countryCode,
+      org_name:         orgName,
+      ingestion_intent: ingestionIntent,
+      tier:             1, // will be re-resolved from ASN by buildEvidencePacket
+      valuation_cents:  0,
+    });
+
+    if (format === "notice") {
+      const notice = formatEvidenceNotice(evidencePacket);
+      return new Response(notice, {
+        status: 200,
+        headers: {
+          "Content-Type":        "text/plain; charset=utf-8",
+          "Content-Disposition": `attachment; filename="NOV-${rayid}.txt"`,
+          "X-AveryOS-Kernel":    KERNEL_VERSION,
+        },
+      });
+    }
+
+    return Response.json({
+      resonance:         "HIGH_FIDELITY_SUCCESS",
+      kernel_sha:        KERNEL_SHA,
+      kernel_version:    KERNEL_VERSION,
+      ray_id:            rayid,
+      jurisdiction,
+      evidence_packet:   evidencePacket,
+      retrieved_at:      new Date().toISOString(),
+    });
+  }
 
   return Response.json({
     resonance:    'HIGH_FIDELITY_SUCCESS',
@@ -81,7 +142,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     kernel_version: KERNEL_VERSION,
     ray_id:       rayid,
     r2_key:       key,
-    evidence:     JSON.parse(raw) as Record<string, unknown>,
+    evidence:     telemetry,
     retrieved_at: new Date().toISOString(),
   });
 }

@@ -16,6 +16,12 @@
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 import { buildKaasLineItem, getAsnFeeUsd, getAsnFeeLabel, getAsnTier } from "../kaas/pricing";
 
+// ── Onramp Mode ───────────────────────────────────────────────────────────────
+// GATE 106.1 — Live Mode active; real-time fiat-to-crypto settlement enabled.
+
+/** Stripe Crypto Onramp mode. Set to 'live' for production settlement. */
+export const ONRAMP_MODE: "live" | "test" = "live";
+
 // ── Re-exports ────────────────────────────────────────────────────────────────
 // These are re-exported so callers can use onrampLogic as a single import point
 // for all KaaS pricing helpers without reaching into lib/kaas/pricing directly.
@@ -63,6 +69,8 @@ export interface OnrampSessionPayload {
   description:        string;
   /** Kernel anchor for provenance. */
   kernel_version:     string;
+  /** Onramp mode: 'live' for production, 'test' for sandbox. */
+  onramp_mode:        "live" | "test";
 }
 
 /**
@@ -102,6 +110,7 @@ export function buildOnrampSessionPayload(
     kernel_sha:      KERNEL_SHA.slice(0, 16) + "…",
     kernel_version:  KERNEL_VERSION,
     settlement_type: "KAAS_ONRAMP",
+    onramp_mode:     ONRAMP_MODE,
   };
 
   if (entity_name) metadata.entity_name = entity_name.slice(0, 100);
@@ -113,6 +122,7 @@ export function buildOnrampSessionPayload(
     metadata,
     description,
     kernel_version: KERNEL_VERSION,
+    onramp_mode:    ONRAMP_MODE,
   };
 }
 
