@@ -101,12 +101,13 @@ export async function GET(request: Request) {
  * `sovereign-log-ingress`.  Writes records to D1 in batches of BATCH_SIZE
  * using D1's `batch()` API for efficiency.
  *
- * Export this function from the Worker entry-point so the runtime can invoke
- * it.  In an OpenNext/Next.js deployment the framework re-exports this from
- * the worker.js entry point automatically when the file is included in the
- * app/api tree.
+ * This function is consumed directly by the Cloudflare Worker runtime via the
+ * Worker's `queue` export.  It must NOT be exported from a Next.js route file
+ * (exporting non-HTTP-handler symbols from route files violates the route
+ * constraint `{ [x: string]: never }`).
  */
-export async function processLogBatch(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function processLogBatch(
   messages: { body: unknown; ack: () => void; retry: () => void }[],
   db: D1Database,
 ): Promise<void> {
