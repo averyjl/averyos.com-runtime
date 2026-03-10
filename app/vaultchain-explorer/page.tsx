@@ -137,6 +137,37 @@ function intentColor(intent: string | undefined): string {
   return GREEN;
 }
 
+// Phase 82: R2 Evidence Artifact from evidence/${sha512}.json
+interface EvidenceResult {
+  sha512_payload?: string;
+  ray_id?: string;
+  ip_address?: string;
+  asn?: string;
+  path?: string;
+  request_uri?: string;
+  request_method?: string;
+  request_referrer?: string | null;
+  request_protocol?: string | null;
+  client_city?: string | null;
+  client_lat?: string | null;
+  client_lon?: string | null;
+  waf_score_total?: number | null;
+  waf_score_sqli?: number | null;
+  bot_category?: string | null;
+  edge_colo?: string | null;
+  wall_time_us?: number | null;
+  edge_start_ts?: string;
+  edge_end_ts?: string;
+  kernel_sha?: string;
+  archived_at?: string;
+  fetched_at?: string;
+  r2_key?: string;
+  error?: string;
+  detail?: string;
+}
+
+type ActiveTab = "alignment" | "evidence";
+
 export default function VaultChainExplorerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("hash");
 
@@ -149,6 +180,17 @@ export default function VaultChainExplorerPage() {
   const isValidHash  = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
   const isValidRayId = rayIdInput.trim().length >= 8;
 
+  // Phase 82: Evidence Explorer state
+  const [evidenceId,     setEvidenceId]     = useState("");
+  const [vaultAuth,      setVaultAuth]      = useState("");
+  const [evidence,       setEvidence]       = useState<EvidenceResult | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [evidenceError,   setEvidenceError]   = useState<string | null>(null);
+
+  const isValidHash     = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
+  const isValidEvidenceId = evidenceId.trim().length >= 10;
+
+  // ── Alignment verify ───────────────────────────────────────────────────────
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     if (!isValidHash) return;
@@ -213,6 +255,13 @@ export default function VaultChainExplorerPage() {
       transition:    "all 0.2s",
     };
   }
+
+  const wafColor = (score: number | null | undefined) => {
+    if (score == null) return MUTED;
+    if (score > 80) return RED;
+    if (score > 40) return GOLD;
+    return GREEN;
+  };
 
   return (
     <main className="page" style={{ background: BG, minHeight: "100vh", color: "#fff" }}>

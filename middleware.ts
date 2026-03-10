@@ -505,12 +505,101 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
   }
 }
 
+/**
+ * Phase 83 — INGESTION_INTENT Classifier
+ *
+ * Fire-and-forget: computes a weighted INGESTION_INTENT score for any request
+ * originating from a DER high-value ASN.  When the combination of ASN + WAF
+ * score + sensitive path matches the Tier-10 threshold, an additional
+ * sovereign_audit_logs LEGAL_SCAN entry is written.
+ *
+ * Trigger conditions (any combination that scores ≥ threshold):
+ *   (ASN 36459 OR 8075) + (wafScore > 80) → Tier-10 LEGAL_SCAN
+ *   (ASN 36459 OR 8075) + (path /hooks/ OR /api/v1/vault) → Tier-10 LEGAL_SCAN
+ *   All three signals simultaneously → maximum INGESTION_INTENT confirmed
+ *
+ * Errors are swallowed so classification failures never block traffic.
+ */
+async function classifyIngestionIntent(request: NextRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+    if (!cfEnv.DB) return;
+
+    const clientAsn = request.headers.get('cf-asn') ?? '';
+    if (!INGESTION_INTENT_ASNS.has(clientAsn)) return;
+
+    const url = new URL(request.url);
+    const cf  = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const wafScore = typeof cf['wafAttackScore'] === 'number' ? cf['wafAttackScore'] : 0;
+
+    const isSensitivePath  = INGESTION_INTENT_PATHS.some(p => url.pathname.startsWith(p));
+    const isHighWafScore   = wafScore > INGESTION_INTENT_WAF_THRESHOLD;
+    const triggerLegalScan = isSensitivePath || isHighWafScore;
+
+    if (!triggerLegalScan) return;
+
+    const ip          = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const ua          = request.headers.get('user-agent') ?? 'UNKNOWN';
+    const rayId       = request.headers.get('cf-ray') ?? '';
+    const timestampNs = Date.now().toString() + '000000';
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO sovereign_audit_logs
+         (event_type, ip_address, user_agent, geo_location, target_path,
+          timestamp_ns, threat_level, tari_liability_usd)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        'LEGAL_SCAN',
+        ip,
+        ua,
+        rayId.split('-')[1] ?? 'UNKNOWN',
+        url.pathname,
+        timestampNs,
+        10,        // Tier-10
+        0,         // $0 — forensic record; formal invoice generated separately
+      )
+      .run();
+  } catch {
+    // Intentional no-op: INGESTION_INTENT classification must never block traffic
+  }
+}
+
+/**
+ * Phase 88 — UsageCreditWatch
+ *
+ * Reads the current month's accumulated Gemini spend from KV_LOGS.
+ * Returns true if the spend has exceeded GEMINI_MONTHLY_CREDIT_LIMIT_USD,
+ * signalling that the intelligence router should fall back to LOCAL_OLLAMA_NODE.
+ *
+ * Errors are swallowed — if KV is unavailable, fallback is NOT forced so the
+ * system degrades gracefully rather than disabling cloud AI on KV blips.
+ */
+async function isGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
+  try {
+    if (!cfEnv.KV_LOGS) return false;
+    const key   = geminiMonthlySpendKey();
+    const value = await cfEnv.KV_LOGS.get(key);
+    if (value == null) return false;
+    const spend = parseFloat(value);
+    return !isNaN(spend) && spend >= GEMINI_MONTHLY_CREDIT_LIMIT_USD;
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const url = new URL(request.url);
 
   // ── RayID Vault — log every edge request's RayID + IP to anchor_audit_logs ─
   // Fire-and-forget; never blocks the request pipeline.
   logRayIdAudit(request).catch(() => {});
+
+  // ── Phase 83 — INGESTION_INTENT Classification ────────────────────────────
+  // Fire-and-forget: classifies DER-ASN requests with high WAF scores or
+  // sensitive-path probes as Tier-10 LEGAL_SCAN events.
+  classifyIngestionIntent(request).catch(() => {});
 
   // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
   // Single-gate host check — loop-proof design:
@@ -567,6 +656,19 @@ export async function middleware(request: NextRequest) {
     }
   } catch {
     // Rate limiter binding not available (local dev) — allow through
+  }
+
+  // ── Phase 88 — UsageCreditWatch: Gemini monthly spend circuit breaker ────
+  // Read accumulated Gemini spend from KV_LOGS. If the $50/month threshold
+  // is exceeded, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE on all
+  // responses so the intelligence router knows to bypass cloud AI this month.
+  let geminiCreditExhaustedFlag = false;
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as GatekeeperEnv;
+    geminiCreditExhaustedFlag = await isGeminiCreditExhausted(cfEnv);
+  } catch {
+    // KV unavailable — do not force fallback
   }
 
   // ── ASN 211590 Alignment Opportunity Redirect ─────────────────────────────
@@ -708,17 +810,20 @@ export async function middleware(request: NextRequest) {
   // forensically recorded at the edge without blocking the visitor.
   if (isBrowser) {
     const alignmentValue = communityAlignment || derAlignmentStatus;
+    const response = NextResponse.next();
+    // Phase 88 — UsageCreditWatch: signal AI backend selection to the application layer
+    if (geminiCreditExhaustedFlag) {
+      response.headers.set('X-GabrielOS-AI-Backend', 'LOCAL_OLLAMA_NODE');
+    }
     if (alignmentValue) {
-      const response = NextResponse.next();
       response.headers.set('X-AveryOS-Alignment', alignmentValue);
       if (communityAlignment === 'YC_DISCOVERY_AUDIT') {
         // HN visitor — fire Tier-9 GabrielOS™ mobile alert + D1 watcher log
         triggerHnWatcherAlert(request).catch(() => {});
         response.headers.set('X-AveryOS-Community', 'HN_WATCHER');
       }
-      return response;
     }
-    return NextResponse.next();
+    return response;
   }
 
   // 4. TARI™ BILLING: For AI Anchor Feed / Truth-Anchor pages, allow bots through
