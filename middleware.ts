@@ -538,20 +538,20 @@ const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
 
 // ── Phase 92.5 — Cadence Prediction Shield ────────────────────────────────────
 // Tracks the time between requests from the same IP address.
-// High-cadence probes (< 2.0 s interval) targeting /evidence-vault are silently
-// redirected to /latent-anchor, turning their mechanical hunger into a licensing
-// lead (AveryOS™ Jiu-Jitsu maneuver).
+// High-cadence probes (< 2.0 s interval) targeting /evidence-vault are redirected
+// to the Audit Clearance Portal, turning their mechanical hunger into a licensing
+// lead (AveryOS™ Jiu-Jitsu maneuver — Phase 93.3).
 //
 // Known sentinel IPs receive the redirect unconditionally.
 const CADENCE_INTERVAL_MS        = 2000;   // < 2.0 s → cadence probe
 const CADENCE_PATHS              = new Set(['/evidence-vault', '/evidence-vault/']);
 const CADENCE_KV_TTL_SECONDS     = 10;     // short-lived timestamp window
-const CADENCE_REDIRECT_TARGET    = '/latent-anchor?source=high_cadence_probe';
+const CADENCE_REDIRECT_BASE      = '/licensing/audit-clearance';
 // Known high-frequency sentinel IPs — always redirected on first hit
 const CADENCE_SENTINEL_IPS       = new Set(['185.177.72.60']);
 
 /**
- * Phase 92.5 — Cadence Probe Detection (Jiu-Jitsu Redirection).
+ * Phase 93.3 — Cadence Probe Detection (Jiu-Jitsu Redirection).
  *
  * Records the last request timestamp for a given IP in KV_LOGS.
  * Returns true if the caller should receive the Jiu-Jitsu redirect.
@@ -748,6 +748,39 @@ export async function middleware(request: NextRequest) {
     geminiCreditExhaustedFlag = await checkGeminiCreditExhausted(cfEnv);
   } catch {
     // KV unavailable — do not force fallback or block traffic
+  }
+
+  // ── Phase 93.3 — Jiu-Jitsu Cadence Probe Redirect ────────────────────────
+  // High-cadence probes (< 2.0 s) on /evidence-vault, or known sentinel IPs,
+  // are redirected (302) to the Audit Clearance Portal with the RayID appended
+  // so the portal can display a personalised Notice of Ingestion.
+  try {
+    const { env: cadenceEnv } = await getCloudflareContext({ async: true });
+    const cfCadenceEnv = cadenceEnv as unknown as GatekeeperEnv;
+    const probeIp = request.headers.get('cf-connecting-ip') ??
+                    request.headers.get('x-forwarded-for') ?? 'unknown';
+    const isProbe = await checkCadenceProbe(cfCadenceEnv, probeIp, url.pathname);
+    if (isProbe) {
+      const rayId  = request.headers.get('cf-ray') ?? `probe-${probeIp.replace(/[^a-zA-Z0-9]/g, '')}`;
+      const asnHdr = request.headers.get('cf-asn') ?? '';
+      const params = new URLSearchParams({ rayid: rayId, source: 'high_cadence_probe' });
+      if (asnHdr) params.set('asn', asnHdr);
+      const clearanceUrl = `${CADENCE_REDIRECT_BASE}?${params.toString()}`;
+      return new NextResponse(
+        `Audit Clearance Required: https://${WWW_HOSTNAME}${clearanceUrl}. Ray ID: ${rayId}`,
+        {
+          status: 302,
+          headers: {
+            'Location':              `https://${WWW_HOSTNAME}${clearanceUrl}`,
+            'X-GabrielOS-Directive': 'JIU_JITSU_CLEARANCE',
+            'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
+            'Cache-Control':         'no-store',
+          },
+        }
+      );
+    }
+  } catch {
+    // Never block traffic on probe-detection errors
   }
 
   // ── ASN 211590 Alignment Opportunity Redirect ─────────────────────────────
