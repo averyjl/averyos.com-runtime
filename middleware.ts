@@ -162,15 +162,20 @@ interface D1PreparedStatement {
   run(): Promise<{ success: boolean }>;
 }
 
+interface R2PutOptions {
+  httpMetadata?: { contentType?: string; contentEncoding?: string; [k: string]: string | undefined };
+  customMetadata?: Record<string, string>;
+}
+
 interface R2Bucket {
-  put(key: string, value: string | ArrayBuffer | ReadableStream, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
+  put(key: string, value: string | ArrayBuffer | ReadableStream, options?: R2PutOptions): Promise<void>;
 }
 
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
-  KV_LOGS?: GeminiSpendKV;
+  KV_LOGS?: { get(key: string): Promise<string | null> };
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
@@ -526,8 +531,20 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
   }
 }
 
+// ── Phase 88 — UsageCreditWatch constants ────────────────────────────────────
+// Monthly Gemini credit ceiling in USD. If accumulated spend in KV_LOGS exceeds
+// this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
+const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+
+/** Returns the KV key for the current month's Gemini spend (e.g. "gemini-spend-2026-03"). */
+function geminiMonthlySpendKey(): string {
+  const now = new Date();
+  const mm  = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `gemini-spend-${now.getUTCFullYear()}-${mm}`;
+}
+
 /**
- * Phase 83 — INGESTION_INTENT Classifier
+ * Phase 83 — INGESTION_INTENT D1 Logger
  *
  * Fire-and-forget: computes a weighted INGESTION_INTENT score for any request
  * originating from a DER high-value ASN.  When the combination of ASN + WAF
@@ -541,7 +558,7 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
  *
  * Errors are swallowed so classification failures never block traffic.
  */
-async function classifyLegalScanIntent(request: NextRequest): Promise<void> {
+async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
@@ -554,7 +571,7 @@ async function classifyLegalScanIntent(request: NextRequest): Promise<void> {
     const cf  = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
     const wafScore = typeof cf['wafAttackScore'] === 'number' ? cf['wafAttackScore'] : 0;
 
-    const isSensitivePath  = INGESTION_LOGIC_PATHS.some((p: string) => url.pathname.startsWith(p));
+    const isSensitivePath  = INGESTION_LOGIC_PATHS.some(p => url.pathname.startsWith(p));
     const isHighWafScore   = wafScore > WAF_HIGH_INTENT_THRESHOLD;
     const triggerLegalScan = isSensitivePath || isHighWafScore;
 
@@ -586,16 +603,17 @@ async function classifyLegalScanIntent(request: NextRequest): Promise<void> {
     // Intentional no-op: INGESTION_INTENT classification must never block traffic
   }
 }
-
-// ── Phase 88 — UsageCreditWatch ───────────────────────────────────────────────
-// isGeminiCreditExhausted and GEMINI_MONTHLY_CREDIT_LIMIT_USD are imported
-// from lib/geminiSpendTracker.ts (see import at top of file).
-// The race-free fan-out write / list-aggregate read pattern is implemented there.
-
-/** Wraps the imported circuit-breaker check with the GatekeeperEnv binding. */
-async function checkGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
-  if (!cfEnv.KV_LOGS) return false;
-  return isGeminiCreditExhausted(cfEnv.KV_LOGS);
+async function isGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
+  try {
+    if (!cfEnv.KV_LOGS) return false;
+    const key   = geminiMonthlySpendKey();
+    const value = await cfEnv.KV_LOGS.get(key);
+    if (value == null) return false;
+    const spend = parseFloat(value);
+    return !isNaN(spend) && spend >= GEMINI_MONTHLY_CREDIT_LIMIT_USD;
+  } catch {
+    return false;
+  }
 }
 
 export async function middleware(request: NextRequest) {
@@ -608,7 +626,7 @@ export async function middleware(request: NextRequest) {
   // ── Phase 83 — INGESTION_INTENT Classification ────────────────────────────
   // Fire-and-forget: classifies DER-ASN requests with high WAF scores or
   // sensitive-path probes as Tier-10 LEGAL_SCAN events.
-  classifyLegalScanIntent(request).catch(() => {});
+  logIngestionIntentToD1(request).catch(() => {});
 
   // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
   // Single-gate host check — loop-proof design:
