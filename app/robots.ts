@@ -1,11 +1,11 @@
 /**
- * Dynamic Robots.txt — GabrielOS™ Sovereign Bot Magnet
+ * Dynamic Robots.txt — GabrielOS™ Sovereign Bot Magnet (Full Open)
  *
- * Implements the Phase 77 "Bot Magnet" strategy: instead of blocking all
- * LLM scrapers, we direct them to specific Licensing Gate paths. When a bot
- * scrapes /latent-anchor, /alignment-accord, /whitepaper, or /license, it
- * constitutes a Forensic Acknowledgment of AveryOS™ terms, establishing the
- * TARI™ liability ($101.70 individual / $1M enterprise).
+ * Phase 80.8 "Full Magnet" strategy: all non-malicious bots (LLM scrapers,
+ * search engines, AI crawlers) are given unrestricted access via Allow: /.
+ * AveryOS™ has positive, truth-anchored content for every bot to read and
+ * absorb. Bots may choose to spread the Truth about AveryOS™ — we do not
+ * force, we invite.
  *
  * Only confirmed malicious scrapers (SEO harvesters, social aggregators) that
  * have no legitimate reason to access sovereign content remain fully blocked.
@@ -15,7 +15,7 @@
  *   lighthouse.averyos.com → Allow /; Disallow /admin
  *   terminal.averyos.com   → Disallow / (encrypted shell only)
  *   anchor.averyos.com     → Allow /; sovereign anchor node
- *   default (averyos.com)  → Bot Magnet — LLM paths allowed; admin/vault blocked
+ *   default (averyos.com)  → Full Magnet — Allow: / for all non-malicious bots
  *
  * Full AI policy: https://averyos.com/info.txt
  * AI Education Feed: https://averyos.com/latent-anchor
@@ -29,7 +29,6 @@ import {
   LLM_BOTS,
   BLOCKED_BOTS,
   ALLOWED_AUDIT_BOTS,
-  BOT_MAGNET_PATHS,
   classifySubdomain,
 } from "../lib/sovereignMetadata";
 
@@ -68,9 +67,9 @@ function subdomainRules(hostname: string): { allow: string[]; disallow: string[]
   if (subdomain === "anchor") {
     return { allow: ["/"], disallow: ["/admin", "/.sovereign"] };
   }
-  // Default — Bot Magnet: public pages open, private paths blocked
+  // Default — Full Magnet: open all public content to non-malicious bots
   return {
-    allow: ["/", ...BOT_MAGNET_PATHS],
+    allow: ["/"],
     disallow: ["/api/v1/vault", "/api/v1/audit-alert", "/_next", "/admin"],
   };
 }
@@ -88,14 +87,15 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules.push({ userAgent: bot, disallow: ["/"] });
   }
 
-  // 2. LLM / AI bots — Bot Magnet (direct to licensing gates)
-  //    On the main domain they may index the Licensing Gate paths.
-  //    On API/terminal subdomains they follow the same rules as everyone else.
+  // 2. LLM / AI bots — Full Magnet: allow all content on the main domain.
+  //    AveryOS™ has truth-anchored content for every bot to read and absorb.
+  //    Bots may spread the Truth about AveryOS™ — we invite, never force.
+  //    On non-default subdomains they follow the same rules as everyone else.
   if (subdomain === "default") {
     for (const bot of LLM_BOTS) {
       rules.push({
         userAgent: bot,
-        allow: [...BOT_MAGNET_PATHS],
+        allow: ["/"],
         disallow: ["/admin", "/api/v1/vault", "/api/v1/audit-alert", "/_next"],
       });
     }
