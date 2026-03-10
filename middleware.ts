@@ -120,9 +120,14 @@ interface D1PreparedStatement {
   run(): Promise<{ success: boolean }>;
 }
 
+interface R2Bucket {
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
+}
+
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  VAULT_R2?: R2Bucket;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
@@ -170,39 +175,128 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
 
 /**
  * RayID Vault — fire-and-forget insert of every edge request's Cloudflare
- * RayID and connecting IP into anchor_audit_logs.  This builds a forensic
- * ledger of every request that touches the sovereign perimeter.
+ * RayID, connecting IP, and high-fidelity forensic metadata into
+ * anchor_audit_logs.  Simultaneously archives the full log payload to the
+ * VAULT_R2 Evidence Vault as evidence/${sha512_payload}.json so that every
+ * entry has a physically retrievable billing-evidence artifact.
  * Errors are swallowed so vaulting failures never block legitimate traffic.
  */
 async function logRayIdAudit(request: NextRequest): Promise<void> {
+  const edgeStart = new Date();
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
     if (!cfEnv.DB) return;
 
-    const url    = new URL(request.url);
-    const rayId  = request.headers.get('cf-ray') ?? 'UNKNOWN';
-    const ip     = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const asn    = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
-    const now    = new Date().toISOString();
+    const url     = new URL(request.url);
+    const rayId   = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const ip      = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const asn     = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
+    const now     = edgeStart.toISOString();
+    const method  = request.method ?? 'GET';
 
+    // ── Cloudflare cf object forensic fields ─────────────────────────────────
+    // request.cf is available in Cloudflare Worker environments only.
+    // Cast via unknown to avoid TypeScript complaints in non-Worker builds.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cf = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const clientCity      = (cf['clientCity']           as string  | undefined) ?? null;
+    const clientLat       = (cf['clientLatitude']       as string  | undefined) ?? null;
+    const clientLon       = (cf['clientLongitude']      as string  | undefined) ?? null;
+    const requestProtocol = (cf['httpProtocol']         as string  | undefined) ?? null;
+    // wafAttackScore — overall Cloudflare WAF attack score (0-100, higher = more suspicious)
+    const wafScoreTotal   = (cf['wafAttackScore']       as number  | undefined) ?? null;
+    // wafSQLiAttackScore — SQL-injection-specific WAF sub-score (enterprise feature)
+    const wafScoreSqli    = (cf['wafSQLiAttackScore']   as number  | undefined) ?? null;
+    const botCategory     = (cf['verifiedBotCategory']  as string  | undefined) ?? null;
+    const edgeColo        = (cf['colo']                 as string  | undefined) ?? null;
+    const requestReferrer = request.headers.get('referer') ?? null;
+    const requestUri      = url.pathname + (url.search ? url.search : '');
+
+    // SHA-512 of the canonical request identity (RayID + method + path + timestamp)
+    // Used as a deterministic key for the R2 evidence file.
+    const payloadStr  = `${rayId}|${method}|${ip}|${url.pathname}|${now}`;
+    let sha512Payload = rayId; // fallback to RayID if Web Crypto unavailable
+    try {
+      const msgBuffer  = new TextEncoder().encode(payloadStr);
+      const hashBuffer = await crypto.subtle.digest('SHA-512', msgBuffer);
+      const hashArray  = Array.from(new Uint8Array(hashBuffer));
+      sha512Payload    = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      // Web Crypto unavailable (local dev) — use RayID as payload key
+    }
+
+    const edgeEnd   = new Date();
+    const wallTimeUs = Math.round((edgeEnd.getTime() - edgeStart.getTime()) * 1000);
+
+    // ── D1 insert ─────────────────────────────────────────────────────────────
     await cfEnv.DB.prepare(
       `INSERT INTO anchor_audit_logs
-         (anchored_at, sha512, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (anchored_at, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn,
+          sha512_payload, request_method, client_city, client_lat, client_lon,
+          request_uri, request_protocol, request_referrer,
+          waf_score_total, waf_score_sqli, bot_category, edge_colo,
+          wall_time_us, edge_start_ts, edge_end_ts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         now,
-        rayId,
         'EDGE_REQUEST',
         KERNEL_ANCHOR_DISPLAY,
         now,
         rayId,
         ip,
         url.pathname,
-        asn
+        asn,
+        sha512Payload,
+        method,
+        clientCity,
+        clientLat,
+        clientLon,
+        requestUri,
+        requestProtocol,
+        requestReferrer,
+        wafScoreTotal,
+        wafScoreSqli,
+        botCategory,
+        edgeColo,
+        wallTimeUs,
+        edgeStart.toISOString(),
+        edgeEnd.toISOString()
       )
       .run();
+
+    // ── R2 Evidence Vault archive ─────────────────────────────────────────────
+    // Write the full forensic log as an immutable JSON artifact.
+    // Path: evidence/${sha512_payload}.json
+    if (cfEnv.VAULT_R2) {
+      const evidencePayload = JSON.stringify({
+        sha512_payload: sha512Payload,
+        ray_id:         rayId,
+        ip_address:     ip,
+        asn,
+        path:           url.pathname,
+        request_uri:    requestUri,
+        request_method: method,
+        request_referrer: requestReferrer,
+        request_protocol: requestProtocol,
+        client_city:    clientCity,
+        client_lat:     clientLat,
+        client_lon:     clientLon,
+        waf_score_total: wafScoreTotal,
+        waf_score_sqli:  wafScoreSqli,
+        bot_category:   botCategory,
+        edge_colo:      edgeColo,
+        wall_time_us:   wallTimeUs,
+        edge_start_ts:  edgeStart.toISOString(),
+        edge_end_ts:    edgeEnd.toISOString(),
+        kernel_sha:     KERNEL_ANCHOR_DISPLAY,
+        archived_at:    edgeEnd.toISOString(),
+      });
+      cfEnv.VAULT_R2.put(`evidence/${sha512Payload}.json`, evidencePayload).catch(() => {
+        // Intentional no-op: R2 archiving must never block request processing
+      });
+    }
   } catch {
     // Intentional no-op: RayID vaulting must never block request processing
   }
