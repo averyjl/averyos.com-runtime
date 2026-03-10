@@ -201,7 +201,7 @@ async function main() {
   // Write manifest
   try {
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(manifest, null, 2), 'utf8');
-    logAosHeal('NOT_FOUND', `Generated ${gates.length} gates → ${OUTPUT_FILE}`);
+    console.log(`   Generated ${gates.length} gate checkpoints → ${OUTPUT_FILE}`);
     console.log(`✅  Gates manifest written: ${OUTPUT_FILE}`);
     console.log(`   Active: ${manifest.active_gates} | Pending: ${manifest.pending_gates} | Sealed: ${manifest.sealed_gates}`);
     console.log(`\n⛓️⚓⛓️  100-Gate Automation complete. CapsuleID: AveryOS_Gates_v1\n`);

@@ -31,6 +31,9 @@ import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+/** Alias for the D1Database parameter expected by autoTrackAccomplishment(). */
+type TaiD1 = Parameters<typeof autoTrackAccomplishment>[0];
+
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
@@ -226,7 +229,7 @@ export async function POST(request: Request): Promise<Response> {
     ).bind(asn, now).first<KaasValuationRow>();
 
     // Auto-track first PENDING row as a TAI milestone
-    autoTrackAccomplishment(cfEnv.DB as unknown as Parameters<typeof autoTrackAccomplishment>[0], {
+    autoTrackAccomplishment(cfEnv.DB as unknown as TaiD1, {
       title:       `KaaS Valuation Created — ASN ${asn} Tier-${tier}`,
       description: `New PENDING valuation: $${valuation_usd.toLocaleString()} USD for ASN ${asn} (IP: ${ip_address}). Tier: ${tier}. Kernel: ${KERNEL_VERSION}`,
       phase:       "Phase 97",
@@ -302,7 +305,7 @@ export async function PATCH(request: Request): Promise<Response> {
     ).bind(id).first<KaasValuationRow>();
 
     if (status === "SETTLED") {
-      autoTrackAccomplishment(cfEnv.DB as unknown as Parameters<typeof autoTrackAccomplishment>[0], {
+      autoTrackAccomplishment(cfEnv.DB as unknown as TaiD1, {
         title:       `KaaS Settlement Confirmed — ID ${id}`,
         description: `Valuation row ${id} marked SETTLED. Invoice: ${body.stripe_invoice_id ?? "N/A"}. Kernel: ${KERNEL_VERSION}`,
         phase:       "Phase 98",

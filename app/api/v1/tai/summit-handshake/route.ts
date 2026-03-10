@@ -22,6 +22,9 @@ import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+/** Alias for the D1Database parameter expected by autoTrackAccomplishment(). */
+type TaiD1 = Parameters<typeof autoTrackAccomplishment>[0];
+
 interface CloudflareEnv {
   DB?:              D1Database;
   VAULT_PASSPHRASE?: string;
@@ -90,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
   // ── Record TAI accomplishment ─────────────────────────────────────────────
   if (cfEnv.DB) {
     autoTrackAccomplishment(
-      cfEnv.DB as unknown as Parameters<typeof autoTrackAccomplishment>[0],
+      cfEnv.DB as unknown as TaiD1,
       {
         title:       "Internal_Stripe_Handshake",
         description:

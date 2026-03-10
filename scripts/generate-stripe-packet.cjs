@@ -209,7 +209,7 @@ async function main() {
       fs.mkdirSync(OUTPUT_DIR, { recursive: true });
       fs.writeFileSync(OUTPUT_FILE, JSON.stringify(sealedPacket, null, 2), 'utf8');
       console.log(`\n✅  Evidence packet written: ${OUTPUT_FILE}`);
-      logAosHeal(AOS_ERROR.NOT_FOUND, `Evidence packet generated: ${OUTPUT_FILE}`);
+      console.log(`✅  Evidence packet sealed: ${OUTPUT_FILE}`);
     } catch (err) {
       logAosError(AOS_ERROR.DB_QUERY_FAILED, `Failed to write evidence packet: ${err.message}`, err);
       process.exit(1);
