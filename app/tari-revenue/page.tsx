@@ -57,6 +57,26 @@ const SURGE_MILESTONE_UV = "987";
 // Types
 // ---------------------------------------------------------------------------
 
+// KaaS tier data — maps ASN to sovereign fee schedule for live visualization
+interface KaasTierRow {
+  asn:       string;
+  org_name:  string;
+  tier:      number;
+  fee_label: string;
+  fee_name:  string;
+  color:     string;
+}
+
+// Top KaaS-tracked ASNs with tier, fee, and display color (Phase 97)
+const KAAS_TIER_DISPLAY: KaasTierRow[] = [
+  { asn: "8075",   org_name: "Microsoft / Azure",  tier: 10, fee_label: "$10,000,000", fee_name: "Technical Asset Valuation", color: "#ff4444" },
+  { asn: "15169",  org_name: "Google LLC",          tier: 9,  fee_label: "$10,000,000", fee_name: "Technical Asset Valuation", color: "#ff4444" },
+  { asn: "36459",  org_name: "GitHub, Inc.",        tier: 8,  fee_label: "$10,000,000", fee_name: "Technical Asset Valuation", color: "#ff6b35" },
+  { asn: "16509",  org_name: "Amazon / AWS",        tier: 8,  fee_label: "$10,000,000", fee_name: "Technical Asset Valuation", color: "#ff6b35" },
+  { asn: "211590", org_name: "OVH France",          tier: 7,  fee_label: "$1,017,000",  fee_name: "Forensic Valuation",        color: "#f97316" },
+  { asn: "32934",  org_name: "Meta / Facebook",     tier: 7,  fee_label: "$1,017,000",  fee_name: "Forensic Valuation",        color: "#f97316" },
+];
+
 interface TariRevenueData {
   totalUsd: string;
   requestCount: number;
@@ -468,6 +488,57 @@ export default function TariRevenuePage() {
 
       {/* Liability vs. Collected Chart — top corporate orgs */}
       <LiabilityBarChart chartData={chartData} threshold={TARI_THRESHOLD_USD} />
+
+      {/* KaaS Tier Badge Display — Phase 97 Live Liability Visualization */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
+          border: `1px solid ${GOLD_BORDER}`,
+          borderRadius: "12px",
+          padding: "0.85rem 1.25rem",
+          marginBottom: "1.5rem",
+          fontFamily: "JetBrains Mono, monospace",
+        }}
+      >
+        <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", marginBottom: "0.75rem", letterSpacing: "0.06em" }}>
+          ⚡ KAAS™ TIER SCHEDULE — Live Liability by ASN (Phase 97)
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
+          {KAAS_TIER_DISPLAY.map((row) => (
+            <div
+              key={row.asn}
+              style={{
+                background: PURPLE_DEEP,
+                border: `1px solid ${row.color}55`,
+                borderRadius: "10px",
+                padding: "0.75rem 1rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                <span style={{ fontSize: "0.68rem", color: row.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Tier-{row.tier} {row.tier >= 9 ? "⚡" : row.tier >= 7 ? "🔶" : ""}
+                </span>
+                <span style={{ fontSize: "0.65rem", color: GOLD_DIM }}>ASN {row.asn}</span>
+              </div>
+              <div style={{ fontSize: "0.8rem", color: WHITE, fontWeight: 600, marginBottom: "0.2rem" }}>
+                {row.org_name}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: row.color, fontWeight: 700 }}>
+                {row.fee_label}
+              </div>
+              <div style={{ fontSize: "0.62rem", color: GOLD_DIM, marginTop: "0.15rem" }}>
+                {row.fee_name}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Compliance Usage Table */}
       {usage && usage.rows.length > 0 && (
