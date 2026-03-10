@@ -132,6 +132,7 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put FCM_SERVER_KEY          # Firebase Cloud Messaging Legacy API server key (Tier-9 push)
 #   wrangler secret put FCM_DEVICE_TOKEN        # FCM device/topic token for GabrielOS™ mobile push
 #   wrangler secret put GEMINI_API_KEY          # Google AI Studio — Gemini REST API key (Phase 92.5 Conflict Resolver)
+#   wrangler secret put TAI_SENTINEL_TOKEN      # TAI™ Sentinel identity token for /api/v1/tai/sync (Phase 93.4)
 
 # ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
 # Protects the sovereign kernel from DDoS and probabilistic noise.
@@ -149,8 +150,31 @@ simple = { limit = 1017, period = 60 }
 # Evidence Packaging Automation: runs every 5 minutes.
 # Triggers GET /api/v1/cron/package-evidence to build R2 forensic bundles
 # for all unpackaged LEGAL_SCAN events (Phase 82).
+#
+# Daily Stripe Reconciliation (Phase 93.5): runs at 07:00 UTC (00:00 MST).
+# Triggers GET /api/v1/cron/reconcile to audit Stripe vs D1 sovereign_alignments.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/5 * * * *", "0 7 * * *"]
+
+# ── Cloudflare Queues — D1 Surge Buffer (Phase 93.5) ─────────────────────────
+# Prevents "Undercounting Drift" during high-volume surges (25k+ log events).
+# The queue buffers sovereign_audit_log writes so no records are dropped under
+# SQLite concurrency pressure.
+#
+# Activate via: wrangler queues create SOVEREIGN_LOG_INGRESS
+# Then bind the producer and consumer here.
+[[queues.producers]]
+queue        = "SOVEREIGN_LOG_INGRESS"
+binding      = "SOVEREIGN_LOG_QUEUE"
+
+[[queues.consumers]]
+queue        = "SOVEREIGN_LOG_INGRESS"
+max_batch_size       = 100
+max_batch_timeout    = 5
+max_retries          = 3
+dead_letter_queue    = "SOVEREIGN_LOG_INGRESS_DLQ"
+# Create queues with: wrangler queues create SOVEREIGN_LOG_INGRESS
+#                     wrangler queues create SOVEREIGN_LOG_INGRESS_DLQ
 
 # ── Tier-10 ASN Rate Limiting Rules ──────────────────────────────────────────
 # Additional programmatic rate limiting for Tier-10 ASNs (LEGAL_SCAN threat level 10).
