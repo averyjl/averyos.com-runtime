@@ -93,6 +93,12 @@ custom_domain = true
 pattern = "lighthouse.averyos.com"
 custom_domain = true
 
+# Edge Redirect (Gate 100.1): enterpriseregistration.averyos.com/* → /licensing/enterprise
+# Azure/O365 enterprise procurement bots and Tier-10 ASN probes that target the
+# enterprise registration subdomain are permanently redirected (301) to the
+# sovereign Enterprise Licensing Portal.  The redirect is enforced in
+# middleware.ts (hostname === 'enterpriseregistration.averyos.com') so it fires
+# at the edge before any Next.js route handler runs.
 [[routes]]
 pattern = "enterpriseregistration.averyos.com"
 custom_domain = true
