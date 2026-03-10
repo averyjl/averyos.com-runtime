@@ -98,6 +98,7 @@ binding = 'VAULT'
 bucket_name = 'cloudflare-managed-42f4b874'
 
 # VAULT_R2 — architecture integrity session audit logs (scoped under session-logs/integrity/ key prefix)
+# Replication: evidence bundles are written under evidence/ prefix for forensic audit trail.
 [[r2_buckets]]
 binding = 'VAULT_R2'
 bucket_name = 'cloudflare-managed-42f4b874'
@@ -143,7 +144,15 @@ name = "RATE_LIMITER"
 namespace_id = "1017"
 simple = { limit = 1017, period = 60 }
 
-# ── Wrangler Rate Limiting Rules (1,017-Notch Protection) ────────────────────
+# ── Cloudflare Cron Triggers ──────────────────────────────────────────────────
+# Evidence Packaging Automation: runs every 5 minutes.
+# Triggers GET /api/v1/cron/package-evidence to build R2 forensic bundles
+# for all unpackaged LEGAL_SCAN events (Phase 82).
+[triggers]
+crons = ["*/5 * * * *"]
+
+# ── Tier-10 ASN Rate Limiting Rules ──────────────────────────────────────────
+# Additional programmatic rate limiting for Tier-10 ASNs (LEGAL_SCAN threat level 10).
 # These [[unsafe.bindings]] rules protect the DER event endpoints from DDoS.
 # Each rule enforces 1,017 requests per 60-second window per IP address.
 # Applied to the most sensitive sovereign API routes.

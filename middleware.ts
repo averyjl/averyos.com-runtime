@@ -1,6 +1,6 @@
-// GabrielOS Edge-Guard v1.5
+// GabrielOS Edge-Guard v1.6
 // Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
-// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 78.1)
+// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 83 — INGESTION_INTENT Engine)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
@@ -35,7 +35,9 @@ const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 
 // ── Biometric Identity Shield — Entropy Weight Constants ──────────────────────
 // Each weight represents the signal strength of a specific browser attribute.
-// The total possible score is 90; a score ≥ 50 is classified as a real browser.
+// Phase 82: Total possible score is 100; a score ≥ 50 is classified as a real browser.
+// Canvas fingerprint signal (+10) is sent by the client-side SDK when a real browser
+// canvas context is available, carried as X-AveryOS-Canvas-FP header.
 // Weights are calibrated to match the difficulty of spoofing each signal.
 const ENTROPY_ACCEPT_HEADER     = 15; // complex mime-type Accept header (hard to fake)
 const ENTROPY_ACCEPT_LANG       = 15; // Accept-Language with locale subtags (e.g. en-US)
@@ -44,9 +46,13 @@ const ENTROPY_FETCH_METADATA    = 15; // Fetch Metadata triad (sec-fetch-dest/mo
 const ENTROPY_BROWSER_HEADERS   = 15; // ≥ MIN_BROWSER_HEADERS_THRESHOLD present
 const ENTROPY_CF_DEVICE_TYPE    = 10; // Cloudflare device-type classification
 const ENTROPY_BROWSER_UA        = 10; // browser UA pattern match
+// Phase 82 — Canvas fingerprint signal: client-side SDK sets X-AveryOS-Canvas-FP
+// to a non-empty value when a real HTMLCanvasElement is accessible (bots lack this).
+const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 hardening)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
-// Full kernel anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+// Full kernel anchor — imported from sovereignConstants for single source of truth
+import { KERNEL_SHA } from './lib/sovereignConstants';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
@@ -115,29 +121,35 @@ const TARI_BILLED_PATHS = new Set([
 // Paths intercepted by the GabrielOS Legal Tripwire for D1 audit logging
 const GATEKEEPER_AUDIT_PATHS = new Set(['/health', '/evidence-vault']);
 
-// ── Phase 83 — INGESTION_INTENT weighted algorithm ───────────────────────────
-// Sensitive paths that elevate any DER-ASN request to LEGAL_SCAN (Tier-10).
-// Access to webhook receivers or vault APIs from corporate ASNs constitutes
-// deterministic ingestion of sovereign logic under TARI™ terms.
-const INGESTION_INTENT_PATHS = ['/hooks/', '/api/v1/vault'];
+// ── INGESTION_INTENT Weighted Algorithm — Phase 83 ────────────────────────────
+// Classifies request intent based on ASN, WAF Attack Score, and target path.
+// Output is a deterministic label used in sovereign_audit_logs.ingestion_intent.
+//
+// Tier-10 LEGAL_SCAN = (High-value ASN OR WAF score >80) AND logic-layer path
+// Tier-9  DER_PROBE  = High-value ASN + any path
+// Tier-1  PEER_ACCESS = everything else
+const INGESTION_TIER10_ASNS = new Set(['36459', '8075', '15169', '16509', '14618']);
+const INGESTION_LOGIC_PATHS = ['/hooks/', '/api/v1/vault', '/api/v1/licensing',
+                               '/.aoscap', '/latent-anchor', '/truth-anchor'];
+const WAF_HIGH_INTENT_THRESHOLD = 80;
 
-// WAF score threshold that, combined with a DER-ASN, triggers Tier-10 LEGAL_SCAN.
-const INGESTION_INTENT_WAF_THRESHOLD = 80;
+/**
+ * Compute the INGESTION_INTENT classification for a request.
+ * Returns a label (LEGAL_SCAN | DER_PROBE | PEER_ACCESS | CONFLICT_ZONE_PROBE).
+ */
+function classifyIngestionIntent(
+  clientAsn: string,
+  wafTotal: number,
+  pathname: string,
+): string {
+  const isHighValueAsn  = INGESTION_TIER10_ASNS.has(clientAsn);
+  const isHighWaf       = wafTotal >= WAF_HIGH_INTENT_THRESHOLD;
+  const isLogicLayerPath = INGESTION_LOGIC_PATHS.some(p => pathname.startsWith(p));
 
-// DER ASNs that participate in INGESTION_INTENT scoring (same as DER_ASN_ALIGNMENTS).
-const INGESTION_INTENT_ASNS = new Set(['36459', '8075']);
-
-// ── Phase 88 — UsageCreditWatch: Gemini monthly cost circuit breaker ─────────
-// If the estimated cumulative Gemini spend for the current calendar month
-// exceeds this threshold, the system forces fallback to LOCAL_OLLAMA_NODE
-// until the Creator manually resets the counter via the admin panel.
-const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50.00;
-
-// KV key pattern for the monthly Gemini spend accumulator.
-// Keyed by YYYY-MM so it auto-resets each calendar month.
-function geminiMonthlySpendKey(): string {
-  const now = new Date();
-  return `gemini_monthly_spend:${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  if ((isHighValueAsn || isHighWaf) && isLogicLayerPath) return 'LEGAL_SCAN';
+  if (isHighValueAsn) return 'DER_PROBE';
+  if (isHighWaf)      return 'HIGH_WAF_PROBE';
+  return 'PEER_ACCESS';
 }
 
 interface D1PreparedStatement {
@@ -158,47 +170,107 @@ interface GatekeeperEnv {
   VAULT_PASSPHRASE?: string;
   SITE_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
-  // Simplified KV interface — subset of Cloudflare KVNamespace used for
-  // the Phase 88 UsageCreditWatch monthly spend accumulator.
-  KV_LOGS?: {
-    get(key: string): Promise<string | null>;
-    put(key: string, value: string): Promise<void>;
-  };
+  VAULT_R2?: R2Bucket;
 }
 
 /**
  * GabrielOS Legal Tripwire — fire-and-forget D1 audit insert.
- * Logs every hit to /health or /evidence-vault into sovereign_audit_logs.
+ * Logs every hit to /health or /evidence-vault into sovereign_audit_logs,
+ * capturing the full Cloudflare metadata object for forensic evidence.
+ *
+ * Phase 81.5 Total Fidelity: populates WAF scores, edge timestamps,
+ * geolocation, INGESTION_INTENT classification, and kernel_sha anchor.
+ *
  * Errors are swallowed so logging failures never block legitimate access.
  */
 async function logSovereignAudit(request: NextRequest): Promise<void> {
   try {
+    const edgeStartTs = new Date().toISOString();
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
     if (!cfEnv.DB) return;
 
-    const url = new URL(request.url);
-    const ip = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const ua = request.headers.get('user-agent') ?? 'UNKNOWN';
-    const colo = request.headers.get('cf-ray')?.split('-')[1] ?? 'UNKNOWN';
-    const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
-    const timestampNs = Date.now().toString() + '000000';
+    const url           = new URL(request.url);
+    const ip            = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const ua            = request.headers.get('user-agent') ?? 'UNKNOWN';
+    const rayId         = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const colo          = rayId.split('-')[1] ?? 'UNKNOWN';
+    const clientAsn     = request.headers.get('cf-asn') ?? '';
+    const city          = request.headers.get('cf-ipcity') ?? '';
+    const country       = request.headers.get('cf-ipcountry') ?? '';
+    const wafTotalRaw   = request.headers.get('cf-waf-score-total') ?? '0';
+    const wafSqliRaw    = request.headers.get('cf-waf-score-sqli') ?? '0';
+    const wafTotal      = parseInt(wafTotalRaw, 10) || 0;
+    const wafSqli       = parseInt(wafSqliRaw,  10) || 0;
+    const isCorporate   = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
+    const timestampNs   = Date.now().toString() + '000000';
+    const intent        = classifyIngestionIntent(clientAsn, wafTotal, url.pathname);
+    const threatLevel   = intent === 'LEGAL_SCAN' ? 10 : isCorporate ? 5 : 1;
+    const edgeEndTs     = new Date().toISOString();
+    const wallTimeUs    = Math.round(
+      (new Date(edgeEndTs).getTime() - new Date(edgeStartTs).getTime()) * 1000
+    );
 
+    // ── D1 Insert — Total Fidelity columns ───────────────────────────────────
     await cfEnv.DB.prepare(
       `INSERT INTO sovereign_audit_logs
-         (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+         (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns,
+          threat_level, waf_score_total, waf_score_sqli, wall_time_us,
+          edge_start_ts, edge_end_ts, kernel_sha, city, asn, client_country, ingestion_intent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        intent === 'LEGAL_SCAN' ? 'LEGAL_SCAN' : isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
         ip,
         ua,
         colo,
         url.pathname,
         timestampNs,
-        isCorporate ? 10 : 1
+        threatLevel,
+        wafTotal,
+        wafSqli,
+        wallTimeUs,
+        edgeStartTs,
+        edgeEndTs,
+        KERNEL_SHA,
+        city,
+        clientAsn,
+        country,
+        intent,
       )
       .run();
+
+    // ── R2 Evidence Dump — Full Cloudflare Metadata Object ───────────────────
+    // Persists the raw telemetry as evidence/${rayId}.json in VAULT_R2.
+    // This creates a direct, verifiable link between the D1 record and the
+    // physical JSON proof for the Forensic Evidence Explorer.
+    if (cfEnv.VAULT_R2 && rayId !== 'UNKNOWN') {
+      const evidencePayload = JSON.stringify({
+        ray_id:           rayId,
+        ip_address:       ip,
+        user_agent:       ua,
+        colo,
+        asn:              clientAsn,
+        city,
+        country,
+        path:             url.pathname,
+        waf_score_total:  wafTotal,
+        waf_score_sqli:   wafSqli,
+        wall_time_us:     wallTimeUs,
+        edge_start_ts:    edgeStartTs,
+        edge_end_ts:      edgeEndTs,
+        threat_level:     threatLevel,
+        ingestion_intent: intent,
+        kernel_sha:       KERNEL_SHA,
+        captured_at:      edgeStartTs,
+      }, null, 2);
+
+      cfEnv.VAULT_R2.put(`evidence/${rayId}.json`, evidencePayload, {
+        httpMetadata: { contentType: 'application/json' },
+      }).catch((err: unknown) => {
+        console.error('[AOS] VAULT_R2 evidence dump failed:', err instanceof Error ? err.message : String(err));
+      });
+    }
   } catch {
     // Intentional no-op: audit logging must never block request processing
   }
@@ -696,7 +768,8 @@ export async function middleware(request: NextRequest) {
   // ── Biometric Identity Shield — Entropy Scoring ───────────────────────────
   // Computes a lightweight request-entropy score to detect automated/scripted
   // traffic that mimics browser headers but lacks genuine behavioral signals.
-  // Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Phase 82: Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Canvas fingerprint signal (+10) added in Phase 82 hardening.
   const acceptHeader       = request.headers.get('accept') ?? '';
   const acceptLangHeader   = request.headers.get('accept-language') ?? '';
   const acceptEncHeader    = request.headers.get('accept-encoding') ?? '';
@@ -704,6 +777,8 @@ export async function middleware(request: NextRequest) {
   const secFetchMode       = request.headers.get('sec-fetch-mode') ?? '';
   const secFetchSite       = request.headers.get('sec-fetch-site') ?? '';
   const cfDeviceType       = request.headers.get('cf-device-type') ?? '';
+  // Phase 82: canvas fingerprint header — set by client-side SDK when real canvas is available
+  const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -719,6 +794,8 @@ export async function middleware(request: NextRequest) {
   if (cfDeviceType === 'mobile' || cfDeviceType === 'desktop' || cfDeviceType === 'tablet') entropyScore += ENTROPY_CF_DEVICE_TYPE;
   // +ENTROPY_BROWSER_UA for browser UA pattern
   if (hasBrowserPattern) entropyScore += ENTROPY_BROWSER_UA;
+  // +ENTROPY_CANVAS_FP for Phase 82 canvas fingerprint signal (real browser canvas API present)
+  if (canvasFp && canvasFp.length >= 8) entropyScore += ENTROPY_CANVAS_FP;
   // ─────────────────────────────────────────────────────────────────────────
 
   // Consider it a browser if:

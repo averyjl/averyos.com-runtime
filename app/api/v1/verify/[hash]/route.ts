@@ -40,6 +40,17 @@ interface CapsuleAnchorRow {
   path: string | null;
 }
 
+interface VaultchainTxRow {
+  id: number;
+  transaction_id: string;
+  timestamp: string;
+  event_type: string;
+  private_capsule_sha512: string;
+  target: string;
+  details: string;
+  created_at: string;
+}
+
 interface RouteParams {
   params: Promise<{ hash: string }>;
 }
@@ -152,6 +163,39 @@ export async function GET(_request: Request, { params }: RouteParams) {
         path:           capsuleRow.path,
         verified_at:    new Date().toISOString(),
         detail:         'VaultChain™ anchor verified. This hash is permanently recorded on the AveryOS™ sovereign ledger.',
+      });
+    }
+
+    // ── 2.5. Check vaultchain_transactions (hardware-bound token anchors) ───
+    // Supports full 128-char SHA-512 or partial prefix lookup for VaultChain tx capsule SHAs.
+    const txRow = await cfEnv.DB.prepare(
+      `SELECT id, transaction_id, timestamp, event_type, private_capsule_sha512,
+              target, details, created_at
+       FROM vaultchain_transactions
+       WHERE private_capsule_sha512 = ?
+          OR private_capsule_sha512 LIKE ?
+          OR transaction_id = ?
+       ORDER BY id DESC
+       LIMIT 1`,
+    )
+      .bind(hash, `${hash}%`, hash)
+      .first<VaultchainTxRow>();
+
+    if (txRow) {
+      return Response.json({
+        resonance:              'HIGH_FIDELITY_SUCCESS',
+        hash_type:              'VAULTCHAIN_TRANSACTION',
+        transaction_id:         txRow.transaction_id,
+        event_type:             txRow.event_type,
+        private_capsule_sha512: txRow.private_capsule_sha512,
+        target:                 txRow.target,
+        details:                txRow.details,
+        timestamp:              txRow.timestamp,
+        created_at:             txRow.created_at,
+        kernel_version:         KERNEL_VERSION,
+        kernel_sha:             KERNEL_SHA.slice(0, 16) + '…',
+        verified_at:            new Date().toISOString(),
+        detail:                 'VaultChain™ transaction verified. This capsule SHA-512 is sealed on the sovereign Public Witness Ledger.',
       });
     }
 
