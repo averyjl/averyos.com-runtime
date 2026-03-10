@@ -156,7 +156,7 @@ simple = { limit = 1017, period = 60 }
 [triggers]
 crons = ["*/5 * * * *", "0 7 * * *"]
 
-# ── Cloudflare Queues — D1 Surge Buffer (Phase 93.5) ─────────────────────────
+# ── Cloudflare Queues — D1 Surge Buffer (Phase 93.5 / 95.1) ──────────────────
 # Prevents "Undercounting Drift" during high-volume surges (25k+ log events).
 # The queue buffers sovereign_audit_log writes so no records are dropped under
 # SQLite concurrency pressure.

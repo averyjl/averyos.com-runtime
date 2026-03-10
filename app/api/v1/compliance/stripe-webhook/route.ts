@@ -1,7 +1,7 @@
 /**
  * POST /api/v1/compliance/stripe-webhook
  *
- * Stripe Webhook Centralization — Phase 93.1 / 94.4
+ * Stripe Webhook Centralization — Phase 93.1 / 94.4 / 95.3
  *
  * Re-implements the legacy Render stripe_listener logic as a Cloudflare Worker
  * endpoint, eliminating the third-party Render dependency and placing the
@@ -10,7 +10,7 @@
  * Handles:
  *   • checkout.session.completed — activates capsule_access_tokens + sovereign_alignments
  *   • customer.subscription.created / updated / deleted — subscription lifecycle
- *   • payment_intent.succeeded — payment confirmation
+ *   • payment_intent.succeeded — payment confirmation + R2 evidence download link
  *   • payment_intent.payment_failed — failed payment logging
  *
  * Wrangler secrets required:
@@ -35,16 +35,33 @@ interface D1Database {
   prepare(query: string): D1PreparedStatement;
 }
 
+interface R2Bucket {
+  get(key: string): Promise<{ body: ReadableStream } | null>;
+}
+
 interface CloudflareEnv {
   DB: D1Database;
+  VAULT_R2?: R2Bucket;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  SITE_URL?: string;
 }
 
 /** Compute a SHA-512 hex digest */
 async function sha512hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Generate a time-limited secure download token for the R2 evidence bundle.
+ * The token is a SHA-512 of the payment_intent ID + KERNEL_SHA + current
+ * 5-minute window, making it valid for up to 5 minutes without DB storage.
+ */
+async function generateEvidenceToken(piId: string): Promise<string> {
+  const windowMs = 5 * 60 * 1000;
+  const window   = Math.floor(Date.now() / windowMs);
+  return sha512hex(`evidence_token:${piId}:${window}:${KERNEL_SHA}`);
 }
 
 export async function POST(request: Request) {
@@ -217,10 +234,11 @@ export async function POST(request: Request) {
 
     // ── payment_intent.succeeded ──────────────────────────────────────────────
     if (event.type === "payment_intent.succeeded") {
-      const pi     = event.data.object as Stripe.PaymentIntent;
-      const piId   = pi.id;
-      const amount = pi.amount_received;
-      const ackSha = await sha512hex(`payment_intent.succeeded:${piId}:${amount}:${KERNEL_SHA}`);
+      const pi      = event.data.object as Stripe.PaymentIntent;
+      const piId    = pi.id;
+      const amount  = pi.amount_received;
+      const rayId   = pi.metadata?.ray_id ?? "";
+      const ackSha  = await sha512hex(`payment_intent.succeeded:${piId}:${amount}:${KERNEL_SHA}`);
 
       try {
         await cfEnv.DB.prepare(
@@ -237,7 +255,37 @@ export async function POST(request: Request) {
         // Non-fatal
       }
 
-      return Response.json({ received: true, payment_intent: piId, amount_cents: amount });
+      // ── R2 Evidence Bundle — One-Time Secure Download Link (Phase 95.3) ──
+      let evidenceDownloadUrl: string | null = null;
+      let evidenceBundleExists = false;
+
+      if (rayId && cfEnv.VAULT_R2) {
+        try {
+          const r2Key = `evidence/${rayId}.json`;
+          const obj   = await cfEnv.VAULT_R2.get(r2Key);
+          if (obj) {
+            evidenceBundleExists = true;
+            const token    = await generateEvidenceToken(piId);
+            const siteUrl  = cfEnv.SITE_URL ?? "https://averyos.com";
+            evidenceDownloadUrl = `${siteUrl}/api/v1/evidence/download?ray_id=${encodeURIComponent(rayId)}&pi_id=${encodeURIComponent(piId)}&token=${token}`;
+          }
+        } catch (r2Err: unknown) {
+          console.warn(
+            "[STRIPE_WEBHOOK] R2 evidence lookup failed:",
+            r2Err instanceof Error ? r2Err.message : String(r2Err),
+          );
+        }
+      }
+
+      return Response.json({
+        received:              true,
+        payment_intent:        piId,
+        amount_cents:          amount,
+        ack_sha512:            ackSha,
+        evidence_bundle:       evidenceBundleExists,
+        evidence_download_url: evidenceDownloadUrl,
+        kernel_version:        KERNEL_VERSION,
+      });
     }
 
     // ── payment_intent.payment_failed ─────────────────────────────────────────
