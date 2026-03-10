@@ -627,7 +627,75 @@ export async function batchSyncTariProbeToFirebase(
  */
 export const syncTariProbeRowToFirebase = syncTariProbeToFirebase;
 
-// ── GabrielOS™ FCM HTTP v1 Push ───────────────────────────────────────────────
+// ── kaas_valuations → Firebase Sync ──────────────────────────────────────────
+
+/**
+ * Document shape for a kaas_valuations row synced to Firebase.
+ * KaaS breach events are mirrored to Firestore for multi-cloud audit parity.
+ */
+export interface KaasValuationDoc {
+  source:          "cloudflare_d1";
+  table:           "kaas_valuations";
+  asn:             string;
+  ip_address:      string;
+  tier:            number;
+  valuation_usd:   number;
+  status:          string;
+  ray_id:          string | null;
+  pulse_hash:      string | null;
+  kernel_version:  string;
+  created_at:      string;
+  synced_at:       string;
+  kernel_sha:      string;
+  creator_lock:    "🤛🏻";
+}
+
+/**
+ * Sync a kaas_valuations row to the Firestore `averyos-kaas-valuations`
+ * collection for Multi-Cloud D1/Firebase parity.
+ *
+ * Activates automatically once FIREBASE_PROJECT_ID is set in Cloudflare secrets.
+ * Every KAAS_BREACH event is mirrored to Firestore in real time.
+ *
+ * @param row — a kaas_valuations row (or equivalent KAAS_BREACH payload)
+ */
+export async function syncKaasValuationToFirebase(row: {
+  asn:            string;
+  ip_address:     string;
+  tier:           number;
+  valuation_usd:  number;
+  status:         string;
+  ray_id?:        string | null;
+  pulse_hash?:    string | null;
+  kernel_version: string;
+  created_at:     string;
+}): Promise<KaasValuationDoc | null> {
+  if (!isFirebaseConfigured()) return null;
+
+  const doc: KaasValuationDoc = {
+    source:         "cloudflare_d1",
+    table:          "kaas_valuations",
+    asn:            row.asn,
+    ip_address:     row.ip_address,
+    tier:           row.tier,
+    valuation_usd:  row.valuation_usd,
+    status:         row.status,
+    ray_id:         row.ray_id          ?? null,
+    pulse_hash:     row.pulse_hash      ?? null,
+    kernel_version: row.kernel_version,
+    created_at:     row.created_at,
+    synced_at:      new Date().toISOString(),
+    kernel_sha:     process.env.KERNEL_SHA ?? "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+    creator_lock:   "🤛🏻",
+  };
+
+  try {
+    await writeToFirestore("averyos-kaas-valuations", doc as unknown as Record<string, unknown>);
+    return doc;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Returns true when GabrielOS™ FCM push is fully configured.

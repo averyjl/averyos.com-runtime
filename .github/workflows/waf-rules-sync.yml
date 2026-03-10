@@ -1,0 +1,118 @@
+name: WAF Rules Cloudflare Sync
+
+# ⛓️⚓⛓️  Gate 8 — WAF Rules Auto-Deploy via Cloudflare API
+# Runs export-waf-rules.cjs and deploys the resulting WAF rule set to
+# Cloudflare via the Cloudflare Rulesets API on every push to main.
+#
+# Required secrets:
+#   CLOUDFLARE_API_TOKEN   — WAF edit permission (Zone:Firewall Services:Edit)
+#   CLOUDFLARE_ACCOUNT_ID  — Cloudflare account identifier
+#   CLOUDFLARE_ZONE_ID     — Zone ID for averyos.com
+#   VAULT_PASSPHRASE       — AveryOS sovereign auth token
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "scripts/export-waf-rules.cjs"
+      - "lib/security/**"
+      - "middleware.ts"
+      - ".github/workflows/waf-rules-sync.yml"
+  workflow_dispatch:
+
+jobs:
+  sync-waf-rules:
+    name: 🛡️ WAF Rules Cloudflare Sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🟢 Use Node.js 20.x
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20.x
+          cache: "npm"
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Validate Cloudflare auth
+        run: npx wrangler whoami
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: 📋 Export WAF rules manifest
+        run: |
+          if [ -f "scripts/export-waf-rules.cjs" ]; then
+            node scripts/export-waf-rules.cjs
+          else
+            echo "⚠️  export-waf-rules.cjs not found — generating minimal WAF manifest."
+            mkdir -p public/manifest/waf
+            cat > public/manifest/waf/waf_rules_v1.json << 'EOF'
+          {
+            "manifest_type": "WAF_RULES_V1",
+            "version": "1.0.0",
+            "generated_at": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
+            "kernel_version": "v3.6.2",
+            "sovereign_anchor": "⛓️⚓⛓️",
+            "rules": []
+          }
+          EOF
+          fi
+        env:
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: 🚀 Deploy WAF rules to Cloudflare via Rulesets API
+        run: |
+          ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID }}"
+          API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          if [ -z "$ZONE_ID" ] || [ -z "$API_TOKEN" ]; then
+            echo "⚠️  CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set — skipping WAF deploy."
+            exit 0
+          fi
+
+          # Read the WAF rules manifest
+          MANIFEST_PATH="public/manifest/waf/waf_rules_v1.json"
+          if [ ! -f "$MANIFEST_PATH" ]; then
+            echo "⚠️  WAF rules manifest not found at $MANIFEST_PATH — skipping."
+            exit 0
+          fi
+
+          RULE_COUNT=$(node -e "const m=require('./$MANIFEST_PATH'); console.log((m.rules||[]).length)")
+          echo "📋  WAF rules to sync: ${RULE_COUNT}"
+
+          if [ "$RULE_COUNT" = "0" ]; then
+            echo "ℹ️  No WAF rules to deploy — manifest is empty."
+            exit 0
+          fi
+
+          # Deploy custom ruleset via Cloudflare Rulesets API
+          HTTP_STATUS=$(curl -s -o /tmp/waf_response.json -w "%{http_code}" \
+            -X PUT \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/rulesets/phases/http_request_firewall_custom/entrypoint" \
+            -H "Authorization: Bearer ${API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary @"$MANIFEST_PATH")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅  WAF rules deployed successfully (HTTP ${HTTP_STATUS})."
+            cat /tmp/waf_response.json | node -e "const d=require('/dev/stdin'); console.log('  Ruleset ID:', d.result?.id ?? 'N/A')"
+          else
+            echo "❌  WAF deploy failed (HTTP ${HTTP_STATUS})."
+            cat /tmp/waf_response.json
+            # Non-fatal — WAF sync failure should not block main deployment
+            exit 0
+          fi
+
+      - name: 📊 WAF Sync Summary
+        if: always()
+        run: |
+          echo "⛓️⚓⛓️  WAF Rules Sync — Gate 8 | Phase 99"
+          echo "  Kernel: v3.6.2 | cf83™ | Creator: Jason Lee Avery (ROOT0) 🤛🏻"
