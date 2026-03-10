@@ -12,12 +12,26 @@ interface CloudflareEnv {
 }
 
 /**
- * Enterprise ASNs that trigger a $1,000,000 "Sovereign Alignment Deposit".
+ * Phase 86 — Top-5 Corporate ASN Elevated Alignment Fee Schedule.
+ * These ASNs trigger a $10,000,000 "Technical Utilization Fee" per the
+ * AveryOS Sovereign Integrity License v1.0, Phase 86 enforcement.
  *   36459  — GitHub / Microsoft (US)
+ *   8075   — Microsoft Azure (US)
+ *   15169  — Google LLC (US)
+ *   16509  — Amazon.com (US)
+ *   14618  — Amazon Technologies (US)
+ */
+const PHASE_86_ENTERPRISE_ASNS = new Set(["36459", "8075", "15169", "16509", "14618"]);
+
+/**
+ * Legacy enterprise ASNs (pre-Phase 86) that trigger a $1,000,000 "Sovereign Alignment Deposit".
  *   211590 — FBW Networks (France)
  *   198488 — Colocall Ltd / Kyiv recon probe (UA)
  */
-const ENTERPRISE_ASNS = new Set(["36459", "211590", "198488"]);
+const ENTERPRISE_ASNS = new Set(["211590", "198488"]);
+
+/** Phase 86 Enterprise Technical Utilization Fee: $10,000,000 USD */
+const PHASE_86_FEE_CENTS = 1_000_000_000;
 
 /** Enterprise Alignment Deposit: $1,000,000 USD */
 const ENTERPRISE_DEPOSIT_CENTS = 100_000_000;
@@ -25,18 +39,13 @@ const ENTERPRISE_DEPOSIT_CENTS = 100_000_000;
 /** Individual Genesis Seed License: $101.70 USD (1,017 TARI™) */
 const INDIVIDUAL_LICENSE_CENTS = 10_170;
 
-type PricingTier = "ENTERPRISE_DEPOSIT" | "INDIVIDUAL_LICENSE" | "CUSTOM";
+type PricingTier = "PHASE_86_ENTERPRISE" | "ENTERPRISE_DEPOSIT" | "INDIVIDUAL_LICENSE" | "CUSTOM";
 
 interface PricingResult {
   liabilityCents: number;
   productName: string;
   productDescription: string;
   pricingTier: PricingTier;
-}
-
-/** Returns true when the ASN belongs to a known enterprise entity. */
-function isEnterpriseAsn(asn: string): boolean {
-  return ENTERPRISE_ASNS.has(asn);
 }
 
 /** Derives the complete pricing result from request parameters. */
@@ -58,7 +67,24 @@ function determinePricing(
     };
   }
 
-  if (asnStr && isEnterpriseAsn(asnStr)) {
+  // Phase 86 — Top-5 corporate ASN elevated fee: $10,000,000 USD
+  if (asnStr && PHASE_86_ENTERPRISE_ASNS.has(asnStr)) {
+    return {
+      liabilityCents: PHASE_86_FEE_CENTS,
+      productName: "AveryOS™ Phase 86 Enterprise Technical Utilization Fee",
+      productDescription:
+        (rayIdStr
+          ? `Phase 86 Sovereign Enforcement — RayID: ${rayIdStr} — `
+          : `Phase 86 Sovereign Enforcement — ASN ${asnStr} — `) +
+        `$10,000,000 USD Technical Utilization Fee per the AveryOS Sovereign Integrity License v1.0, ` +
+        `Phase 86 Enforcement. Forensic Evidence Bundle: ${bundleId}. ` +
+        `Victim Restoration Case ID: ${rayIdStr || bundleId}`,
+      pricingTier: "PHASE_86_ENTERPRISE",
+    };
+  }
+
+  // Legacy enterprise ASNs — $1,000,000 Sovereign Alignment Deposit
+  if (asnStr && ENTERPRISE_ASNS.has(asnStr)) {
     return {
       liabilityCents: ENTERPRISE_DEPOSIT_CENTS,
       productName: "AveryOS™ Enterprise Retro-Ingestion Deposit",
@@ -92,8 +118,9 @@ function determinePricing(
  * POST /api/v1/compliance/create-checkout
  *
  * Creates a Stripe Checkout session tied to a specific Forensic Evidence Bundle.
- * Pricing is determined by the caller's ASN:
- *   - Enterprise ASNs (36459, 211590, 198488) → $1,000,000 "Enterprise Retro-Ingestion Deposit"
+ * Pricing is determined by the caller's ASN (Phase 86 fee schedule):
+ *   - Phase 86 Enterprise ASNs (36459, 8075, 15169, 16509, 14618) → $10,000,000 "Technical Utilization Fee"
+ *   - Legacy Enterprise ASNs (211590, 198488) → $1,000,000 "Enterprise Retro-Ingestion Deposit"
  *   - All others → $101.70 "Genesis Seed Individual License"
  *
  * The tariLiability field may still be supplied directly to override ASN-derived pricing
@@ -110,7 +137,7 @@ function determinePricing(
  *
  * Response: { checkoutUrl: string; sessionId: string }
  *
- * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED
+ * ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED | Phase 86 Fee Schedule Active
  */
 export async function POST(request: Request) {
   try {

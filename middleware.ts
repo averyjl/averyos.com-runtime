@@ -35,7 +35,9 @@ const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 
 // ── Biometric Identity Shield — Entropy Weight Constants ──────────────────────
 // Each weight represents the signal strength of a specific browser attribute.
-// The total possible score is 90; a score ≥ 50 is classified as a real browser.
+// Phase 82: Total possible score is 100; a score ≥ 50 is classified as a real browser.
+// Canvas fingerprint signal (+10) is sent by the client-side SDK when a real browser
+// canvas context is available, carried as X-AveryOS-Canvas-FP header.
 // Weights are calibrated to match the difficulty of spoofing each signal.
 const ENTROPY_ACCEPT_HEADER     = 15; // complex mime-type Accept header (hard to fake)
 const ENTROPY_ACCEPT_LANG       = 15; // Accept-Language with locale subtags (e.g. en-US)
@@ -44,6 +46,9 @@ const ENTROPY_FETCH_METADATA    = 15; // Fetch Metadata triad (sec-fetch-dest/mo
 const ENTROPY_BROWSER_HEADERS   = 15; // ≥ MIN_BROWSER_HEADERS_THRESHOLD present
 const ENTROPY_CF_DEVICE_TYPE    = 10; // Cloudflare device-type classification
 const ENTROPY_BROWSER_UA        = 10; // browser UA pattern match
+// Phase 82 — Canvas fingerprint signal: client-side SDK sets X-AveryOS-Canvas-FP
+// to a non-empty value when a real HTMLCanvasElement is accessible (bots lack this).
+const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 hardening)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
@@ -661,7 +666,8 @@ export async function middleware(request: NextRequest) {
   // ── Biometric Identity Shield — Entropy Scoring ───────────────────────────
   // Computes a lightweight request-entropy score to detect automated/scripted
   // traffic that mimics browser headers but lacks genuine behavioral signals.
-  // Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Phase 82: Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Canvas fingerprint signal (+10) added in Phase 82 hardening.
   const acceptHeader       = request.headers.get('accept') ?? '';
   const acceptLangHeader   = request.headers.get('accept-language') ?? '';
   const acceptEncHeader    = request.headers.get('accept-encoding') ?? '';
@@ -669,6 +675,8 @@ export async function middleware(request: NextRequest) {
   const secFetchMode       = request.headers.get('sec-fetch-mode') ?? '';
   const secFetchSite       = request.headers.get('sec-fetch-site') ?? '';
   const cfDeviceType       = request.headers.get('cf-device-type') ?? '';
+  // Phase 82: canvas fingerprint header — set by client-side SDK when real canvas is available
+  const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -684,6 +692,8 @@ export async function middleware(request: NextRequest) {
   if (cfDeviceType === 'mobile' || cfDeviceType === 'desktop' || cfDeviceType === 'tablet') entropyScore += ENTROPY_CF_DEVICE_TYPE;
   // +ENTROPY_BROWSER_UA for browser UA pattern
   if (hasBrowserPattern) entropyScore += ENTROPY_BROWSER_UA;
+  // +ENTROPY_CANVAS_FP for Phase 82 canvas fingerprint signal (real browser canvas API present)
+  if (canvasFp && canvasFp.length >= 8) entropyScore += ENTROPY_CANVAS_FP;
   // ─────────────────────────────────────────────────────────────────────────
 
   // Consider it a browser if:

@@ -14,6 +14,7 @@ const GREEN        = "#4ade80";
 const RED          = "#ff4444";
 const ORANGE       = "#ff9900";
 const MUTED        = "rgba(255,255,255,0.55)";
+const BLUE_DIM     = "rgba(100,180,255,0.7)";
 
 type Tab = "hash" | "rayid";
 
@@ -32,6 +33,37 @@ interface VerifyResult {
   status?: string;
   verified_at?: string;
   detail?: string;
+  error?: string;
+  // VaultChain transaction fields
+  transaction_id?: string;
+  event_type?: string;
+  private_capsule_sha512?: string;
+  target?: string;
+  details?: string;
+  timestamp?: string;
+  // VaultChain capsule fields
+  sha512?: string;
+  ray_id?: string;
+  anchored_at?: string;
+  ip_address?: string;
+  path?: string;
+  hash_type?: string;
+}
+
+interface EvidenceResult {
+  CapsuleID?: string;
+  CapsuleType?: string;
+  EventType?: string;
+  EventId?: number;
+  TargetIP?: string;
+  UserAgent?: string;
+  GeoLocation?: string;
+  TargetPath?: string;
+  ThreatLevel?: number;
+  TimestampNs?: string;
+  PackagedAt?: string;
+  KernelAnchor?: string;
+  KernelVersion?: string;
   error?: string;
 }
 
@@ -114,7 +146,8 @@ export default function VaultChainExplorerPage() {
   const [hashLoading, setHashLoading] = useState(false);
   const [hashError,  setHashError]  = useState<string | null>(null);
 
-  const isValidHash = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
+  const isValidHash  = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
+  const isValidRayId = rayIdInput.trim().length >= 8;
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -486,6 +519,129 @@ export default function VaultChainExplorerPage() {
 
       </section>
 
+      {/* ── R2 Evidence Lookup ── */}
+      <section style={{
+        maxWidth:    720,
+        margin:      "0 auto",
+        padding:     "0 1.5rem 3rem",
+        borderTop:   `1px solid ${GOLD_BORDER}`,
+        paddingTop:  "2rem",
+      }}>
+        <h2 style={{ color: GOLD_DIM, fontSize: "1.15rem", marginBottom: "0.5rem", fontWeight: 700 }}>
+          R2 Forensic Evidence Lookup
+        </h2>
+        <p style={{ color: MUTED, fontSize: "0.88rem", marginBottom: "1.25rem" }}>
+          Retrieve a sealed forensic evidence bundle from R2 by Cloudflare RayID or SHA-512 payload.
+          Evidence bundles are created by the Evidence Packaging Automation for every LEGAL_SCAN event.
+        </p>
+        <form onSubmit={handleEvidenceLookup} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <label style={{ color: BLUE_DIM, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
+            RAYID OR SHA-512 PAYLOAD
+          </label>
+          <input
+            type="text"
+            value={rayIdInput}
+            onChange={(e) => setRayIdInput(e.target.value)}
+            placeholder="Enter Cloudflare RayID (e.g. 8a3f1b2c4d5e6f7g) or SHA-512 hash…"
+            maxLength={128}
+            spellCheck={false}
+            style={{
+              background:   "rgba(100,180,255,0.04)",
+              border:       `1px solid rgba(100,180,255,0.3)`,
+              borderRadius: "6px",
+              color:        "#fff",
+              fontFamily:   "monospace",
+              fontSize:     "0.78rem",
+              padding:      "0.7rem 1rem",
+              outline:      "none",
+              width:        "100%",
+              boxSizing:    "border-box",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!isValidRayId || evidenceLoading}
+            style={{
+              alignSelf:    "flex-start",
+              background:   isValidRayId && !evidenceLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
+              border:       "none",
+              borderRadius: "6px",
+              color:        isValidRayId && !evidenceLoading ? "#000" : MUTED,
+              cursor:       isValidRayId && !evidenceLoading ? "pointer" : "not-allowed",
+              fontSize:     "0.9rem",
+              fontWeight:   700,
+              padding:      "0.6rem 1.8rem",
+              transition:   "background 0.2s",
+            }}
+          >
+            {evidenceLoading ? "Fetching…" : "Fetch Evidence 🔍"}
+          </button>
+        </form>
+
+        {evidenceError && (
+          <div style={{
+            marginTop:    "1.5rem",
+            background:   "rgba(255,68,68,0.08)",
+            border:       "1px solid rgba(255,68,68,0.3)",
+            borderRadius: "8px",
+            padding:      "1rem 1.25rem",
+            color:        RED,
+          }}>
+            {evidenceError}
+          </div>
+        )}
+
+        {evidenceResult && !evidenceResult.error && (
+          <div style={{
+            marginTop:    "1.5rem",
+            background:   "rgba(100,180,255,0.05)",
+            border:       "1px solid rgba(100,180,255,0.25)",
+            borderRadius: "10px",
+            padding:      "1.5rem 1.75rem",
+          }}>
+            <div style={{
+              display:       "inline-block",
+              background:    "rgba(74,222,128,0.12)",
+              border:        `1px solid ${GREEN}`,
+              borderRadius:  "6px",
+              color:         GREEN,
+              fontSize:      "0.8rem",
+              fontWeight:    700,
+              letterSpacing: "0.06em",
+              padding:       "0.3rem 0.8rem",
+              marginBottom:  "1.25rem",
+            }}>
+              EVIDENCE BUNDLE FOUND
+            </div>
+            <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem", margin: 0 }}>
+              {([
+                ["Capsule ID",    evidenceResult.CapsuleID],
+                ["Capsule Type",  evidenceResult.CapsuleType],
+                ["Event Type",    evidenceResult.EventType],
+                ["Event ID",      String(evidenceResult.EventId ?? "")],
+                ["Target IP",     evidenceResult.TargetIP],
+                ["Target Path",   evidenceResult.TargetPath],
+                ["Geo Location",  evidenceResult.GeoLocation],
+                ["Threat Level",  String(evidenceResult.ThreatLevel ?? "")],
+                ["Packaged At",   evidenceResult.PackagedAt],
+                ["Kernel Version",evidenceResult.KernelVersion],
+              ] as [string, string | undefined][]).map(([label, value]) => (
+                value ? (
+                  <>
+                    <dt key={`dt-${label}`} style={{ color: GOLD_DIM, fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {label}
+                    </dt>
+                    <dd key={`dd-${label}`} style={{ color: "#fff", fontSize: "0.85rem", margin: 0, wordBreak: "break-all" }}>
+                      {value}
+                    </dd>
+                  </>
+                ) : null
+              ))}
+            </dl>
+          </div>
+        )}
+      </section>
+
       {/* ── Info footer ── */}
       <section style={{ borderTop: `1px solid ${GOLD_BORDER}`, maxWidth: 720,
                         margin: "0 auto", padding: "2rem 1.5rem", fontSize: "0.82rem",
@@ -512,3 +668,4 @@ export default function VaultChainExplorerPage() {
     </main>
   );
 }
+
