@@ -138,6 +138,61 @@ export function buildKaasLineItem(asn: string, entityName?: string): KaasLineIte
   };
 }
 
+// ── Infringement Penalty (GATE 102.5) ────────────────────────────────────────
+
+/**
+ * Obfuscation/Infringement Multiplier — applied when masking headers or
+ * shell IPs are detected, representing the increased forensic cost of
+ * identifying masked malicious actors.
+ *
+ * TotalDebt = BaseValue × INFRINGEMENT_MULTIPLIER
+ */
+export const INFRINGEMENT_MULTIPLIER = 10;
+
+/**
+ * Apply the infringement penalty multiplier to a base fee in cents.
+ *
+ * @param baseCents  Base fee in USD cents before penalty
+ * @param multiplier Penalty multiplier (defaults to INFRINGEMENT_MULTIPLIER = 10)
+ * @returns          Total debt in USD cents after multiplier
+ */
+export function applyInfringementPenalty(
+  baseCents: number,
+  multiplier: number = INFRINGEMENT_MULTIPLIER,
+): number {
+  return Math.round(baseCents * multiplier);
+}
+
+/**
+ * Build a KaaS invoice line item with an optional infringement penalty applied.
+ * When `obfuscationDetected` is true the base fee is multiplied by
+ * INFRINGEMENT_MULTIPLIER (10×) to represent the Obfuscation Penalty.
+ */
+export function buildKaasLineItemWithPenalty(
+  asn: string,
+  entityName?: string,
+  obfuscationDetected = false,
+): KaasLineItem & { obfuscation_penalty: boolean; penalty_multiplier: number } {
+  const base   = buildKaasLineItem(asn, entityName);
+  const mult   = obfuscationDetected ? INFRINGEMENT_MULTIPLIER : 1;
+  const label  = obfuscationDetected
+    ? `${base.fee_label} ×${INFRINGEMENT_MULTIPLIER} Obfuscation Penalty`
+    : base.fee_label;
+  const desc   = obfuscationDetected
+    ? `${base.description} OBFUSCATION PENALTY (${INFRINGEMENT_MULTIPLIER}× multiplier applied — masked headers detected).`
+    : base.description;
+
+  return {
+    ...base,
+    fee_usd_cents:       base.fee_usd_cents * mult,
+    fee_usd:             (base.fee_usd_cents * mult) / 100,
+    fee_label:           label,
+    description:         desc,
+    obfuscation_penalty: obfuscationDetected,
+    penalty_multiplier:  mult,
+  };
+}
+
 // ── Tier Badge ────────────────────────────────────────────────────────────────
 
 export interface KaasTierBadge {
