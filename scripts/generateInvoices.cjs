@@ -69,9 +69,9 @@ const ANCHOR_AUDIT_LOG_PATH = process.env.ANCHOR_AUDIT_LOG_PATH || '';
 //
 // Usage example (trigger at 1,017 rows for testing):
 //   STRIPE_SESSION_RE=1017 STRIPE_SECRET_KEY=sk_... node scripts/generateInvoices.cjs
-const _stripeSessionRe = parseInt(process.env.STRIPE_SESSION_RE ?? '', 10);
-const STRIPE_SESSION_BREACH_THRESHOLD = (!isNaN(_stripeSessionRe) && _stripeSessionRe > 0)
-  ? _stripeSessionRe
+const _customBreachThreshold = parseInt(process.env.STRIPE_SESSION_RE ?? '', 10);
+const STRIPE_SESSION_BREACH_THRESHOLD = (!isNaN(_customBreachThreshold) && _customBreachThreshold > 0)
+  ? _customBreachThreshold
   : null; // null → use the default MILESTONE_THRESHOLD below
 
 const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents

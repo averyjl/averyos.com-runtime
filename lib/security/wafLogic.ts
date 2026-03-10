@@ -49,6 +49,10 @@ export interface WafEvalResult {
 /**
  * Parse the Cloudflare WAF attack score from request headers.
  * Returns null if the header is absent or non-numeric.
+ *
+ * Cloudflare sets `cf-waf-attack-score` on eligible plans.
+ * `x-waf-score` is a custom forwarding header that can be set by upstream
+ * Cloudflare Workers or test harnesses to simulate WAF scores in local dev.
  */
 export function parseWafScore(headers: Headers): number | null {
   const raw = headers.get("cf-waf-attack-score") ?? headers.get("x-waf-score");

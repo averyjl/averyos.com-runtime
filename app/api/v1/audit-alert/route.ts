@@ -103,6 +103,8 @@ const THREAT_LEVELS: Record<string, number> = {
 
 // FCM Tier-9 filter — only fire mobile push for these high-value event types.
 // This prevents notification fatigue while ensuring critical events always reach the Creator.
+// Minimum threat level for FCM: 9 (see THREAT_LEVELS map; must match FCM_MIN_THREAT_LEVEL).
+const FCM_MIN_THREAT_LEVEL = 9;
 const FCM_TIER9_EVENT_TYPES = new Set([
   "LEGAL_SCAN",
   "CONFLICT_ZONE_PROBE",
@@ -404,7 +406,7 @@ export async function POST(request: Request): Promise<Response> {
   //   wrangler secret put FIREBASE_CLIENT_EMAIL
   //   wrangler secret put FIREBASE_PRIVATE_KEY
   //   wrangler secret put FCM_DEVICE_TOKEN
-  if (threatLevel >= 9 && FCM_TIER9_EVENT_TYPES.has(eventType)) {
+  if (threatLevel >= FCM_MIN_THREAT_LEVEL && FCM_TIER9_EVENT_TYPES.has(eventType)) {
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",

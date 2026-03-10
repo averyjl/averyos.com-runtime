@@ -744,6 +744,7 @@ export async function middleware(request: NextRequest) {
   // Evaluates Cloudflare WAF attack score (cf-waf-attack-score header) and
   // either hard-blocks (score > 95) or redirects to audit-clearance (score > 80).
   // Uses free Cloudflare intelligence without requiring paid WAF Managed Rules.
+  // SITE_URL from wrangler.toml [vars] → process.env.SITE_URL at runtime.
   {
     const SITE_URL = process.env.SITE_URL ?? 'https://averyos.com';
     const wafResponse = applyWafGate(request as unknown as Request, SITE_URL);
