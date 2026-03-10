@@ -59,13 +59,13 @@ export default function AuditClearancePage() {
 
 function AuditClearancePortal() {
   const searchParams = useSearchParams();
-  const rayId = searchParams.get("rayid") ?? "UNKNOWN";
+  const rayId = searchParams?.get("rayid") ?? "UNKNOWN";
 
   // Settlement is resolved client-side based on ASN and org URL parameters.
   // The middleware injects asn/org params when redirecting cadence probes so
   // the portal can determine the correct fee tier without a server round-trip.
-  const asnParam = searchParams.get("asn") ?? "";
-  const orgParam = searchParams.get("org") ?? "";
+  const asnParam = searchParams?.get("asn") ?? "";
+  const orgParam = searchParams?.get("org") ?? "";
 
   const [settlement, setSettlement] = useState<SettlementResult | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);

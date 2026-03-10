@@ -161,20 +161,20 @@ crons = ["*/5 * * * *", "0 7 * * *"]
 # The queue buffers sovereign_audit_log writes so no records are dropped under
 # SQLite concurrency pressure.
 #
-# Activate via: wrangler queues create SOVEREIGN_LOG_INGRESS
+# Activate via: wrangler queues create sovereign-log-ingress
 # Then bind the producer and consumer here.
 [[queues.producers]]
-queue        = "SOVEREIGN_LOG_INGRESS"
+queue        = "sovereign-log-ingress"
 binding      = "SOVEREIGN_LOG_QUEUE"
 
 [[queues.consumers]]
-queue        = "SOVEREIGN_LOG_INGRESS"
+queue        = "sovereign-log-ingress"
 max_batch_size       = 100
 max_batch_timeout    = 5
 max_retries          = 3
-dead_letter_queue    = "SOVEREIGN_LOG_INGRESS_DLQ"
-# Create queues with: wrangler queues create SOVEREIGN_LOG_INGRESS
-#                     wrangler queues create SOVEREIGN_LOG_INGRESS_DLQ
+dead_letter_queue    = "sovereign-log-ingress-dlq"
+# Create queues with: wrangler queues create sovereign-log-ingress
+#                     wrangler queues create sovereign-log-ingress-dlq
 
 # ── Tier-10 ASN Rate Limiting Rules ──────────────────────────────────────────
 # Additional programmatic rate limiting for Tier-10 ASNs (LEGAL_SCAN threat level 10).

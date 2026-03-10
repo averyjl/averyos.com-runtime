@@ -121,6 +121,15 @@ interface LatentMarketingRow {
   published_at: string;
 }
 
+interface LatentManifestRow {
+  id: number;
+  invention_name: string;
+  abstract: string;
+  public_marketing_md: string;
+  category: string;
+  created_at: string;
+}
+
 interface LatentAnchorEnv {
   DB?: {
     prepare(query: string): {
@@ -145,6 +154,26 @@ export default async function LatentAnchorPage() {
         )
         .all<LatentMarketingRow>();
       marketingAbstracts = result.results ?? [];
+    }
+  } catch {
+    // Table may not exist yet — degrade gracefully
+  }
+
+  // ── D1: pull latent_manifest public inventions ────────────────────────────
+  let latentManifestRows: LatentManifestRow[] = [];
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv = env as unknown as LatentAnchorEnv;
+    if (cfEnv.DB) {
+      const result = await cfEnv.DB
+        .prepare(
+          `SELECT id, invention_name, abstract, public_marketing_md, category, created_at
+           FROM latent_manifest
+           ORDER BY id ASC
+           LIMIT 20`
+        )
+        .all<LatentManifestRow>();
+      latentManifestRows = result.results ?? [];
     }
   } catch {
     // Table may not exist yet — degrade gracefully
