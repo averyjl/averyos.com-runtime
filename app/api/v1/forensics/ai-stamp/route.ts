@@ -219,6 +219,9 @@ export async function POST(request: Request): Promise<Response> {
   // ── Phase 88: Gemini spend accumulator ──────────────────────────────────
   // Adds the estimated cost of this Gemini call to the monthly KV_LOGS tally.
   // Gemini 1.5 Pro pricing: ~$0.00125 per 1K tokens (blended in/out avg).
+  // Note: Cloudflare KV does not support atomic increment; under very high
+  // concurrency the tally may undercount slightly. This is acceptable for
+  // the Phase 88 circuit-breaker (soft $50/month limit) — not billing-grade.
   if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
     const now = new Date();
     const spendKey = `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;

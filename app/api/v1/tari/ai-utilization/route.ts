@@ -156,6 +156,8 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── Phase 88: Gemini spend accumulator ──────────────────────────────────
   // Accumulate the estimated Gemini cost for the Phase 88 circuit breaker.
+  // Note: KV does not support atomic increment; slight undercounting is acceptable
+  // for the soft circuit-breaker threshold — this is not billing-grade tracking.
   if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
     const now = new Date();
     const spendKey = `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;

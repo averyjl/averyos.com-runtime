@@ -138,8 +138,9 @@ export default async function LatentAnchorPage() {
         .all<LatentManifestRow>();
       latentManifestRows = result.results ?? [];
     }
-  } catch {
+  } catch (err: unknown) {
     // D1 unavailable in local dev or table not yet migrated — degrade gracefully
+    console.warn("[latent-anchor] D1 latent_manifest unavailable:", err instanceof Error ? err.message : String(err));
   }
 
   const capsuleIds = listCapsuleIds();

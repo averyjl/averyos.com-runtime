@@ -243,6 +243,8 @@ export default function VaultChainExplorerPage() {
   }
 
   // ── Batch Export state ─────────────────────────────────────────────────────
+  // Max 50 RayIDs per batch to prevent excessive Workers CPU usage and rate limits
+  const BATCH_EXPORT_MAX_IDS = 50;
   const [batchInput,      setBatchInput]      = useState("");
   const [batchToken,      setBatchToken]      = useState("");
   const [batchResults,    setBatchResults]    = useState<EvidenceResult[]>([]);
@@ -262,7 +264,7 @@ export default function VaultChainExplorerPage() {
     setBatchResults([]);
     setBatchPage(0);
     const results: EvidenceResult[] = [];
-    for (const rayId of rayIds.slice(0, 50)) { // cap at 50 IDs
+    for (const rayId of rayIds.slice(0, BATCH_EXPORT_MAX_IDS)) {
       try {
         const headers: Record<string, string> = {};
         if (batchToken.trim()) headers['Authorization'] = `Bearer ${batchToken.trim()}`;
@@ -768,7 +770,7 @@ export default function VaultChainExplorerPage() {
           RayID Batch Evidence Export
         </h2>
         <p style={{ color: MUTED, fontSize: "0.88rem", marginBottom: "1.25rem" }}>
-          Enter up to 50 Cloudflare RayIDs (one per line or comma-separated) to fetch and export
+          Enter up to {BATCH_EXPORT_MAX_IDS} Cloudflare RayIDs (one per line or comma-separated) to fetch and export
           evidence bundles as a single JSON file. Sort results by date or threat level.
         </p>
         <form onSubmit={handleBatchExport} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

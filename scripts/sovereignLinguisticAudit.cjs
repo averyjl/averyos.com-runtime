@@ -25,7 +25,7 @@ const DRIFT_PATTERNS = [
   { canonical: 'specialise',   drift: 'specialize',   severity: 'LOW'    },
   { canonical: 'neutralise',   drift: 'neutralize',   severity: 'MEDIUM' },
   { canonical: 'stabilise',    drift: 'stabilize',    severity: 'LOW'    },
-  { canonical: 'LEGAL_SCAN',   drift: 'LEGAI_SCAN',   severity: 'HIGH'   },
+  { canonical: 'LEGAL_SCAN',   drift: 'LEGALAI_SCAN', severity: 'HIGH'   },
   { canonical: 'VaultChain',   drift: 'Vault Chain',  severity: 'HIGH'   },
   { canonical: 'AveryOS',      drift: 'Avery OS',     severity: 'HIGH'   },
   { canonical: 'GabrielOS',    drift: 'Gabriel OS',   severity: 'HIGH'   },
