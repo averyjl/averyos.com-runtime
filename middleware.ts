@@ -157,20 +157,25 @@ interface D1PreparedStatement {
   run(): Promise<{ success: boolean }>;
 }
 
+interface R2PutOptions {
+  httpMetadata?: { contentType?: string; contentEncoding?: string; [k: string]: string | undefined };
+  customMetadata?: Record<string, string>;
+}
+
 interface R2Bucket {
-  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
+  put(key: string, value: string | ArrayBuffer | ReadableStream, options?: R2PutOptions): Promise<void>;
 }
 
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
+  KV_LOGS?: { get(key: string): Promise<string | null> };
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
   SITE_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
-  VAULT_R2?: R2Bucket;
 }
 
 /**
@@ -505,8 +510,20 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
   }
 }
 
+// ── Phase 88 — UsageCreditWatch constants ────────────────────────────────────
+// Monthly Gemini credit ceiling in USD. If accumulated spend in KV_LOGS exceeds
+// this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
+const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+
+/** Returns the KV key for the current month's Gemini spend (e.g. "gemini-spend-2026-03"). */
+function geminiMonthlySpendKey(): string {
+  const now = new Date();
+  const mm  = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `gemini-spend-${now.getUTCFullYear()}-${mm}`;
+}
+
 /**
- * Phase 83 — INGESTION_INTENT Classifier
+ * Phase 83 — INGESTION_INTENT D1 Logger
  *
  * Fire-and-forget: computes a weighted INGESTION_INTENT score for any request
  * originating from a DER high-value ASN.  When the combination of ASN + WAF
@@ -520,21 +537,21 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
  *
  * Errors are swallowed so classification failures never block traffic.
  */
-async function classifyIngestionIntent(request: NextRequest): Promise<void> {
+async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
     if (!cfEnv.DB) return;
 
     const clientAsn = request.headers.get('cf-asn') ?? '';
-    if (!INGESTION_INTENT_ASNS.has(clientAsn)) return;
+    if (!INGESTION_TIER10_ASNS.has(clientAsn)) return;
 
     const url = new URL(request.url);
     const cf  = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
     const wafScore = typeof cf['wafAttackScore'] === 'number' ? cf['wafAttackScore'] : 0;
 
-    const isSensitivePath  = INGESTION_INTENT_PATHS.some(p => url.pathname.startsWith(p));
-    const isHighWafScore   = wafScore > INGESTION_INTENT_WAF_THRESHOLD;
+    const isSensitivePath  = INGESTION_LOGIC_PATHS.some(p => url.pathname.startsWith(p));
+    const isHighWafScore   = wafScore > WAF_HIGH_INTENT_THRESHOLD;
     const triggerLegalScan = isSensitivePath || isHighWafScore;
 
     if (!triggerLegalScan) return;
@@ -565,17 +582,6 @@ async function classifyIngestionIntent(request: NextRequest): Promise<void> {
     // Intentional no-op: INGESTION_INTENT classification must never block traffic
   }
 }
-
-/**
- * Phase 88 — UsageCreditWatch
- *
- * Reads the current month's accumulated Gemini spend from KV_LOGS.
- * Returns true if the spend has exceeded GEMINI_MONTHLY_CREDIT_LIMIT_USD,
- * signalling that the intelligence router should fall back to LOCAL_OLLAMA_NODE.
- *
- * Errors are swallowed — if KV is unavailable, fallback is NOT forced so the
- * system degrades gracefully rather than disabling cloud AI on KV blips.
- */
 async function isGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
   try {
     if (!cfEnv.KV_LOGS) return false;
@@ -599,7 +605,7 @@ export async function middleware(request: NextRequest) {
   // ── Phase 83 — INGESTION_INTENT Classification ────────────────────────────
   // Fire-and-forget: classifies DER-ASN requests with high WAF scores or
   // sensitive-path probes as Tier-10 LEGAL_SCAN events.
-  classifyIngestionIntent(request).catch(() => {});
+  logIngestionIntentToD1(request).catch(() => {});
 
   // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
   // Single-gate host check — loop-proof design:
