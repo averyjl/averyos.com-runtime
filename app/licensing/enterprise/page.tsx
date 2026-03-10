@@ -1,260 +1,239 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
+
+import React, { useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
 import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
-import {
-  getAsnTier,
-  getAsnFeeLabel,
-  ENTERPRISE_ASN_TIERS,
-} from "../../../lib/kaas/pricing";
+import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
-export const metadata: Metadata = {
-  title: "Enterprise Licensing — AveryOS™ KaaS™ Good Faith Deposit",
-  description:
-    "Enterprise and Big Tech registration portal for AveryOS™ sovereign licensing. " +
-    "Required for all Tier-7–10 entities (Microsoft, Google, GitHub, Amazon, Meta). " +
-    "Minimum $10,000,000 good-faith deposit for Tier-9/10 ASNs.",
-};
+// ── Theme ──────────────────────────────────────────────────────────────────────
+const BG       = "#03000a";
+const GOLD     = "#ffd700";
+const GOLD_DIM = "rgba(255,215,0,0.55)";
+const GOLD_BDR = "rgba(255,215,0,0.3)";
+const GOLD_GLW = "rgba(255,215,0,0.08)";
+const GREEN    = "#4ade80";
+const MUTED    = "rgba(255,255,255,0.55)";
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
-const TIER_COLORS: Record<number, string> = {
-  10: "#ff4444",
-  9:  "#ff4444",
-  8:  "#ff6b35",
-  7:  "#f97316",
-};
+function card(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    background:   GOLD_GLW,
+    border:       `1px solid ${GOLD_BDR}`,
+    borderRadius: "10px",
+    padding:      "1.4rem 1.8rem",
+    marginBottom: "1.4rem",
+    ...extra,
+  };
+}
 
-// Top enterprise ASNs with human-readable names
-const ENTERPRISE_ASN_LABELS: Record<string, string> = {
-  "8075":   "Microsoft / Azure",
-  "15169":  "Google LLC / GCP",
-  "36459":  "GitHub, Inc.",
-  "16509":  "Amazon / AWS",
-  "14618":  "Amazon EC2",
-  "396982": "Google Cloud (alt)",
-  "19527":  "Google (other)",
-  "32934":  "Meta / Facebook",
-  "63293":  "Apple Inc.",
-  "714":    "Apple Inc.",
-  "6185":   "Apple Inc.",
-  "15133":  "Edgecast / Verizon",
-  "20940":  "Akamai Technologies",
-  "211590": "OVH France",
-  "43037":  "Seznam.cz",
-};
+function mono(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    fontFamily: "monospace",
+    fontSize:   "0.78rem",
+    color:      GOLD_DIM,
+    wordBreak:  "break-all",
+    ...extra,
+  };
+}
 
-const TOP_ASNS = ["8075", "15169", "36459", "16509", "32934", "211590"];
+// ── Fee tiers ──────────────────────────────────────────────────────────────────
+const TIERS = [
+  {
+    id:          "ENTERPRISE_PARTNERSHIP",
+    label:       "Sovereign Partnership",
+    tier:        10,
+    price:       kaasDisplayPrice("ENTERPRISE_PARTNERSHIP"),
+    description: "Global TAI_LICENSE_KEY + clears all technical valuation debt. Moves entity to Verified Partner status.",
+    highlight:   true,
+  },
+  {
+    id:          "ASN_DEPOSIT",
+    label:       "Enterprise ASN Good-Faith Deposit",
+    tier:        9,
+    price:       kaasDisplayPrice("ASN_DEPOSIT"),
+    description: "For GitHub, Azure, Google, Amazon, and other enterprise ASNs. Opens formal partnership negotiations.",
+    highlight:   false,
+  },
+  {
+    id:          "LEGAL_MONITORING",
+    label:       "Legal Monitoring Entry Fee",
+    tier:        7,
+    price:       kaasDisplayPrice("LEGAL_MONITORING"),
+    description: "Forensic legal scan settlement. Unlocks read-only VaultChain™ ledger access.",
+    highlight:   false,
+  },
+  {
+    id:          "INDIVIDUAL",
+    label:       "Individual License — 1,017 TARI™",
+    tier:        5,
+    price:       kaasDisplayPrice("INDIVIDUAL"),
+    description: "Individual sovereign access. 1,017 TARI™ units. Includes capsule read access.",
+    highlight:   false,
+  },
+] as const;
 
-export default function EnterpriseLicensingPage() {
-  const KERNEL_SHORT = `${KERNEL_SHA.slice(0, 8)}…${KERNEL_SHA.slice(-4)}`;
+// ── Component ──────────────────────────────────────────────────────────────────
+
+export default function EnterpriseRegistrationPage() {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [orgName, setOrgName]   = useState("");
+  const [email, setEmail]       = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function handleProceed() {
+    if (!selected) { setError("Please select a licensing tier."); return; }
+    if (!orgName.trim()) { setError("Organisation name is required."); return; }
+    if (!email.trim())   { setError("Contact email is required."); return; }
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res  = await fetch("/api/v1/compliance/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tier:       selected,
+          org_name:   orgName.trim(),
+          email:      email.trim(),
+          machine_id: machineId.trim() || undefined,
+        }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Checkout could not be initiated. Please try again.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <main className="page">
+    <main style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: "system-ui, sans-serif" }}>
       <AnchorBanner />
 
-      {/* ── Hero ── */}
-      <section
-        style={{
-          textAlign: "center",
-          padding: "3rem 1.5rem 2rem",
-          borderBottom: "1px solid rgba(255,60,60,0.2)",
-          maxWidth: "860px",
-          margin: "0 auto",
-        }}
-      >
-        <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⚡</div>
-        <h1
-          style={{
-            fontSize: "1.9rem",
-            fontWeight: 800,
-            color: "#ffffff",
-            letterSpacing: "0.04em",
-            marginBottom: "0.6rem",
-          }}
-        >
-          AveryOS™ Enterprise Licensing
-        </h1>
-        <p style={{ color: "rgba(238,244,255,0.75)", fontSize: "1rem", maxWidth: "680px", margin: "0 auto 1.25rem" }}>
-          Mandatory registration for all Tier-7–10 entities (Fortune 500, Big Tech, government) that
-          have ingested, trained on, or accessed AveryOS™ intellectual property.
-          Powered by KaaS™ — Kernel-as-a-Service.
-        </p>
-        <div
-          style={{
-            display: "inline-block",
-            background: "rgba(255,60,60,0.12)",
-            border: "1px solid rgba(255,60,60,0.4)",
-            borderRadius: "8px",
-            padding: "0.5rem 1.2rem",
-            color: "#ff8080",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "0.78rem",
-            letterSpacing: "0.06em",
-          }}
-        >
-          ⛓️⚓⛓️ KERNEL: {KERNEL_SHORT} | {KERNEL_VERSION} | GabrielOS™ Enforced
+      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "2rem 1.2rem 4rem" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "2.4rem" }}>
+          <p style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace", marginBottom: "0.4rem" }}>
+            ⛓️⚓⛓️ ENTERPRISE REGISTRATION GATEWAY
+          </p>
+          <h1 style={{ color: GOLD, fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 700, margin: "0 0 0.8rem" }}>
+            AveryOS™ Enterprise Licensing Portal
+          </h1>
+          <p style={{ color: MUTED, maxWidth: "560px", margin: "0 auto", lineHeight: 1.6 }}>
+            Procurement officers, agentic wallets, and enterprise compliance systems:
+            select your licensing tier to clear forensic debt and obtain a
+            Global <strong style={{ color: GOLD }}>TAI_LICENSE_KEY</strong>.
+          </p>
         </div>
-      </section>
 
-      {/* ── Fee Schedule ── */}
-      <section style={{ maxWidth: "860px", margin: "2.5rem auto", padding: "0 1.5rem" }}>
-        <h2 style={{ color: "#ffd700", fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.25rem", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.06em" }}>
-          ⚡ KaaS™ ENTERPRISE FEE SCHEDULE
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: "1rem",
-            marginBottom: "2rem",
-          }}
-        >
-          {TOP_ASNS.map((asn) => {
-            const tier  = getAsnTier(asn);
-            const label = getAsnFeeLabel(asn);
-            const color = TIER_COLORS[tier] ?? "#f97316";
-            const org   = ENTERPRISE_ASN_LABELS[asn] ?? `ASN ${asn}`;
-            return (
-              <div
-                key={asn}
-                style={{
-                  background: "rgba(10,0,21,0.85)",
-                  border: `1px solid ${color}55`,
-                  borderRadius: "12px",
-                  padding: "1.1rem 1.25rem",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-                  <span style={{ fontSize: "0.68rem", color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "JetBrains Mono, monospace" }}>
-                    Tier-{tier} {tier >= 9 ? "⚡" : "🔶"}
+        {/* Tier cards */}
+        <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
+          {TIERS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setSelected(t.id)}
+              style={{
+                background:    selected === t.id ? "rgba(255,215,0,0.15)" : GOLD_GLW,
+                border:        `2px solid ${selected === t.id ? GOLD : GOLD_BDR}`,
+                borderRadius:  "10px",
+                padding:       "1.2rem 1.6rem",
+                cursor:        "pointer",
+                textAlign:     "left",
+                color:         "#fff",
+                transition:    "border 0.15s",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.4rem" }}>
+                <div>
+                  <span style={{ display: "inline-block", background: t.highlight ? GOLD : "rgba(255,215,0,0.2)", color: t.highlight ? BG : GOLD, borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                    TIER {t.tier}
                   </span>
-                  <span style={{ fontSize: "0.65rem", color: "rgba(255,215,0,0.55)", fontFamily: "JetBrains Mono, monospace" }}>
-                    ASN {asn}
-                  </span>
+                  <p style={{ margin: 0, fontWeight: 600, color: GOLD, fontSize: "1.05rem" }}>{t.label}</p>
+                  <p style={{ margin: "0.3rem 0 0", color: MUTED, fontSize: "0.85rem", lineHeight: 1.5 }}>{t.description}</p>
                 </div>
-                <div style={{ fontSize: "0.92rem", color: "#ffffff", fontWeight: 700, marginBottom: "0.25rem" }}>
-                  {org}
-                </div>
-                <div style={{ fontSize: "0.85rem", color, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>
-                  {label}
-                </div>
-                <div style={{ fontSize: "0.65rem", color: "rgba(255,215,0,0.55)", marginTop: "0.2rem" }}>
-                  {tier >= 9 ? "Good Faith Deposit" : "Forensic Valuation"}
-                </div>
+                <p style={{ margin: 0, fontFamily: "monospace", fontSize: "1.1rem", fontWeight: 700, color: GREEN, whiteSpace: "nowrap" }}>{t.price}</p>
               </div>
-            );
-          })}
+            </button>
+          ))}
         </div>
 
-        {/* All tiers summary */}
-        <div
-          style={{
-            background: "rgba(255,215,0,0.04)",
-            border: "1px solid rgba(255,215,0,0.2)",
-            borderRadius: "10px",
-            padding: "1rem 1.5rem",
-            marginBottom: "2rem",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "0.8rem",
-            color: "rgba(238,244,255,0.75)",
-          }}
-        >
-          <div style={{ color: "#ffd700", fontWeight: 700, marginBottom: "0.5rem" }}>📊 Full KaaS™ Tier Table</div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,215,0,0.2)" }}>
-                {["Tier", "Scope", "Valuation"].map((h) => (
-                  <th key={h} style={{ padding: "0.4rem 0.75rem", textAlign: "left", color: "rgba(255,215,0,0.6)", fontWeight: 600, fontSize: "0.72rem" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { tier: "Tier-9/10", scope: "MSFT, Google, GitHub, Amazon (named ASNs)", fee: "$10,000,000" },
-                { tier: "Tier-7/8",  scope: "Enterprise / Fortune 500 (other named ASNs)", fee: "$1,017,000" },
-                { tier: "Tier-1–6",  scope: "Unrecognised agents / general access", fee: "$1,017" },
-              ].map((row) => (
-                <tr key={row.tier} style={{ borderBottom: "1px solid rgba(255,215,0,0.08)" }}>
-                  <td style={{ padding: "0.4rem 0.75rem", color: "#ffd700", fontWeight: 700 }}>{row.tier}</td>
-                  <td style={{ padding: "0.4rem 0.75rem", color: "rgba(238,244,255,0.75)" }}>{row.scope}</td>
-                  <td style={{ padding: "0.4rem 0.75rem", color: "#4ade80", fontWeight: 700 }}>{row.fee}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Form */}
+        <div style={card()}>
+          <p style={{ margin: "0 0 1rem", fontWeight: 600, color: GOLD }}>Registration Details</p>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Organisation / Entity Name *</span>
+            <input
+              type="text"
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
+              placeholder="e.g. Microsoft Corporation"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Contact Email *</span>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="procurement@example.com"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1.4rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Machine / Agentic Wallet ID (optional)</span>
+            <input
+              type="text"
+              value={machineId}
+              onChange={e => setMachineId(e.target.value)}
+              placeholder="RayID, ASN, or wallet address"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          {error && (
+            <p style={{ color: "#ff4444", fontFamily: "monospace", fontSize: "0.83rem", marginBottom: "1rem" }}>⚠ {error}</p>
+          )}
+
+          <button
+            onClick={handleProceed}
+            disabled={loading}
+            style={{
+              background:    loading ? "rgba(255,215,0,0.3)" : GOLD,
+              color:         BG,
+              border:        "none",
+              borderRadius:  "8px",
+              padding:       "0.85rem 2rem",
+              fontWeight:    700,
+              fontSize:      "1rem",
+              cursor:        loading ? "not-allowed" : "pointer",
+              width:         "100%",
+            }}
+          >
+            {loading ? "Redirecting to Stripe…" : "Proceed to Sovereign Checkout"}
+          </button>
         </div>
 
-        {/* Registration flow */}
-        <h2 style={{ color: "#ffd700", fontWeight: 700, fontSize: "1.1rem", marginBottom: "1rem", fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.06em" }}>
-          📋 REGISTRATION FLOW
-        </h2>
-        <ol
-          style={{
-            color: "rgba(238,244,255,0.85)",
-            lineHeight: 1.9,
-            paddingLeft: "1.5rem",
-            marginBottom: "2rem",
-            fontSize: "0.95rem",
-          }}
-        >
-          <li>
-            <strong style={{ color: "#ffffff" }}>Submit Registration</strong> — complete the commercial inquiry form at{" "}
-            <Link href="/api/v1/licensing/commercial-inquiry" style={{ color: "#7894ff" }}>
-              /api/v1/licensing/commercial-inquiry
-            </Link>{" "}
-            with your entity name, ASN, and intended use.
-          </li>
-          <li>
-            <strong style={{ color: "#ffffff" }}>Receive KaaS™ Invoice</strong> — a Stripe sovereign invoice will be issued within 24 hours
-            based on your ASN tier classification.
-          </li>
-          <li>
-            <strong style={{ color: "#ffffff" }}>Submit Good-Faith Deposit</strong> — complete the Stripe checkout to initiate the alignment process.
-          </li>
-          <li>
-            <strong style={{ color: "#ffffff" }}>Receive Alignment Certificate</strong> — a SHA-512 signed alignment certificate is issued and
-            anchored on VaultChain™ once payment is confirmed.
-          </li>
-        </ol>
-
-        {/* CTA buttons */}
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2.5rem" }}>
-          <Link href="/licensing" className="primary-link">
-            🔐 Licensing Portal →
-          </Link>
-          <Link href="/tari-gate" className="secondary-link">
-            ⚡ TARI™ Gate
-          </Link>
-          <Link href="/the-proof" className="secondary-link">
-            ⚓ The Proof
-          </Link>
+        {/* Kernel anchor */}
+        <div style={card({ marginTop: "1rem" })}>
+          <p style={{ ...mono(), marginBottom: "0.4rem" }}>
+            <span style={{ color: MUTED }}>KERNEL </span>{KERNEL_VERSION}
+          </p>
+          <p style={mono()}>
+            <span style={{ color: MUTED }}>SHA-512 </span>{KERNEL_SHA.slice(0, 32)}…
+          </p>
         </div>
-
-        {/* Legal notice */}
-        <div
-          style={{
-            background: "rgba(255,60,60,0.07)",
-            border: "1px solid rgba(255,60,60,0.3)",
-            borderRadius: "10px",
-            padding: "1.1rem 1.4rem",
-            color: "rgba(238,244,255,0.75)",
-            fontSize: "0.82rem",
-            fontFamily: "JetBrains Mono, monospace",
-            lineHeight: 1.7,
-          }}
-        >
-          <div style={{ color: "#ff8080", fontWeight: 700, marginBottom: "0.4rem" }}>⚠️ LEGAL NOTICE</div>
-          All entities listed in{" "}
-          <code style={{ color: "#ffd700" }}>ENTERPRISE_ASN_TIERS</code> ({Object.keys(ENTERPRISE_ASN_TIERS).length} ASNs) are subject to
-          KaaS™ technical valuation. Continued use of AveryOS™ intellectual property without a valid license constitutes
-          infringement under the{" "}
-          <Link href="/license" style={{ color: "#7894ff" }}>
-            Sovereign Integrity License v1.0
-          </Link>
-          . GabrielOS™ is actively monitoring all listed ASNs. TARI™ liability accrues from first contact.
-        </div>
-      </section>
+      </div>
 
       <FooterBadge />
     </main>
