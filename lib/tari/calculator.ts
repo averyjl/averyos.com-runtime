@@ -1,166 +1,145 @@
 /**
  * lib/tari/calculator.ts
  *
- * TARI™ Pricing Calculator — AveryOS™ Phase 102.1 / Gate 2
+ * TARI™ Debt Calculator — AveryOS™ Phase 102.1
  *
- * Extends the KaaS pricing engine with date-range logic so that the
- * licensing fee can reflect the duration of usage when the usage start
- * date predates the current date.
+ * Computes the retroactive sovereign debt for an entity based on:
+ *   - The attested (or inferred) first-ingestion date
+ *   - The current KaaS base fee for the entity's ASN tier
+ *   - Whether obfuscation/masking was detected (10× penalty)
  *
- * Rules:
- *   • Base fee is derived from lib/kaas/pricing.ts (ASN tier schedule).
- *   • If `usageStartDate` is provided and precedes today, a retroactive
- *     multiplier is applied: 1.0× per year of prior use, capped at 3.0×.
- *   • The minimum fee is always the base tier fee ($1,017 for Tier-1).
- *   • All cent arithmetic uses integer rounding to avoid float drift.
+ * Formula:
+ *   TotalDebt = BaseFee × ObfuscationMultiplier
+ *
+ * The "retroactive" component is represented in the lineItemDescription so
+ * it is printed on the Stripe invoice with the attested ingestion date.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
+import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 import {
   getAsnFeeUsdCents,
-  getAsnTier,
   getAsnFeeLabel,
-  buildKaasLineItem,
-  type KaasLineItem,
+  getAsnTier,
+  INFRINGEMENT_MULTIPLIER,
 } from "../kaas/pricing";
-import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-/** Maximum retroactive multiplier (3× for 3+ years of prior use). */
-const MAX_RETROACTIVE_MULTIPLIER = 3.0;
+/** Non-refundable Forensic Deposit required before any settlement negotiation. */
+export const FORENSIC_DEPOSIT_CENTS = 1_000_000_000; // $10,000,000.00
 
-/** Milliseconds per year (non-leap approximation). */
-const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+/** Standard Audit Clearance Fee (Tier-1 entities) */
+export const AUDIT_CLEARANCE_CENTS = 101_700; // $1,017.00
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface TariCalculationInput {
-  /** ASN string of the licensing entity (e.g. "36459"). */
+  /** Client ASN string (e.g. "36459") */
   asn: string;
-  /** Optional human-readable entity name for invoice descriptions. */
+  /** ISO-8601 timestamp claimed by the entity as first-ingestion date. */
+  attestedIngestionTs?: string | null;
+  /** Whether masking/obfuscation headers were detected for this entity. */
+  obfuscationDetected?: boolean;
+  /** Optional human-readable entity name for invoice description. */
   entityName?: string;
-  /**
-   * ISO-8601 date string indicating when the entity's usage of AveryOS™ IP
-   * began.  When this date precedes the current date, a retroactive multiplier
-   * is applied to the base fee.  Omit or pass null to use the base fee only.
-   */
-  usageStartDate?: string | null;
 }
 
 export interface TariCalculationResult {
-  asn: string;
+  /** Total debt in USD cents (BaseFee × multiplier). */
+  totalDebtCents: number;
+  /** Total debt formatted as USD string. */
+  totalDebtDisplay: string;
+  /** KaaS tier assigned to the ASN. */
   tier: number;
-  baseFeeUsdCents: number;
-  baseFeeUsd: number;
-  baseFeeLabel: string;
-  retroactiveMultiplier: number;
-  priorUsageDays: number;
-  totalFeeUsdCents: number;
-  totalFeeUsd: number;
-  totalFeeLabel: string;
-  lineItem: KaasLineItem;
+  /** Base fee in USD cents before any multiplier. */
+  baseFeeCents: number;
+  /** Penalty multiplier applied (1 or 10). */
+  multiplier: number;
+  /** True if the 10× Obfuscation Penalty was applied. */
+  obfuscationPenalty: boolean;
+  /** ISO-8601 timestamp used as attested first-ingestion date. */
+  attestedIngestionTs: string;
+  /** Human-readable line-item description suitable for Stripe invoice. */
+  lineItemDescription: string;
+  /** Kernel anchor for this calculation. */
   kernelSha: string;
+  /** Kernel version for this calculation. */
   kernelVersion: string;
+  /** ISO-8601 timestamp when this calculation was produced. */
   calculatedAt: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Core Calculator ───────────────────────────────────────────────────────────
 
 /**
- * Compute the retroactive multiplier for a given usage start date.
- * Returns 1.0 if the date is in the future or not provided.
- * Applies an additional 1.0× for each full year of prior use:
- *   0–1 years  → 1.0×  (base only)
- *   1–2 years  → 2.0×  (base + 1 extra year)
- *   2–3 years  → 3.0×  (base + 2 extra years)
- * Caps at MAX_RETROACTIVE_MULTIPLIER.
- */
-export function computeRetroactiveMultiplier(usageStartDate?: string | null): number {
-  if (!usageStartDate) return 1.0;
-
-  const start = new Date(usageStartDate);
-  if (Number.isNaN(start.getTime())) return 1.0;
-
-  const now = new Date();
-  const elapsedMs = now.getTime() - start.getTime();
-  if (elapsedMs <= 0) return 1.0;
-
-  const elapsedYears = elapsedMs / MS_PER_YEAR;
-  const multiplier = 1.0 + Math.floor(elapsedYears); // 1× per full year
-  return Math.min(multiplier, MAX_RETROACTIVE_MULTIPLIER);
-}
-
-/**
- * Compute the number of calendar days between `usageStartDate` and now.
- * Returns 0 if the date is in the future or not provided.
- */
-export function computePriorUsageDays(usageStartDate?: string | null): number {
-  if (!usageStartDate) return 0;
-  const start = new Date(usageStartDate);
-  if (Number.isNaN(start.getTime())) return 0;
-  const elapsedMs = Date.now() - start.getTime();
-  return elapsedMs > 0 ? Math.floor(elapsedMs / (24 * 60 * 60 * 1000)) : 0;
-}
-
-// ── Core calculator ────────────────────────────────────────────────────────────
-
-/**
- * Calculate the total TARI™ licensing fee for the given entity.
+ * Calculate the total TARI™ sovereign debt for an entity.
  *
- * @param input - ASN, optional entity name, and optional usage start date.
- * @returns     Full calculation result including multiplier, totals, and a
- *              Stripe-ready KaasLineItem.
+ * @param input TariCalculationInput
+ * @returns     TariCalculationResult
  */
-export function calculateTariFee(input: TariCalculationInput): TariCalculationResult {
-  const { asn, entityName, usageStartDate } = input;
+export function calculateTariDebt(input: TariCalculationInput): TariCalculationResult {
+  const {
+    asn,
+    attestedIngestionTs,
+    obfuscationDetected = false,
+    entityName,
+  } = input;
 
-  const tier            = getAsnTier(asn);
-  const baseFeeUsdCents = getAsnFeeUsdCents(asn);
-  const baseFeeUsd      = baseFeeUsdCents / 100;
-  const baseFeeLabel    = getAsnFeeLabel(asn);
+  const now        = new Date();
+  const ingestTs   = attestedIngestionTs ?? now.toISOString();
+  const tier       = getAsnTier(asn);
+  const baseFeeCents = getAsnFeeUsdCents(asn);
+  const multiplier   = obfuscationDetected ? INFRINGEMENT_MULTIPLIER : 1;
+  const totalDebtCents = baseFeeCents * multiplier;
+  const totalDebtDisplay = formatUsdCents(totalDebtCents);
+  const name         = entityName ?? `ASN ${asn}`;
 
-  const retroactiveMultiplier = computeRetroactiveMultiplier(usageStartDate);
-  const priorUsageDays        = computePriorUsageDays(usageStartDate);
+  const ingestDate   = new Date(ingestTs);
+  const ingestStr    = isNaN(ingestDate.getTime())
+    ? ingestTs
+    : ingestDate.toISOString().slice(0, 10);
 
-  const totalFeeUsdCents = Math.round(baseFeeUsdCents * retroactiveMultiplier);
-  const totalFeeUsd      = totalFeeUsdCents / 100;
-  const totalFeeLabel    = totalFeeUsd.toLocaleString("en-US", {
-    style:    "currency",
-    currency: "USD",
-  });
+  let lineItemDescription =
+    `AveryOS™ TARI™ Sovereign Debt — ${name} (Tier-${tier}). ` +
+    `Attested first-ingestion date: ${ingestStr}. ` +
+    `Base fee: ${getAsnFeeLabel(asn)}.`;
 
-  // Build a KaasLineItem for Stripe integration; the description reflects the
-  // retroactive multiplier when prior usage is detected.
-  const baseLineItem = buildKaasLineItem(asn, entityName);
-  const lineItem: KaasLineItem = {
-    ...baseLineItem,
-    fee_usd_cents: totalFeeUsdCents,
-    fee_usd:       totalFeeUsd,
-    fee_label:     totalFeeLabel,
-    description:
-      retroactiveMultiplier > 1.0
-        ? `${baseLineItem.description} Retroactive multiplier: ` +
-          `${retroactiveMultiplier.toFixed(1)}× ` +
-          `(${priorUsageDays} days of prior use). Total: ${totalFeeLabel}.`
-        : baseLineItem.description,
-  };
+  if (obfuscationDetected) {
+    lineItemDescription +=
+      ` OBFUSCATION PENALTY APPLIED: ${INFRINGEMENT_MULTIPLIER}× multiplier ` +
+      `(masked/shell IP headers detected). ` +
+      `Total: ${totalDebtDisplay}.`;
+  } else {
+    lineItemDescription += ` Total: ${totalDebtDisplay}.`;
+  }
+
+  lineItemDescription +=
+    ` Kernel: ${KERNEL_VERSION} | Anchor: ${KERNEL_SHA.slice(0, 16)}… ` +
+    `⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0).`;
 
   return {
-    asn,
+    totalDebtCents,
+    totalDebtDisplay,
     tier,
-    baseFeeUsdCents,
-    baseFeeUsd,
-    baseFeeLabel,
-    retroactiveMultiplier,
-    priorUsageDays,
-    totalFeeUsdCents,
-    totalFeeUsd,
-    totalFeeLabel,
-    lineItem,
-    kernelSha:     KERNEL_SHA.slice(0, 16) + "…",
+    baseFeeCents,
+    multiplier,
+    obfuscationPenalty: obfuscationDetected,
+    attestedIngestionTs: ingestTs,
+    lineItemDescription,
+    kernelSha:     KERNEL_SHA,
     kernelVersion: KERNEL_VERSION,
-    calculatedAt:  new Date().toISOString(),
+    calculatedAt:  now.toISOString(),
   };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Format USD cents as a locale-formatted currency string. */
+export function formatUsdCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
 }

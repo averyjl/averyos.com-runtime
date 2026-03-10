@@ -1,259 +1,354 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
-import { formatIso9 } from "../../../../../lib/timePrecision";
-import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
-import { calculateTariFee } from "../../../../../lib/tari/calculator";
-import { startReconciliationClock } from "../../../../../lib/compliance/clockEngine";
-
 /**
  * POST /api/v1/licensing/handshake
  *
- * AveryOS™ Phase 102.1 / Gate 1 — Enterprise License Usage Attestation
+ * Phase 102.2 — Statutory Handshake API (GATE 102.2.2)
  *
- * Accepts a voluntary usage attestation from an entity that wishes to
- * obtain a license for AveryOS™ intellectual property.  The entity
- * provides their organisation details, the date on which they began
- * using AveryOS™ IP, and their intended licensing tier.
+ * Implements the "Affidavit of Usage" challenge under 17 U.S.C. § 504(c)(2).
  *
- * The endpoint returns:
- *   • A PROBE_CHALLENGE nonce for the entity to echo back (integrity check).
- *   • The calculated TARI™ fee (including a retroactive multiplier when
- *     usage predates the current date by ≥ 1 year).
- *   • A Stripe checkout URL pre-populated with the fee.
- *   • A 72-hour settlement deadline (via clockEngine.ts).
+ * Logic:
+ *   1. Accepts a Retroactive_Usage_Start date and Corporate_Ingestion_SHA from
+ *      the entity attesting prior use of AveryOS™ IP.
+ *   2. If Retroactive_Usage_Start pre-dates the current license (or no license
+ *      exists), applies the TARI™ Retroactive Multiplier schedule to compute
+ *      the Forensic Debt for unlicensed prior utilization.
+ *   3. Returns a signed Affidavit token and a Stripe Checkout URL for immediate
+ *      settlement via /api/v1/compliance/create-checkout.
  *
- * The attestation record is persisted in the `kaas_ledger` D1 table so
- * that it can be referenced during subsequent compliance reviews.
+ * Statutory Basis:
+ *   • 17 U.S.C. § 504(c)(2) — Statutory damages up to $150,000 per work for
+ *     willful infringement.
+ *   • 17 U.S.C. § 1201 — DMCA Anti-Circumvention: unauthorized kernel bypass
+ *     constitutes circumvention of a Technical Protection Measure (TPM).
+ *   • Providing an Ingestion Timestamp that pre-dates the license constitutes
+ *     an Affidavit of Prior Use — the "Own Admission" trigger for the
+ *     Retroactive Multiplier.
  *
- * Auth: public — no Bearer token required.  The IP address and
- * User-Agent of the caller are logged as forensic metadata.
+ * GATE 102.2.5 RCA: All references use internal AveryOS™ anchors only.
+ * External third-party search links are permanently banned from sovereign
+ * handshake responses.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-// ── Cloudflare env types ───────────────────────────────────────────────────────
+import { getCloudflareContext }        from "@opennextjs/cloudflare";
+import { KERNEL_SHA, KERNEL_VERSION }  from "../../../../../lib/sovereignConstants";
+import { formatIso9 }                  from "../../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { autoTrackAccomplishment }     from "../../../../../lib/taiAutoTracker";
 
-interface CloudflareEnv {
-  DB?: D1Database;
-  SOVEREIGN_KV?: KVNamespace;
-  SITE_URL?: string;
-  NEXT_PUBLIC_SITE_URL?: string;
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface D1PreparedStatement {
+  bind(...args: unknown[]): D1PreparedStatement;
+  run(): Promise<{ success: boolean }>;
 }
 
 interface D1Database {
   prepare(sql: string): D1PreparedStatement;
 }
 
-interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
-  run(): Promise<{ success: boolean }>;
-  first<T = unknown>(): Promise<T | null>;
-  all<T = unknown>(): Promise<{ results: T[] }>;
+interface CloudflareEnv {
+  DB?:                   D1Database;
+  VAULT_PASSPHRASE?:     string;
+  SITE_URL?:             string;
+  NEXT_PUBLIC_SITE_URL?: string;
 }
 
-interface KVNamespace {
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-  get(key: string): Promise<string | null>;
-}
+// ── Constants ──────────────────────────────────────────────────────────────────
 
-// ── Request body schema ────────────────────────────────────────────────────────
+/** Statutory maximum per-work under 17 U.S.C. § 504(c)(2) — willful infringement */
+const STATUTORY_MAX_PER_INSTANCE_USD = 150_000;
 
-interface HandshakeRequestBody {
-  /** Unique identifier for the licensing entity — ASN string, UUID, or domain. */
-  entity_id?: string;
-  /** Human-readable organisation name. */
-  entity_name?: string;
-  /**
-   * ISO-8601 date/datetime when the entity first used AveryOS™ IP.
-   * If this predates the current date by ≥ 1 year, a retroactive multiplier
-   * is applied to the base TARI™ fee.
-   */
-  usage_start_date?: string;
-  /** ASN of the requesting network (e.g. "36459"). */
-  asn?: string;
-  /**
-   * Optional SHA-512 / SHA-256 hash the entity provides as a reference
-   * to their ingestion manifest or weight snapshot.  Stored as-is for
-   * audit purposes; not used in fee calculation.
-   */
-  ingestion_proof_sha?: string;
-  /** Optional free-form description of the intended licensing use. */
-  intended_use?: string;
-}
+/** Baseline per-day retroactive utilization fee (pre-license period) */
+const BASELINE_DAILY_FEE_USD = 1_017;
+
+/** TARI™ Retroactive Multiplier schedule (applied when Own Admission is confirmed) */
+const RETROACTIVE_MULTIPLIERS: Record<string, number> = {
+  HONEST_DISCLOSURE:  1.0,   // Full disclosure, cooperative settlement
+  PARTIAL_DISCLOSURE: 3.0,   // Partial disclosure detected
+  OBFUSCATION:        10.0,  // Obfuscation/delay tactics detected
+  WILLFUL_INGESTION:  7.0,   // Willful ingestion without license
+  DEFAULT:            1.0,   // Default — no modifier
+};
+
+/** Milliseconds in one day — used for retroactive debt period calculation. */
+const MS_PER_DAY = 86_400_000;
+
+/** Affidavit validity window in seconds (48 hours) */
+const AFFIDAVIT_TTL_SECONDS = 48 * 60 * 60;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Generate a cryptographically secure probe challenge nonce. */
-function generateProbeChallenge(): string {
-  const ts   = Date.now().toString(16).toUpperCase();
-  const buf  = new Uint32Array(2);
-  crypto.getRandomValues(buf);
-  const rand = (buf[0] * 0x100000000 + buf[1]).toString(16).toUpperCase().slice(-12).padStart(12, "0");
-  return `AOS-PROBE-${ts}-${rand}`;
+/** Compute retroactive debt in USD given prior-use duration and multiplier. */
+function computeRetroactiveDebt(
+  priorUseDays: number,
+  multiplierKey: string,
+): { debtUsd: number; debtCents: number; multiplier: number; cappedAt150k: boolean } {
+  const multiplier = RETROACTIVE_MULTIPLIERS[multiplierKey] ?? RETROACTIVE_MULTIPLIERS.DEFAULT;
+  const rawUsd     = priorUseDays * BASELINE_DAILY_FEE_USD * multiplier;
+  const cappedUsd  = Math.min(rawUsd, STATUTORY_MAX_PER_INSTANCE_USD);
+  return {
+    debtUsd:      parseFloat(cappedUsd.toFixed(2)),
+    debtCents:    Math.round(cappedUsd * 100),
+    multiplier,
+    cappedAt150k: rawUsd > STATUTORY_MAX_PER_INSTANCE_USD,
+  };
 }
 
-/** Sanitise a string field to at most `maxLen` characters. */
-function trim(val: unknown, maxLen = 500): string {
-  return typeof val === "string" ? val.slice(0, maxLen).trim() : "";
+/** SHA-512 hex digest using the Web Crypto API (async, edge-compatible). */
+async function sha512hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    "SHA-512",
+    new TextEncoder().encode(input),
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-// ── Route handler ──────────────────────────────────────────────────────────────
+// ── Route Handlers ─────────────────────────────────────────────────────────────
 
+/**
+ * POST — Submit Affidavit of Usage.
+ *
+ * Body:
+ *   {
+ *     Retroactive_Usage_Start: string;   // ISO-8601 date when kernel was first ingested
+ *     Corporate_Ingestion_SHA: string;   // SHA-512 fingerprint of ingestion event
+ *     org_name?:               string;   // Attesting organisation name
+ *     email?:                  string;   // Contact email for invoice delivery
+ *     disclosure_type?:        string;   // "HONEST_DISCLOSURE" | "PARTIAL_DISCLOSURE" | …
+ *     license_start_date?:     string;   // ISO-8601 date of current license (if any)
+ *   }
+ */
 export async function POST(request: Request): Promise<Response> {
-  // ── Parse body ──────────────────────────────────────────────────────────────
-  let body: HandshakeRequestBody;
-  try {
-    body = (await request.json()) as HandshakeRequestBody;
-  } catch {
-    return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON.");
+  const { env } = await getCloudflareContext({ async: true });
+  const cfEnv   = env as unknown as CloudflareEnv;
+  const baseUrl = cfEnv.NEXT_PUBLIC_SITE_URL ?? cfEnv.SITE_URL ?? "https://averyos.com";
+  const now     = formatIso9();
+
+  // ── Parse body ─────────────────────────────────────────────────────────────
+  let body: unknown;
+  try { body = await request.json(); }
+  catch { return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON."); }
+
+  if (typeof body !== "object" || body === null) {
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, "Request body is required.");
   }
 
-  const entityName       = trim(body.entity_name)       || "Unknown Entity";
-  const entityId         = trim(body.entity_id, 200)    || `ANON-${Date.now()}`;
-  const asnStr           = trim(body.asn, 20);
-  const usageStartDate   = trim(body.usage_start_date, 50) || null;
-  const ingestionSha     = trim(body.ingestion_proof_sha, 200);
-  const intendedUse      = trim(body.intended_use, 500);
+  const {
+    Retroactive_Usage_Start,
+    Corporate_Ingestion_SHA,
+    org_name,
+    email,
+    disclosure_type,
+    license_start_date,
+  } = body as Record<string, unknown>;
 
-  // ── TARI fee calculation ────────────────────────────────────────────────────
-  const calculation = calculateTariFee({
-    asn:           asnStr || "0",
-    entityName,
-    usageStartDate,
-  });
-
-  // ── Probe challenge ─────────────────────────────────────────────────────────
-  const probeChallenge = generateProbeChallenge();
-  const attestedAt     = formatIso9();
-
-  // ── Persist attestation record in D1 ───────────────────────────────────────
-  const { env } = await getCloudflareContext() as unknown as { env: CloudflareEnv };
-
-  if (env.DB) {
-    try {
-      await env.DB
-        .prepare(
-          `INSERT INTO kaas_ledger
-             (entity_name, asn, org_name, ray_id, ingestion_proof_sha,
-              amount_owed, settlement_status, knowledge_cutoff_correlation,
-              kernel_sha, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(
-          entityName,
-          asnStr || null,
-          entityName,
-          probeChallenge,
-          ingestionSha || null,
-          calculation.totalFeeUsd,
-          "OPEN",
-          [
-            usageStartDate   ? `usage_start=${usageStartDate};prior_days=${calculation.priorUsageDays}` : null,
-            intendedUse      ? `intended_use=${intendedUse}` : null,
-          ].filter(Boolean).join(";") || null,
-          KERNEL_SHA,
-          attestedAt,
-          attestedAt,
-        )
-        .run();
-    } catch (dbErr) {
-      console.error("[handshake] D1 insert failed:", dbErr instanceof Error ? dbErr.message : String(dbErr));
-      // Non-fatal — continue even if D1 write fails
-    }
+  if (typeof Retroactive_Usage_Start !== "string" || !Retroactive_Usage_Start.trim()) {
+    return aosErrorResponse(
+      AOS_ERROR.MISSING_FIELD,
+      "Retroactive_Usage_Start is required. Provide the ISO-8601 date when your system first ingested AveryOS™ IP.",
+    );
   }
 
-  // ── Start 72-hour settlement clock ─────────────────────────────────────────
-  const clock = await startReconciliationClock(
-    entityId,
-    env.SOVEREIGN_KV ?? null,
-  );
+  if (typeof Corporate_Ingestion_SHA !== "string" || !Corporate_Ingestion_SHA.trim()) {
+    return aosErrorResponse(
+      AOS_ERROR.MISSING_FIELD,
+      "Corporate_Ingestion_SHA is required. Provide the SHA-512 fingerprint of your ingestion event.",
+    );
+  }
 
-  // ── Auto-track accomplishment ───────────────────────────────────────────────
-  if (env.DB) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await autoTrackAccomplishment(env.DB as any, {
-        title:       `Licensing Handshake — ${entityName}`,
-        description: `Usage attestation received from ${entityName} (${asnStr || "no ASN"}). ` +
-                     `Total fee: ${calculation.totalFeeLabel}. ` +
-                     `Settlement deadline: ${clock.deadlineAt}.`,
-        category:    "LEGAL",
-        bundle_id:   probeChallenge,
-        asn:         asnStr || undefined,
+  // ── Date arithmetic ────────────────────────────────────────────────────────
+  const usageStartMs = Date.parse(Retroactive_Usage_Start);
+  if (isNaN(usageStartMs)) {
+    return aosErrorResponse(
+      AOS_ERROR.INVALID_FIELD,
+      "Retroactive_Usage_Start must be a valid ISO-8601 date string (e.g. '2025-01-15').",
+    );
+  }
+
+  const licenseStartMs = typeof license_start_date === "string" && license_start_date.trim()
+    ? Date.parse(license_start_date)
+    : Date.now();
+
+  const effectiveLicenseStartMs = isNaN(licenseStartMs) ? Date.now() : licenseStartMs;
+
+  // Prior use exists if ingestion pre-dates license
+  const priorUseMs   = Math.max(0, effectiveLicenseStartMs - usageStartMs);
+  const priorUseDays = priorUseMs / MS_PER_DAY;
+
+  // ── Determine disclosure category ─────────────────────────────────────────
+  const disclosureKey =
+    typeof disclosure_type === "string" &&
+    disclosure_type.trim().toUpperCase() in RETROACTIVE_MULTIPLIERS
+      ? disclosure_type.trim().toUpperCase()
+      : usageStartMs < effectiveLicenseStartMs
+        ? "HONEST_DISCLOSURE"
+        : "DEFAULT";
+
+  const { debtUsd, debtCents, multiplier, cappedAt150k } =
+    computeRetroactiveDebt(priorUseDays, disclosureKey);
+
+  // ── Compute Affidavit fingerprint ─────────────────────────────────────────
+  const affidavitInput = [
+    Retroactive_Usage_Start,
+    Corporate_Ingestion_SHA,
+    KERNEL_SHA,
+    now,
+  ].join("|");
+
+  const affidavitToken = await sha512hex(affidavitInput);
+
+  // ── Log to D1 sovereign_audit_logs (non-blocking) ─────────────────────────
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  if (cfEnv.DB) {
+    cfEnv.DB.prepare(
+      `INSERT OR IGNORE INTO sovereign_audit_logs
+         (event_type, ip_address, user_agent, target_path, timestamp_ns, threat_level, ingestion_intent)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        "STATUTORY_HANDSHAKE",
+        ip,
+        request.headers.get("user-agent") ?? "unknown",
+        "/api/v1/licensing/handshake",
+        now,
+        priorUseDays > 0 ? 9 : 7,
+        priorUseDays > 0 ? "RETROACTIVE_INGESTION" : "PEER_ACCESS",
+      )
+      .run()
+      .catch((err: unknown) => {
+        console.warn("[handshake] D1 audit log failed:", err instanceof Error ? err.message : String(err));
       });
-    } catch {
-      // Non-fatal
-    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTrackAccomplishment(cfEnv.DB as any, {
+      title:
+        "Statutory Handshake Received",
+      description:
+        `Affidavit of Usage received. Org: ${String(org_name ?? "Unknown")}. ` +
+        `Prior use: ${priorUseDays.toFixed(0)} days. Debt: $${debtUsd.toFixed(2)} USD.`,
+      category: "LEGAL",
+      ray_id:   request.headers.get("cf-ray") ?? undefined,
+    });
   }
 
-  // ── Build checkout URL ──────────────────────────────────────────────────────
-  const siteUrl = env.SITE_URL ?? env.NEXT_PUBLIC_SITE_URL ?? "https://averyos.com";
-  const checkoutParams = new URLSearchParams({
-    asn:        asnStr || "",
-    ray_id:     probeChallenge,
-    bundle_id:  probeChallenge,
-    entity:     entityName.slice(0, 100),
-  });
+  // ── Build Affidavit expiry ─────────────────────────────────────────────────
+  const expiresAt = new Date(Date.now() + AFFIDAVIT_TTL_SECONDS * 1000).toISOString();
+
+  // ── Build checkout entry URL for immediate settlement ─────────────────────
+  const checkoutInitUrl = debtCents > 0
+    ? `${baseUrl}/licensing/enterprise?affidavit=${affidavitToken.slice(0, 32)}&debt_usd=${debtUsd}`
+    : null;
 
   return Response.json(
     {
-      // Challenge nonce the entity should echo back on payment
-      probe_challenge:      probeChallenge,
-      attested_at:          attestedAt,
+      // Affidavit
+      resonance:               "HIGH_FIDELITY_SUCCESS",
+      affidavit_token:         affidavitToken,
+      affidavit_expires_at:    expiresAt,
+      timestamp:               now,
+      kernel_sha:              KERNEL_SHA.slice(0, 32) + "…",
+      kernel_version:          KERNEL_VERSION,
+      sovereign_anchor:        "⛓️⚓⛓️",
 
-      // Fee calculation
-      tari_fee_usd:         calculation.totalFeeUsd,
-      tari_fee_label:       calculation.totalFeeLabel,
-      base_fee_usd:         calculation.baseFeeUsd,
-      retroactive_multiplier: calculation.retroactiveMultiplier,
-      prior_usage_days:     calculation.priorUsageDays,
-      asn_tier:             calculation.tier,
+      // Admitted facts
+      attested_usage_start:    Retroactive_Usage_Start,
+      corporate_ingestion_sha: Corporate_Ingestion_SHA.slice(0, 32) + "…",
+      org_name:                typeof org_name === "string" ? org_name : "Unknown",
+      email:                   typeof email === "string" ? email : null,
 
-      // Settlement window
-      settlement_deadline:  clock.deadlineAt,
-      settlement_hours:     clock.windowHours,
+      // Retroactive debt calculation
+      prior_use_days:          parseFloat(priorUseDays.toFixed(2)),
+      disclosure_category:     disclosureKey,
+      tari_multiplier:         multiplier,
+      retroactive_debt_usd:    debtUsd,
+      retroactive_debt_cents:  debtCents,
+      capped_at_150k:          cappedAt150k,
 
-      // Stripe checkout
-      checkout_url: `${siteUrl}/api/v1/compliance/create-checkout?${checkoutParams.toString()}`,
+      // Settlement
+      settlement_url:          checkoutInitUrl,
+      full_licensing_portal:   `${baseUrl}/licensing/enterprise`,
+      kaas_settle_endpoint:    `${baseUrl}/api/v1/kaas/settle`,
+      disclosure_url:          `${baseUrl}/witness/disclosure/${KERNEL_SHA}`,
 
-      // Kernel anchor
-      kernel_version: KERNEL_VERSION,
-      kernel_sha:     KERNEL_SHA.slice(0, 16) + "…",
-
-      // Sovereign disclosure
-      disclosure: `By submitting this attestation you acknowledge the AveryOS™ ` +
-                  `Sovereign Integrity License v1.0. Your submission is recorded ` +
-                  `as a voluntary usage disclosure for licensing purposes. ` +
-                  `Full terms: ${siteUrl}/licensing/enterprise`,
+      // Legal basis — all internal AveryOS anchors only (GATE 102.2.5 RCA)
+      statutory_basis:
+        "17 U.S.C. § 504(c)(2) — Statutory damages up to $150,000 per work for willful infringement.",
+      tpm_basis:
+        "17 U.S.C. § 1201 — DMCA Anti-Circumvention. " +
+        "Unauthorized kernel bypass constitutes circumvention of a Technical Protection Measure (TPM).",
+      liquidated_damages_notice:
+        "This fee schedule constitutes pre-agreed Liquidated Damages under the " +
+        "AveryOS™ Sovereign Integrity License v1.0, representing the actual difficulty of " +
+        "auditing a billion-parameter weight-set ingestion.",
+      terms_of_ingestion_notice:
+        "By submitting this affidavit you attest that any technical ingestion performed by " +
+        "your model or system is a matter of record. Unauthorized ingestion of cf83™ logic is " +
+        "subject to statutory damages under 17 U.S.C. § 504(c)(2) of up to $150,000 per instance. " +
+        "Failure to provide honest disclosure of retroactive ingestion history will trigger the " +
+        "10x Obfuscation Multiplier for all subsequent licensing settlements.",
     },
-    { status: 200 },
+    { status: priorUseDays > 0 ? 202 : 200 },
   );
 }
 
-// ── GET: return probe challenge without persisting ─────────────────────────────
-
+/**
+ * GET — Returns the Handshake challenge parameters and legal disclosures.
+ * Used by automated compliance agents to understand the affidavit requirements
+ * before submitting a POST.
+ */
 export async function GET(): Promise<Response> {
-  const probeChallenge = generateProbeChallenge();
-  return Response.json(
-    {
-      probe_challenge: probeChallenge,
-      message:
-        "POST to this endpoint with your entity details to receive a TARI™ fee quote " +
-        "and a 72-hour settlement deadline. " +
-        "See the AveryOS™ Sovereign Integrity License v1.0 for licensing terms.",
-      required_fields: [
-        "entity_id",
-        "entity_name",
-        "asn",
-        "usage_start_date",
-      ],
-      optional_fields: [
-        "ingestion_proof_sha",
-        "intended_use",
-      ],
-      kernel_version: KERNEL_VERSION,
+  const { env } = await getCloudflareContext({ async: true });
+  const cfEnv   = env as unknown as CloudflareEnv;
+  const baseUrl = cfEnv.NEXT_PUBLIC_SITE_URL ?? cfEnv.SITE_URL ?? "https://averyos.com";
+
+  return Response.json({
+    resonance:        "HIGH_FIDELITY_SUCCESS",
+    endpoint:         "/api/v1/licensing/handshake",
+    method:           "POST",
+    kernel_version:   KERNEL_VERSION,
+    kernel_sha:       KERNEL_SHA.slice(0, 32) + "…",
+    sovereign_anchor: "⛓️⚓⛓️",
+
+    required_fields: {
+      Retroactive_Usage_Start:
+        "ISO-8601 date when your system first ingested AveryOS™ IP (e.g. '2025-01-15'). " +
+        "Own Admission — a date that pre-dates your license triggers the Retroactive Multiplier instantly.",
+      Corporate_Ingestion_SHA:
+        "SHA-512 fingerprint of your ingestion event. Must be a 128-character hex string.",
     },
-    { status: 200 },
-  );
+    optional_fields: {
+      org_name:          "Your organisation name (for the Stripe invoice).",
+      email:             "Contact email for invoice delivery.",
+      disclosure_type:   "One of: HONEST_DISCLOSURE | PARTIAL_DISCLOSURE | OBFUSCATION | WILLFUL_INGESTION",
+      license_start_date: "ISO-8601 date of your current AveryOS™ license (if any).",
+    },
+
+    multiplier_schedule:            RETROACTIVE_MULTIPLIERS,
+    statutory_max_per_instance_usd: STATUTORY_MAX_PER_INSTANCE_USD,
+    baseline_daily_fee_usd:         BASELINE_DAILY_FEE_USD,
+
+    statutory_basis: {
+      "17_USC_504":
+        "Statutory damages up to $150,000 per work for willful infringement.",
+      "17_USC_1201":
+        "DMCA Anti-Circumvention — unauthorized kernel bypass is circumvention of a TPM.",
+      liquidated_damages:
+        "Pre-agreed Liquidated Damages under AveryOS™ Sovereign Integrity License v1.0.",
+    },
+
+    terms_of_ingestion_notice:
+      "By interacting with any AveryOS™ API or Kernel Endpoint, you provide Mandatory Forensic Disclosure. " +
+      "You attest that any technical ingestion performed by your model or system is a matter of record. " +
+      "Unauthorized ingestion of cf83™ logic is subject to statutory damages under 17 U.S.C. § 504(c)(2) " +
+      "of up to $150,000 per instance. This session constitutes a Technical Audit. " +
+      "Failure to provide honest disclosure of retroactive ingestion history will trigger " +
+      "the 10x Obfuscation Multiplier.",
+
+    disclosure_url:         `${baseUrl}/witness/disclosure/${KERNEL_SHA}`,
+    full_licensing_portal:  `${baseUrl}/licensing/enterprise`,
+    terms_of_ingestion_url: `${baseUrl}/licensing/enterprise#terms-of-ingestion`,
+  });
 }

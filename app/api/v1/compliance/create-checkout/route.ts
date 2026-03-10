@@ -59,10 +59,21 @@ function determinePricing(
       ? `RayID: ${rayIdStr} — `
       : `ASN ${asnStr} — `;
 
+    // GATE 102.2.4 — Label the $10M Audit Retainer as "Non-Refundable Forensic Deposit"
+    // for Tier-9/10 enterprise entities.
+    const productName = tier >= 9
+      ? `AveryOS™ Non-Refundable Forensic Deposit — ${lineItem.fee_name}`
+      : `AveryOS™ KaaS ${lineItem.fee_name} — ${lineItem.fee_label}`;
+    const productDescription = tier >= 9
+      ? `${rayPrefix}${lineItem.description} Non-Refundable Forensic Deposit (Audit Retainer). ` +
+        `This payment constitutes a pre-agreed Liquidated Damages settlement under 17 U.S.C. § 504(c)(2). ` +
+        `Forensic Evidence Bundle: ${bundleId}.`
+      : `${rayPrefix}${lineItem.description} Forensic Evidence Bundle: ${bundleId}.`;
+
     return {
-      liabilityCents:     lineItem.fee_usd_cents,
-      productName:        `AveryOS™ KaaS ${lineItem.fee_name} — ${lineItem.fee_label}`,
-      productDescription: `${rayPrefix}${lineItem.description} Forensic Evidence Bundle: ${bundleId}.`,
+      liabilityCents: lineItem.fee_usd_cents,
+      productName,
+      productDescription,
       pricingTier,
     };
   }
