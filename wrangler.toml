@@ -93,6 +93,10 @@ custom_domain = true
 pattern = "lighthouse.averyos.com"
 custom_domain = true
 
+[[routes]]
+pattern = "enterpriseregistration.averyos.com"
+custom_domain = true
+
 [[r2_buckets]]
 binding = 'VAULT'
 bucket_name = 'cloudflare-managed-42f4b874'
