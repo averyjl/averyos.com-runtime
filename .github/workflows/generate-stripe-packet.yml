@@ -26,6 +26,8 @@ jobs:
     name: Generate Nightly Stripe Evidence Packet
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
       - name: ⛓️ Checkout repository
