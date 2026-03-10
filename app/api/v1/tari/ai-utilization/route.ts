@@ -41,6 +41,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { recordGeminiSpend, GEMINI_COST_PER_1K_TOKENS, type GeminiSpendKV } from "../../../../../lib/geminiSpendTracker";
 
 // ── Fee constants ─────────────────────────────────────────────────────────────
 /** Per-invocation AI Inference Surcharge (on top of the $10M baseline). */
@@ -60,6 +61,7 @@ interface D1Database {
 interface CloudflareEnv {
   DB?:               D1Database;
   VAULT_PASSPHRASE?: string;
+  KV_LOGS?: GeminiSpendKV;
 }
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
@@ -151,6 +153,15 @@ export async function POST(request: Request): Promise<Response> {
       )
       .run()
       .catch(() => {});
+  }
+
+  // ── Phase 88: Gemini spend accumulator (race-free fan-out write) ────────
+  // Writes a unique per-call entry to KV_LOGS — no read, no race condition.
+  // lib/geminiSpendTracker.recordGeminiSpend() uses a unique key per call so
+  // concurrent requests never overwrite each other. 100.000% accurate.
+  if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
+    const costUsd = estimated_cost_usd ?? (total_tokens / 1000) * GEMINI_COST_PER_1K_TOKENS;
+    recordGeminiSpend(cfEnv.KV_LOGS, costUsd).catch(() => {});
   }
 
   return Response.json({

@@ -8,6 +8,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { classifyDerRequest } from './lib/sovereignMetadata';
+import { syncD1RowToFirebase } from './lib/firebaseClient';
+import {
+  isGeminiCreditExhausted,
+  type GeminiSpendKV,
+} from './lib/geminiSpendTracker';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -244,6 +249,22 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
         intent,
       )
       .run();
+
+    // ── Multi-Cloud D1 → Firebase Sync (non-blocking) ────────────────────────
+    // Mirror every Tier-7+ sovereign audit row to Firestore averyos-d1-sync/
+    // for cross-cloud parity. Activates once FIREBASE_PROJECT_ID is configured.
+    if (threatLevel >= 7) {
+      syncD1RowToFirebase({
+        id:           timestampNs,
+        event_type:   intent === 'LEGAL_SCAN' ? 'LEGAL_SCAN' : isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        ip_address:   ip,
+        target_path:  url.pathname,
+        threat_level: threatLevel,
+        timestamp_ns: timestampNs,
+      }).catch((err: unknown) => {
+        console.warn(`[middleware] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
 
     // ── R2 Evidence Dump — Full Cloudflare Metadata Object ───────────────────
     // Persists the raw telemetry as evidence/${rayId}.json in VAULT_R2.
@@ -665,14 +686,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Phase 88 — UsageCreditWatch: Gemini monthly spend circuit breaker ────
-  // Read accumulated Gemini spend from KV_LOGS. If the $50/month threshold
-  // is exceeded, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE on all
-  // responses so the intelligence router knows to bypass cloud AI this month.
+  // Aggregates all per-call KV spend entries for the current month using
+  // lib/geminiSpendTracker.getTotalGeminiSpend (race-free fan-out/list pattern).
+  // If total >= $50/month, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE.
   let geminiCreditExhaustedFlag = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
-    geminiCreditExhaustedFlag = await isGeminiCreditExhausted(cfEnv);
+    geminiCreditExhaustedFlag = await checkGeminiCreditExhausted(cfEnv);
   } catch {
     // KV unavailable — do not force fallback
   }

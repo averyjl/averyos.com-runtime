@@ -64,8 +64,10 @@ interface VaultchainRow {
   event_type: string | null;
 }
 
-const FINGERPRINT_RE = /^[a-fA-F0-9]{32,128}$/;
-const LICENSE_KEY_RE = /^[a-zA-Z0-9_\-]{8,128}$/;
+const FINGERPRINT_RE   = /^[a-fA-F0-9]{32,128}$/;
+const LICENSE_KEY_RE   = /^[a-zA-Z0-9_\-]{8,128}$/;
+const STRIPE_SESSION_RE = /^cs_(test|live)_[0-9A-Za-z]{10,}$/;
+const STRIPE_API_ALLOWLIST = new Set(['api.stripe.com']);
 
 /**
  * Derives the hardware-bound access token.
@@ -135,6 +137,27 @@ export async function POST(request: Request) {
   if (!LICENSE_KEY_RE.test(licenseKey)) {
     return aosErrorResponse(AOS_ERROR.INVALID_FIELD,
       'license_key must be 8–128 alphanumeric characters (Stripe payment intent ID or partner_id)');
+  }
+
+  // ── Optional Stripe checkout session verification ─────────────────────────
+  // When the license_key is a Stripe Checkout Session ID (cs_test_/cs_live_),
+  // verify the session against the Stripe API using encodeURIComponent to
+  // prevent path traversal SSRF. Requires STRIPE_SECRET_KEY to be set.
+  if (STRIPE_SESSION_RE.test(licenseKey) && cfEnv.STRIPE_SECRET_KEY) {
+    const sessionUrl = `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(licenseKey)}`;
+    // SSRF guard: confirm the constructed URL resolves to the allowlisted host.
+    const targetHost = new URL(sessionUrl).hostname;
+    if (!STRIPE_API_ALLOWLIST.has(targetHost)) {
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD,
+        'Internal SSRF guard: unexpected Stripe API hostname. Contact support.');
+    }
+    const stripeRes = await fetch(sessionUrl, {
+      headers: { Authorization: `Bearer ${cfEnv.STRIPE_SECRET_KEY}` },
+    }).catch(() => null);
+    if (!stripeRes || !stripeRes.ok) {
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD,
+        'Stripe checkout session could not be verified. Ensure the session ID is valid and payment is complete.');
+    }
   }
 
   // ── Check for duplicate issuance ──────────────────────────────────────────
