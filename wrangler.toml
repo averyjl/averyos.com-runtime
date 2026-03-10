@@ -161,10 +161,6 @@ crons = ["*/5 * * * *", "0 7 * * *"]
 # The queue buffers sovereign_audit_log writes so no records are dropped under
 # SQLite concurrency pressure.
 #
-# Queue IDs:
-#   sovereign-log-ingress     — a8dbe6283a4a446e8494b52249ce945f
-#   sovereign-log-ingress-dlq — df1cde9730224466bba8068679fcceaa
-#
 # Activate via: wrangler queues create sovereign-log-ingress
 # Then bind the producer and consumer here.
 [[queues.producers]]
@@ -173,7 +169,7 @@ binding      = "SOVEREIGN_LOG_QUEUE"
 
 [[queues.consumers]]
 queue        = "sovereign-log-ingress"
-max_batch_size       = 50
+max_batch_size       = 100
 max_batch_timeout    = 5
 max_retries          = 3
 dead_letter_queue    = "sovereign-log-ingress-dlq"

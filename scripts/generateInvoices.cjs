@@ -61,6 +61,19 @@ const LOG_PATH             = process.env.AI_GATEWAY_LOG_PATH
 // ASN mode — activated when ANCHOR_AUDIT_LOG_PATH is set.
 const ANCHOR_AUDIT_LOG_PATH = process.env.ANCHOR_AUDIT_LOG_PATH || '';
 
+// ── STRIPE_SESSION_RE — Breach threshold override ─────────────────────────────
+// Set STRIPE_SESSION_RE to a positive integer to override the default
+// MILESTONE_THRESHOLD (156,200).  When the anchor_audit_logs row count
+// reaches or exceeds this value the ASN invoice run is triggered and
+// checkout sessions are POSTed to /api/v1/compliance/create-checkout.
+//
+// Usage example (trigger at 1,017 rows for testing):
+//   STRIPE_SESSION_RE=1017 STRIPE_SECRET_KEY=sk_... node scripts/generateInvoices.cjs
+const _customBreachThreshold = parseInt(process.env.STRIPE_SESSION_RE ?? '', 10);
+const STRIPE_SESSION_BREACH_THRESHOLD = (!isNaN(_customBreachThreshold) && _customBreachThreshold > 0)
+  ? _customBreachThreshold
+  : null; // null → use the default MILESTONE_THRESHOLD below
+
 const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents
 const PER_REQUEST_CENTS    = 1;           // $0.01 in cents
 const TOP_N                = 10;
@@ -74,7 +87,8 @@ const MILESTONE_TRIGGER_TOTAL_REQUESTS = 135_000;
 
 // ── ASN Mode Config ───────────────────────────────────────────────────────────
 // Milestone: ASN mode only activates when anchor_audit_logs row count >= this value.
-const MILESTONE_THRESHOLD = 156_200;
+// Override via STRIPE_SESSION_RE env var (see above).
+const MILESTONE_THRESHOLD = STRIPE_SESSION_BREACH_THRESHOLD ?? 156_200;
 
 // Enterprise ASNs — GitHub/Microsoft, French infrastructure, Seznam (Czech Republic).
 // These trigger a $10M Good Faith Deposit invoice.

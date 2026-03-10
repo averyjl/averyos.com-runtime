@@ -214,6 +214,14 @@ export default function VaultChainExplorerPage() {
     }
   }
 
+  // ── Section B: Evidence Vault fetch state ─────────────────────────────────
+  const [rayIdInput,       setRayIdInput]       = useState("");
+  const [evidenceLoading,  setEvidenceLoading]  = useState(false);
+  const [evidenceResult,   setEvidenceResult]   = useState<EvidenceResult | null>(null);
+  const [evidenceError,    setEvidenceError]    = useState<string | null>(null);
+
+  const isValidEvidenceRayId = /^[a-zA-Z0-9]{16,32}$/.test(rayIdInput.trim());
+
   // ── Section B: Evidence Vault fetch handler ────────────────────────────────
   async function handleEvidenceVaultFetch(e: React.FormEvent) {
     e.preventDefault();
@@ -639,8 +647,8 @@ export default function VaultChainExplorerPage() {
           </label>
           <input
             type="text"
-            value={rayInput}
-            onChange={(e) => setRayInput(e.target.value)}
+            value={rayIdInput}
+            onChange={(e) => setRayIdInput(e.target.value)}
             placeholder="Enter Cloudflare RayID (e.g. 8a3f1b2c4d5e6f7g) or SHA-512 hash…"
             maxLength={128}
             spellCheck={false}
@@ -659,25 +667,25 @@ export default function VaultChainExplorerPage() {
           />
           <button
             type="submit"
-            disabled={!isValidRayId || rayLoading}
+            disabled={!isValidEvidenceRayId || evidenceLoading}
             style={{
               alignSelf:    "flex-start",
-              background:   isValidRayId && !rayLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
+              background:   isValidEvidenceRayId && !evidenceLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
               border:       "none",
               borderRadius: "6px",
-              color:        isValidRayId && !rayLoading ? "#000" : MUTED,
-              cursor:       isValidRayId && !rayLoading ? "pointer" : "not-allowed",
+              color:        isValidEvidenceRayId && !evidenceLoading ? "#000" : MUTED,
+              cursor:       isValidEvidenceRayId && !evidenceLoading ? "pointer" : "not-allowed",
               fontSize:     "0.9rem",
               fontWeight:   700,
               padding:      "0.6rem 1.8rem",
               transition:   "background 0.2s",
             }}
           >
-            {rayLoading ? "Fetching…" : "Fetch Evidence 🔍"}
+            {evidenceLoading ? "Fetching…" : "Fetch Evidence 🔍"}
           </button>
         </form>
 
-        {rayError && (
+        {evidenceError && (
           <div style={{
             marginTop:    "1.5rem",
             background:   "rgba(255,68,68,0.08)",
@@ -686,11 +694,11 @@ export default function VaultChainExplorerPage() {
             padding:      "1rem 1.25rem",
             color:        RED,
           }}>
-            {rayError}
+            {evidenceError}
           </div>
         )}
 
-        {rayResult && !rayResult.error && (
+        {evidenceResult && !evidenceResult.error && (
           <div style={{
             marginTop:    "1.5rem",
             background:   "rgba(100,180,255,0.05)",
@@ -714,16 +722,16 @@ export default function VaultChainExplorerPage() {
             </div>
             <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem", margin: 0 }}>
               {([
-                ["Capsule ID",    rayResult.CapsuleID],
-                ["Capsule Type",  rayResult.CapsuleType],
-                ["Event Type",    rayResult.EventType],
-                ["Event ID",      String(rayResult.EventId ?? "")],
-                ["Target IP",     rayResult.TargetIP],
-                ["Target Path",   rayResult.TargetPath],
-                ["Geo Location",  rayResult.GeoLocation],
-                ["Threat Level",  String(rayResult.ThreatLevel ?? "")],
-                ["Packaged At",   rayResult.PackagedAt],
-                ["Kernel Version",rayResult.KernelVersion],
+                ["Capsule ID",    evidenceResult.CapsuleID],
+                ["Capsule Type",  evidenceResult.CapsuleType],
+                ["Event Type",    evidenceResult.EventType],
+                ["Event ID",      String(evidenceResult.EventId ?? "")],
+                ["Target IP",     evidenceResult.TargetIP],
+                ["Target Path",   evidenceResult.TargetPath],
+                ["Geo Location",  evidenceResult.GeoLocation],
+                ["Threat Level",  String(evidenceResult.ThreatLevel ?? "")],
+                ["Packaged At",   evidenceResult.PackagedAt],
+                ["Kernel Version",evidenceResult.KernelVersion],
               ] as [string, string | undefined][]).map(([label, value]) => (
                 value ? (
                   <>
