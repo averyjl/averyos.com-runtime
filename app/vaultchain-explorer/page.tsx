@@ -242,6 +242,65 @@ export default function VaultChainExplorerPage() {
     }
   }
 
+  // ── Batch Export state ─────────────────────────────────────────────────────
+  const [batchInput,      setBatchInput]      = useState("");
+  const [batchToken,      setBatchToken]      = useState("");
+  const [batchResults,    setBatchResults]    = useState<EvidenceResult[]>([]);
+  const [batchLoading,    setBatchLoading]    = useState(false);
+  const [batchError,      setBatchError]      = useState<string | null>(null);
+  const [batchSortBy,     setBatchSortBy]     = useState<"date" | "threat">("date");
+  const [batchSortDir,    setBatchSortDir]    = useState<"asc" | "desc">("desc");
+  const [batchPage,       setBatchPage]       = useState(0);
+  const BATCH_PAGE_SIZE = 10;
+
+  async function handleBatchExport(e: React.FormEvent) {
+    e.preventDefault();
+    const rayIds = batchInput.split(/[\n,]+/).map(s => s.trim()).filter(s => /^[a-zA-Z0-9]{16,32}$/.test(s));
+    if (!rayIds.length) { setBatchError("Enter at least one valid RayID (16–32 alphanumeric chars)."); return; }
+    setBatchLoading(true);
+    setBatchError(null);
+    setBatchResults([]);
+    setBatchPage(0);
+    const results: EvidenceResult[] = [];
+    for (const rayId of rayIds.slice(0, 50)) { // cap at 50 IDs
+      try {
+        const headers: Record<string, string> = {};
+        if (batchToken.trim()) headers['Authorization'] = `Bearer ${batchToken.trim()}`;
+        const res = await fetch(`/api/v1/evidence/${rayId}`, { headers });
+        const data = await res.json() as EvidenceResult;
+        results.push(data);
+      } catch {
+        results.push({ error: `Network error fetching ${rayId}`, ray_id: rayId });
+      }
+    }
+    setBatchResults(results);
+    setBatchLoading(false);
+  }
+
+  function handleBatchDownload() {
+    const blob = new Blob([JSON.stringify(batchResults, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `vaultchain-evidence-batch-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const sortedBatchResults = [...batchResults].sort((a, b) => {
+    if (batchSortBy === "threat") {
+      const aT = a.evidence?.threat_level ?? 0;
+      const bT = b.evidence?.threat_level ?? 0;
+      return batchSortDir === "desc" ? bT - aT : aT - bT;
+    }
+    const aD = a.evidence?.edge_start_ts ?? a.archived_at ?? "";
+    const bD = b.evidence?.edge_start_ts ?? b.archived_at ?? "";
+    return batchSortDir === "desc" ? bD.localeCompare(aD) : aD.localeCompare(bD);
+  });
+
+  const batchPageCount = Math.ceil(sortedBatchResults.length / BATCH_PAGE_SIZE);
+  const batchPageResults = sortedBatchResults.slice(batchPage * BATCH_PAGE_SIZE, (batchPage + 1) * BATCH_PAGE_SIZE);
+
   const hashResonanceColor =
     hashResult?.resonance === "HIGH_FIDELITY_SUCCESS" ? GREEN :
     hashResult?.resonance === "DRIFT_ALERT"            ? RED   : GOLD;
@@ -693,6 +752,133 @@ export default function VaultChainExplorerPage() {
                 ) : null
               ))}
             </dl>
+          </div>
+        )}
+      </section>
+
+      {/* ── Batch Evidence Export ── */}
+      <section style={{
+        maxWidth:    720,
+        margin:      "0 auto",
+        padding:     "0 1.5rem 3rem",
+        borderTop:   `1px solid ${GOLD_BORDER}`,
+        paddingTop:  "2rem",
+      }}>
+        <h2 style={{ color: GOLD_DIM, fontSize: "1.15rem", marginBottom: "0.5rem", fontWeight: 700 }}>
+          RayID Batch Evidence Export
+        </h2>
+        <p style={{ color: MUTED, fontSize: "0.88rem", marginBottom: "1.25rem" }}>
+          Enter up to 50 Cloudflare RayIDs (one per line or comma-separated) to fetch and export
+          evidence bundles as a single JSON file. Sort results by date or threat level.
+        </p>
+        <form onSubmit={handleBatchExport} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <textarea
+            value={batchInput}
+            onChange={(e) => setBatchInput(e.target.value)}
+            placeholder={"Enter RayIDs (one per line):\n8a3f1b2c4d5e6f7g\n9b4f2c3d5e7f8h1i"}
+            rows={5}
+            style={{ ...inputStyle(), resize: "vertical" }}
+          />
+          <input
+            type="text"
+            value={batchToken}
+            onChange={(e) => setBatchToken(e.target.value)}
+            placeholder="Bearer token (optional)"
+            style={inputStyle()}
+          />
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="submit"
+              disabled={batchLoading || !batchInput.trim()}
+              style={{
+                background:   !batchLoading && batchInput.trim() ? GOLD : "rgba(255,215,0,0.15)",
+                border:       "none", borderRadius: "6px",
+                color:        !batchLoading && batchInput.trim() ? "#000" : MUTED,
+                cursor:       batchLoading ? "not-allowed" : "pointer",
+                fontSize:     "0.9rem", fontWeight: 700, padding: "0.6rem 1.8rem",
+              }}
+            >
+              {batchLoading ? "Fetching…" : "Fetch Batch 🔍"}
+            </button>
+            {batchResults.length > 0 && (
+              <button
+                type="button"
+                onClick={handleBatchDownload}
+                style={{
+                  background: "rgba(74,222,128,0.15)", border: `1px solid ${GREEN}`,
+                  borderRadius: "6px", color: GREEN, cursor: "pointer",
+                  fontSize: "0.88rem", fontWeight: 700, padding: "0.55rem 1.4rem",
+                }}
+              >
+                Export JSON ⬇
+              </button>
+            )}
+            <select
+              value={batchSortBy}
+              onChange={(e) => { setBatchSortBy(e.target.value as "date" | "threat"); setBatchPage(0); }}
+              style={{ ...inputStyle(), width: "auto", padding: "0.55rem 0.75rem" }}
+            >
+              <option value="date">Sort: Date</option>
+              <option value="threat">Sort: Threat Level</option>
+            </select>
+            <select
+              value={batchSortDir}
+              onChange={(e) => { setBatchSortDir(e.target.value as "asc" | "desc"); setBatchPage(0); }}
+              style={{ ...inputStyle(), width: "auto", padding: "0.55rem 0.75rem" }}
+            >
+              <option value="desc">↓ Desc</option>
+              <option value="asc">↑ Asc</option>
+            </select>
+          </div>
+        </form>
+        {batchError && <p style={{ color: RED, marginTop: "0.75rem", fontSize: "0.85rem" }}>{batchError}</p>}
+        {batchPageResults.length > 0 && (
+          <div style={{ marginTop: "1.5rem" }}>
+            <p style={{ color: MUTED, fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+              Showing {batchPage * BATCH_PAGE_SIZE + 1}–{Math.min((batchPage + 1) * BATCH_PAGE_SIZE, sortedBatchResults.length)} of {sortedBatchResults.length} results
+            </p>
+            {batchPageResults.map((r, i) => (
+              <div key={i} style={{
+                background: "rgba(255,215,0,0.03)", border: `1px solid ${GOLD_BORDER}`,
+                borderRadius: "8px", padding: "0.9rem 1.1rem", marginBottom: "0.6rem", fontSize: "0.8rem",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.4rem" }}>
+                  <span style={{ color: GOLD_DIM, fontFamily: "monospace" }}>{r.ray_id ?? "—"}</span>
+                  {r.evidence?.threat_level != null && (
+                    <span style={{ color: r.evidence.threat_level >= 10 ? RED : ORANGE }}>
+                      Tier-{r.evidence.threat_level}
+                    </span>
+                  )}
+                </div>
+                {r.error && <p style={{ color: RED, margin: "0.35rem 0 0" }}>{r.error}</p>}
+                {r.evidence && (
+                  <p style={{ color: MUTED, margin: "0.35rem 0 0" }}>
+                    {r.evidence.ip_address} · {r.evidence.city ?? ""} {r.evidence.country ?? ""} · {r.evidence.edge_start_ts?.slice(0, 19) ?? ""}
+                  </p>
+                )}
+              </div>
+            ))}
+            {batchPageCount > 1 && (
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+                <button
+                  onClick={() => setBatchPage(p => Math.max(0, p - 1))}
+                  disabled={batchPage === 0}
+                  style={{ padding: "0.4rem 1rem", background: "transparent", border: `1px solid ${GOLD_BORDER}`, color: GOLD_DIM, borderRadius: "5px", cursor: batchPage === 0 ? "not-allowed" : "pointer" }}
+                >
+                  ← Prev
+                </button>
+                <span style={{ color: MUTED, lineHeight: "2.2", fontSize: "0.82rem" }}>
+                  Page {batchPage + 1} / {batchPageCount}
+                </span>
+                <button
+                  onClick={() => setBatchPage(p => Math.min(batchPageCount - 1, p + 1))}
+                  disabled={batchPage >= batchPageCount - 1}
+                  style={{ padding: "0.4rem 1rem", background: "transparent", border: `1px solid ${GOLD_BORDER}`, color: GOLD_DIM, borderRadius: "5px", cursor: batchPage >= batchPageCount - 1 ? "not-allowed" : "pointer" }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

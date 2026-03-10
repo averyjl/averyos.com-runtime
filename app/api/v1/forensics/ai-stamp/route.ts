@@ -37,6 +37,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { syncD1RowToFirebase } from "../../../../../lib/firebaseClient";
 
 // ── Cloudflare env interfaces ─────────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ interface CloudflareEnv {
   VAULT_R2?:        R2Bucket;
   VAULT_PASSPHRASE?: string;
   BLOCKCHAIN_API_KEY?: string;
+  KV_LOGS?: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -201,6 +203,30 @@ export async function POST(request: Request): Promise<Response> {
       )
       .run()
       .catch(() => {});
+
+    // ── Multi-Cloud: Mirror AI_STAMP to Firebase Firestore (non-blocking) ──
+    const tNs = Date.now().toString() + "000000";
+    syncD1RowToFirebase({
+      id:           tNs,
+      event_type:   "AI_STAMP",
+      ip_address:   asn ?? "UNKNOWN",
+      target_path:  path ?? "/api/v1/forensics/ai-stamp",
+      threat_level: threat_level ?? 8,
+      timestamp_ns: tNs,
+    }).catch(() => {});
+  }
+
+  // ── Phase 88: Gemini spend accumulator ──────────────────────────────────
+  // Adds the estimated cost of this Gemini call to the monthly KV_LOGS tally.
+  // Gemini 1.5 Pro pricing: ~$0.00125 per 1K tokens (blended in/out avg).
+  if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
+    const now = new Date();
+    const spendKey = `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    cfEnv.KV_LOGS.get(spendKey).then(async (current) => {
+      const prev    = parseFloat(current ?? '0') || 0;
+      const cost    = (total_tokens / 1000) * 0.00125;
+      await cfEnv.KV_LOGS!.put(spendKey, (prev + cost).toFixed(6));
+    }).catch(() => {});
   }
 
   return Response.json({

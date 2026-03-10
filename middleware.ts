@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { classifyDerRequest } from './lib/sovereignMetadata';
+import { syncD1RowToFirebase } from './lib/firebaseClient';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -244,6 +245,22 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
         intent,
       )
       .run();
+
+    // ── Multi-Cloud D1 → Firebase Sync (non-blocking) ────────────────────────
+    // Mirror every Tier-7+ sovereign audit row to Firestore averyos-d1-sync/
+    // for cross-cloud parity. Activates once FIREBASE_PROJECT_ID is configured.
+    if (threatLevel >= 7) {
+      syncD1RowToFirebase({
+        id:           timestampNs,
+        event_type:   intent === 'LEGAL_SCAN' ? 'LEGAL_SCAN' : isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        ip_address:   ip,
+        target_path:  url.pathname,
+        threat_level: threatLevel,
+        timestamp_ns: timestampNs,
+      }).catch((err: unknown) => {
+        console.warn(`[middleware] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
 
     // ── R2 Evidence Dump — Full Cloudflare Metadata Object ───────────────────
     // Persists the raw telemetry as evidence/${rayId}.json in VAULT_R2.

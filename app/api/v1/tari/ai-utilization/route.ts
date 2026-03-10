@@ -60,6 +60,7 @@ interface D1Database {
 interface CloudflareEnv {
   DB?:               D1Database;
   VAULT_PASSPHRASE?: string;
+  KV_LOGS?: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> };
 }
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
@@ -151,6 +152,18 @@ export async function POST(request: Request): Promise<Response> {
       )
       .run()
       .catch(() => {});
+  }
+
+  // ── Phase 88: Gemini spend accumulator ──────────────────────────────────
+  // Accumulate the estimated Gemini cost for the Phase 88 circuit breaker.
+  if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
+    const now = new Date();
+    const spendKey = `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    cfEnv.KV_LOGS.get(spendKey).then(async (current) => {
+      const prev = parseFloat(current ?? '0') || 0;
+      const cost = estimated_cost_usd ?? (total_tokens / 1000) * 0.00125;
+      await cfEnv.KV_LOGS!.put(spendKey, (prev + cost).toFixed(6));
+    }).catch(() => {});
   }
 
   return Response.json({
