@@ -8,6 +8,7 @@ export type CapsuleRegistryItem = {
   sha?: string;
   driftLock?: string;
   compiledAt?: string;
+  category?: string;
 };
 
 export type CapsuleRegistry = {

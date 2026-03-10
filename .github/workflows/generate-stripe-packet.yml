@@ -1,0 +1,86 @@
+name: 🧾 Nightly Stripe Evidence Packet Generator
+
+# Runs every night at 07:30 UTC (00:30 MST) — 30 minutes after the daily
+# Stripe reconciliation cron (07:00 UTC) so the D1 data is fully settled.
+# Can also be triggered manually via workflow_dispatch for ad-hoc runs.
+#
+# ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Date to generate packet for (YYYY-MM-DD). Defaults to today."
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry-run mode (no R2 upload or Stripe calls)"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  generate-stripe-packet:
+    name: Generate Nightly Stripe Evidence Packet
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: ⛓️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Validate D1 credentials
+        run: |
+          if [ -z "${{ secrets.AVERYOS_D1_ACCOUNT_ID }}" ] || \
+             [ -z "${{ secrets.AVERYOS_D1_DATABASE_ID }}" ] || \
+             [ -z "${{ secrets.AVERYOS_D1_API_TOKEN }}" ]; then
+            echo "⚠️  D1 credentials not configured — skipping packet generation."
+            echo "   Set AVERYOS_D1_ACCOUNT_ID, AVERYOS_D1_DATABASE_ID, AVERYOS_D1_API_TOKEN in repository secrets."
+            exit 0
+          fi
+          echo "✓ D1 credentials present."
+
+      - name: 🧾 Generate Stripe Evidence Packet
+        env:
+          AVERYOS_D1_ACCOUNT_ID: ${{ secrets.AVERYOS_D1_ACCOUNT_ID }}
+          AVERYOS_D1_DATABASE_ID: ${{ secrets.AVERYOS_D1_DATABASE_ID }}
+          AVERYOS_D1_API_TOKEN: ${{ secrets.AVERYOS_D1_API_TOKEN }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_CUSTOMER_ID: ${{ secrets.STRIPE_CUSTOMER_ID }}
+          AVERYOS_R2_BUCKET: ${{ secrets.AVERYOS_R2_BUCKET }}
+          AVERYOS_R2_API_TOKEN: ${{ secrets.AVERYOS_R2_API_TOKEN }}
+        run: |
+          DATE_FLAG=""
+          DRY_RUN_FLAG=""
+
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_FLAG="--date ${{ github.event.inputs.date }}"
+          fi
+
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+
+          node scripts/generate-stripe-packet.cjs $DATE_FLAG $DRY_RUN_FLAG
+
+      - name: 📤 Upload evidence packets as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stripe-evidence-packets-${{ github.run_id }}
+          path: evidence-packets/
+          retention-days: 30
+          if-no-files-found: ignore

@@ -101,10 +101,10 @@ export async function GET(request: Request) {
  * `sovereign-log-ingress`.  Writes records to D1 in batches of BATCH_SIZE
  * using D1's `batch()` API for efficiency.
  *
- * This function is consumed directly by the Cloudflare Worker runtime via the
- * Worker's `queue` export.  It must NOT be exported from a Next.js route file
- * (exporting non-HTTP-handler symbols from route files violates the route
- * constraint `{ [x: string]: never }`).
+ * Not exported as an HTTP handler — this is a Worker queue consumer called
+ * directly by the Cloudflare runtime outside the HTTP handler tree.
+ * Not exported from this module to avoid Next.js route type violations;
+ * re-exported via lib/queue/logConsumerHandler.ts for use in the Worker entry.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function processLogBatch(

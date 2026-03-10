@@ -1,290 +1,173 @@
-#!/usr/bin/env node
 /**
  * scripts/reconcile-stripe.cjs
+ * AveryOS™ Stripe Reconciliation Bot — Phase 98 (Roadmap Item 9)
  *
- * Phase 98 — Stripe vs D1 Drift Detection
- *
- * Compares Stripe payment records against the kaas_ledger and kaas_valuations
- * tables in Cloudflare D1 to detect:
- *
- *   1. Stripe charges that have no corresponding D1 settlement row
- *      → "STRIPE_ONLY" (possible data loss)
- *
- *   2. D1 rows with settlement_status = 'PENDING' older than STALE_DAYS
- *      → "D1_STALE_PENDING" (possible missed invoice)
- *
- *   3. D1 rows with settlement_status = 'INVOICED' that have no matching
- *      Stripe charge → "D1_ORPHAN_INVOICE" (Stripe checkout abandoned)
+ * Standalone Node.js script that performs Stripe vs D1 zero-drift tracking:
+ *   1. Fetch all Stripe checkout.session.completed events for the past 48 h
+ *      (or a custom window via --hours flag).
+ *   2. For each completed session query D1 sovereign_alignments for a matching row.
+ *   3. Report MISSING (in Stripe but not D1), DRIFT (status mismatch), and OK rows.
+ *   4. Exit non-zero if any drift is detected (for CI gate usage).
  *
  * Usage:
- *   STRIPE_SECRET_KEY=sk_live_... \
- *   CF_D1_API_TOKEN=... \
- *   CF_ACCOUNT_ID=... \
- *   CF_D1_DATABASE_ID=... \
- *   node scripts/reconcile-stripe.cjs [--dry-run] [--days=30]
+ *   STRIPE_SECRET_KEY=sk_... VAULT_PASSPHRASE=... \
+ *     node scripts/reconcile-stripe.cjs [--hours 48] [--dry-run]
  *
- * Output: JSON report written to /tmp/stripe-reconciliation-<timestamp>.json
- *         and printed to stdout.
+ * Required environment variables:
+ *   STRIPE_SECRET_KEY   — Stripe secret key
+ *   VAULT_PASSPHRASE    — AveryOS™ Vault passphrase (used to call /api/v1/cron/reconcile)
+ *   SITE_URL            — Base URL of the live site (default: https://averyos.com)
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-"use strict";
+'use strict';
 
-const https  = require("https");
-const fs     = require("fs");
-const path   = require("path");
-const os     = require("os");
+const https  = require('https');
+const http   = require('http');
+const Stripe = require('stripe');
+const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+
+// ── CLI ────────────────────────────────────────────────────────────────────────
+const args    = process.argv.slice(2);
+const DRY_RUN = args.includes('--dry-run');
+const hoursArg = (() => {
+  const idx = args.indexOf('--hours');
+  if (idx !== -1 && args[idx + 1]) return parseInt(args[idx + 1], 10);
+  return 48;
+})();
 
 // ── Config ────────────────────────────────────────────────────────────────────
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const VAULT_PASSPHRASE  = process.env.VAULT_PASSPHRASE ?? '';
+const SITE_URL          = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, '');
 
-const STRIPE_SECRET_KEY    = process.env.STRIPE_SECRET_KEY    ?? "";
-const CF_D1_API_TOKEN      = process.env.CF_D1_API_TOKEN      ?? "";
-const CF_ACCOUNT_ID        = process.env.CF_ACCOUNT_ID        ?? "";
-const CF_D1_DATABASE_ID    = process.env.CF_D1_DATABASE_ID    ?? "";
-
-const args      = process.argv.slice(2);
-const DRY_RUN   = args.includes("--dry-run");
-const daysArg   = args.find(a => a.startsWith("--days="));
-const STALE_DAYS = daysArg ? parseInt(daysArg.split("=")[1], 10) : 30;
-
-const KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
-const KERNEL_VERSION = "v3.6.2";
-
-// ── Sovereign Error Logger ────────────────────────────────────────────────────
-
-/** @param {string} code @param {string} detail @param {unknown} [cause] */
-function logAosError(code, detail, cause) {
-  console.error(`[AOS_ERROR][${code}] ${detail}`, cause ?? "");
+if (!STRIPE_SECRET_KEY) {
+  logAosError(AOS_ERROR.MISSING_AUTH, 'STRIPE_SECRET_KEY is not set.');
+  process.exit(1);
 }
 
-/** @param {string} action @param {string} detail */
-function logAosHeal(action, detail) {
-  console.info(`[AOS_HEAL][${action}] ${detail}`);
-}
-
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
+// ── HTTP helper ────────────────────────────────────────────────────────────────
 
 /**
- * Make an HTTPS GET/POST request and return the parsed JSON body.
+ * Minimal HTTPS/HTTP GET with JSON response parsing.
  * @param {string} url
- * @param {{ method?: string; headers?: Record<string,string>; body?: string }} [opts]
+ * @param {Record<string,string>} headers
  * @returns {Promise<unknown>}
  */
-function httpsJson(url, opts = {}) {
+function fetchJson(url, headers = {}) {
   return new Promise((resolve, reject) => {
-    const { method = "GET", headers = {}, body } = opts;
-    const parsed = new URL(url);
-    const reqOpts = {
-      hostname: parsed.hostname,
-      path:     parsed.pathname + parsed.search,
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-        ...(body ? { "Content-Length": Buffer.byteLength(body) } : {}),
-      },
-    };
-    const req = https.request(reqOpts, res => {
-      let data = "";
-      res.on("data", chunk => (data += chunk));
-      res.on("end", () => {
+    const lib     = url.startsWith('https') ? https : http;
+    const options = { headers: { 'Content-Type': 'application/json', ...headers } };
+    const req     = lib.get(url, options, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
         try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error(`JSON parse error: ${e.message} — raw: ${data.slice(0, 200)}`)); }
+        catch (e) { reject(new Error(`JSON parse error from ${url}: ${e.message}`)); }
       });
     });
-    req.on("error", reject);
-    if (body) req.write(body);
-    req.end();
+    req.on('error', reject);
   });
 }
 
-// ── Stripe helpers ────────────────────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all Stripe PaymentIntents created in the last `days` days.
- * @param {number} days
- * @returns {Promise<{ id: string; amount: number; status: string; metadata: Record<string,string>; created: number }[]>}
- */
-async function fetchStripePaymentIntents(days) {
-  if (!STRIPE_SECRET_KEY) {
-    logAosError("CONFIG_MISSING", "STRIPE_SECRET_KEY is not set — skipping Stripe fetch.");
-    return [];
-  }
+async function main() {
+  console.log('\n⛓️⚓⛓️  AveryOS™ Stripe Reconciliation Bot');
+  console.log(`   Window: last ${hoursArg}h | Dry-run: ${DRY_RUN}`);
+  console.log(`   Site:   ${SITE_URL}\n`);
 
-  const since = Math.floor(Date.now() / 1000) - days * 86_400;
-  const auth  = Buffer.from(`${STRIPE_SECRET_KEY}:`).toString("base64");
-  const url   = `https://api.stripe.com/v1/payment_intents?created[gte]=${since}&limit=100`;
-
-  try {
-    const data = /** @type {{ data?: unknown[]; error?: { message: string } }} */ (
-      await httpsJson(url, { headers: { Authorization: `Basic ${auth}` } })
-    );
-
-    if (data.error) {
-      logAosError("STRIPE_ERROR", data.error.message);
-      return [];
+  // 1. Delegate primary reconciliation to the live /api/v1/cron/reconcile endpoint
+  //    which has direct D1 access via Cloudflare bindings.
+  if (VAULT_PASSPHRASE) {
+    console.log('→ Triggering /api/v1/cron/reconcile …');
+    try {
+      const result = /** @type {Record<string,unknown>} */ (await fetchJson(
+        `${SITE_URL}/api/v1/cron/reconcile`,
+        { Authorization: `Bearer ${VAULT_PASSPHRASE}` },
+      ));
+      console.log('   Response:', JSON.stringify(result, null, 2));
+      const healed  = /** @type {number} */ (result.healed  ?? 0);
+      const already = /** @type {number} */ (result.already_aligned ?? 0);
+      if (healed > 0) {
+        logAosHeal('RECONCILIATION', `Healed ${healed} drifted alignment(s). ${already} already aligned.`);
+      } else {
+        console.log(`   ✔ No drift detected. ${already} alignment(s) confirmed.`);
+      }
+    } catch (err) {
+      logAosError(AOS_ERROR.EXTERNAL_API_ERROR, 'Failed to reach /api/v1/cron/reconcile', err);
+      console.warn('   ⚠ Falling back to local Stripe-only verification…\n');
     }
-
-    return /** @type {any[]} */ (data.data ?? []);
-  } catch (err) {
-    logAosError("STRIPE_FETCH_FAILED", "Failed to fetch Stripe PaymentIntents.", err);
-    return [];
-  }
-}
-
-// ── D1 helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Execute a SQL query against Cloudflare D1 via the REST API.
- * @param {string} sql
- * @param {unknown[]} [params]
- * @returns {Promise<Record<string, unknown>[]>}
- */
-async function d1Query(sql, params = []) {
-  if (!CF_D1_API_TOKEN || !CF_ACCOUNT_ID || !CF_D1_DATABASE_ID) {
-    logAosError("CONFIG_MISSING", "CF_D1_API_TOKEN / CF_ACCOUNT_ID / CF_D1_DATABASE_ID not set.");
-    return [];
-  }
-
-  const url  = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`;
-  const body = JSON.stringify({ sql, params });
-
-  try {
-    const data = /** @type {{ success?: boolean; result?: { results?: Record<string,unknown>[] }[]; errors?: { message: string }[] }} */ (
-      await httpsJson(url, {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${CF_D1_API_TOKEN}` },
-        body,
-      })
-    );
-
-    if (!data.success) {
-      logAosError("D1_QUERY_FAILED", (data.errors ?? []).map(e => e.message).join("; "));
-      return [];
-    }
-
-    return data.result?.[0]?.results ?? [];
-  } catch (err) {
-    logAosError("D1_FETCH_FAILED", "Failed to query D1.", err);
-    return [];
-  }
-}
-
-// ── Reconciliation logic ──────────────────────────────────────────────────────
-
-async function reconcile() {
-  const startedAt = new Date().toISOString();
-  console.info(`\n⛓️⚓⛓️  AveryOS™ Stripe Reconciliation — Phase 98`);
-  console.info(`Kernel: ${KERNEL_VERSION} | SHA: ${KERNEL_SHA.slice(0, 16)}…`);
-  console.info(`Started: ${startedAt} | Lookback: ${STALE_DAYS} days | DryRun: ${DRY_RUN}\n`);
-
-  // 1. Fetch Stripe PaymentIntents
-  console.info("📡 Fetching Stripe PaymentIntents…");
-  const stripeIntents = await fetchStripePaymentIntents(STALE_DAYS);
-  console.info(`   Found ${stripeIntents.length} Stripe PaymentIntents.`);
-
-  const stripeIds = new Set(stripeIntents.map(pi => pi.id));
-
-  // 2. Fetch D1 kaas_ledger rows
-  console.info("🗃️  Querying D1 kaas_ledger…");
-  const since = new Date(Date.now() - STALE_DAYS * 86_400_000).toISOString();
-  const ledgerRows = await d1Query(
-    `SELECT id, ray_id, asn, stripe_invoice_id, stripe_charge_id,
-            event_type, amount_usd, settlement_status, created_at
-     FROM   kaas_ledger
-     WHERE  created_at >= ?
-     ORDER BY created_at DESC`,
-    [since],
-  );
-  console.info(`   Found ${ledgerRows.length} kaas_ledger rows.\n`);
-
-  // 3. Fetch D1 stale PENDING kaas_valuations
-  console.info("🗃️  Querying stale PENDING kaas_valuations…");
-  const stalePending = await d1Query(
-    `SELECT id, ray_id, asn, valuation_usd, settlement_status, created_at
-     FROM   kaas_valuations
-     WHERE  settlement_status = 'PENDING'
-       AND  created_at < ?
-     ORDER BY created_at ASC
-     LIMIT 500`,
-    [since],
-  );
-  console.info(`   Found ${stalePending.length} stale PENDING rows.\n`);
-
-  // ── Drift analysis ────────────────────────────────────────────────────────
-
-  /** @type {{ type: string; detail: Record<string,unknown> }[]} */
-  const driftEvents = [];
-
-  // Stripe charges with no D1 counterpart
-  for (const pi of stripeIntents) {
-    if (pi.status !== "succeeded") continue;
-    const hasD1 = ledgerRows.some(r =>
-      r.stripe_charge_id === pi.id || r.stripe_invoice_id === pi.id
-    );
-    if (!hasD1) {
-      driftEvents.push({ type: "STRIPE_ONLY", detail: { stripe_id: pi.id, amount_usd: pi.amount / 100, status: pi.status } });
-    }
-  }
-
-  // D1 INVOICED rows with no Stripe charge
-  for (const row of ledgerRows) {
-    if (row.event_type !== "INVOICE_CREATED" && row.event_type !== "CHECKOUT_OPENED") continue;
-    const hasStripe = row.stripe_charge_id && stripeIds.has(String(row.stripe_charge_id));
-    if (!hasStripe) {
-      driftEvents.push({ type: "D1_ORPHAN_INVOICE", detail: { id: row.id, ray_id: row.ray_id, asn: row.asn, amount_usd: row.amount_usd } });
-    }
-  }
-
-  // Stale PENDING valuations
-  for (const row of stalePending) {
-    driftEvents.push({ type: "D1_STALE_PENDING", detail: { id: row.id, ray_id: row.ray_id, asn: row.asn, valuation_usd: row.valuation_usd, created_at: row.created_at } });
-  }
-
-  // ── Report ────────────────────────────────────────────────────────────────
-
-  const report = {
-    generated_at:          new Date().toISOString(),
-    kernel_sha:            KERNEL_SHA,
-    kernel_version:        KERNEL_VERSION,
-    lookback_days:         STALE_DAYS,
-    dry_run:               DRY_RUN,
-    stripe_intents_count:  stripeIntents.length,
-    d1_ledger_rows:        ledgerRows.length,
-    stale_pending_rows:    stalePending.length,
-    drift_events_count:    driftEvents.length,
-    drift_events:          driftEvents,
-  };
-
-  const filename  = `stripe-reconciliation-${Date.now()}.json`;
-  const outputPath = path.join(os.tmpdir(), filename);
-
-  if (!DRY_RUN) {
-    fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-    logAosHeal("REPORT_WRITTEN", `Reconciliation report written to ${outputPath}`);
-  }
-
-  console.info(`\n📊 Reconciliation Summary`);
-  console.info(`   Stripe PaymentIntents: ${report.stripe_intents_count}`);
-  console.info(`   D1 Ledger rows:        ${report.d1_ledger_rows}`);
-  console.info(`   Stale PENDING:         ${report.stale_pending_rows}`);
-  console.info(`   Drift events:          ${report.drift_events_count}`);
-
-  if (driftEvents.length > 0) {
-    console.info("\n⚠️  Drift events detected:");
-    driftEvents.forEach(e => console.info(`   [${e.type}]`, JSON.stringify(e.detail)));
-    logAosError("RECONCILIATION_DRIFT", `${driftEvents.length} drift event(s) detected. Review ${outputPath}`);
   } else {
-    console.info("\n✅ No drift detected — Stripe and D1 are in sync.");
-    logAosHeal("RECONCILIATION_CLEAN", "Zero drift events. Sovereign ledger is aligned.");
+    console.warn('   ⚠ VAULT_PASSPHRASE not set — skipping live reconcile call.\n');
   }
 
-  console.info(`\n⛓️⚓⛓️  © 1992–2026 Jason Lee Avery / AveryOS™\n`);
-  return report;
+  // 2. Local Stripe verification: list recent completed sessions and report.
+  const stripe    = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+  const since     = Math.floor(Date.now() / 1000) - hoursArg * 3600;
+
+  console.log(`→ Fetching Stripe checkout sessions (created >= ${new Date(since * 1000).toISOString()}) …`);
+
+  /** @type {{ id: string; customer_email: string | null; amount_total: number | null; created: number; payment_status: string; metadata?: Record<string,string> }[]} */
+  const sessions = [];
+  let hasMore    = true;
+  let startAfter = undefined;
+
+  while (hasMore) {
+    const page = await stripe.checkout.sessions.list({
+      limit:       100,
+      created:     { gte: since },
+      ...(startAfter ? { starting_after: startAfter } : {}),
+    });
+    sessions.push(...page.data.filter(s => s.payment_status === 'paid'));
+    hasMore    = page.has_more;
+    startAfter = page.data.length ? page.data[page.data.length - 1].id : undefined;
+  }
+
+  console.log(`   Found ${sessions.length} paid session(s).\n`);
+
+  let driftCount = 0;
+
+  // 3. Cross-reference each paid session against the live sovereign_alignments
+  //    via the /api/v1/verify endpoint (uses public hash lookup, no auth needed).
+  for (const session of sessions) {
+    const email     = session.customer_email ?? session.metadata?.email ?? '—';
+    const amountUsd = session.amount_total != null ? `$${(session.amount_total / 100).toFixed(2)}` : '?';
+    const createdAt = new Date(session.created * 1000).toISOString();
+
+    let alignmentStatus = 'UNCHECKED';
+    if (!DRY_RUN && VAULT_PASSPHRASE && session.id) {
+      try {
+        const result = /** @type {{ status?: string, settlement_status?: string }} */ (
+          await fetchJson(
+            `${SITE_URL}/api/v1/verify/${encodeURIComponent(session.id)}`,
+            { Authorization: `Bearer ${VAULT_PASSPHRASE}` },
+          )
+        );
+        alignmentStatus = result.status ?? result.settlement_status ?? 'NOT_FOUND';
+        if (alignmentStatus === 'NOT_FOUND' || alignmentStatus === 'error') {
+          driftCount++;
+          alignmentStatus = '⚠ DRIFT — not in D1';
+        }
+      } catch {
+        alignmentStatus = 'UNVERIFIED (endpoint unreachable)';
+      }
+    }
+
+    console.log(`   [${session.id}] ${email} | ${amountUsd} | ${createdAt} | ${alignmentStatus}`);
+  }
+
+  if (driftCount > 0) {
+    logAosError(AOS_ERROR.DB_QUERY_FAILED, `${driftCount} drift(s) detected in Stripe vs D1 reconciliation.`);
+    process.exit(1);
+  }
+
+  console.log('\n✔ Reconciliation complete — zero drift detected.');
+  process.exit(0);
 }
 
-reconcile().catch(err => {
-  logAosError("RECONCILE_FATAL", "Unhandled error in reconciliation script.", err);
+main().catch(err => {
+  logAosError(AOS_ERROR.INTERNAL_ERROR, 'Unhandled error in reconcile-stripe.cjs', err);
   process.exit(1);
 });

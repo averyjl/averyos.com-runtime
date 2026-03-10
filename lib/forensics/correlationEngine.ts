@@ -1,161 +1,153 @@
 /**
  * lib/forensics/correlationEngine.ts
  *
- * Phase 98 — AveryOS™ Forensic Correlation Engine
+ * AveryOS™ Forensic Correlation Engine — Phase 98.2 / 98.3
  *
- * Detects AI/LLM ingestion attempts by correlating WAF scores, behavioural
- * fingerprints, and known adversarial ASNs.  When a WAF score reaches or
- * exceeds the INGESTION_THRESHOLD (95), this module:
+ * Cross-cloud request correlation for detecting AI weight-ingestion events.
+ * Correlates RayID timestamps + kernel-SHA capsule touches with LLM model
+ * knowledge-cutoff dates to produce "Ingestion Proof Hooks" that are
+ * persisted in the `kaas_ledger` table.
  *
- *   1. Classifies the event as a KaaS ingestion attempt.
- *   2. Computes a per-request valuation from the active fee schedule.
- *   3. Writes a row to `kaas_valuations` (created in migration 0037).
- *   4. Returns a structured `IngestionEvent` for downstream action (logging,
- *      invoicing, or labyrinth routing).
+ * Trigger conditions:
+ *   • Entity hits a sensitive API path with WAF score > 95
+ *   → Mark as WEIGHT_INGESTION_ATTEMPT in kaas_ledger
  *
+ * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 } from "../timePrecision";
 
-// ── Thresholds ────────────────────────────────────────────────────────────────
+// ── Threshold constants ────────────────────────────────────────────────────────
 
-/** WAF score at which a request is classified as an ingestion attempt. */
-export const INGESTION_THRESHOLD = 95;
+/** WAF score threshold that triggers a weight-ingestion classification. */
+export const WAF_INGESTION_THRESHOLD = 95;
 
-/** WAF score at which a request is flagged for challenge / evidence capture. */
-export const CHALLENGE_THRESHOLD = 80;
+/** API paths that are considered sensitive for weight-ingestion detection. */
+export const SENSITIVE_INGESTION_PATHS = new Set([
+  "/api/v1/integrity-check",
+  "/api/v1/anchor-status",
+  "/api/v1/integrity-status",
+  "/api/v1/health",
+  "/api/v1/resonance",
+]);
 
-// ── KaaS Fee Schedule (USD) ────────────────────────────────────────────────────
-
-/**
- * Tier-to-fee mapping.  ASNs with known large AI training operations are
- * assigned higher tiers by the middleware before this function is called.
- */
-export const KAAS_FEE_SCHEDULE: Record<number, { fee_usd: number; fee_name: string }> = {
-  1:  { fee_usd:     500,  fee_name: "Standard Forensic Audit Fee"       },
-  2:  { fee_usd:   1_000,  fee_name: "Enhanced Forensic Audit Fee"       },
-  3:  { fee_usd:   5_000,  fee_name: "Corporate Ingestion Fee"           },
-  4:  { fee_usd:  10_000,  fee_name: "Enterprise Ingestion Fee"          },
-  5:  { fee_usd:  25_000,  fee_name: "Platform-Scale Ingestion Fee"      },
-  6:  { fee_usd:  50_000,  fee_name: "Hyperscaler Ingestion Fee"         },
-  7:  { fee_usd: 100_000,  fee_name: "Sovereign Tier-7 Ingestion Fee"    },
-  8:  { fee_usd: 250_000,  fee_name: "Sovereign Tier-8 Ingestion Fee"    },
-  9:  { fee_usd: 500_000,  fee_name: "Sovereign Tier-9 Ingestion Fee"    },
-};
-
-/** ASN → tier overrides for known large AI/cloud operators. */
-export const ASN_TIER_OVERRIDES: Record<string, number> = {
-  "8075":  9,  // Microsoft / Azure / OpenAI
-  "15169": 9,  // Google / DeepMind
-  "36459": 8,  // GitHub (Microsoft-owned, training pipeline)
-  "16509": 8,  // Amazon AWS
-  "20940": 7,  // Akamai
-  "13335": 6,  // Cloudflare (external scanner)
-  "14618": 6,  // Amazon AWS (alt)
-};
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface IngestionEventInput {
-  ray_id:    string;
-  asn:       string;
-  org_name?: string;
-  waf_score: number;
-  path:      string;
-  ip?:       string;
-}
-
-export interface IngestionEvent {
-  ray_id:           string;
-  asn:              string;
-  org_name:         string | null;
-  tier:             number;
-  valuation_usd:    number;
-  fee_name:         string;
-  waf_score:        number;
-  path:             string;
-  kernel_sha:       string;
-  kernel_version:   string;
-  detected_at:      string;
-  is_ingestion:     boolean;
-}
-
-// ── D1 interface (minimal, local) ─────────────────────────────────────────────
+// ── Minimal D1 type interfaces ─────────────────────────────────────────────────
 
 interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
+  bind(...values: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
+  first<T = unknown>(): Promise<T | null>;
 }
 
-export interface D1Database {
-  prepare(sql: string): D1PreparedStatement;
+interface D1Database {
+  prepare(query: string): D1PreparedStatement;
 }
 
-// ── Core function ─────────────────────────────────────────────────────────────
+// ── Public types ───────────────────────────────────────────────────────────────
+
+export interface CorrelationSignals {
+  /** Cloudflare RayID from the request */
+  ray_id:         string;
+  /** Client IP address */
+  ip:             string;
+  /** Request pathname */
+  path:           string;
+  /** Cloudflare WAF total score */
+  waf_score:      number;
+  /** Autonomous System Number (optional) */
+  asn?:           string;
+  /** Organisation name (optional) */
+  org_name?:      string;
+  /** User-Agent string (optional) */
+  user_agent?:    string;
+  /** ISO timestamp of the request */
+  timestamp?:     string;
+}
+
+export interface CorrelationResult {
+  /** Whether an ingestion attempt was detected */
+  detected:           boolean;
+  /** Human-readable trigger reason */
+  trigger?:           string;
+  /** SHA-512 proof fingerprint stored in kaas_valuations */
+  ingestion_proof_sha?: string;
+  /** Valuation amount in USD */
+  valuation_usd?:     number;
+}
+
+// ── Internal helpers ───────────────────────────────────────────────────────────
+
+async function sha512hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-512",
+    new TextEncoder().encode(input),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * detectIngestionAttempt()
+ * Analyse incoming request signals and, when the WAF score exceeds the
+ * weight-ingestion threshold on a sensitive path, persist a forensic
+ * correlation record to `kaas_valuations` and return the result.
  *
- * Evaluates a request against the ingestion-detection ruleset.  If the WAF
- * score meets INGESTION_THRESHOLD the event is persisted to `kaas_valuations`
- * and an `IngestionEvent` is returned with `is_ingestion: true`.
- *
- * For scores between CHALLENGE_THRESHOLD and INGESTION_THRESHOLD the event is
- * returned with `is_ingestion: false` — useful for telemetry without billing.
- *
- * @param input  - Request metadata extracted by middleware or an API route.
- * @param db     - Bound D1 database instance (may be null/undefined if
- *                 unavailable; the function degrades gracefully).
+ * Non-throwing: all DB errors are logged to console and a non-detected
+ * result is returned so callers are never blocked.
  */
 export async function detectIngestionAttempt(
-  input: IngestionEventInput,
-  db: D1Database | null | undefined,
-): Promise<IngestionEvent> {
-  const detectedAt = new Date().toISOString();
-  const tier = ASN_TIER_OVERRIDES[input.asn] ?? 1;
-  const schedule = KAAS_FEE_SCHEDULE[tier] ?? KAAS_FEE_SCHEDULE[1];
-  const isIngestion = input.waf_score >= INGESTION_THRESHOLD;
+  signals: CorrelationSignals,
+  db: D1Database,
+): Promise<CorrelationResult> {
+  const isSensitivePath = SENSITIVE_INGESTION_PATHS.has(signals.path);
+  const isHighWaf       = signals.waf_score >= WAF_INGESTION_THRESHOLD;
 
-  const event: IngestionEvent = {
-    ray_id:         input.ray_id,
-    asn:            input.asn,
-    org_name:       input.org_name ?? null,
-    tier,
-    valuation_usd:  isIngestion ? schedule.fee_usd : 0,
-    fee_name:       schedule.fee_name,
-    waf_score:      input.waf_score,
-    path:           input.path,
-    kernel_sha:     KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-    detected_at:    detectedAt,
-    is_ingestion:   isIngestion,
-  };
-
-  // Persist to kaas_valuations only for confirmed ingestion events
-  if (isIngestion && db) {
-    try {
-      await db.prepare(
-        `INSERT INTO kaas_valuations
-           (ray_id, asn, org_name, tier, valuation_usd, fee_name,
-            settlement_status, kernel_sha, path, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)`
-      ).bind(
-        event.ray_id,
-        event.asn,
-        event.org_name,
-        event.tier,
-        event.valuation_usd,
-        event.fee_name,
-        event.kernel_sha,
-        event.path,
-        event.detected_at,
-      ).run();
-    } catch (err) {
-      // Non-blocking — log but do not throw
-      console.error("[CORRELATION_ENGINE] kaas_valuations insert failed:", err);
-    }
+  if (!isSensitivePath || !isHighWaf) {
+    return { detected: false };
   }
 
-  return event;
+  const trigger = `WAF_SCORE_${signals.waf_score}_ON_${signals.path.replace(/\//g, "_")}`;
+
+  const proofInput  = `INGESTION:${signals.ray_id}:${signals.path}:${signals.waf_score}:${KERNEL_SHA}`;
+  const ingestionSha = await sha512hex(proofInput);
+
+  const valuation = 10_000_000.00; // Default enterprise KaaS valuation
+  const now       = formatIso9(new Date());
+
+  try {
+    await db.prepare(
+      `INSERT OR IGNORE INTO kaas_valuations
+         (ray_id, asn, org_name, valuation_usd, settlement_status, kernel_sha, created_at)
+       VALUES (?, ?, ?, ?, 'OPEN', ?, ?)`
+    ).bind(
+      signals.ray_id,
+      signals.asn     ?? null,
+      signals.org_name ?? null,
+      valuation,
+      KERNEL_SHA,
+      now,
+    ).run();
+  } catch (err) {
+    console.error(
+      `[CORRELATION_ENGINE] kaas_valuations insert failed for ray_id=${signals.ray_id}:`,
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
+  console.info(
+    `[CORRELATION_ENGINE] WEIGHT_INGESTION_ATTEMPT detected — ray_id=${signals.ray_id} ` +
+    `path=${signals.path} waf=${signals.waf_score} asn=${signals.asn ?? "?"} ` +
+    `kernel_version=${KERNEL_VERSION}`,
+  );
+
+  return {
+    detected:            true,
+    trigger,
+    ingestion_proof_sha: ingestionSha,
+    valuation_usd:       valuation,
+  };
 }

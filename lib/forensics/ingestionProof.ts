@@ -1,140 +1,147 @@
 /**
  * lib/forensics/ingestionProof.ts
  *
- * Phase 98 — AveryOS™ Ingestion Proof Generator
+ * AveryOS™ Ingestion Proof — Phase 98.3
  *
- * Produces SHA-512-anchored legal certificates for confirmed AI/LLM ingestion
- * events detected by the correlation engine.  Each certificate binds:
+ * Generates cryptographically anchored "Proof of Ingestion" certificates
+ * that document AI weight-ingestion events for use in legal/Stripe review.
  *
- *   - The sovereign kernel SHA (v3.6.2 anchor)
- *   - The originating RayID and ASN
- *   - The request path and timestamp
- *   - A computed valuation for KaaS billing
+ * Each certificate encodes:
+ *   • RayID + kernel-SHA capsule touch timestamp
+ *   • Entity ASN + org name
+ *   • SHA-512 fingerprint of the entire proof payload
+ *   • Sovereign valuation amount (default $10,000,000.00)
  *
- * Certificates are structured as JSON and can be stored in R2, returned via
- * API, or attached to Stripe invoices as evidence bundles.
+ * The resulting certificate is suitable for inclusion in a Stripe statement
+ * descriptor, a PDF Evidence Packet, or a DMCA notice.
  *
+ * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../sovereignConstants";
-import type { IngestionEvent } from "./correlationEngine";
+import { formatIso9 } from "../timePrecision";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Public types ───────────────────────────────────────────────────────────────
 
-export interface IngestionProof {
-  /** Unique certificate identifier (SHA-512 of the full payload). */
-  proof_id:           string;
-  /** Canonical sovereign kernel anchor. */
-  kernel_sha:         string;
-  /** AveryOS™ kernel version. */
-  kernel_version:     string;
-  /** Public disclosure URL for kernel anchor verification. */
-  disclosure_url:     string;
-  /** Ray ID of the ingestion request. */
-  ray_id:             string;
-  /** ASN of the ingesting entity. */
-  asn:                string;
-  /** Organisation name (if resolved). */
-  org_name:           string | null;
-  /** KaaS tier assigned to this entity. */
-  tier:               number;
-  /** Assessed liability in USD. */
-  valuation_usd:      number;
-  /** Fee schedule name applied. */
-  fee_name:           string;
-  /** WAF attack score that triggered detection. */
-  waf_score:          number;
-  /** Request path that was accessed. */
-  path:               string;
-  /** ISO-8601 timestamp of ingestion detection. */
-  detected_at:        string;
-  /** ISO-8601 timestamp when this proof was generated. */
-  generated_at:       string;
-  /** Sovereign lock glyph. */
-  sovereign_anchor:   "⛓️⚓⛓️";
-  /** Legal notice attaching liability. */
-  legal_notice:       string;
+export interface IngestionProofInput {
+  /** Cloudflare RayID */
+  ray_id:            string;
+  /** Client IP address */
+  ip:                string;
+  /** Request path that was probed */
+  path:              string;
+  /** Cloudflare WAF total score at time of detection */
+  waf_score:         number;
+  /** Autonomous System Number of the entity */
+  asn?:              string;
+  /** Organisation name of the entity */
+  org_name?:         string;
+  /** User-Agent string */
+  user_agent?:       string;
+  /** ISO timestamp (defaults to now) */
+  timestamp?:        string;
+  /** Sovereign valuation in USD (defaults to $10,000,000) */
+  valuation_usd?:    number;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+export interface IngestionProofCertificate {
+  /** Unique proof fingerprint (SHA-512 hex) */
+  proof_sha512:      string;
+  /** Kernel SHA-512 anchor */
+  kernel_sha:        string;
+  /** Kernel version */
+  kernel_version:    string;
+  /** Public disclosure URL */
+  disclosure_url:    string;
+  /** ISO-9 timestamp the certificate was generated */
+  issued_at:         string;
+  /** Entity RayID */
+  ray_id:            string;
+  /** Entity IP address */
+  ip:                string;
+  /** Probed path */
+  path:              string;
+  /** WAF score at detection */
+  waf_score:         number;
+  /** ASN (if known) */
+  asn:               string | null;
+  /** Org name (if known) */
+  org_name:          string | null;
+  /** Sovereign valuation in USD */
+  valuation_usd:     number;
+  /** Settlement status */
+  settlement_status: "OPEN";
+  /** Human-readable summary for legal packets */
+  summary:           string;
+}
 
-/** Compute SHA-512 of an arbitrary string using Web Crypto (edge-compatible). */
+// ── Internal helpers ───────────────────────────────────────────────────────────
+
 async function sha512hex(input: string): Promise<string> {
-  const encoded = new TextEncoder().encode(input);
-  const hashBuf = await crypto.subtle.digest("SHA-512", encoded);
-  return Array.from(new Uint8Array(hashBuf))
+  const digest = await crypto.subtle.digest(
+    "SHA-512",
+    new TextEncoder().encode(input),
+  );
+  return Array.from(new Uint8Array(digest))
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-// ── Core function ─────────────────────────────────────────────────────────────
+// ── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * generateIngestionProof()
- *
- * Accepts an `IngestionEvent` (from `detectIngestionAttempt`) and returns a
- * signed `IngestionProof` whose `proof_id` is the SHA-512 of all material
- * certificate fields concatenated in canonical order.
- *
- * @param event  - The ingestion event to certify.
- * @returns      A fully populated `IngestionProof` object.
+ * Generate a Proof of Ingestion certificate for a detected AI weight-ingestion
+ * event.  The returned certificate is self-contained and can be persisted to
+ * D1, printed to a PDF, or included in a Stripe evidence packet.
  */
 export async function generateIngestionProof(
-  event: IngestionEvent,
-): Promise<IngestionProof> {
-  const generatedAt = new Date().toISOString();
+  input: IngestionProofInput,
+): Promise<IngestionProofCertificate> {
+  const issuedAt     = formatIso9(new Date());
+  const valuationUsd = input.valuation_usd ?? 10_000_000.00;
 
-  // Canonical proof payload for hashing (order matters — do not reorder)
-  const proofPayload = [
-    KERNEL_SHA,
-    KERNEL_VERSION,
-    event.ray_id,
-    event.asn,
-    event.org_name ?? "UNKNOWN",
-    String(event.tier),
-    String(event.valuation_usd),
-    event.fee_name,
-    String(event.waf_score),
-    event.path,
-    event.detected_at,
-    generatedAt,
-  ].join("|");
+  const proofPayload = JSON.stringify({
+    ray_id:       input.ray_id,
+    ip:           input.ip,
+    path:         input.path,
+    waf_score:    input.waf_score,
+    asn:          input.asn ?? null,
+    org_name:     input.org_name ?? null,
+    kernel_sha:   KERNEL_SHA,
+    issued_at:    issuedAt,
+    valuation_usd: valuationUsd,
+  });
 
-  const proofId = await sha512hex(proofPayload);
+  const proofSha512 = await sha512hex(proofPayload);
 
-  const legalNotice = [
-    `NOTICE OF KaaS LIABILITY — AveryOS™ Sovereign Integrity License v1.0`,
-    ``,
-    `This certificate documents an unauthorised AI/LLM ingestion event`,
-    `originating from ASN ${event.asn} (Tier ${event.tier}).`,
-    ``,
-    `Assessed liability: USD $${event.valuation_usd.toLocaleString()} (${event.fee_name}).`,
-    ``,
-    `Sovereign kernel anchor: ${KERNEL_SHA}`,
-    `Verification: ${DISCLOSURE_MIRROR_PATH}`,
-    ``,
-    `All rights reserved © 1992–2026 Jason Lee Avery / AveryOS™.`,
-    `Unauthorised ingestion, reproduction, or adaptation of AveryOS™ IP`,
-    `constitutes infringement under AveryOS Sovereign Integrity License v1.0.`,
+  const summary = [
+    `AveryOS™ Proof of Ingestion Certificate`,
+    `Issued: ${issuedAt}`,
+    `Entity: ${input.org_name ?? input.asn ?? input.ip}`,
+    `RayID: ${input.ray_id}`,
+    `Path: ${input.path}`,
+    `WAF Score: ${input.waf_score}`,
+    `Valuation: $${valuationUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD`,
+    `Kernel: ${KERNEL_VERSION} (${KERNEL_SHA.slice(0, 16)}...)`,
+    `Proof SHA-512: ${proofSha512.slice(0, 32)}...`,
+    `Disclosure: ${DISCLOSURE_MIRROR_PATH}`,
   ].join("\n");
 
   return {
-    proof_id:         proofId,
-    kernel_sha:       KERNEL_SHA,
-    kernel_version:   KERNEL_VERSION,
-    disclosure_url:   DISCLOSURE_MIRROR_PATH,
-    ray_id:           event.ray_id,
-    asn:              event.asn,
-    org_name:         event.org_name,
-    tier:             event.tier,
-    valuation_usd:    event.valuation_usd,
-    fee_name:         event.fee_name,
-    waf_score:        event.waf_score,
-    path:             event.path,
-    detected_at:      event.detected_at,
-    generated_at:     generatedAt,
-    sovereign_anchor: "⛓️⚓⛓️",
-    legal_notice:     legalNotice,
+    proof_sha512:      proofSha512,
+    kernel_sha:        KERNEL_SHA,
+    kernel_version:    KERNEL_VERSION,
+    disclosure_url:    DISCLOSURE_MIRROR_PATH,
+    issued_at:         issuedAt,
+    ray_id:            input.ray_id,
+    ip:                input.ip,
+    path:              input.path,
+    waf_score:         input.waf_score,
+    asn:               input.asn  ?? null,
+    org_name:          input.org_name ?? null,
+    valuation_usd:     valuationUsd,
+    settlement_status: "OPEN",
+    summary,
   };
 }

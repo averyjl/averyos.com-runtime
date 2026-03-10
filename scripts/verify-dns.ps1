@@ -1,206 +1,130 @@
+#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    AveryOS™ DNS Proxy Shield — Phase 98
+    AveryOS™ DNS Proxy Shield — Phase 98 (Roadmap Item 10)
 
 .DESCRIPTION
-    Verifies DNS resolution for averyos.com and its sub-domains against
-    expected IP addresses / CNAME targets.  Any discrepancy (DNS hijacking,
-    BGP leak, or resolver poisoning) is reported to the sovereign forensics
-    endpoint POST /api/v1/forensics/dns-probes as a drift event.
+    Monitors Stripe and Firebase DNS records for averyos.com and alerts if any
+    critical record moves to Cloudflare "Proxied" (orange-cloud) status, which
+    would interfere with Stripe's webhook TLS verification or Firebase's domain
+    validation.
 
-    Designed to run as a scheduled task on Windows or via GitHub Actions on
-    a Windows runner.
+    Records monitored:
+        mail.averyos.com              — Stripe email relay
+        _amazonses.averyos.com        — SES DKIM probe detector
+        enterpriseregistration.averyos.com  — Microsoft/Azure enrollment signal
+
+    Exit codes:
+        0 — All monitored records are in expected state
+        1 — One or more records have drifted to Proxied (alert triggered)
 
 .PARAMETER SiteUrl
-    Base URL of the live AveryOS™ site (default: https://averyos.com).
+    Base URL of the live AveryOS site. Default: https://averyos.com
 
 .PARAMETER VaultPassphrase
-    Bearer token for authenticating against the /api/v1/forensics/dns-probes
-    endpoint.  Reads from env var VAULT_PASSPHRASE if not supplied.
+    VAULT_PASSPHRASE for posting DNS probe alerts to /api/v1/forensics/dns-probes.
 
 .PARAMETER DryRun
-    When set, DNS results are printed but NOT sent to the forensics endpoint.
+    Preview alerts without posting to the API.
 
 .EXAMPLE
-    .\verify-dns.ps1 -VaultPassphrase "secret" -DryRun
-
-.NOTES
-    ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
-    © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+    ./scripts/verify-dns.ps1 -SiteUrl https://averyos.com -VaultPassphrase $env:VAULT_PASSPHRASE
 #>
 
+[CmdletBinding()]
 param(
-    [string]$SiteUrl        = "https://averyos.com",
-    [string]$VaultPassphrase = $env:VAULT_PASSPHRASE,
-    [switch]$DryRun
+    [string] $SiteUrl        = ($env:SITE_URL          ?? "https://averyos.com"),
+    [string] $VaultPassphrase = ($env:VAULT_PASSPHRASE ?? ""),
+    [switch] $DryRun
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-
-$KERNEL_VERSION = "v3.6.2"
-$KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
-$FORENSICS_URL  = "$SiteUrl/api/v1/forensics/dns-probes"
-
-# ── DNS probe definitions ─────────────────────────────────────────────────────
-# Each entry: @{ Domain; RecordType; Expected }
-# "ANY" in Expected means "any non-empty result is acceptable" (existence check)
-
-$DNS_PROBES = @(
-    @{ Domain = "averyos.com";               RecordType = "A";     Expected = "ANY" }
-    @{ Domain = "www.averyos.com";           RecordType = "CNAME"; Expected = "ANY" }
-    @{ Domain = "averyos.com";               RecordType = "MX";    Expected = "ANY" }
-    @{ Domain = "averyos.com";               RecordType = "TXT";   Expected = "ANY" }
-    @{ Domain = "api.averyos.com";           RecordType = "CNAME"; Expected = "ANY" }
-    @{ Domain = "studio.averyos.com";        RecordType = "CNAME"; Expected = "ANY" }
+# ── Records to monitor ─────────────────────────────────────────────────────────
+# Format: @{ Subdomain = "…"; RecordType = "TXT|CNAME|MX"; ExpectedValue = "…" }
+$MonitoredRecords = @(
+    @{ Subdomain = "_amazonses";             RecordType = "TXT";   Description = "SES DKIM probe detector" },
+    @{ Subdomain = "enterpriseregistration"; RecordType = "CNAME"; Description = "Microsoft/Azure enrollment signal" },
+    @{ Subdomain = "mail";                   RecordType = "MX";    Description = "Stripe/SendGrid mail relay" }
 )
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+$Domain  = "averyos.com"
+$Drifted = @()
 
-function Write-SovereignInfo([string]$Message) {
-    Write-Host "  [INFO] $Message" -ForegroundColor Cyan
-}
+Write-Host ""
+Write-Host "⛓️⚓⛓️  AveryOS™ DNS Proxy Shield"
+Write-Host "   Domain:  $Domain"
+Write-Host "   Dry-run: $DryRun"
+Write-Host ""
 
-function Write-SovereignWarn([string]$Message) {
-    Write-Host "  [WARN] $Message" -ForegroundColor Yellow
-}
-
-function Write-SovereignError([string]$Message) {
-    Write-Host "  [ERROR] $Message" -ForegroundColor Red
-}
-
-function Write-SovereignOk([string]$Message) {
-    Write-Host "  [ OK ] $Message" -ForegroundColor Green
-}
-
-function Resolve-DnsRecord([string]$Domain, [string]$RecordType) {
-    try {
-        $results = Resolve-DnsName -Name $Domain -Type $RecordType -ErrorAction Stop
-        if ($RecordType -eq "A") {
-            return ($results | Where-Object { $_.QueryType -eq "A" } | Select-Object -ExpandProperty IPAddress) -join ", "
-        } elseif ($RecordType -eq "CNAME") {
-            return ($results | Where-Object { $_.QueryType -eq "CNAME" } | Select-Object -ExpandProperty NameHost) -join ", "
-        } elseif ($RecordType -eq "MX") {
-            return ($results | Where-Object { $_.QueryType -eq "MX" } | Select-Object -ExpandProperty NameExchange) -join ", "
-        } elseif ($RecordType -eq "TXT") {
-            return ($results | Where-Object { $_.QueryType -eq "TXT" } | Select-Object -ExpandProperty Strings) -join "; "
-        } else {
-            return ($results | Select-Object -ExpandProperty Name -First 1) ?? ""
-        }
-    } catch {
-        return ""
-    }
-}
-
-function Get-ResolverIp {
-    try {
-        # Attempt to resolve a known sentinel sub-domain to discover the active resolver IP.
-        # "resolver.averyos.com" is an intentional sentinel: if it resolves it means DNS is
-        # operating normally and we can use the returned IP as the resolver identifier.
-        # If the domain does not exist (NXDOMAIN) the catch block returns the default gateway DNS.
-        $resolver = (Resolve-DnsName -Name "resolver.averyos.com" -ErrorAction SilentlyContinue |
-                     Select-Object -First 1 -ExpandProperty IPAddress)
-        if (-not $resolver) {
-            # Fall back to the machine's configured DNS server address
-            $resolver = (Get-DnsClientServerAddress -AddressFamily IPv4 |
-                         Select-Object -First 1 -ExpandProperty ServerAddresses) ?? "127.0.0.1"
-        }
-        return $resolver
-    } catch {
-        return "127.0.0.1"
-    }
-}
-
-function Send-DnsProbe([hashtable]$ProbeResult) {
-    if ($DryRun) {
-        Write-SovereignInfo "[DRY-RUN] Would POST: $($ProbeResult | ConvertTo-Json -Compress)"
-        return
-    }
-
-    if (-not $VaultPassphrase) {
-        Write-SovereignWarn "VAULT_PASSPHRASE not set — cannot POST forensics event."
-        return
-    }
+foreach ($record in $MonitoredRecords) {
+    $fqdn = "$($record.Subdomain).$Domain"
+    Write-Host "→ Resolving $fqdn [$($record.RecordType)] …" -NoNewline
 
     try {
-        $body    = $ProbeResult | ConvertTo-Json -Compress
-        $headers = @{
-            "Authorization" = "Bearer $VaultPassphrase"
-            "Content-Type"  = "application/json"
+        $result = Resolve-DnsName -Name $fqdn -Type $record.RecordType -ErrorAction SilentlyContinue
+        if ($null -eq $result -or $result.Count -eq 0) {
+            Write-Host " NOT FOUND (expected for probe-only records)" -ForegroundColor Yellow
+            continue
         }
-        $response = Invoke-RestMethod -Uri $FORENSICS_URL -Method POST -Headers $headers -Body $body -ErrorAction Stop
-        Write-SovereignOk "Probe ingested: $($response.status)"
+        Write-Host " RESOLVED ($($result.Count) record(s))" -ForegroundColor Green
+
+        # Check if any answer IP is a Cloudflare proxy IP range (104.16.0.0/12 or 172.64.0.0/13)
+        foreach ($r in $result) {
+            if ($r.PSObject.Properties["IPAddress"]) {
+                $ip = $r.IPAddress
+                # 104.16.0.0/12 → 104.16.x.x – 104.31.x.x
+                $is104Range = $ip -match "^104\.(1[6-9]|2[0-9]|3[0-1])\."
+                # 172.64.0.0/13 → 172.64.x.x – 172.71.x.x
+                $is172Range = $ip -match "^172\.(6[4-9]|7[01])\."
+                if ($is104Range -or $is172Range) {
+                    $msg = "PROXY DRIFT DETECTED: $fqdn resolves to Cloudflare proxy IP $ip"
+                    Write-Host "   ⚠  $msg" -ForegroundColor Red
+                    $Drifted += @{ Subdomain = $record.Subdomain; FQDN = $fqdn; IP = $ip; Description = $record.Description; Message = $msg }
+                }
+            }
+        }
     } catch {
-        Write-SovereignError "Failed to POST DNS probe: $_"
+        Write-Host " ERROR: $_" -ForegroundColor Red
     }
 }
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
-Write-Host ""
-Write-Host "⛓️⚓⛓️  AveryOS™ DNS Proxy Shield — Phase 98" -ForegroundColor Magenta
-Write-Host "  Kernel: $KERNEL_VERSION | SHA: $($KERNEL_SHA.Substring(0,16))..." -ForegroundColor DarkGray
-Write-Host "  Target: $SiteUrl | DryRun: $DryRun" -ForegroundColor DarkGray
 Write-Host ""
 
-$resolverIp = Get-ResolverIp
-$driftCount = 0
-$totalCount = 0
-$rayPrefix  = "dns-shield-$(Get-Date -Format 'yyyyMMddHHmmss')"
+if ($Drifted.Count -eq 0) {
+    Write-Host "✔ All monitored DNS records are in expected state. No proxy drift detected." -ForegroundColor Green
+    exit 0
+}
 
-foreach ($probe in $DNS_PROBES) {
-    $domain     = $probe.Domain
-    $recordType = $probe.RecordType
-    $expected   = $probe.Expected
-    $totalCount++
+# ── Post alerts ────────────────────────────────────────────────────────────────
+Write-Host "⚠  $($Drifted.Count) record(s) drifted to Proxied status. Posting alerts…" -ForegroundColor Red
+Write-Host ""
 
-    Write-SovereignInfo "Checking $recordType $domain …"
+foreach ($d in $Drifted) {
+    Write-Host "   Drift: $($d.FQDN) → $($d.IP)"
 
-    $resolved = Resolve-DnsRecord -Domain $domain -RecordType $recordType
-    $isDrift  = $false
-    $rayId    = "$rayPrefix-$totalCount"
+    if (-not $DryRun -and $SiteUrl -and $VaultPassphrase) {
+        $body = @{
+            subdomain   = $d.Subdomain
+            source_ip   = $d.IP
+            description = $d.Description
+        } | ConvertTo-Json -Compress
 
-    if ([string]::IsNullOrWhiteSpace($resolved)) {
-        Write-SovereignWarn "$recordType $domain — NO RESULT (possible NXDOMAIN or timeout)"
-        $isDrift = $true
-    } elseif ($expected -ne "ANY" -and $resolved -notlike "*$expected*") {
-        Write-SovereignWarn "$recordType $domain — DRIFT DETECTED: got '$resolved', expected '$expected'"
-        $isDrift = $true
-    } else {
-        Write-SovereignOk "$recordType $domain → $resolved"
+        try {
+            $resp = Invoke-RestMethod `
+                -Uri     "$SiteUrl/api/v1/forensics/dns-probes" `
+                -Method  POST `
+                -Headers @{ "Content-Type" = "application/json"; "Authorization" = "Bearer $VaultPassphrase" } `
+                -Body    $body
+            Write-Host "   Alert posted: $($resp.status)" -ForegroundColor Yellow
+        } catch {
+            Write-Host "   Failed to post alert: $_" -ForegroundColor Red
+        }
+    } elseif ($DryRun) {
+        Write-Host "   [DRY-RUN] Alert would be posted to $SiteUrl/api/v1/forensics/dns-probes" -ForegroundColor Cyan
     }
-
-    if ($isDrift) { $driftCount++ }
-
-    # Build probe payload
-    $probePayload = @{
-        domain      = $domain
-        resolver_ip = $resolverIp
-        record_type = $recordType
-        resolved_to = if ($resolved) { $resolved } else { $null }
-        expected    = if ($expected -ne "ANY") { $expected } else { $null }
-        is_drift    = $isDrift
-        ray_id      = $rayId
-    }
-
-    Send-DnsProbe -ProbeResult $probePayload
 }
 
 Write-Host ""
-Write-Host "── Summary ──────────────────────────────────────────────────────" -ForegroundColor DarkGray
-Write-Host "  Total probes : $totalCount" -ForegroundColor White
-if ($driftCount -gt 0) {
-    Write-Host "  Drift events : $driftCount  ⚠️" -ForegroundColor Yellow
-} else {
-    Write-Host "  Drift events : 0  ✅" -ForegroundColor Green
-}
-Write-Host ""
-Write-Host "⛓️⚓⛓️  © 1992–2026 Jason Lee Avery / AveryOS™" -ForegroundColor Magenta
-Write-Host ""
-
-if ($driftCount -gt 0) {
-    exit 1
-}
-exit 0
+exit 1

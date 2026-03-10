@@ -1,180 +1,96 @@
 /**
- * GET /api/v1/kaas/valuation
+ * /api/v1/kaas/valuation
  *
- * Phase 98 — KaaS Valuation Lookup
+ * KaaS (Kernel-as-a-Service) Valuation Endpoint — Phase 98.3.3
  *
- * Returns the outstanding KaaS debt for a given RayID or ASN by querying the
- * `kaas_valuations` table (created in migration 0037).  Used by the enterprise
- * licensing portal, Stripe reconciliation scripts, and internal forensic
- * dashboards.
+ * Returns the current sovereign debt valuation for a given RayID or ASN.
+ * Displays the $10,000,000.00 bill to any unrecognised entity that hits
+ * the redirect from the GabrielOS™ Firewall.
  *
- * Query params:
- *   ?ray_id=<string>  — look up a single ingestion event by its RayID
- *   ?asn=<string>     — aggregate all PENDING valuations for an ASN
- *   ?status=<string>  — filter by settlement_status (default: PENDING)
+ * GET /api/v1/kaas/valuation?ray_id=<id>   — lookup by RayID
+ * GET /api/v1/kaas/valuation?asn=<asn>     — lookup by ASN
+ * GET /api/v1/kaas/valuation               — returns default enterprise valuation
  *
- * Auth: Bearer token matching VAULT_PASSPHRASE.
+ * No auth required — deliberately public so automated entities can read
+ * their own liability record and proceed to /licensing/audit-clearance.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
-
-// ── Cloudflare env interface ──────────────────────────────────────────────────
+import { resolveKaasTier, kaasDisplayPrice } from "../../../../../lib/stripe/onrampLogic";
 
 interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
-  all<T = unknown>(): Promise<{ results: T[] }>;
-  first<T = unknown>(): Promise<T | null>;
+  bind(...args: unknown[]): {
+    first<T = unknown>(): Promise<T | null>;
+    all<T = unknown>(): Promise<{ results: T[] }>;
+  };
 }
 
 interface D1Database {
-  prepare(sql: string): D1PreparedStatement;
+  prepare(query: string): D1PreparedStatement;
 }
 
 interface CloudflareEnv {
-  DB?:              D1Database;
-  VAULT_PASSPHRASE?: string;
+  DB?: D1Database;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aB = new TextEncoder().encode(a);
-  const bB = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aB.length; i++) diff |= aB[i] ^ bB[i];
-  return diff === 0;
+interface KaasValuationRow {
+  id:               number;
+  ray_id:           string;
+  asn:              string | null;
+  org_name:         string | null;
+  valuation_usd:    number;
+  settlement_status: string;
+  created_at:       string;
 }
-
-// ── Handler ───────────────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
-  const auth = request.headers.get("authorization") ?? "";
-
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as CloudflareEnv;
+  const url     = new URL(request.url);
+  const rayId   = url.searchParams.get("ray_id") ?? request.headers.get("cf-ray") ?? null;
+  const asnParam = url.searchParams.get("asn")   ?? request.headers.get("cf-asn")  ?? null;
 
-  // Auth check
-  const passphrase = cfEnv.VAULT_PASSPHRASE ?? "";
-  const bearer     = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  if (!passphrase || !safeEqual(bearer, passphrase)) {
-    return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Unauthorized.");
-  }
+  let row: KaasValuationRow | null = null;
 
-  if (!cfEnv.DB) {
-    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, "D1 database binding (DB) is not configured.");
-  }
-
-  const url    = new URL(request.url);
-  const rayId  = url.searchParams.get("ray_id")?.trim() ?? "";
-  const asn    = url.searchParams.get("asn")?.trim()    ?? "";
-  const status = (url.searchParams.get("status") ?? "PENDING").toUpperCase();
-
-  const VALID_STATUSES = ["PENDING", "INVOICED", "SETTLED", "DISPUTED", "ALL"];
-  if (!VALID_STATUSES.includes(status)) {
-    return aosErrorResponse(
-      AOS_ERROR.INVALID_FIELD,
-      `Invalid status '${status}'. Must be one of: ${VALID_STATUSES.join(", ")}.`,
-    );
-  }
-
-  if (!rayId && !asn) {
-    return aosErrorResponse(
-      AOS_ERROR.MISSING_FIELD,
-      "Either 'ray_id' or 'asn' query parameter is required.",
-    );
-  }
-
-  try {
-    if (rayId) {
-      // Single record lookup by RayID
-      const statusFilter = status === "ALL" ? "" : "AND settlement_status = ?";
-      const sql = `
-        SELECT id, ray_id, asn, org_name, tier, valuation_usd, fee_name,
-               settlement_status, kernel_sha, path, created_at
-        FROM   kaas_valuations
-        WHERE  ray_id = ? ${statusFilter}
-        LIMIT  1
-      `;
-      const row = status === "ALL"
-        ? await cfEnv.DB.prepare(sql).bind(rayId).first<Record<string, unknown>>()
-        : await cfEnv.DB.prepare(sql).bind(rayId, status).first<Record<string, unknown>>();
-
-      if (!row) {
-        return Response.json({
-          status:           "NOT_FOUND",
-          ray_id:           rayId,
-          message:          "No KaaS valuation found for the specified RayID.",
-          kernel_sha_short: KERNEL_SHA.slice(0, 16),
-          kernel_version:   KERNEL_VERSION,
-          timestamp:        formatIso9(),
-        }, { status: 404 });
+  if (cfEnv.DB) {
+    try {
+      if (rayId) {
+        row = await cfEnv.DB.prepare(
+          "SELECT * FROM kaas_valuations WHERE ray_id = ? ORDER BY created_at DESC LIMIT 1"
+        ).bind(rayId).first<KaasValuationRow>();
+      } else if (asnParam) {
+        row = await cfEnv.DB.prepare(
+          "SELECT * FROM kaas_valuations WHERE asn = ? ORDER BY created_at DESC LIMIT 1"
+        ).bind(asnParam).first<KaasValuationRow>();
       }
-
-      return Response.json({
-        status:            "OK",
-        lookup_type:       "ray_id",
-        valuation:         row,
-        kernel_sha_short:  KERNEL_SHA.slice(0, 16),
-        kernel_version:    KERNEL_VERSION,
-        timestamp:         formatIso9(),
-      });
+    } catch {
+      // Table may not exist yet in this environment; fall through to default
     }
-
-    // ASN aggregate lookup
-    const aggSql = `
-      SELECT asn, org_name,
-             COUNT(*)           AS record_count,
-             SUM(valuation_usd) AS total_usd,
-             MIN(tier)          AS min_tier,
-             MAX(tier)          AS max_tier,
-             MIN(created_at)    AS first_seen,
-             MAX(created_at)    AS last_seen
-      FROM   kaas_valuations
-      WHERE  asn = ? ${status !== "ALL" ? "AND settlement_status = ?" : ""}
-      GROUP BY asn, org_name
-      LIMIT 1
-    `;
-
-    const detailSql = `
-      SELECT id, ray_id, asn, org_name, tier, valuation_usd, fee_name,
-             settlement_status, path, created_at
-      FROM   kaas_valuations
-      WHERE  asn = ? ${status !== "ALL" ? "AND settlement_status = ?" : ""}
-      ORDER BY created_at DESC
-      LIMIT 100
-    `;
-
-    const [aggRow, detailRows] = await Promise.all([
-      status === "ALL"
-        ? cfEnv.DB.prepare(aggSql).bind(asn).first<Record<string, unknown>>()
-        : cfEnv.DB.prepare(aggSql).bind(asn, status).first<Record<string, unknown>>(),
-      status === "ALL"
-        ? cfEnv.DB.prepare(detailSql).bind(asn).all<Record<string, unknown>>()
-        : cfEnv.DB.prepare(detailSql).bind(asn, status).all<Record<string, unknown>>(),
-    ]);
-
-    return Response.json({
-      status:            "OK",
-      lookup_type:       "asn",
-      asn,
-      filter_status:     status,
-      summary:           aggRow ?? { asn, record_count: 0, total_usd: 0 },
-      records:           detailRows.results,
-      record_count:      detailRows.results.length,
-      kernel_sha_short:  KERNEL_SHA.slice(0, 16),
-      kernel_version:    KERNEL_VERSION,
-      timestamp:         formatIso9(),
-    });
-  } catch (err: unknown) {
-    return aosErrorResponse(
-      AOS_ERROR.DB_QUERY_FAILED,
-      err instanceof Error ? err.message : "KaaS valuation query failed",
-    );
   }
+
+  const asn          = row?.asn   ?? asnParam ?? undefined;
+  const tier         = resolveKaasTier(asn ?? undefined);
+  const displayPrice = kaasDisplayPrice(tier);
+  const valuationUsd = row?.valuation_usd ?? 10_000_000.00;
+
+  return Response.json({
+    status:             "KAAS_VALUATION_ACTIVE",
+    ray_id:             row?.ray_id          ?? rayId ?? null,
+    asn:                row?.asn             ?? asnParam ?? null,
+    org_name:           row?.org_name        ?? null,
+    valuation_usd:      valuationUsd,
+    display_price:      displayPrice,
+    tier,
+    settlement_status:  row?.settlement_status ?? "OPEN",
+    settlement_url:     "/licensing/audit-clearance",
+    enterprise_url:     "/licensing/enterprise",
+    kernel_version:     KERNEL_VERSION,
+    kernel_sha:         KERNEL_SHA,
+    checked_at:         formatIso9(new Date()),
+    _notice:            `AveryOS™ Sovereign Integrity License v1.0 — this entity owes ${displayPrice} USD. Proceed to /licensing/audit-clearance to settle.`,
+  });
 }

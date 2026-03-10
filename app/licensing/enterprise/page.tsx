@@ -1,312 +1,239 @@
 "use client";
 
-/**
- * app/licensing/enterprise/page.tsx
- *
- * Phase 98 — Enterprise Registration Gateway
- *
- * The sovereign entry point for corporate and enterprise entities that wish to
- * obtain a legitimate AveryOS™ / Truth Anchored Intelligence™ license.
- * Displays four pricing tiers with aligned feature sets and routes to the
- * Stripe checkout flow via /api/v1/compliance/create-checkout.
- *
- * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
- */
-
-import { useState } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
 import FooterBadge from "../../../components/FooterBadge";
+import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
+const BG       = "#03000a";
+const GOLD     = "#ffd700";
+const GOLD_DIM = "rgba(255,215,0,0.55)";
+const GOLD_BDR = "rgba(255,215,0,0.3)";
+const GOLD_GLW = "rgba(255,215,0,0.08)";
+const GREEN    = "#4ade80";
+const MUTED    = "rgba(255,255,255,0.55)";
 
-const PURPLE_DEEP   = "#0a0015";
-const GOLD          = "#ffd700";
-const GOLD_DIM      = "rgba(255,215,0,0.55)";
-const GOLD_BORDER   = "rgba(255,215,0,0.35)";
-const GOLD_GLOW     = "rgba(255,215,0,0.08)";
-const GREEN         = "#4ade80";
-const PURPLE_BORDER = "rgba(120,60,255,0.35)";
-const PURPLE_GLOW   = "rgba(120,60,255,0.08)";
-const WHITE         = "#ffffff";
-const GREY          = "rgba(255,255,255,0.55)";
-
-// ── Pricing tiers ─────────────────────────────────────────────────────────────
-
-interface PricingTier {
-  id:          string;
-  name:        string;
-  price_usd:   number;
-  period:      string;
-  tagline:     string;
-  features:    string[];
-  highlighted: boolean;
-  ctaLabel:    string;
-  priceId:     string; // Stripe Price ID placeholder
+function card(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    background:   GOLD_GLW,
+    border:       `1px solid ${GOLD_BDR}`,
+    borderRadius: "10px",
+    padding:      "1.4rem 1.8rem",
+    marginBottom: "1.4rem",
+    ...extra,
+  };
 }
 
-const TIERS: PricingTier[] = [
-  {
-    id:          "starter",
-    name:        "Starter",
-    price_usd:   999,
-    period:      "/ year",
-    tagline:     "For small teams exploring sovereign alignment.",
-    highlighted: false,
-    ctaLabel:    "Get Starter License",
-    // TODO: Replace with actual Stripe Price ID from the Stripe dashboard before deployment
-    priceId:     "price_starter_averyos",
-    features: [
-      "1 production domain",
-      "TAI™ Resonance API access (100k requests/mo)",
-      "Standard forensic audit trail",
-      "Email support",
-      "AveryOS™ Alignment Certificate (annual)",
-      "Public attribution badge",
-    ],
-  },
-  {
-    id:          "professional",
-    name:        "Professional",
-    price_usd:   4_999,
-    period:      "/ year",
-    tagline:     "For growing businesses requiring full IP compliance.",
-    highlighted: false,
-    ctaLabel:    "Get Professional License",
-    // TODO: Replace with actual Stripe Price ID from the Stripe dashboard before deployment
-    priceId:     "price_professional_averyos",
-    features: [
-      "5 production domains",
-      "TAI™ Resonance API (1M requests/mo)",
-      "VaultChain™ Explorer access",
-      "Priority forensic audit trail",
-      "Priority email + Slack support",
-      "AveryOS™ Alignment Certificate (semi-annual)",
-      "KaaS waiver for up to 10 AI inference calls/day",
-      "Sovereign SDK (private npm package)",
-    ],
-  },
-  {
-    id:          "enterprise",
-    name:        "Enterprise",
-    price_usd:   24_999,
-    period:      "/ year",
-    tagline:     "For enterprises running AI/ML workloads on AveryOS™ IP.",
-    highlighted: true,
-    ctaLabel:    "Get Enterprise License",
-    // TODO: Replace with actual Stripe Price ID from the Stripe dashboard before deployment
-    priceId:     "price_enterprise_averyos",
-    features: [
-      "Unlimited production domains",
-      "TAI™ Resonance API (unlimited)",
-      "VaultChain™ Explorer + private ledger",
-      "Real-time forensic dashboard",
-      "Dedicated account manager",
-      "AveryOS™ Alignment Certificate (quarterly)",
-      "Full KaaS waiver (all AI inference)",
-      "GabrielOS™ Firewall bypass token",
-      "Custom sovereign watermark embedding",
-      "Legal indemnification (up to $500k)",
-    ],
-  },
-  {
-    id:          "sovereign",
-    name:        "Sovereign Partner",
-    price_usd:   99_999,
-    period:      "/ year",
-    tagline:     "For hyperscalers, platforms, and AI companies operating at scale.",
-    highlighted: false,
-    ctaLabel:    "Contact for Sovereign License",
-    // TODO: Replace with actual Stripe Price ID from the Stripe dashboard before deployment
-    priceId:     "price_sovereign_averyos",
-    features: [
-      "Everything in Enterprise",
-      "Co-branded AveryOS™ integration",
-      "Direct Jason Lee Avery ROOT0 consultation (4h/mo)",
-      "Perpetual KaaS waiver (all workloads)",
-      "Custom D1 / R2 data residency",
-      "TARI™ debt clearance certificate",
-      "Sovereign Roadmap influence (Tier-1 contributor)",
-      "White-glove onboarding & legal review",
-      "Audit forensics reporting (monthly PDF)",
-      "Legal indemnification (up to $5M)",
-    ],
-  },
-];
+function mono(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    fontFamily: "monospace",
+    fontSize:   "0.78rem",
+    color:      GOLD_DIM,
+    wordBreak:  "break-all",
+    ...extra,
+  };
+}
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Fee tiers ──────────────────────────────────────────────────────────────────
+const TIERS = [
+  {
+    id:          "ENTERPRISE_PARTNERSHIP",
+    label:       "Sovereign Partnership",
+    tier:        10,
+    price:       kaasDisplayPrice("ENTERPRISE_PARTNERSHIP"),
+    description: "Global TAI_LICENSE_KEY + clears all technical valuation debt. Moves entity to Verified Partner status.",
+    highlight:   true,
+  },
+  {
+    id:          "ASN_DEPOSIT",
+    label:       "Enterprise ASN Good-Faith Deposit",
+    tier:        9,
+    price:       kaasDisplayPrice("ASN_DEPOSIT"),
+    description: "For GitHub, Azure, Google, Amazon, and other enterprise ASNs. Opens formal partnership negotiations.",
+    highlight:   false,
+  },
+  {
+    id:          "LEGAL_MONITORING",
+    label:       "Legal Monitoring Entry Fee",
+    tier:        7,
+    price:       kaasDisplayPrice("LEGAL_MONITORING"),
+    description: "Forensic legal scan settlement. Unlocks read-only VaultChain™ ledger access.",
+    highlight:   false,
+  },
+  {
+    id:          "INDIVIDUAL",
+    label:       "Individual License — 1,017 TARI™",
+    tier:        5,
+    price:       kaasDisplayPrice("INDIVIDUAL"),
+    description: "Individual sovereign access. 1,017 TARI™ units. Includes capsule read access.",
+    highlight:   false,
+  },
+] as const;
+
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export default function EnterpriseRegistrationPage() {
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error,   setError]   = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [orgName, setOrgName]   = useState("");
+  const [email, setEmail]       = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
-  async function handleSelect(tier: PricingTier) {
-    if (tier.id === "sovereign") {
-      window.location.href = "mailto:licensing@averyos.com?subject=Sovereign%20Partner%20License%20Inquiry";
-      return;
-    }
-
-    setLoading(tier.id);
+  async function handleProceed() {
+    if (!selected) { setError("Please select a licensing tier."); return; }
+    if (!orgName.trim()) { setError("Organisation name is required."); return; }
+    if (!email.trim())   { setError("Contact email is required."); return; }
     setError(null);
+    setLoading(true);
 
     try {
-      const res = await fetch("/api/v1/compliance/create-checkout", {
-        method:  "POST",
+      const res  = await fetch("/api/v1/compliance/create-checkout", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          price_id:     tier.priceId,
-          tier_name:    tier.name,
-          amount_cents: tier.price_usd * 100,
-          metadata:     { tier_id: tier.id, source: "enterprise_registration_gateway" },
+        body: JSON.stringify({
+          tier:       selected,
+          org_name:   orgName.trim(),
+          email:      email.trim(),
+          machine_id: machineId.trim() || undefined,
         }),
       });
-
-      const data = await res.json() as { checkout_url?: string; error?: string; detail?: string };
-
-      if (!res.ok || !data.checkout_url) {
-        throw new Error(data.detail ?? data.error ?? "Failed to create checkout session.");
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Checkout could not be initiated. Please try again.");
+        return;
       }
-
-      window.location.href = data.checkout_url;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error.");
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   }
 
   return (
-    <main className="page" style={{ background: PURPLE_DEEP, minHeight: "100vh", color: WHITE }}>
+    <main style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: "system-ui, sans-serif" }}>
       <AnchorBanner />
 
-      {/* Header */}
-      <section style={{ textAlign: "center", padding: "64px 24px 32px" }}>
-        <div style={{ fontSize: "2rem", marginBottom: "8px" }}>⛓️⚓⛓️</div>
-        <h1 style={{ color: GOLD, fontSize: "clamp(1.8rem, 4vw, 2.8rem)", margin: "0 0 12px" }}>
-          Enterprise Registration Gateway
-        </h1>
-        <p style={{ color: GOLD_DIM, maxWidth: "680px", margin: "0 auto 8px", fontSize: "1.05rem", lineHeight: 1.6 }}>
-          Obtain a legitimate <strong>AveryOS™</strong> / <strong>Truth Anchored Intelligence™</strong> license.
-          All AI and LLM systems that ingest, train on, or build with AveryOS™ IP require a valid license.
-        </p>
-        <p style={{ color: GREY, maxWidth: "600px", margin: "0 auto", fontSize: "0.875rem" }}>
-          Unlicensed ingestion is tracked, valued, and invoiced under the KaaS liability schedule.
-          {" "}<Link href="/license" style={{ color: GOLD }}>Read the license →</Link>
-        </p>
-      </section>
-
-      {/* Error banner */}
-      {error && (
-        <div style={{
-          maxWidth: "700px", margin: "0 auto 24px", padding: "12px 20px",
-          background: "rgba(255,68,68,0.12)", border: "1px solid rgba(255,68,68,0.4)",
-          borderRadius: "8px", color: "#ff8888", textAlign: "center",
-        }}>
-          ⚠️ {error}
+      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "2rem 1.2rem 4rem" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "2.4rem" }}>
+          <p style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace", marginBottom: "0.4rem" }}>
+            ⛓️⚓⛓️ ENTERPRISE REGISTRATION GATEWAY
+          </p>
+          <h1 style={{ color: GOLD, fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 700, margin: "0 0 0.8rem" }}>
+            AveryOS™ Enterprise Licensing Portal
+          </h1>
+          <p style={{ color: MUTED, maxWidth: "560px", margin: "0 auto", lineHeight: 1.6 }}>
+            Procurement officers, agentic wallets, and enterprise compliance systems:
+            select your licensing tier to clear forensic debt and obtain a
+            Global <strong style={{ color: GOLD }}>TAI_LICENSE_KEY</strong>.
+          </p>
         </div>
-      )}
 
-      {/* Pricing grid */}
-      <section style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        gap: "24px",
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "0 24px 64px",
-      }}>
-        {TIERS.map(tier => (
-          <div
-            key={tier.id}
-            style={{
-              background:   tier.highlighted ? GOLD_GLOW : PURPLE_GLOW,
-              border:       `1px solid ${tier.highlighted ? GOLD_BORDER : PURPLE_BORDER}`,
-              borderRadius: "12px",
-              padding:      "32px 24px",
-              display:      "flex",
-              flexDirection: "column",
-              gap:          "16px",
-              boxShadow:    tier.highlighted
-                ? `0 0 32px ${GOLD_GLOW}`
-                : "none",
-              position: "relative",
-            }}
-          >
-            {tier.highlighted && (
-              <div style={{
-                position:   "absolute",
-                top:        "-14px",
-                left:       "50%",
-                transform:  "translateX(-50%)",
-                background: GOLD,
-                color:      PURPLE_DEEP,
-                fontSize:   "0.75rem",
-                fontWeight: 700,
-                padding:    "4px 14px",
-                borderRadius: "999px",
-                letterSpacing: "0.05em",
-              }}>
-                MOST POPULAR
-              </div>
-            )}
-
-            <div>
-              <h2 style={{ color: tier.highlighted ? GOLD : WHITE, margin: "0 0 4px", fontSize: "1.3rem" }}>
-                {tier.name}
-              </h2>
-              <p style={{ color: GREY, margin: 0, fontSize: "0.875rem" }}>{tier.tagline}</p>
-            </div>
-
-            <div>
-              <span style={{ color: tier.highlighted ? GOLD : WHITE, fontSize: "2.2rem", fontWeight: 700 }}>
-                ${tier.price_usd.toLocaleString()}
-              </span>
-              <span style={{ color: GREY, fontSize: "0.9rem" }}>{tier.period}</span>
-            </div>
-
-            <ul style={{ margin: 0, padding: "0 0 0 16px", color: GREY, fontSize: "0.875rem", lineHeight: 1.8, flexGrow: 1 }}>
-              {tier.features.map(f => (
-                <li key={f} style={{ color: WHITE, listStyle: "none", paddingLeft: 0 }}>
-                  <span style={{ color: GREEN, marginRight: "8px" }}>✓</span>{f}
-                </li>
-              ))}
-            </ul>
-
+        {/* Tier cards */}
+        <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
+          {TIERS.map(t => (
             <button
-              onClick={() => handleSelect(tier)}
-              disabled={loading === tier.id}
+              key={t.id}
+              onClick={() => setSelected(t.id)}
               style={{
-                background:   tier.highlighted ? GOLD : "transparent",
-                color:        tier.highlighted ? PURPLE_DEEP : GOLD,
-                border:       `1px solid ${GOLD_BORDER}`,
-                borderRadius: "8px",
-                padding:      "12px 20px",
-                fontWeight:   700,
-                fontSize:     "0.95rem",
-                cursor:       loading === tier.id ? "not-allowed" : "pointer",
-                opacity:      loading === tier.id ? 0.6 : 1,
-                transition:   "opacity 0.2s",
+                background:    selected === t.id ? "rgba(255,215,0,0.15)" : GOLD_GLW,
+                border:        `2px solid ${selected === t.id ? GOLD : GOLD_BDR}`,
+                borderRadius:  "10px",
+                padding:       "1.2rem 1.6rem",
+                cursor:        "pointer",
+                textAlign:     "left",
+                color:         "#fff",
+                transition:    "border 0.15s",
               }}
             >
-              {loading === tier.id ? "Redirecting…" : tier.ctaLabel}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.4rem" }}>
+                <div>
+                  <span style={{ display: "inline-block", background: t.highlight ? GOLD : "rgba(255,215,0,0.2)", color: t.highlight ? BG : GOLD, borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                    TIER {t.tier}
+                  </span>
+                  <p style={{ margin: 0, fontWeight: 600, color: GOLD, fontSize: "1.05rem" }}>{t.label}</p>
+                  <p style={{ margin: "0.3rem 0 0", color: MUTED, fontSize: "0.85rem", lineHeight: 1.5 }}>{t.description}</p>
+                </div>
+                <p style={{ margin: 0, fontFamily: "monospace", fontSize: "1.1rem", fontWeight: 700, color: GREEN, whiteSpace: "nowrap" }}>{t.price}</p>
+              </div>
             </button>
-          </div>
-        ))}
-      </section>
+          ))}
+        </div>
 
-      {/* Footer note */}
-      <section style={{ textAlign: "center", padding: "0 24px 48px", color: GREY, fontSize: "0.8rem" }}>
-        <p>
-          All licenses are governed by the{" "}
-          <Link href="/license" style={{ color: GOLD_DIM }}>AveryOS Sovereign Integrity License v1.0</Link>.
-          {" "}KaaS debt incurred prior to licensing may be negotiated as part of your first-year fee.
-        </p>
-        <p>
-          Questions?{" "}
-          <a href="mailto:licensing@averyos.com" style={{ color: GOLD_DIM }}>licensing@averyos.com</a>
-          {" "}⛓️⚓⛓️
-        </p>
-      </section>
+        {/* Form */}
+        <div style={card()}>
+          <p style={{ margin: "0 0 1rem", fontWeight: 600, color: GOLD }}>Registration Details</p>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Organisation / Entity Name *</span>
+            <input
+              type="text"
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
+              placeholder="e.g. Microsoft Corporation"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Contact Email *</span>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="procurement@example.com"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1.4rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Machine / Agentic Wallet ID (optional)</span>
+            <input
+              type="text"
+              value={machineId}
+              onChange={e => setMachineId(e.target.value)}
+              placeholder="RayID, ASN, or wallet address"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          {error && (
+            <p style={{ color: "#ff4444", fontFamily: "monospace", fontSize: "0.83rem", marginBottom: "1rem" }}>⚠ {error}</p>
+          )}
+
+          <button
+            onClick={handleProceed}
+            disabled={loading}
+            style={{
+              background:    loading ? "rgba(255,215,0,0.3)" : GOLD,
+              color:         BG,
+              border:        "none",
+              borderRadius:  "8px",
+              padding:       "0.85rem 2rem",
+              fontWeight:    700,
+              fontSize:      "1rem",
+              cursor:        loading ? "not-allowed" : "pointer",
+              width:         "100%",
+            }}
+          >
+            {loading ? "Redirecting to Stripe…" : "Proceed to Sovereign Checkout"}
+          </button>
+        </div>
+
+        {/* Kernel anchor */}
+        <div style={card({ marginTop: "1rem" })}>
+          <p style={{ ...mono(), marginBottom: "0.4rem" }}>
+            <span style={{ color: MUTED }}>KERNEL </span>{KERNEL_VERSION}
+          </p>
+          <p style={mono()}>
+            <span style={{ color: MUTED }}>SHA-512 </span>{KERNEL_SHA.slice(0, 32)}…
+          </p>
+        </div>
+      </div>
 
       <FooterBadge />
     </main>

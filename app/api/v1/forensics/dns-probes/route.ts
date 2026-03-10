@@ -1,32 +1,18 @@
 /**
- * POST /api/v1/forensics/dns-probes
- * GET  /api/v1/forensics/dns-probes
+ * /api/v1/forensics/dns-probes
  *
- * Phase 98 — DNS Probe Forensics
+ * DNS Probe Forensics Endpoint — Phase 98.2.3
  *
- * POST: Ingest a DNS probe event.  Called by the DNS Proxy Shield
- *       (scripts/verify-dns.ps1) or edge middleware when anomalous DNS
- *       resolution is detected for averyos.com sub-domains.
+ * Tracks and surfaces DNS probe events on monitored subdomains:
+ *   _amazonses.averyos.com    — potential SES spam exploit
+ *   enterpriseregistration.averyos.com — Microsoft Azure/O365 device enrollment
  *
- *       Request body:
- *         {
- *           "domain":      string   — FQDN that was probed
- *           "resolver_ip": string   — IP of the DNS resolver
- *           "asn":         string?  — ASN of the resolver
- *           "org_name":    string?  — Organisation name
- *           "record_type": string?  — "A" | "AAAA" | "MX" | "TXT" | "CNAME"
- *           "resolved_to": string?  — IP or value returned by the resolver
- *           "expected":    string?  — expected IP/value for drift detection
- *           "is_drift":    boolean  — true if resolved_to ≠ expected
- *           "ray_id":      string?  — Cloudflare RayID (if available)
- *         }
+ * POST: Ingest a DNS probe event (called from Cloudflare Workers DNS hooks
+ *       or external monitoring scripts).
+ * GET:  List recent DNS probe events (requires VAULT_PASSPHRASE Bearer).
  *
- * GET: List recent DNS probe events.  Auth required.
- *       Query params:
- *         ?limit=<number>       — max rows (default 50, max 200)
- *         ?drift_only=<boolean> — only return drift events
- *
- * Auth: Bearer token matching VAULT_PASSPHRASE for both methods.
+ * Body (POST):
+ *   { subdomain: string, source_ip?: string, asn?: string, timestamp?: string }
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -36,8 +22,6 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 
-// ── Cloudflare env interface ──────────────────────────────────────────────────
-
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
@@ -45,178 +29,130 @@ interface D1PreparedStatement {
 }
 
 interface D1Database {
-  prepare(sql: string): D1PreparedStatement;
+  prepare(query: string): D1PreparedStatement;
 }
 
 interface CloudflareEnv {
-  DB?:               D1Database;
+  DB?: D1Database;
   VAULT_PASSPHRASE?: string;
 }
 
-// ── Bootstrap SQL ─────────────────────────────────────────────────────────────
+// ── Known probe subdomains and their intent classification ─────────────────────
 
-const BOOTSTRAP_STATEMENTS = [
-  `CREATE TABLE IF NOT EXISTS dns_probes (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    domain        TEXT    NOT NULL,
-    resolver_ip   TEXT    NOT NULL,
-    asn           TEXT,
-    org_name      TEXT,
-    record_type   TEXT    NOT NULL DEFAULT 'A',
-    resolved_to   TEXT,
-    expected      TEXT,
-    is_drift      INTEGER NOT NULL DEFAULT 0,
-    ray_id        TEXT,
-    kernel_sha    TEXT    NOT NULL,
-    kernel_version TEXT   NOT NULL DEFAULT 'v3.6.2',
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_dns_probes_domain     ON dns_probes (domain)`,
-  `CREATE INDEX IF NOT EXISTS idx_dns_probes_is_drift   ON dns_probes (is_drift)`,
-  `CREATE INDEX IF NOT EXISTS idx_dns_probes_created_at ON dns_probes (created_at)`,
-];
+const PROBE_INTENT: Record<string, string> = {
+  "_amazonses":             "SES_REPUTATION_PROBE",
+  "enterpriseregistration": "ENTERPRISE_ENROLLMENT_SIGNAL",
+  "autodiscover":           "O365_AUTODISCOVER",
+  "lyncdiscover":           "SKYPE_FOR_BUSINESS_PROBE",
+};
 
-// ── Auth helper ───────────────────────────────────────────────────────────────
-
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aB = new TextEncoder().encode(a);
-  const bB = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aB.length; i++) diff |= aB[i] ^ bB[i];
-  return diff === 0;
+function classifySubdomain(subdomain: string): string {
+  for (const [key, intent] of Object.entries(PROBE_INTENT)) {
+    if (subdomain.toLowerCase().startsWith(key)) return intent;
+  }
+  return "UNKNOWN_DNS_PROBE";
 }
 
-function checkAuth(request: Request, passphrase: string): boolean {
-  const auth   = request.headers.get("authorization") ?? "";
-  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  return !!passphrase && safeEqual(bearer, passphrase);
-}
-
-// ── POST — ingest a DNS probe event ──────────────────────────────────────────
+// ── POST handler ───────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as CloudflareEnv;
 
-  if (!checkAuth(request, cfEnv.VAULT_PASSPHRASE ?? "")) {
-    return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Unauthorized.");
-  }
-
-  if (!cfEnv.DB) {
-    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, "D1 database binding (DB) is not configured.");
-  }
-
-  let body: Record<string, unknown>;
+  let body: { subdomain?: unknown; source_ip?: unknown; asn?: unknown; timestamp?: unknown };
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    body = await request.json() as typeof body;
   } catch {
     return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON.");
   }
 
-  const domain     = typeof body.domain      === "string" ? body.domain.trim()      : "";
-  const resolverIp = typeof body.resolver_ip === "string" ? body.resolver_ip.trim() : "";
+  const subdomain = typeof body.subdomain === "string" ? body.subdomain.trim().slice(0, 128) : null;
+  if (!subdomain) {
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "subdomain is required.");
+  }
 
-  if (!domain)     return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "'domain' is required.");
-  if (!resolverIp) return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "'resolver_ip' is required.");
+  const sourceIp  = typeof body.source_ip === "string" ? body.source_ip.trim() : (request.headers.get("cf-connecting-ip") ?? "unknown");
+  const asn       = typeof body.asn       === "string" ? body.asn.trim()       : (request.headers.get("cf-asn") ?? null);
+  const timestamp = typeof body.timestamp === "string" ? body.timestamp        : formatIso9(new Date());
+  const intent    = classifySubdomain(subdomain);
+  const rayId     = request.headers.get("cf-ray") ?? null;
 
-  const recordType = typeof body.record_type === "string" ? body.record_type.toUpperCase().slice(0, 8) : "A";
-  const resolvedTo = typeof body.resolved_to === "string" ? body.resolved_to.slice(0, 255) : null;
-  const expected   = typeof body.expected    === "string" ? body.expected.slice(0, 255)    : null;
-  const isDrift    = body.is_drift === true || body.is_drift === 1 ? 1 : 0;
-  const asn        = typeof body.asn      === "string" ? body.asn.slice(0, 32)      : null;
-  const orgName    = typeof body.org_name === "string" ? body.org_name.slice(0, 128) : null;
-  const rayId      = typeof body.ray_id   === "string" ? body.ray_id.slice(0, 64)    : null;
-
-  // Bootstrap table on first use
-  for (const stmt of BOOTSTRAP_STATEMENTS) {
-    try { await cfEnv.DB.prepare(stmt).run(); } catch (bootstrapErr) {
-      // Only suppress "table already exists" errors; log anything unexpected
-      const msg = bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr);
-      if (!msg.includes("already exists") && !msg.includes("duplicate")) {
-        console.warn("[DNS_PROBES] Bootstrap statement failed:", msg);
-      }
+  if (cfEnv.DB) {
+    try {
+      await cfEnv.DB.prepare(
+        `INSERT INTO sovereign_audit_logs
+           (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns,
+            threat_level, ray_id, kernel_sha, ingestion_intent)
+         VALUES (?, ?, ?, ?, ?, ?, 5, ?, ?, ?)`
+      ).bind(
+        intent,
+        sourceIp,
+        request.headers.get("user-agent") ?? `DNS_PROBE/${subdomain}`,
+        asn ?? null,
+        `/dns-probe/${subdomain}`,
+        String(Date.now() * 1_000_000),
+        rayId,
+        KERNEL_SHA,
+        intent,
+      ).run();
+    } catch (err) {
+      console.error("[DNS_PROBES] audit log insert failed:", err instanceof Error ? err.message : String(err));
     }
   }
 
-  try {
-    await cfEnv.DB.prepare(
-      `INSERT INTO dns_probes
-         (domain, resolver_ip, asn, org_name, record_type, resolved_to,
-          expected, is_drift, ray_id, kernel_sha, kernel_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      domain, resolverIp, asn, orgName, recordType,
-      resolvedTo, expected, isDrift, rayId,
-      KERNEL_SHA, KERNEL_VERSION,
-    ).run();
-  } catch (err: unknown) {
-    return aosErrorResponse(
-      AOS_ERROR.DB_QUERY_FAILED,
-      err instanceof Error ? err.message : "Failed to insert DNS probe record",
-    );
-  }
-
   return Response.json({
-    status:           "DNS_PROBE_INGESTED",
-    domain,
-    resolver_ip:      resolverIp,
-    record_type:      recordType,
-    is_drift:         isDrift === 1,
-    kernel_sha_short: KERNEL_SHA.slice(0, 16),
-    kernel_version:   KERNEL_VERSION,
-    timestamp:        formatIso9(),
+    status:          "DNS_PROBE_LOGGED",
+    subdomain,
+    intent,
+    source_ip:       sourceIp,
+    asn,
+    timestamp,
+    kernel_version:  KERNEL_VERSION,
+    logged_at:       formatIso9(new Date()),
   }, { status: 201 });
 }
 
-// ── GET — list recent DNS probe events ───────────────────────────────────────
+// ── GET handler ────────────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as CloudflareEnv;
 
-  if (!checkAuth(request, cfEnv.VAULT_PASSPHRASE ?? "")) {
+  const auth        = request.headers.get("authorization") ?? "";
+  const isWorker    = request.headers.get("cf-worker") === "true";
+  const passphrase  = (env as Record<string, string | undefined>).VAULT_PASSPHRASE ?? "";
+  const bearerToken = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+
+  if (!isWorker && (!passphrase || bearerToken !== passphrase)) {
     return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Unauthorized.");
   }
 
-  if (!cfEnv.DB) {
-    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, "D1 database binding (DB) is not configured.");
+  const url   = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10), 200);
+
+  interface DnsProbeRow { event_type: string; ip_address: string | null; geo_location: string | null; target_path: string | null; timestamp_ns: string; ray_id: string | null; ingestion_intent: string | null; }
+  let probes: DnsProbeRow[] = [];
+
+  if (cfEnv.DB) {
+    try {
+      const result = await cfEnv.DB.prepare(
+        `SELECT event_type, ip_address, geo_location, target_path, timestamp_ns, ray_id, ingestion_intent
+           FROM sovereign_audit_logs
+          WHERE ingestion_intent IN ('SES_REPUTATION_PROBE','ENTERPRISE_ENROLLMENT_SIGNAL','O365_AUTODISCOVER','SKYPE_FOR_BUSINESS_PROBE','UNKNOWN_DNS_PROBE')
+          ORDER BY timestamp_ns DESC
+          LIMIT ?`
+      ).bind(limit).all<DnsProbeRow>();
+      probes = result.results;
+    } catch (err) {
+      console.error("[DNS_PROBES] query failed:", err instanceof Error ? err.message : String(err));
+    }
   }
 
-  const url       = new URL(request.url);
-  const rawLimit  = parseInt(url.searchParams.get("limit") ?? "50", 10);
-  const limit     = Math.min(Math.max(isNaN(rawLimit) ? 50 : rawLimit, 1), 200);
-  const driftOnly = url.searchParams.get("drift_only") === "true";
-
-  const sql = driftOnly
-    ? `SELECT id, domain, resolver_ip, asn, org_name, record_type, resolved_to,
-              expected, is_drift, ray_id, kernel_version, created_at
-       FROM   dns_probes
-       WHERE  is_drift = 1
-       ORDER BY created_at DESC
-       LIMIT ?`
-    : `SELECT id, domain, resolver_ip, asn, org_name, record_type, resolved_to,
-              expected, is_drift, ray_id, kernel_version, created_at
-       FROM   dns_probes
-       ORDER BY created_at DESC
-       LIMIT ?`;
-
-  try {
-    const { results } = await cfEnv.DB.prepare(sql).bind(limit).all<Record<string, unknown>>();
-
-    return Response.json({
-      status:           "OK",
-      count:            results.length,
-      drift_only:       driftOnly,
-      probes:           results,
-      kernel_sha_short: KERNEL_SHA.slice(0, 16),
-      kernel_version:   KERNEL_VERSION,
-      timestamp:        formatIso9(),
-    });
-  } catch (err: unknown) {
-    return aosErrorResponse(
-      AOS_ERROR.DB_QUERY_FAILED,
-      err instanceof Error ? err.message : "DNS probe query failed",
-    );
-  }
+  return Response.json({
+    status:           "DNS_PROBES_ACTIVE",
+    count:            probes.length,
+    probes,
+    kernel_version:   KERNEL_VERSION,
+    checked_at:       formatIso9(new Date()),
+  });
 }
