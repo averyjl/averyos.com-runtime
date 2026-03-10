@@ -63,8 +63,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <html lang="en">
+    <html lang="en" spellCheck={false} data-lpignore="true">
       <head>
+        {/* Linguistic Shield (Phase 95.4): spellCheck=false suppresses browser Latin-character pickers;
+            data-lpignore prevents browser-extension input injection across all child fields. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
