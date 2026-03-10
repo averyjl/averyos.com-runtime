@@ -693,10 +693,25 @@ export async function middleware(request: NextRequest) {
   // ── Canonical domain: non-www → www (301 permanent) ──────────────────────
   // Single-gate host check — loop-proof design:
   //   • Subdomains (www, api, lighthouse, terminal) pass through immediately.
+  //   • enterpriseregistration.averyos.com → /licensing/enterprise redirect.
   //   • Bare averyos.com is the only host that triggers the redirect.
   //   • Redirect target uses explicit https:// + pathname to prevent
   //     protocol-stripping and SSL-handshake redirect loops.
   const hostname = request.nextUrl.hostname;
+
+  // Enterprise registration subdomain — permanent redirect to the enterprise page.
+  if (hostname === 'enterpriseregistration.averyos.com') {
+    return new NextResponse(null, {
+      status: 301,
+      headers: {
+        'Location': 'https://www.averyos.com/licensing/enterprise',
+        'X-AveryOS-Alignment': ALIGNMENT_HEADER_VALUE,
+        // 1-day cache — shorter than static assets so the destination can be
+        // updated without waiting for a year-long CDN cache to expire.
+        'Cache-Control': 'public, max-age=86400',
+      },
+    });
+  }
 
   if (
     hostname.startsWith('www.') ||

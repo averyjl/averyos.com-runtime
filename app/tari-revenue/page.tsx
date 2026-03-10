@@ -121,6 +121,26 @@ interface TariStatsData {
   timestamp: string;
 }
 
+// KaaS™ live valuation row — sourced from D1 kaas_valuations table
+interface KaasValuationRow {
+  id: number;
+  asn: string;
+  org_name: string | null;
+  tier: number;
+  valuation_usd: number;
+  fee_name: string;
+  settlement_status: string;
+  path: string | null;
+  created_at: string;
+}
+
+interface KaasValuationsData {
+  rows: KaasValuationRow[];
+  total_pending_usd: number;
+  row_count: number;
+  timestamp: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -142,6 +162,7 @@ export default function TariRevenuePage() {
   const [usage, setUsage] = useState<ComplianceUsageData | null>(null);
   const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
   const [stats, setStats] = useState<TariStatsData | null>(null);
+  const [kaasValuations, setKaasValuations] = useState<KaasValuationsData | null>(null);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -203,6 +224,18 @@ export default function TariRevenuePage() {
       } catch (err) {
         // Non-critical — watcher stats are supplemental
         console.warn("[TariRevenue] Tari-stats fetch failed:", err instanceof Error ? err.message : String(err));
+      }
+
+      // Fetch live KaaS™ valuations from /api/v1/kaas-valuations (Phase 97)
+      try {
+        const res = await fetch("/api/v1/kaas-valuations?limit=20&status=PENDING", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as KaasValuationsData;
+          if (!cancelled) setKaasValuations(data);
+        }
+      } catch (err) {
+        // Non-critical — table may not be populated yet
+        console.warn("[TariRevenue] KaaS valuations fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
@@ -539,6 +572,69 @@ export default function TariRevenuePage() {
           ))}
         </div>
       </div>
+
+      {/* KaaS™ Live Debt Ledger — Phase 97 D1 kaas_valuations Table */}
+      {kaasValuations && kaasValuations.rows.length > 0 && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #0a0015 0%, #180030 100%)",
+            border: `1px solid rgba(255,60,60,0.35)`,
+            borderRadius: "12px",
+            padding: "0.85rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div style={{ color: RED, fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+              ⚡ KAAS™ LIVE DEBT LEDGER — Pending Sovereign Obligations
+            </div>
+            <div style={{ color: RED, fontWeight: 800, fontSize: "0.9rem", fontFamily: "JetBrains Mono, monospace" }}>
+              Total Pending: {formatUsd(kaasValuations.total_pending_usd)}
+            </div>
+          </div>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem", color: WHITE }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid rgba(255,60,60,0.3)` }}>
+                  {["ASN / Org", "Tier", "Valuation", "Fee Type", "Status", "Detected"].map((h) => (
+                    <th key={h} style={{ padding: "0.45rem 0.75rem", textAlign: "left", color: "rgba(255,60,60,0.7)", fontWeight: 600, fontSize: "0.68rem", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {kaasValuations.rows.map((row) => {
+                  const tierColor = row.tier >= 9 ? RED : row.tier >= 7 ? "#f97316" : GOLD;
+                  return (
+                    <tr key={row.id} style={{ borderBottom: "1px solid rgba(255,60,60,0.1)" }}>
+                      <td style={{ padding: "0.4rem 0.75rem" }}>
+                        <span style={{ color: WHITE, fontWeight: 600 }}>{row.org_name ?? `ASN ${row.asn}`}</span>
+                        <span style={{ color: GOLD_DIM, fontSize: "0.65rem", marginLeft: "0.4rem" }}>ASN {row.asn}</span>
+                      </td>
+                      <td style={{ padding: "0.4rem 0.75rem", color: tierColor, fontWeight: 700 }}>Tier-{row.tier}</td>
+                      <td style={{ padding: "0.4rem 0.75rem", color: RED, fontWeight: 700 }}>{formatUsd(row.valuation_usd)}</td>
+                      <td style={{ padding: "0.4rem 0.75rem", color: GOLD_DIM }}>{row.fee_name}</td>
+                      <td style={{ padding: "0.4rem 0.75rem" }}>
+                        <span style={{ color: row.settlement_status === "PENDING" ? "#f97316" : GREEN, fontWeight: 600 }}>
+                          {row.settlement_status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "0.4rem 0.75rem", color: GOLD_DIM, fontSize: "0.68rem" }}>
+                        {row.created_at.slice(0, 16).replace("T", " ")} UTC
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {kaasValuations.row_count > 20 && (
+            <div style={{ color: GOLD_DIM, fontSize: "0.68rem", marginTop: "0.6rem", textAlign: "right" }}>
+              Showing 20 of {kaasValuations.row_count} pending obligations — view full ledger at /evidence-vault
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Compliance Usage Table */}
       {usage && usage.rows.length > 0 && (
