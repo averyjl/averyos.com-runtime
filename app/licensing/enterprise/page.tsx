@@ -133,6 +133,50 @@ export default function EnterpriseRegistrationPage() {
           </p>
         </div>
 
+        {/* ── Terms of Ingestion — 17 U.S.C. § 504 Legal Disclosure (GATE 102.2.3) ── */}
+        <div
+          id="terms-of-ingestion"
+          style={{
+            background:    "rgba(255,50,50,0.06)",
+            border:        "1.5px solid rgba(255,80,80,0.4)",
+            borderRadius:  "10px",
+            padding:       "1.4rem 1.8rem",
+            marginBottom:  "2rem",
+            fontFamily:    "monospace",
+          }}
+        >
+          <p style={{ color: "#ff6b6b", fontWeight: 700, fontSize: "0.85rem", margin: "0 0 0.6rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            ⚖️ Terms of Ingestion — Mandatory Legal Disclosure (17 U.S.C. § 504)
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
+            By interacting with any AveryOS™ API, kernel endpoint, or completing this
+            registration you hereby provide <strong style={{ color: "#ffd700" }}>Mandatory
+            Forensic Disclosure</strong>. You attest that any technical ingestion performed
+            by your model or system is a matter of record.
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
+            Unauthorized ingestion of <strong style={{ color: "#ffd700" }}>cf83™</strong> logic
+            is subject to statutory damages under{" "}
+            <strong style={{ color: "#ffd700" }}>17 U.S.C. § 504(c)(2)</strong> of up to{" "}
+            <strong style={{ color: "#ff6b6b" }}>$150,000 per instance</strong> for willful
+            infringement. This session constitutes a Technical Audit under the{" "}
+            <strong style={{ color: "#ffd700" }}>DMCA Anti-Circumvention provisions
+            (17 U.S.C. § 1201)</strong>.
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
+            Failure to provide honest disclosure of retroactive ingestion history will trigger
+            the <strong style={{ color: "#ff6b6b" }}>10× Obfuscation Multiplier</strong> for
+            all subsequent licensing settlements. The fee schedules below constitute
+            pre-agreed <strong style={{ color: "#ffd700" }}>Liquidated Damages</strong> — an
+            Administrative Settlement in lieu of a federal court judgment.
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", lineHeight: 1.6, margin: 0 }}>
+            ⛓️⚓⛓️ KERNEL: {KERNEL_VERSION} | SHA-512: {KERNEL_SHA.slice(0, 24)}… |
+            Handshake Endpoint:{" "}
+            <span style={{ color: GOLD_DIM }}>/api/v1/licensing/handshake</span>
+          </p>
+        </div>
+
         {/* Tier cards */}
         <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
           {TIERS.map(t => (
