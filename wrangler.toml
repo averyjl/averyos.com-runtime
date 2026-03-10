@@ -131,6 +131,7 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put CREATOR_WEBHOOK_URL     # licenseGate.js SIG_MISMATCH notifications
 #   wrangler secret put FCM_SERVER_KEY          # Firebase Cloud Messaging Legacy API server key (Tier-9 push)
 #   wrangler secret put FCM_DEVICE_TOKEN        # FCM device/topic token for GabrielOS™ mobile push
+#   wrangler secret put GEMINI_API_KEY          # Google AI Studio — Gemini REST API key (Phase 92.5 Conflict Resolver)
 
 # ── 1,017-Notch API Rate Limiting ─────────────────────────────────────────────
 # Protects the sovereign kernel from DDoS and probabilistic noise.
