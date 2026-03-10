@@ -86,7 +86,7 @@ async function verifyStripeSession(
 ): Promise<{ payment_status: string; metadata?: Record<string, string> } | null> {
   try {
     const res = await fetch(
-      `https://api.stripe.com/v1/checkout/sessions/${sessionId}`,
+      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
       {
         headers: { Authorization: `Bearer ${secretKey}` },
         signal: AbortSignal.timeout(8000),
@@ -143,6 +143,11 @@ export async function POST(request: Request): Promise<Response> {
   // Basic fingerprint format validation: must be 8–512 printable chars
   if (!/^[\x20-\x7E]{8,512}$/.test(machine_fingerprint)) {
     return aosErrorResponse(AOS_ERROR.INVALID_FIELD, "machine_fingerprint must be 8–512 printable ASCII characters", 400);
+  }
+
+  // Basic Stripe Checkout Session ID validation: e.g., "cs_test_..." or "cs_live_..."
+  if (!/^cs_(test|live)_[0-9A-Za-z]{10,}$/.test(session_id)) {
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, "session_id is not a valid Stripe Checkout session identifier", 400);
   }
 
   // ── Verify Stripe payment ─────────────────────────────────────────────────
