@@ -41,6 +41,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { recordGeminiSpend, GEMINI_COST_PER_1K_TOKENS, type GeminiSpendKV } from "../../../../../lib/geminiSpendTracker";
 
 // ── Fee constants ─────────────────────────────────────────────────────────────
 /** Per-invocation AI Inference Surcharge (on top of the $10M baseline). */
@@ -60,7 +61,7 @@ interface D1Database {
 interface CloudflareEnv {
   DB?:               D1Database;
   VAULT_PASSPHRASE?: string;
-  KV_LOGS?: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> };
+  KV_LOGS?: GeminiSpendKV;
 }
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
@@ -154,18 +155,13 @@ export async function POST(request: Request): Promise<Response> {
       .catch(() => {});
   }
 
-  // ── Phase 88: Gemini spend accumulator ──────────────────────────────────
-  // Accumulate the estimated Gemini cost for the Phase 88 circuit breaker.
-  // Note: KV does not support atomic increment; slight undercounting is acceptable
-  // for the soft circuit-breaker threshold — this is not billing-grade tracking.
+  // ── Phase 88: Gemini spend accumulator (race-free fan-out write) ────────
+  // Writes a unique per-call entry to KV_LOGS — no read, no race condition.
+  // lib/geminiSpendTracker.recordGeminiSpend() uses a unique key per call so
+  // concurrent requests never overwrite each other. 100.000% accurate.
   if (cfEnv.KV_LOGS && total_tokens && total_tokens > 0) {
-    const now = new Date();
-    const spendKey = `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-    cfEnv.KV_LOGS.get(spendKey).then(async (current) => {
-      const prev = parseFloat(current ?? '0') || 0;
-      const cost = estimated_cost_usd ?? (total_tokens / 1000) * 0.00125;
-      await cfEnv.KV_LOGS!.put(spendKey, (prev + cost).toFixed(6));
-    }).catch(() => {});
+    const costUsd = estimated_cost_usd ?? (total_tokens / 1000) * GEMINI_COST_PER_1K_TOKENS;
+    recordGeminiSpend(cfEnv.KV_LOGS, costUsd).catch(() => {});
   }
 
   return Response.json({

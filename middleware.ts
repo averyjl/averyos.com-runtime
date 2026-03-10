@@ -9,6 +9,10 @@ import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { classifyDerRequest } from './lib/sovereignMetadata';
 import { syncD1RowToFirebase } from './lib/firebaseClient';
+import {
+  isGeminiCreditExhausted,
+  type GeminiSpendKV,
+} from './lib/geminiSpendTracker';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -162,16 +166,11 @@ interface R2Bucket {
   put(key: string, value: string | ArrayBuffer | ReadableStream, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
 }
 
-interface KVNamespaceLocal {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string): Promise<void>;
-}
-
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
-  KV_LOGS?: KVNamespaceLocal;
+  KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
@@ -588,38 +587,15 @@ async function classifyLegalScanIntent(request: NextRequest): Promise<void> {
   }
 }
 
-// ── Phase 88 — Gemini Credit Watch constants ──────────────────────────────────
-// Monthly credit limit in USD. When accumulated Gemini spend (stored in KV_LOGS)
-// exceeds this threshold the intelligence router falls back to LOCAL_OLLAMA_NODE.
-const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+// ── Phase 88 — UsageCreditWatch ───────────────────────────────────────────────
+// isGeminiCreditExhausted and GEMINI_MONTHLY_CREDIT_LIMIT_USD are imported
+// from lib/geminiSpendTracker.ts (see import at top of file).
+// The race-free fan-out write / list-aggregate read pattern is implemented there.
 
-/** Returns the KV key for the current month's Gemini spend accumulator. */
-function geminiMonthlySpendKey(): string {
-  const now = new Date();
-  return `gemini_monthly_spend_${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-/**
- * Phase 88 — UsageCreditWatch
- *
- * Reads the current month's accumulated Gemini spend from KV_LOGS.
- * Returns true if the spend has exceeded GEMINI_MONTHLY_CREDIT_LIMIT_USD,
- * signalling that the intelligence router should fall back to LOCAL_OLLAMA_NODE.
- *
- * Errors are swallowed — if KV is unavailable, fallback is NOT forced so the
- * system degrades gracefully rather than disabling cloud AI on KV blips.
- */
-async function isGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
-  try {
-    if (!cfEnv.KV_LOGS) return false;
-    const key   = geminiMonthlySpendKey();
-    const value = await cfEnv.KV_LOGS.get(key);
-    if (value == null) return false;
-    const spend = parseFloat(value);
-    return !isNaN(spend) && spend >= GEMINI_MONTHLY_CREDIT_LIMIT_USD;
-  } catch {
-    return false;
-  }
+/** Wraps the imported circuit-breaker check with the GatekeeperEnv binding. */
+async function checkGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
+  if (!cfEnv.KV_LOGS) return false;
+  return isGeminiCreditExhausted(cfEnv.KV_LOGS);
 }
 
 export async function middleware(request: NextRequest) {
@@ -692,14 +668,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Phase 88 — UsageCreditWatch: Gemini monthly spend circuit breaker ────
-  // Read accumulated Gemini spend from KV_LOGS. If the $50/month threshold
-  // is exceeded, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE on all
-  // responses so the intelligence router knows to bypass cloud AI this month.
+  // Aggregates all per-call KV spend entries for the current month using
+  // lib/geminiSpendTracker.getTotalGeminiSpend (race-free fan-out/list pattern).
+  // If total >= $50/month, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE.
   let geminiCreditExhaustedFlag = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
-    geminiCreditExhaustedFlag = await isGeminiCreditExhausted(cfEnv);
+    geminiCreditExhaustedFlag = await checkGeminiCreditExhausted(cfEnv);
   } catch {
     // KV unavailable — do not force fallback
   }
