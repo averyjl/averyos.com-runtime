@@ -83,16 +83,17 @@ function groupRows(rows: AuditRow[]): GroupedEntry[] {
 }
 
 export default function ForensicDashboard() {
-  const [authed, setAuthed]         = useState(false);
-  const [checking, setChecking]     = useState(true);
-  const [password, setPassword]     = useState("");
-  const [authError, setAuthError]   = useState("");
-  const [rows, setRows]             = useState<AuditRow[]>([]);
-  const [grouped, setGrouped]       = useState<GroupedEntry[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<AosUiError | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<string>("");
-  const [limit, setLimit]           = useState(500);
+  const [authed, setAuthed]                   = useState(false);
+  const [checking, setChecking]               = useState(true);
+  const [password, setPassword]               = useState("");
+  const [authError, setAuthError]             = useState("");
+  const [rows, setRows]                       = useState<AuditRow[]>([]);
+  const [grouped, setGrouped]                 = useState<GroupedEntry[]>([]);
+  const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState<AosUiError | null>(null);
+  const [lastRefresh, setLastRefresh]         = useState<string>("");
+  const [limit, setLimit]                     = useState(500);
+  const [rateLimitCount, setRateLimitCount]   = useState<number | null>(null);
 
   // ── VaultGate auth check on mount ────────────────────────────────────────
   // On mount, probe the forensics API with a minimal limit — if the browser
@@ -148,6 +149,18 @@ export default function ForensicDashboard() {
       setRows(data.rows ?? []);
       setGrouped(groupRows(data.rows ?? []));
       setLastRefresh(new Date().toISOString());
+
+      // ── Rate Limiter Block Count (Phase 8) ────────────────────────────────
+      // Fetch the count of RATE_LIMITED events from tari-stats for the dashboard badge.
+      // Uses the existing /api/v1/tari-stats endpoint — non-critical, fire-and-forget.
+      fetch("/api/v1/tari-stats", { credentials: "same-origin" })
+        .then(r => r.ok ? r.json() : null)
+        .then((stats: { total_entries?: number } | null) => {
+          if (stats && typeof stats.total_entries === "number") {
+            setRateLimitCount(stats.total_entries);
+          }
+        })
+        .catch(() => {});
     } catch (err) {
       setError(buildAosUiError(AOS_ERROR.UNKNOWN, err instanceof Error ? err.message : String(err)));
     } finally {
@@ -307,6 +320,9 @@ export default function ForensicDashboard() {
           { label: "Unique Paths", value: new Set(rows.map(r => r.path)).size, color: GREEN },
           { label: "Unique IPs", value: new Set(rows.map(r => r.ip_address)).size, color: ORANGE },
           { label: "⚠️ Suspicious Paths", value: sensitiveRows.reduce((s, g) => s + g.count, 0), color: RED },
+          ...(rateLimitCount !== null
+            ? [{ label: "🛑 RATE_LIMITER Blocks (Ledger)", value: rateLimitCount, color: "#ff8800" }]
+            : []),
         ].map(stat => (
           <div key={stat.label} style={{
             flex: "1 1 140px",

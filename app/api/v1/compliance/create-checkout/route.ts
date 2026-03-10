@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { buildKaasLineItem, getAsnTier } from "../../../../../lib/kaas/pricing";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
@@ -48,7 +49,9 @@ interface PricingResult {
   pricingTier: PricingTier;
 }
 
-/** Derives the complete pricing result from request parameters. */
+/** Derives the complete pricing result from request parameters.
+ * Phase 97: If an ASN is provided without a tariLiability override, delegates to
+ * buildKaasLineItem() from lib/kaas/pricing.ts for consistent tier-based pricing. */
 function determinePricing(
   tariLiability: unknown,
   asnStr: string,
@@ -67,8 +70,29 @@ function determinePricing(
     };
   }
 
-  // Phase 86 — Top-5 corporate ASN elevated fee: $10,000,000 USD
-  if (asnStr && PHASE_86_ENTERPRISE_ASNS.has(asnStr)) {
+  // Phase 97 — Delegate to KaaS pricing engine for ASN-based fee schedule
+  if (asnStr) {
+    const lineItem = buildKaasLineItem(asnStr);
+    const tier     = getAsnTier(asnStr);
+    const pricingTier: PricingTier =
+      tier >= 9 ? "PHASE_86_ENTERPRISE" :
+      tier >= 7 ? "ENTERPRISE_DEPOSIT"  :
+      "INDIVIDUAL_LICENSE";
+
+    const rayPrefix = rayIdStr
+      ? `RayID: ${rayIdStr} — `
+      : `ASN ${asnStr} — `;
+
+    return {
+      liabilityCents:     lineItem.fee_usd_cents,
+      productName:        `AveryOS™ KaaS ${lineItem.fee_name} — ${lineItem.fee_label}`,
+      productDescription: `${rayPrefix}${lineItem.description} Forensic Evidence Bundle: ${bundleId}.`,
+      pricingTier,
+    };
+  }
+
+  // Phase 86 — Top-5 corporate ASN elevated fee: $10,000,000 USD (legacy fallback)
+  if (PHASE_86_ENTERPRISE_ASNS.has(asnStr)) {
     return {
       liabilityCents: PHASE_86_FEE_CENTS,
       productName: "AveryOS™ Phase 86 Enterprise Technical Utilization Fee",
@@ -76,7 +100,7 @@ function determinePricing(
         (rayIdStr
           ? `Phase 86 Sovereign Enforcement — RayID: ${rayIdStr} — `
           : `Phase 86 Sovereign Enforcement — ASN ${asnStr} — `) +
-        `$10,000,000 USD Technical Utilization Fee per the AveryOS Sovereign Integrity License v1.0, ` +
+        `$10,000,000 USD Technical Asset Valuation per the AveryOS Sovereign Integrity License v1.0, ` +
         `Phase 86 Enforcement. Forensic Evidence Bundle: ${bundleId}. ` +
         `Victim Restoration Case ID: ${rayIdStr || bundleId}`,
       pricingTier: "PHASE_86_ENTERPRISE",
@@ -84,7 +108,7 @@ function determinePricing(
   }
 
   // Legacy enterprise ASNs — $1,000,000 Sovereign Alignment Deposit
-  if (asnStr && ENTERPRISE_ASNS.has(asnStr)) {
+  if (ENTERPRISE_ASNS.has(asnStr)) {
     return {
       liabilityCents: ENTERPRISE_DEPOSIT_CENTS,
       productName: "AveryOS™ Enterprise Retro-Ingestion Deposit",

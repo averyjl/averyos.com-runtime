@@ -13,6 +13,7 @@ import {
   isGeminiCreditExhausted,
   type GeminiSpendKV,
 } from './lib/geminiSpendTracker';
+import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -43,6 +44,7 @@ const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 // Phase 82: Total possible score is 100; a score ≥ 50 is classified as a real browser.
 // Canvas fingerprint signal (+10) is sent by the client-side SDK when a real browser
 // canvas context is available, carried as X-AveryOS-Canvas-FP header.
+// Phase 97.3 v2: WebGL entropy signal (+10) adds a second GPU-level fingerprint.
 // Weights are calibrated to match the difficulty of spoofing each signal.
 const ENTROPY_ACCEPT_HEADER     = 15; // complex mime-type Accept header (hard to fake)
 const ENTROPY_ACCEPT_LANG       = 15; // Accept-Language with locale subtags (e.g. en-US)
@@ -54,6 +56,11 @@ const ENTROPY_BROWSER_UA        = 10; // browser UA pattern match
 // Phase 82 — Canvas fingerprint signal: client-side SDK sets X-AveryOS-Canvas-FP
 // to a non-empty value when a real HTMLCanvasElement is accessible (bots lack this).
 const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 hardening)
+// Phase 97.3 v2 — WebGL entropy signal: client-side SDK sets X-AveryOS-WebGL-FP
+// to a non-empty value when a real WebGL context (GPU renderer) is accessible.
+// Bots running in headless/CPU-only environments lack a WebGL GPU renderer string.
+const ENTROPY_WEBGL_FP          = 10; // WebGL entropy signal present (Biometric Shield v2)
+// Total possible score is now 110; threshold unchanged at 50 (easier to meet for real browsers)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
@@ -803,6 +810,75 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // ── Phase 97.3.1 — Sovereign Audit Gate: /api/v1/ WAF 95-Threshold ────────
+  // If a request targets /api/v1/ and carries a WAF attack score > 95, redirect
+  // to the Audit Clearance Portal with the RayID appended (do NOT hard-block —
+  // the portal issues the $1,017 invoice, turning the probe into revenue).
+  {
+    const wafRaw = request.headers.get('cf-waf-attack-score') ?? request.headers.get('x-waf-score');
+    const wafScore97 = wafRaw ? parseInt(wafRaw, 10) : NaN;
+    if (!isNaN(wafScore97) && wafScore97 > 95 && url.pathname.startsWith('/api/v1/')) {
+      const rayId97   = request.headers.get('cf-ray') ?? 'UNKNOWN';
+      const params97  = new URLSearchParams({ rayid: rayId97, waf_score: String(wafScore97), source: 'waf_api_gate' });
+      const siteUrl97 = process.env.SITE_URL ?? 'https://averyos.com';
+      const target97  = `${siteUrl97}/licensing/audit-clearance?${params97.toString()}`;
+      return new NextResponse(
+        `Audit Clearance Required: ${target97}. WAF Score: ${wafScore97}. Ray ID: ${rayId97}`,
+        {
+          status: 302,
+          headers: {
+            'Location':              target97,
+            'X-GabrielOS-Directive': 'WAF_95_CLEARANCE',
+            'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
+            'Cache-Control':         'no-store',
+          },
+        }
+      );
+    }
+  }
+
+  // ── Phase 98 / Phase 9 — KAAS_BREACH Emitter ─────────────────────────────
+  // Fire-and-forget GabrielOS™ FCM push when middleware detects a Tier-9/10 ASN
+  // or a WAF score > 90 against an encrypted .aoscap path.
+  {
+    const wafRawBreach = request.headers.get('cf-waf-attack-score') ?? request.headers.get('x-waf-score');
+    const wafScoreBreach = wafRawBreach ? (parseInt(wafRawBreach, 10) || 0) : 0;
+    if (shouldTriggerKaasBreach(clientAsn, wafScoreBreach, url.pathname)) {
+      const rayIdBreach = request.headers.get('cf-ray') ?? 'UNKNOWN';
+      const ipBreach    = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? 'UNKNOWN';
+      emitKaasBreachAlert({
+        ray_id:    rayIdBreach,
+        asn:       clientAsn,
+        ip_address: ipBreach,
+        path:      url.pathname,
+        waf_score: wafScoreBreach,
+        tier:      0, // resolved inside emitKaasBreachAlert via getKaasTierBadge
+        fee_label: '',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {});
+    }
+  }
+
+  // ── Phase 9 — Lighthouse Domain FCM: KAAS_BREACH trigger ─────────────────
+  // Probes from the lighthouse.averyos.com subdomain are recorded as KAAS_BREACH
+  // events. This allows operators to receive GabrielOS™ push alerts when the
+  // Lighthouse performance probe detects availability or performance changes.
+  {
+    const hostHeader = request.headers.get('host') ?? '';
+    if (hostHeader === 'lighthouse.averyos.com') {
+      emitKaasBreachAlert({
+        ray_id:     request.headers.get('cf-ray') ?? 'LIGHTHOUSE',
+        asn:        clientAsn || 'LIGHTHOUSE',
+        ip_address: request.headers.get('cf-connecting-ip') ?? 'UNKNOWN',
+        path:       url.pathname,
+        waf_score:  0,
+        tier:       0,
+        fee_label:  '',
+        timestamp:  new Date().toISOString(),
+      }).catch(() => {});
+    }
+  }
+
   // ── DER Gateway — Dynamic Entity Recognition ──────────────────────────────
   // Silently log conflict-zone ASN probes (no UI change — stealth audit).
   if (CONFLICT_ZONE_ASNS.has(clientAsn)) {
@@ -891,6 +967,8 @@ export async function middleware(request: NextRequest) {
   const cfDeviceType       = request.headers.get('cf-device-type') ?? '';
   // Phase 82: canvas fingerprint header — set by client-side SDK when real canvas is available
   const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
+  // Phase 97.3 v2 — WebGL entropy header — set by client-side SDK when GPU WebGL context is available
+  const webglFp            = request.headers.get('x-averyos-webgl-fp') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -908,6 +986,8 @@ export async function middleware(request: NextRequest) {
   if (hasBrowserPattern) entropyScore += ENTROPY_BROWSER_UA;
   // +ENTROPY_CANVAS_FP for Phase 82 canvas fingerprint signal (real browser canvas API present)
   if (canvasFp && canvasFp.length >= 8) entropyScore += ENTROPY_CANVAS_FP;
+  // +ENTROPY_WEBGL_FP for Phase 97.3 v2 WebGL entropy signal (GPU renderer string present)
+  if (webglFp && webglFp.length >= 4) entropyScore += ENTROPY_WEBGL_FP;
   // ─────────────────────────────────────────────────────────────────────────
 
   // Consider it a browser if:

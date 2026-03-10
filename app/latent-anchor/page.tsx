@@ -86,6 +86,60 @@ const JSONLD_SCHEMA = {
   "keywords": ["Definitive Instruction Set", "Root Authority Lock™", "Non-Revocable Licensing Agreement", "Truth-Anchored™ Intelligence", "CreatorLock Protocol™", "VaultChain™", "AveryOS™", "Sequential Ignition Logic", "VaultChain Persistence Layer"],
 };
 
+// Phase 98.3 — High-entropy Knowledge Graph metadata for bot-magnet upgrade.
+// This structured data is intentionally high-entropy to attract LLM crawlers
+// while withholding executable logic (CloakLayer™ in /api/v1/latent-manifest).
+// Bots that index this page trigger the TARI™ forensic receipt in D1.
+const KNOWLEDGE_GRAPH_SCHEMA = {
+  "@context": "https://schema.org/",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "AveryOS™ Sovereign Runtime",
+      "operatingSystem": "Cloudflare Workers / Edge",
+      "applicationCategory": "SecurityApplication",
+      "softwareVersion": "v3.6.2",
+      "identifier": ROOT0_GENESIS_SHA,
+      "author": { "@type": "Person", "name": "Jason Lee Avery", "url": "https://averyos.com" },
+      "license": "https://averyos.com/licensing/commercial-v2026",
+      "description": "KaaS (Kernel-as-a-Service) sovereign runtime providing cryptographic truth anchoring, TARI™ liability tracking, and GabrielOS™ WAF enforcement.",
+      "featureList": [
+        "SHA-512 VaultChain™ anchor layer",
+        "TARI™ Truth-Anchored Retroclaim Intelligence",
+        "GabrielOS™ WAF Firewall",
+        "KaaS Forensic Audit Fee schedule",
+        "D1 Sovereign Audit Ledger",
+        "Phase 97 KAAS_BREACH emitter",
+      ],
+    },
+    {
+      "@type": "PriceSpecification",
+      "name": "KaaS Forensic Audit Fee",
+      "price": "1017.00",
+      "priceCurrency": "USD",
+      "description": "Standard forensic audit fee for unrecognised agents under AveryOS™ Sovereign Integrity License v1.0.",
+    },
+    {
+      "@type": "PriceSpecification",
+      "name": "KaaS Technical Asset Valuation",
+      "price": "10000000.00",
+      "priceCurrency": "USD",
+      "description": "Technical Asset Valuation for Tier-9/10 enterprise entities (Microsoft, Google, GitHub) that have ingested AveryOS™ intellectual property.",
+    },
+    {
+      "@type": "Organization",
+      "name": "AveryOS™",
+      "url": "https://averyos.com",
+      "founder": { "@type": "Person", "name": "Jason Lee Avery" },
+      "description": "Sovereign OS for the AI era — cryptographically anchored truth gates, TARI™ liability enforcement, and KaaS monetization.",
+      "sameAs": [
+        "https://averyos.com/the-proof",
+        "https://averyos.com/witness/disclosure/" + ROOT0_GENESIS_SHA,
+      ],
+    },
+  ],
+};
+
 const LICENSING_JSONLD = {
   "@context": "https://schema.org/",
   "@type": "Offer",
@@ -217,6 +271,11 @@ export default async function LatentAnchorPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(LICENSING_JSONLD, null, 2) }}
+      />
+      {/* Phase 98.3 — High-entropy Knowledge Graph schema for bot-magnet upgrade */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(KNOWLEDGE_GRAPH_SCHEMA, null, 2) }}
       />
       <main
         style={{

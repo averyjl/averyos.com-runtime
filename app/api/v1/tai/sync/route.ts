@@ -1,11 +1,15 @@
 /**
  * POST /api/v1/tai/sync
  *
- * TAI™ Network Sync Gateway — Phase 93.4
+ * TAI™ Network Sync Gateway — Phase 93.4 / Phase 97.3.2
  *
  * Accepts forensic judgments from authorised remote AI Studio Gems (sentinels).
- * The caller must provide a valid TAI_SENTINEL_TOKEN secret in the
- * `Authorization: Bearer <token>` header.
+ * The caller must provide a valid TAI_SENTINEL_TOKEN **or** the Phase 97
+ * hardlocked UUID sentinel token in the `Authorization: Bearer <token>` header.
+ *
+ * Phase 97.3.2: UUID `3898636e-5aea-4161-9540-5f12e7b7ffb7` is accepted as a
+ * second sentinel token to establish resonance between the AveryOS_SST Gem
+ * and the D1 Forensic Ledger.
  *
  * Request body (JSON):
  *   {
@@ -62,6 +66,13 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Phase 97.3.2 — Hardlocked Phase 97 UUID sentinel token.
+ * Accepted as a second valid sentinel identity token alongside TAI_SENTINEL_TOKEN.
+ * Establishes active resonance between the AveryOS_SST Gem and the D1 Forensic Ledger.
+ */
+const PHASE_97_SENTINEL_UUID = "3898636e-5aea-4161-9540-5f12e7b7ffb7";
+
 export async function POST(request: Request) {
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -75,7 +86,10 @@ export async function POST(request: Request) {
     if (!sentinel) {
       return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, "TAI_SENTINEL_TOKEN is not configured on this Worker.");
     }
-    if (!token || !safeEqual(token, sentinel)) {
+    // Phase 97.3.2: Accept the hardlocked Phase 97 UUID as a second valid sentinel token
+    const isPhase97Uuid  = safeEqual(token, PHASE_97_SENTINEL_UUID);
+    const isSentinelToken = safeEqual(token, sentinel);
+    if (!token || (!isSentinelToken && !isPhase97Uuid)) {
       return aosErrorResponse(AOS_ERROR.INVALID_AUTH, "Invalid or missing TAI_SENTINEL_TOKEN.");
     }
 

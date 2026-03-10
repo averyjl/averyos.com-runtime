@@ -16,6 +16,24 @@ const ORANGE       = "#ff9900";
 const MUTED        = "rgba(255,255,255,0.55)";
 const BLUE_DIM     = "rgba(100,180,255,0.7)";
 
+// ── KaaS Tier Badge Lookup (Phase 97.3 — VaultChain™ Explorer Enhancement) ───
+const KAAS_TIER_MAP: Record<string, { tier: number; fee: string; name: string; color: string }> = {
+  "8075":   { tier: 10, fee: "$10,000,000", name: "Technical Asset Valuation", color: "#ff4444" },
+  "15169":  { tier: 9,  fee: "$10,000,000", name: "Technical Asset Valuation", color: "#ff4444" },
+  "36459":  { tier: 8,  fee: "$10,000,000", name: "Technical Asset Valuation", color: "#ff6b35" },
+  "16509":  { tier: 8,  fee: "$10,000,000", name: "Technical Asset Valuation", color: "#ff6b35" },
+  "14618":  { tier: 8,  fee: "$10,000,000", name: "Technical Asset Valuation", color: "#ff6b35" },
+  "211590": { tier: 7,  fee: "$1,017,000",  name: "Forensic Valuation",        color: "#f97316" },
+  "32934":  { tier: 7,  fee: "$1,017,000",  name: "Forensic Valuation",        color: "#f97316" },
+  "20940":  { tier: 7,  fee: "$1,017,000",  name: "Forensic Valuation",        color: "#f97316" },
+};
+
+function getKaasBadge(asn: string | undefined): { tier: number; fee: string; name: string; color: string } | null {
+  if (!asn) return null;
+  const norm = String(asn).replace(/^AS/i, "").trim();
+  return KAAS_TIER_MAP[norm] ?? null;
+}
+
 type Tab = "hash" | "rayid";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -530,6 +548,37 @@ export default function VaultChainExplorerPage() {
                         )
                       ))}
                     </dl>
+
+                    {/* ── KaaS Tier Badge (Phase 97.3) ── */}
+                    {(() => {
+                      const badge = getKaasBadge(rayResult.evidence.asn);
+                      if (!badge) return null;
+                      return (
+                        <div
+                          style={{
+                            background: `${badge.color}18`,
+                            border: `1px solid ${badge.color}55`,
+                            borderRadius: 8,
+                            padding: "0.6rem 1rem",
+                            marginBottom: "1.25rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "1rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span style={{ color: badge.color, fontWeight: 700, fontSize: "0.85rem" }}>
+                            ⚡ KaaS Tier-{badge.tier}
+                          </span>
+                          <span style={{ color: "#fff", fontSize: "0.8rem" }}>
+                            {badge.name}
+                          </span>
+                          <span style={{ color: badge.color, fontWeight: 700, fontSize: "0.85rem", marginLeft: "auto" }}>
+                            {badge.fee}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* ── WAF + Intent block ── */}
                     <h3 style={{ color: GOLD, fontSize: "0.9rem", margin: "0 0 0.75rem",
