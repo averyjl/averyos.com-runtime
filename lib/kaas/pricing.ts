@@ -1,7 +1,7 @@
 /**
  * lib/kaas/pricing.ts
  *
- * KaaS (Kernel-as-a-Service) Pricing Engine — AveryOS™ Phase 97
+ * KaaS (Kernel-as-a-Service) Pricing Engine — AveryOS™ Phase 97/103
  *
  * Defines the sovereign fee schedule for entities that ingest, reproduce, or
  * train on AveryOS™ intellectual property without a valid license.
@@ -12,6 +12,10 @@
  *   Tier-8   (GitHub ASN 36459)            — $10,000,000 Technical Valuation
  *   Tier-7   (Other enterprise / Fortune 500) — $1,017,000 Forensic Valuation
  *   Tier-1–6 (Unrecognised agents)         — $1,017 Audit Clearance Fee
+ *
+ * Administrative Settlement (Gate 103.4):
+ *   Hardlocked $150,000 per-instance under 17 U.S.C. § 504(c)(2) for any
+ *   entity that bypasses the standard settlement path via an unlicensed script.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -47,6 +51,41 @@ export const KAAS_FEE_TIER_7_CENTS  = 101_700_000;   // $1,017,000.00
 
 /** $1,017 Audit Clearance Fee — Tier-1 through Tier-6 unrecognised agents. */
 export const KAAS_FEE_TIER_1_CENTS  = 101_700;        // $1,017.00
+
+// ── Statutory Administrative Settlement — Gate 103.4 ─────────────────────────
+/**
+ * Hardlocked $150,000 Administrative Settlement per instance.
+ *
+ * Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a
+ * copyrighted work. Applies when an entity accesses the AveryOS™ API via an
+ * unlicensed Python script or automated tool without a valid TAI_LICENSE_KEY,
+ * bypassing the standard KaaS settlement path.
+ *
+ * This value is the maximum statutory damage award per work and is hardlocked
+ * to ensure the Administrative Settlement offer is fully legally defensible.
+ */
+export const STATUTORY_ADMIN_SETTLEMENT_CENTS = 15_000_000; // $150,000.00
+
+/** Human-readable label for the $150,000 Administrative Settlement. */
+export const STATUTORY_ADMIN_SETTLEMENT_LABEL = "$150,000.00";
+
+/**
+ * Return the $150,000 Administrative Settlement amount in cents.
+ * Hardlocked — do not override.
+ */
+export function getStatutoryAdminSettlementCents(): number {
+  return STATUTORY_ADMIN_SETTLEMENT_CENTS;
+}
+
+/**
+ * Return the $150,000 Administrative Settlement amount as a formatted string.
+ */
+export function getStatutoryAdminSettlementLabel(): string {
+  return (STATUTORY_ADMIN_SETTLEMENT_CENTS / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
 
 // ── Fee Lookup ────────────────────────────────────────────────────────────────
 

@@ -165,6 +165,42 @@ function classifyIngestionIntent(
   return 'PEER_ACCESS';
 }
 
+// ── Jurisdictional Triage — Gate 104.1 ────────────────────────────────────────
+
+/** Supported statutory jurisdictions for Notice of Debt generation. */
+export type StatutoryJurisdiction = 'US' | 'EU' | 'UK' | 'JP' | 'UNKNOWN';
+
+/** EU member state ISO-3166 country codes. */
+const EU_COUNTRY_CODES_MW = new Set([
+  'AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI',
+  'FR','GR','HR','HU','IE','IT','LT','LU','LV','MT',
+  'NL','PL','PT','RO','SE','SI','SK',
+]);
+
+/**
+ * Resolve the applicable statutory jurisdiction for a request.
+ *
+ * Maps the Cloudflare cf-ipcountry header to one of four supported
+ * frameworks, ensuring that any generated "Notice of Debt" references
+ * the correct Law of the Land.
+ *
+ *   US  — 17 U.S.C. § 504(c)(2) + § 1201 (DMCA Anti-Circumvention)
+ *   EU  — EU AI Act Art. 53(1)(c) + CDSM Directive TDM opt-out
+ *   UK  — Copyright, Designs and Patents Act 1988, §§ 22–23
+ *   JP  — Copyright Act Art. 30-4 (unreasonable prejudice to rights holder)
+ *
+ * @param request - The incoming NextRequest.
+ * @returns StatutoryJurisdiction label.
+ */
+export function getStatutoryOrigin(request: NextRequest): StatutoryJurisdiction {
+  const country = (request.headers.get('cf-ipcountry') ?? '').toUpperCase().trim();
+  if (country === 'US') return 'US';
+  if (country === 'GB') return 'UK';
+  if (country === 'JP') return 'JP';
+  if (EU_COUNTRY_CODES_MW.has(country)) return 'EU';
+  return 'UNKNOWN';
+}
+
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;

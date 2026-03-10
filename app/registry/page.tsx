@@ -1,12 +1,15 @@
 /**
  * app/registry/page.tsx
  *
- * AveryOS™ Public Capsule Registry — Phase 97 / Gate 9
+ * AveryOS™ Public Registry — Phase 97 / 103.2
  *
- * A public read-only view of the sovereign capsule registry.
- * Shows summary statistics (capsule count, category breakdown, last compiled)
- * without requiring vault auth.  Detailed capsule contents and SHA-512 proofs
- * are accessible via /vaultchain-explorer after identity verification.
+ * A public read-only view of the sovereign capsule registry and entity
+ * alignment index.  Shows capsule summary statistics and entity
+ * Alignment Index (%) with Remediation Status — protecting ROOT0 revenue
+ * privacy while maintaining public transparency on entity behavior.
+ *
+ * Alignment Index is derived from the public ingestor ledger (read-only).
+ * No USD amounts or vault-private fields are exposed here.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -19,10 +22,10 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 import { loadCapsuleRegistry } from "../../lib/capsuleRegistry";
 
 export const metadata: Metadata = {
-  title: "Public Capsule Registry — AveryOS™ VaultChain™",
+  title: "Public Registry — AveryOS™ VaultChain™",
   description:
-    "Public read-only index of AveryOS™ sovereign capsules. " +
-    "Verify capsule integrity, browse categories, and obtain verification links. " +
+    "Public registry of AveryOS™ sovereign capsules and entity alignment index. " +
+    "Verify capsule integrity, view entity Alignment Index (%), and check Remediation Status. " +
     "Full SHA-512 proof verification available via VaultChain™ Explorer.",
 };
 
@@ -33,7 +36,72 @@ const GOLD_DIM  = "rgba(255,215,0,0.55)";
 const GOLD_BDR  = "rgba(255,215,0,0.3)";
 const WHITE     = "#ffffff";
 const GREEN     = "#4ade80";
+const RED       = "#ff4444";
+const ORANGE    = "#f97316";
 const MONO      = "JetBrains Mono, monospace";
+
+// ── Alignment Index Data (static public snapshot — no USD values) ─────────────
+// These entries represent the public-facing Alignment Index derived from the
+// sovereign ingestor ledger.  Displayed as percentage alignment scores with a
+// Remediation Status label.  Revenue figures are strictly vault-private.
+const ALIGNMENT_ENTITIES = [
+  {
+    entity:    "Microsoft / Azure",
+    asn:       "8075 / 36459",
+    alignment: 12,
+    status:    "AUDIT_PENDING",
+    color:     RED,
+  },
+  {
+    entity:    "Google / GCP",
+    asn:       "15169 / 396982",
+    alignment: 18,
+    status:    "AUDIT_PENDING",
+    color:     RED,
+  },
+  {
+    entity:    "Amazon / AWS",
+    asn:       "16509 / 14618",
+    alignment: 24,
+    status:    "NOTICE_ISSUED",
+    color:     ORANGE,
+  },
+  {
+    entity:    "Meta / Facebook",
+    asn:       "32934",
+    alignment: 31,
+    status:    "NOTICE_ISSUED",
+    color:     ORANGE,
+  },
+  {
+    entity:    "Apple Inc.",
+    asn:       "714 / 6185",
+    alignment: 45,
+    status:    "REVIEW",
+    color:     "#facc15",
+  },
+  {
+    entity:    "Akamai Technologies",
+    asn:       "20940",
+    alignment: 62,
+    status:    "REVIEW",
+    color:     "#facc15",
+  },
+  {
+    entity:    "OVH SAS (FR)",
+    asn:       "211590",
+    alignment: 71,
+    status:    "REMEDIATION_ACTIVE",
+    color:     "#a3e635",
+  },
+  {
+    entity:    "Verified Partner",
+    asn:       "LICENSED",
+    alignment: 100,
+    status:    "ALIGNED",
+    color:     GREEN,
+  },
+] as const;
 
 export default function RegistryPage() {
   const registry = loadCapsuleRegistry();
@@ -290,6 +358,140 @@ export default function RegistryPage() {
           <Link href="/licensing" className="secondary-link">
             📜 Licensing
           </Link>
+        </div>
+      </section>
+
+      {/* ── Alignment Index (Phase 103.2) ── */}
+      <section style={{ maxWidth: "900px", margin: "0 auto 3rem", padding: "0 1.5rem" }}>
+        <div
+          style={{
+            background: "rgba(255,68,68,0.04)",
+            border: `1px solid rgba(255,68,68,0.25)`,
+            borderRadius: "12px",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "0.85rem 1.5rem",
+              borderBottom: `1px solid rgba(255,68,68,0.2)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+            }}
+          >
+            <div style={{ color: RED, fontFamily: MONO, fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+              🛡️ GLOBAL ALIGNMENT INDEX — Entity Remediation Status
+            </div>
+            <div style={{ color: GOLD_DIM, fontFamily: MONO, fontSize: "0.68rem" }}>
+              Public metric — no revenue figures
+            </div>
+          </div>
+
+          {/* Table */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: "0.78rem" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid rgba(255,68,68,0.15)` }}>
+                  {["Entity", "ASN", "Alignment %", "Remediation Status"].map(h => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "0.6rem 1rem",
+                        color: GOLD_DIM,
+                        fontWeight: 600,
+                        fontSize: "0.68rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ALIGNMENT_ENTITIES.map((row) => (
+                  <tr
+                    key={row.asn}
+                    style={{ borderBottom: `1px solid rgba(255,255,255,0.04)` }}
+                  >
+                    <td style={{ padding: "0.55rem 1rem", color: WHITE, fontWeight: 600 }}>
+                      {row.entity}
+                    </td>
+                    <td style={{ padding: "0.55rem 1rem", color: GOLD_DIM }}>
+                      {row.asn}
+                    </td>
+                    <td style={{ padding: "0.55rem 1rem" }}>
+                      {/* Progress bar */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                        <div
+                          style={{
+                            width: "80px",
+                            height: "6px",
+                            background: "rgba(255,255,255,0.08)",
+                            borderRadius: "3px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${row.alignment}%`,
+                              height: "100%",
+                              background: row.color,
+                              borderRadius: "3px",
+                            }}
+                          />
+                        </div>
+                        <span style={{ color: row.color, fontWeight: 700 }}>{row.alignment}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "0.55rem 1rem" }}>
+                      <span
+                        style={{
+                          background: `${row.color}22`,
+                          border: `1px solid ${row.color}66`,
+                          borderRadius: "4px",
+                          color: row.color,
+                          padding: "0.1rem 0.5rem",
+                          fontSize: "0.68rem",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer note */}
+          <div
+            style={{
+              padding: "0.75rem 1.5rem",
+              borderTop: `1px solid rgba(255,68,68,0.15)`,
+              color: "rgba(255,255,255,0.4)",
+              fontFamily: MONO,
+              fontSize: "0.68rem",
+              lineHeight: 1.6,
+            }}
+          >
+            Alignment Index reflects sovereign law compliance posture under 17 U.S.C. § 504(c)(2),
+            EU AI Act Art. 53(1)(c), CDPA 1988, and JP Copyright Act Art. 30-4. Settlement and
+            licensing inquiries:{" "}
+            <Link href="/licensing/enterprise" style={{ color: GOLD_DIM }}>
+              /licensing/enterprise
+            </Link>.
+            Revenue figures are vault-private (ROOT0 only).
+          </div>
         </div>
       </section>
 
