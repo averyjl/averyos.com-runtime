@@ -8,7 +8,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { classifyDerRequest } from './lib/sovereignMetadata';
-import { isGeminiCreditExhausted, type SpendKvNamespace } from './lib/geminiSpendTracker';
+import { syncD1RowToFirebase } from './lib/firebaseClient';
+import {
+  isGeminiCreditExhausted,
+  type GeminiSpendKV,
+} from './lib/geminiSpendTracker';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -245,6 +249,22 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
         intent,
       )
       .run();
+
+    // ── Multi-Cloud D1 → Firebase Sync (non-blocking) ────────────────────────
+    // Mirror every Tier-7+ sovereign audit row to Firestore averyos-d1-sync/
+    // for cross-cloud parity. Activates once FIREBASE_PROJECT_ID is configured.
+    if (threatLevel >= 7) {
+      syncD1RowToFirebase({
+        id:           timestampNs,
+        event_type:   intent === 'LEGAL_SCAN' ? 'LEGAL_SCAN' : isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        ip_address:   ip,
+        target_path:  url.pathname,
+        threat_level: threatLevel,
+        timestamp_ns: timestampNs,
+      }).catch((err: unknown) => {
+        console.warn(`[middleware] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
 
     // ── R2 Evidence Dump — Full Cloudflare Metadata Object ───────────────────
     // Persists the raw telemetry as evidence/${rayId}.json in VAULT_R2.
@@ -718,38 +738,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Phase 88 — UsageCreditWatch: Gemini monthly spend circuit breaker ────
-  // Read accumulated Gemini spend from KV_LOGS. If the $50/month threshold
-  // is exceeded, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE on all
-  // responses so the intelligence router knows to bypass cloud AI this month.
-  //
-  // Phase 92.5: both the Gemini credit check and the Cadence Prediction Shield
-  // share a single getCloudflareContext() call to avoid redundant async overhead.
+  // Aggregates all per-call KV spend entries for the current month using
+  // lib/geminiSpendTracker.getTotalGeminiSpend (race-free fan-out/list pattern).
+  // If total >= $50/month, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE.
   let geminiCreditExhaustedFlag = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const cfEnv   = env as unknown as GatekeeperEnv;
+    const cfEnv = env as unknown as GatekeeperEnv;
     geminiCreditExhaustedFlag = await checkGeminiCreditExhausted(cfEnv);
-
-    // ── Phase 92.5 — Cadence Prediction Shield (Jiu-Jitsu Redirect) ──────────
-    // Detect high-frequency probes from known sentinel IPs or any IP with a
-    // request interval < 2.0 s targeting /evidence-vault.
-    // These requests are redirected to /latent-anchor (Licensing Gateway) rather
-    // than blocked — their mechanical cadence drives them into the TARI™ funnel.
-    const clientIp = request.headers.get('cf-connecting-ip') ?? '';
-    if (clientIp) {
-      const isCadenceProbe = await checkCadenceProbe(cfEnv, clientIp, url.pathname);
-      if (isCadenceProbe) {
-        const redirectUrl = `https://${WWW_HOSTNAME}${CADENCE_REDIRECT_TARGET}`;
-        return new NextResponse(null, {
-          status:  302,
-          headers: {
-            'Location':          redirectUrl,
-            'X-AveryOS-Cadence': 'HIGH_CADENCE_PROBE_REDIRECTED',
-            'Cache-Control':     'no-store',
-          },
-        });
-      }
-    }
   } catch {
     // KV unavailable — do not force fallback or block traffic
   }

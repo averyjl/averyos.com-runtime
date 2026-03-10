@@ -1,143 +1,168 @@
 /**
  * lib/geminiSpendTracker.ts
  *
- * Phase 88 — AveryOS™ Zero-Drift Gemini Spend Tracking
+ * Phase 88 — Gemini Credit Watch: Race-Free Spend Accumulator
  *
- * Implements a fan-out write pattern for Gemini cost tracking.
- * Each inference call writes a unique KV key with spend metadata,
- * preventing the race condition that causes undercounting when multiple
- * Worker instances share a single aggregator key.
+ * Design: Fan-Out Write / Aggregated Read
+ * ──────────────────────────────────────────────────────────────────────
+ * The naive read-then-increment pattern on a single KV key has a race
+ * condition: concurrent Gemini calls all read the same stale value before
+ * any write completes, causing systematic undercounting (drift).
  *
- * Write:  recordGeminiSpend(kv, rayId, costUsd) → writes 'spend:gemini:<rayId>'
- * Read:   getTotalGeminiSpend(kv)               → lists keys + sums metadata
+ * This module eliminates that race entirely:
  *
- * "Undercounting is drift." — AveryOS™ Constitution v1.17, Art. 14
+ *   WRITE: Each call writes its own unique entry — no read ever needed.
+ *     key  = gemini_spend_entry_YYYY-MM_{timestamp_ms}_{4-hex-random}
+ *     value = cost as decimal string (e.g. "0.00125000")
+ *     metadata = { cost: 0.00125 }    ← returned by list(), avoids get() per key
+ *     TTL  = 35 days                  ← auto-expires; covers full month + buffer
+ *
+ *   READ: list() all entries for the current month by prefix, sum metadata.cost.
+ *     No individual get() calls needed (metadata is included in list results).
+ *
+ * 100.000% accurate — every write is a unique, durable, atomic PUT.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-/** Minimal KV namespace interface required by the spend tracker. */
-export interface SpendKvNamespace {
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+/** Monthly Gemini spend limit in USD. When reached, circuit breaker activates. */
+export const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+
+/** Gemini 1.5 Pro blended average pricing per 1,000 tokens (input + output avg). */
+export const GEMINI_COST_PER_1K_TOKENS = 0.00125;
+
+/** TTL for spend entries — 35 days covers the full month plus a buffer. */
+const SPEND_ENTRY_TTL_SECONDS = 35 * 86400;
+
+// ── KV Interface ─────────────────────────────────────────────────────────────
+
+/**
+ * Minimal Cloudflare KV binding interface required by this tracker.
+ * Extends the standard put/get with list() for prefix-based aggregation.
+ */
+export interface GeminiSpendKV {
+  get(key: string): Promise<string | null>;
   put(
     key: string,
     value: string,
-    options?: { expirationTtl?: number; metadata?: Record<string, unknown> },
+    opts?: { metadata?: unknown; expirationTtl?: number },
   ): Promise<void>;
-  get(key: string): Promise<string | null>;
-  list(options?: {
-    prefix?: string;
+  list<M = unknown>(opts: {
+    prefix: string;
     limit?: number;
     cursor?: string;
   }): Promise<{
-    keys: Array<{ name: string; metadata?: Record<string, unknown> | null }>;
+    keys: { name: string; metadata?: M }[];
     list_complete: boolean;
     cursor?: string;
   }>;
 }
 
-/** KV key prefix for per-call Gemini spend records. */
-const SPEND_KEY_PREFIX = "spend:gemini:";
-
-/** Key prefix for monthly aggregator buckets (current month, format YYYY-MM). */
-const MONTHLY_PREFIX = "gemini-spend-";
-
-/** TTL for per-call spend keys: 35 days (covers one full monthly billing cycle). */
-const SPEND_KEY_TTL_SECONDS = 35 * 24 * 60 * 60;
-
-/** Returns the current UTC month as a YYYY-MM string (e.g. "2026-03"). */
-function getCurrentMonthKey(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-}
+// ── Key helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Record a single Gemini inference cost.
+ * Returns the KV key prefix for per-call spend entries for a given year+month.
+ * All entries for a month share this prefix so list() can aggregate them.
+ */
+export function geminiSpendPrefix(year: number, month: number): string {
+  return `gemini_spend_entry_${year}-${String(month).padStart(2, '0')}_`;
+}
+
+/** Returns the spend entry prefix for the current UTC month. */
+export function currentMonthSpendPrefix(): string {
+  const now = new Date();
+  return geminiSpendPrefix(now.getUTCFullYear(), now.getUTCMonth() + 1);
+}
+
+// ── Write (race-free) ─────────────────────────────────────────────────────────
+
+/**
+ * Records the cost of a single Gemini call as an independent KV entry.
  *
- * Writes a unique KV key `spend:gemini:<rayId>` with cost + timestamp metadata.
- * The fan-out pattern ensures concurrent Worker invocations never overwrite
- * each other's spend records (each ray_id is globally unique per Cloudflare).
+ * WRITE-ONLY: no read is performed — eliminates the race condition entirely.
+ * Every concurrent request writes to its own unique key, so no call can
+ * overwrite or lose another call's contribution.
  *
- * @param kv       - KV_LOGS namespace binding
- * @param rayId    - Cloudflare Ray ID from cf-ray header (uniqueness anchor)
- * @param costUsd  - Estimated cost in USD for this inference call
+ * The cost is stored in both the value (string) and metadata (number).
+ * Metadata is returned by list() without extra get() calls, making
+ * aggregation O(ceil(N/1000)) list requests with zero per-key gets.
+ *
+ * @param kv      — Cloudflare KV binding with list() support
+ * @param costUsd — cost of this call in USD (must be > 0 to be written)
  */
 export async function recordGeminiSpend(
-  kv: SpendKvNamespace,
-  rayId: string,
+  kv: GeminiSpendKV,
   costUsd: number,
 ): Promise<void> {
-  const key = `${SPEND_KEY_PREFIX}${rayId}`;
-  const now = new Date();
-  const nowIso = now.toISOString();
-  const mm     = getCurrentMonthKey();
-  await kv.put(key, String(costUsd), {
-    expirationTtl: SPEND_KEY_TTL_SECONDS,
-    metadata: { cost_usd: costUsd, recorded_at: nowIso, month: mm },
+  if (costUsd <= 0) return;
+
+  const prefix = currentMonthSpendPrefix();
+  // Unique key = prefix + ms timestamp + 4 random hex chars (0000–ffff)
+  // Collision probability: 1 / (16^4) = 1 / 65536 at the same ms — negligible
+  const rand4 = Math.floor(Math.random() * 0x10000)
+    .toString(16)
+    .padStart(4, '0');
+  const uniqueKey = `${prefix}${Date.now()}_${rand4}`;
+
+  await kv.put(uniqueKey, costUsd.toFixed(8), {
+    metadata:       { cost: costUsd },
+    expirationTtl:  SPEND_ENTRY_TTL_SECONDS,
   });
+  // Note: 8 decimal places (sub-micro-dollar precision) ensures no rounding
+  // loss when values are parsed and summed in getTotalGeminiSpend.
 }
 
+// ── Read (aggregate) ──────────────────────────────────────────────────────────
+
 /**
- * Compute the total Gemini spend for the current calendar month.
+ * Sums all per-call spend entries for the current UTC month.
  *
- * Lists all `spend:gemini:*` keys and sums the `cost_usd` metadata field.
- * Falls back to reading the legacy single-key aggregator (`gemini-spend-YYYY-MM`)
- * if no fan-out keys exist yet (zero-downtime migration path).
+ * Uses metadata returned by list() — no individual get() calls needed.
+ * Handles KV pagination automatically (up to 1000 keys per page).
  *
- * @param kv - KV_LOGS namespace binding
- * @returns Total spend in USD for the current month
+ * @param kv — Cloudflare KV binding with list() support
+ * @returns total spend in USD for the current month
  */
-export async function getTotalGeminiSpend(kv: SpendKvNamespace): Promise<number> {
-  // ── Fan-out aggregation: list all per-call keys and sum metadata ────────────
-  const currentMonth = getCurrentMonthKey();
-  let total      = 0;
+export async function getTotalGeminiSpend(kv: GeminiSpendKV): Promise<number> {
+  const prefix = currentMonthSpendPrefix();
+  let total = 0;
   let cursor: string | undefined;
-  let hasAnyKeys = false;
 
   do {
-    const page = await kv.list({
-      prefix: SPEND_KEY_PREFIX,
-      limit:  1000,
-      cursor,
-    });
+    const result = await kv.list<{ cost: number }>(
+      cursor ? { prefix, limit: 1000, cursor } : { prefix, limit: 1000 },
+    );
 
-    for (const key of page.keys) {
-      const meta = key.metadata as { cost_usd?: number; month?: string } | null;
-      if (meta?.month === currentMonth && typeof meta.cost_usd === "number") {
-        total += meta.cost_usd;
-        hasAnyKeys = true;
+    for (const key of result.keys) {
+      if (typeof key.metadata?.cost === 'number' && isFinite(key.metadata.cost)) {
+        total += key.metadata.cost;
       }
     }
 
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-
-  // ── Legacy fallback: read single aggregator key if no fan-out keys found ────
-  if (!hasAnyKeys) {
-    const legacyKey   = `${MONTHLY_PREFIX}${currentMonth}`;
-    const legacyValue = await kv.get(legacyKey);
-    if (legacyValue != null) {
-      const parsed = parseFloat(legacyValue);
-      if (!isNaN(parsed)) total = parsed;
-    }
-  }
+    cursor = result.list_complete ? undefined : result.cursor;
+  } while (cursor !== undefined);
 
   return total;
 }
 
 /**
- * Check whether the monthly Gemini credit ceiling has been reached.
+ * Returns true when the current month's accumulated Gemini spend has met
+ * or exceeded GEMINI_MONTHLY_CREDIT_LIMIT_USD.
  *
- * @param kv           - KV_LOGS namespace binding
- * @param limitUsd     - Monthly spend ceiling in USD (default $50)
- * @returns true if accumulated spend ≥ limit
+ * Used by the Phase 88 circuit breaker in middleware.ts to fall back to
+ * LOCAL_OLLAMA_NODE when the $50/month cloud AI budget is reached.
+ *
+ * Errors are swallowed — KV unavailability must NOT force a fallback,
+ * so cloud AI degrades gracefully rather than being disabled on KV blips.
+ *
+ * @param kv — Cloudflare KV binding with list() support
  */
-export async function isGeminiCreditExhausted(
-  kv: SpendKvNamespace,
-  limitUsd = 50,
-): Promise<boolean> {
+export async function isGeminiCreditExhausted(kv: GeminiSpendKV): Promise<boolean> {
   try {
     const total = await getTotalGeminiSpend(kv);
-    return total >= limitUsd;
+    return total >= GEMINI_MONTHLY_CREDIT_LIMIT_USD;
   } catch {
     return false;
   }

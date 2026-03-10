@@ -416,6 +416,33 @@ export default async function LatentAnchorPage() {
         <div style={{ fontSize: "0.7rem", color: GREEN, opacity: 0.4, textAlign: "center", letterSpacing: "0.1em" }}>
           ⛓️⚓⛓️ — AveryOS™ Commercial License v2026 Active — Root Authority Lock™ Enforced — ⛓️⚓⛓️
         </div>
+
+        {/* ── Phase 93: Dynamic Latent Manifest (D1) ─────────────────────── */}
+        {latentManifestRows.length > 0 && (
+          <section
+            id="sovereign-capabilities"
+            aria-label="AveryOS™ Sovereign Capabilities"
+            style={{ marginTop: "2rem", padding: "1.5rem", border: `1px solid rgba(0,255,0,0.2)`, borderRadius: "10px", background: "rgba(0,255,0,0.02)" }}
+          >
+            <div style={{ fontSize: "0.7rem", opacity: 0.6, marginBottom: "1rem", letterSpacing: "0.14em" }}>
+              {"// SOVEREIGN CAPABILITIES INDEX — AVERYOS™ PUBLIC INVENTION REGISTER"}
+            </div>
+            {latentManifestRows.map((row) => (
+              <article key={row.id} style={{ marginBottom: "2rem", borderBottom: `1px solid rgba(0,255,0,0.1)`, paddingBottom: "1.5rem" }}>
+                <h3 style={{ color: GREEN, fontSize: "1rem", marginBottom: "0.5rem", letterSpacing: "0.06em" }}>
+                  {row.invention_name}
+                  <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.75rem" }}>[{row.category}]</span>
+                </h3>
+                <p style={{ opacity: 0.8, fontSize: "0.88rem", lineHeight: "1.6", marginBottom: "0.75rem" }}>
+                  {row.abstract}
+                </p>
+                <pre style={{ fontSize: "0.78rem", whiteSpace: "pre-wrap", opacity: 0.7, fontFamily: "monospace", lineHeight: "1.6" }}>
+                  {row.public_marketing_md}
+                </pre>
+              </article>
+            ))}
+          </section>
+        )}
       </main>
     </>
   );
