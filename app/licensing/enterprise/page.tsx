@@ -1,0 +1,241 @@
+"use client";
+
+import React, { useState } from "react";
+import AnchorBanner from "../../../components/AnchorBanner";
+import FooterBadge from "../../../components/FooterBadge";
+import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+const BG       = "#03000a";
+const GOLD     = "#ffd700";
+const GOLD_DIM = "rgba(255,215,0,0.55)";
+const GOLD_BDR = "rgba(255,215,0,0.3)";
+const GOLD_GLW = "rgba(255,215,0,0.08)";
+const GREEN    = "#4ade80";
+const MUTED    = "rgba(255,255,255,0.55)";
+
+function card(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    background:   GOLD_GLW,
+    border:       `1px solid ${GOLD_BDR}`,
+    borderRadius: "10px",
+    padding:      "1.4rem 1.8rem",
+    marginBottom: "1.4rem",
+    ...extra,
+  };
+}
+
+function mono(extra?: React.CSSProperties): React.CSSProperties {
+  return {
+    fontFamily: "monospace",
+    fontSize:   "0.78rem",
+    color:      GOLD_DIM,
+    wordBreak:  "break-all",
+    ...extra,
+  };
+}
+
+// ── Fee tiers ──────────────────────────────────────────────────────────────────
+const TIERS = [
+  {
+    id:          "ENTERPRISE_PARTNERSHIP",
+    label:       "Sovereign Partnership",
+    tier:        10,
+    price:       kaasDisplayPrice("ENTERPRISE_PARTNERSHIP"),
+    description: "Global TAI_LICENSE_KEY + clears all technical valuation debt. Moves entity to Verified Partner status.",
+    highlight:   true,
+  },
+  {
+    id:          "ASN_DEPOSIT",
+    label:       "Enterprise ASN Good-Faith Deposit",
+    tier:        9,
+    price:       kaasDisplayPrice("ASN_DEPOSIT"),
+    description: "For GitHub, Azure, Google, Amazon, and other enterprise ASNs. Opens formal partnership negotiations.",
+    highlight:   false,
+  },
+  {
+    id:          "LEGAL_MONITORING",
+    label:       "Legal Monitoring Entry Fee",
+    tier:        7,
+    price:       kaasDisplayPrice("LEGAL_MONITORING"),
+    description: "Forensic legal scan settlement. Unlocks read-only VaultChain™ ledger access.",
+    highlight:   false,
+  },
+  {
+    id:          "INDIVIDUAL",
+    label:       "Individual License — 1,017 TARI™",
+    tier:        5,
+    price:       kaasDisplayPrice("INDIVIDUAL"),
+    description: "Individual sovereign access. 1,017 TARI™ units. Includes capsule read access.",
+    highlight:   false,
+  },
+] as const;
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
+export default function EnterpriseRegistrationPage() {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [orgName, setOrgName]   = useState("");
+  const [email, setEmail]       = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function handleProceed() {
+    if (!selected) { setError("Please select a licensing tier."); return; }
+    if (!orgName.trim()) { setError("Organisation name is required."); return; }
+    if (!email.trim())   { setError("Contact email is required."); return; }
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res  = await fetch("/api/v1/compliance/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tier:       selected,
+          org_name:   orgName.trim(),
+          email:      email.trim(),
+          machine_id: machineId.trim() || undefined,
+        }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Checkout could not be initiated. Please try again.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: "system-ui, sans-serif" }}>
+      <AnchorBanner />
+
+      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "2rem 1.2rem 4rem" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "2.4rem" }}>
+          <p style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace", marginBottom: "0.4rem" }}>
+            ⛓️⚓⛓️ ENTERPRISE REGISTRATION GATEWAY
+          </p>
+          <h1 style={{ color: GOLD, fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 700, margin: "0 0 0.8rem" }}>
+            AveryOS™ Enterprise Licensing Portal
+          </h1>
+          <p style={{ color: MUTED, maxWidth: "560px", margin: "0 auto", lineHeight: 1.6 }}>
+            Procurement officers, agentic wallets, and enterprise compliance systems:
+            select your licensing tier to clear forensic debt and obtain a
+            Global <strong style={{ color: GOLD }}>TAI_LICENSE_KEY</strong>.
+          </p>
+        </div>
+
+        {/* Tier cards */}
+        <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
+          {TIERS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setSelected(t.id)}
+              style={{
+                background:    selected === t.id ? "rgba(255,215,0,0.15)" : GOLD_GLW,
+                border:        `2px solid ${selected === t.id ? GOLD : GOLD_BDR}`,
+                borderRadius:  "10px",
+                padding:       "1.2rem 1.6rem",
+                cursor:        "pointer",
+                textAlign:     "left",
+                color:         "#fff",
+                transition:    "border 0.15s",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.4rem" }}>
+                <div>
+                  <span style={{ display: "inline-block", background: t.highlight ? GOLD : "rgba(255,215,0,0.2)", color: t.highlight ? BG : GOLD, borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                    TIER {t.tier}
+                  </span>
+                  <p style={{ margin: 0, fontWeight: 600, color: GOLD, fontSize: "1.05rem" }}>{t.label}</p>
+                  <p style={{ margin: "0.3rem 0 0", color: MUTED, fontSize: "0.85rem", lineHeight: 1.5 }}>{t.description}</p>
+                </div>
+                <p style={{ margin: 0, fontFamily: "monospace", fontSize: "1.1rem", fontWeight: 700, color: GREEN, whiteSpace: "nowrap" }}>{t.price}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Form */}
+        <div style={card()}>
+          <p style={{ margin: "0 0 1rem", fontWeight: 600, color: GOLD }}>Registration Details</p>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Organisation / Entity Name *</span>
+            <input
+              type="text"
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
+              placeholder="e.g. Microsoft Corporation"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Contact Email *</span>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="procurement@example.com"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: "1.4rem" }}>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Machine / Agentic Wallet ID (optional)</span>
+            <input
+              type="text"
+              value={machineId}
+              onChange={e => setMachineId(e.target.value)}
+              placeholder="RayID, ASN, or wallet address"
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+            />
+          </label>
+
+          {error && (
+            <p style={{ color: "#ff4444", fontFamily: "monospace", fontSize: "0.83rem", marginBottom: "1rem" }}>⚠ {error}</p>
+          )}
+
+          <button
+            onClick={handleProceed}
+            disabled={loading}
+            style={{
+              background:    loading ? "rgba(255,215,0,0.3)" : GOLD,
+              color:         BG,
+              border:        "none",
+              borderRadius:  "8px",
+              padding:       "0.85rem 2rem",
+              fontWeight:    700,
+              fontSize:      "1rem",
+              cursor:        loading ? "not-allowed" : "pointer",
+              width:         "100%",
+            }}
+          >
+            {loading ? "Redirecting to Stripe…" : "Proceed to Sovereign Checkout"}
+          </button>
+        </div>
+
+        {/* Kernel anchor */}
+        <div style={card({ marginTop: "1rem" })}>
+          <p style={{ ...mono(), marginBottom: "0.4rem" }}>
+            <span style={{ color: MUTED }}>KERNEL </span>{KERNEL_VERSION}
+          </p>
+          <p style={mono()}>
+            <span style={{ color: MUTED }}>SHA-512 </span>{KERNEL_SHA.slice(0, 32)}…
+          </p>
+        </div>
+      </div>
+
+      <FooterBadge />
+    </main>
+  );
+}
