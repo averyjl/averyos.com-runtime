@@ -268,6 +268,28 @@ export default function EnterpriseRegistrationPage() {
           </button>
         </div>
 
+        {/* Terms of Ingestion — Phase 102.2.3 */}
+        <div style={card({ marginTop: "1.5rem", borderColor: "rgba(255,100,50,0.4)", background: "rgba(255,100,50,0.04)" })}>
+          <p style={{ margin: "0 0 0.7rem", fontWeight: 700, color: GOLD, fontSize: "0.95rem" }}>
+            📋 Terms of Ingestion — Licensing Disclosure
+          </p>
+          <p style={{ margin: "0 0 0.8rem", color: MUTED, fontSize: "0.85rem", lineHeight: 1.65 }}>
+            By proceeding with this licensing portal, you acknowledge that any ingestion,
+            reproduction, or training use of AveryOS™ intellectual property — including the
+            cf83™ Kernel Logic, capsule payloads, and sovereign algorithms — is subject to
+            the <strong style={{ color: GOLD }}>AveryOS™ Sovereign Integrity License v1.0</strong>.
+          </p>
+          <p style={{ margin: "0 0 0.8rem", color: MUTED, fontSize: "0.85rem", lineHeight: 1.65 }}>
+            Willful infringement of registered works may be subject to statutory damages
+            under applicable copyright law. By selecting a licensing tier and proceeding to
+            checkout, you voluntarily disclose your organisation&apos;s usage and enter into
+            a binding licensing agreement with Jason Lee Avery (ROOT0 / AveryOS™).
+          </p>
+          <p style={{ margin: 0, ...mono({ fontSize: "0.76rem", color: "rgba(255,180,80,0.7)" }) }}>
+            Questions? Contact legal@averyos.com · Full terms: /licensing/enterprise
+          </p>
+        </div>
+
         {/* Kernel anchor */}
         <div style={card({ marginTop: "1rem" })}>
           <p style={{ ...mono(), marginBottom: "0.4rem" }}>
