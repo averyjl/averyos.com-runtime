@@ -78,6 +78,9 @@ const TARI_LIABILITY: Record<string, number> = {
   CONFLICT_ZONE_PROBE:       0.00,  // Adversarial recon probe — silent audit, Tier-9
   LEGAL_SCAN:                0.00,  // Corporate legal monitoring — threat level 10
   PEER_ACCESS:               0.00,  // General peer access — low threat, informational
+  // KaaS (Phase 97) — Kernel-as-a-Service breach events
+  KAAS_BREACH:        10000000.00,  // Tier-9/10 entity KaaS technical valuation trigger
+  SOVEREIGN_SETTLEMENT:      0.00,  // Stripe Sovereign Settlement completion — informational
 };
 
 const THREAT_LEVELS: Record<string, number> = {
@@ -93,7 +96,22 @@ const THREAT_LEVELS: Record<string, number> = {
   CONFLICT_ZONE_PROBE:    9,   // Adversarial probe — Tier-9 forensic alert
   LEGAL_SCAN:            10,   // Corporate legal monitoring — highest threat
   PEER_ACCESS:            1,   // General peer access — informational
+  // KaaS (Phase 97)
+  KAAS_BREACH:           10,   // Tier-9/10 entity KaaS breach — highest threat
+  SOVEREIGN_SETTLEMENT:   1,   // Stripe payment confirmed — low threat
 };
+
+// FCM Tier-9 filter — only fire mobile push for these high-value event types.
+// This prevents notification fatigue while ensuring critical events always reach the Creator.
+const FCM_TIER9_EVENT_TYPES = new Set([
+  "LEGAL_SCAN",
+  "CONFLICT_ZONE_PROBE",
+  "DER_HIGH_VALUE",
+  "DER_SETTLEMENT",
+  "HN_WATCHER",
+  "PAYMENT_FAILED",
+  "KAAS_BREACH",
+]);
 
 async function computePulseHash(
   ip: string,
@@ -380,18 +398,19 @@ export async function POST(request: Request): Promise<Response> {
   // ── Firebase Cloud Messaging — Tier-9 mobile push (non-blocking, FCM HTTP v1) ──
   // Secondary push channel alongside Pushover for maximum Tier-9 alert delivery.
   // Uses the FCM HTTP v1 API (OAuth2 service account) via sendFcmV1Push().
+  // Filtered to FCM_TIER9_EVENT_TYPES to prevent notification fatigue.
   // Activate by setting these Cloudflare secrets:
   //   wrangler secret put FIREBASE_PROJECT_ID
   //   wrangler secret put FIREBASE_CLIENT_EMAIL
   //   wrangler secret put FIREBASE_PRIVATE_KEY
   //   wrangler secret put FCM_DEVICE_TOKEN
-  if (threatLevel >= 9) {
+  if (threatLevel >= 9 && FCM_TIER9_EVENT_TYPES.has(eventType)) {
     const liabilityFmt = liabilityUsd.toLocaleString("en-US", {
       style: "currency",
       currency: "USD",
     });
     sendFcmV1Push(
-      `🚨 TIER-9 GabrielOS™: ${eventType}`,
+      `🚨 TIER-${threatLevel} GabrielOS™: ${eventType}`,
       buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
       {
         event_type:        eventType,

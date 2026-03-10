@@ -144,12 +144,18 @@ export async function POST(request: Request) {
         .bind(targetIp, bundleId, sessionId, tariCents, certSha512, issuedAt, expiresAt, KERNEL_SHA, KERNEL_VERSION)
         .run();
 
-      // ── Activate capsule_access_token if metadata provides one ────────────
+      // ── Release .aoscap decryption keys — Sovereign Settlement activation ──
+      // On successful Sovereign Settlement payment, explicitly activate (un-revoke)
+      // the capsule_access_token so the purchaser can immediately access their
+      // .aoscap decryption keys.  Activates any token matching the provided
+      // token_id + capsule_id pair, ensuring instant delivery.
       if (tokenId && capsuleId) {
         try {
           await cfEnv.DB.prepare(
             `UPDATE capsule_access_tokens
-             SET    stripe_session_id = ?
+             SET    stripe_session_id = ?,
+                    revoked           = 0,
+                    revoked_at        = NULL
              WHERE  token_id = ? AND capsule_id = ?`
           )
             .bind(sessionId, tokenId, capsuleId)
@@ -157,6 +163,22 @@ export async function POST(request: Request) {
         } catch {
           // Non-fatal — token may not exist yet; create-checkout handles issuance
         }
+      }
+
+      // ── Log Sovereign Settlement event ────────────────────────────────────
+      try {
+        await cfEnv.DB.prepare(
+          `INSERT INTO sovereign_audit_logs
+             (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level, ingestion_intent)
+           VALUES ('SOVEREIGN_SETTLEMENT', NULL, 'stripe-webhook', NULL, '/api/v1/compliance/stripe-webhook', ?, 0, ?)`
+        )
+          .bind(
+            String(BigInt(Date.now()) * 1_000_000n),
+            `session:${sessionId} bundle:${bundleId} tari_cents:${tariCents} cert:${certSha512.slice(0, 32)}`,
+          )
+          .run();
+      } catch {
+        // Non-fatal audit log
       }
 
       return Response.json({ received: true, status: "ALIGNED", certificate });

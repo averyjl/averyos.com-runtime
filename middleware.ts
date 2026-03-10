@@ -58,6 +58,7 @@ const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
 import { KERNEL_SHA } from './lib/sovereignConstants';
+import { applyWafGate } from './lib/security/wafLogic';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
@@ -175,7 +176,7 @@ interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
-  KV_LOGS?: SpendKvNamespace;
+  KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
@@ -253,6 +254,7 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     // ── Multi-Cloud D1 → Firebase Sync (non-blocking) ────────────────────────
     // Mirror every Tier-7+ sovereign audit row to Firestore averyos-d1-sync/
     // for cross-cloud parity. Activates once FIREBASE_PROJECT_ID is configured.
+    // Phase 97: also syncs ASN-enriched event type for KaaS tier tracking.
     if (threatLevel >= 7) {
       syncD1RowToFirebase({
         id:           timestampNs,
@@ -261,6 +263,7 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
         target_path:  url.pathname,
         threat_level: threatLevel,
         timestamp_ns: timestampNs,
+        pulse_hash:   `asn:${clientAsn ?? 'UNKNOWN'}|city:${city ?? 'UNKNOWN'}|country:${country ?? 'UNKNOWN'}`,
       }).catch((err: unknown) => {
         console.warn(`[middleware] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
       });
@@ -604,7 +607,7 @@ async function checkCadenceProbe(
  */
 async function checkGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
   if (!cfEnv.KV_LOGS) return false;
-  return isGeminiCreditExhausted(cfEnv.KV_LOGS, GEMINI_MONTHLY_CREDIT_LIMIT_USD);
+  return isGeminiCreditExhausted(cfEnv.KV_LOGS);
 }
 
 /**
@@ -735,6 +738,16 @@ export async function middleware(request: NextRequest) {
     }
   } catch {
     // Rate limiter binding not available (local dev) — allow through
+  }
+
+  // ── Phase 97.2 — GabrielOS™ WAF Score Gate ────────────────────────────────
+  // Evaluates Cloudflare WAF attack score (cf-waf-attack-score header) and
+  // either hard-blocks (score > 95) or redirects to audit-clearance (score > 80).
+  // Uses free Cloudflare intelligence without requiring paid WAF Managed Rules.
+  {
+    const SITE_URL = process.env.SITE_URL ?? 'https://averyos.com';
+    const wafResponse = applyWafGate(request as unknown as Request, SITE_URL);
+    if (wafResponse) return wafResponse as unknown as NextResponse;
   }
 
   // ── Phase 88 — UsageCreditWatch: Gemini monthly spend circuit breaker ────
