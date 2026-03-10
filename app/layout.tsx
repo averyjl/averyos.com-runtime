@@ -4,6 +4,7 @@ import NavBar from "../components/NavBar";
 import Drawer from "../components/Drawer";
 import FooterBadge from "../components/FooterBadge";
 import SovereignFetchInterceptor from "../components/SovereignFetchInterceptor";
+import WebGLFingerprintSdk from "../components/WebGLFingerprintSdk";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 import "../styles/globals.css";
 
@@ -82,6 +83,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <SovereignFetchInterceptor />
+        {/* Gate 100.3 — WebGL SDK: hardware-fingerprint fetch interceptor for sovereign bot detection */}
+        <WebGLFingerprintSdk />
         <NavBar />
         <Drawer />
         {children}
