@@ -50,23 +50,6 @@ interface VerifyResult {
   hash_type?: string;
 }
 
-interface EvidenceResult {
-  CapsuleID?: string;
-  CapsuleType?: string;
-  EventType?: string;
-  EventId?: number;
-  TargetIP?: string;
-  UserAgent?: string;
-  GeoLocation?: string;
-  TargetPath?: string;
-  ThreatLevel?: number;
-  TimestampNs?: string;
-  PackagedAt?: string;
-  KernelAnchor?: string;
-  KernelVersion?: string;
-  error?: string;
-}
-
 interface EvidencePayload {
   ray_id?: string;
   ip_address?: string;
@@ -85,18 +68,6 @@ interface EvidencePayload {
   ingestion_intent?: string;
   kernel_sha?: string;
   captured_at?: string;
-}
-
-interface EvidenceResult {
-  resonance: string;
-  kernel_sha?: string;
-  kernel_version?: string;
-  ray_id?: string;
-  r2_key?: string;
-  evidence?: EvidencePayload;
-  retrieved_at?: string;
-  detail?: string;
-  error?: string;
 }
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
@@ -137,10 +108,34 @@ function intentColor(intent: string | undefined): string {
   return GREEN;
 }
 
-// Phase 82: R2 Evidence Artifact from evidence/${sha512}.json
+// Phase 82+: Unified R2/RayID/Capsule Evidence Result
 interface EvidenceResult {
-  sha512_payload?: string;
+  // Capsule evidence fields (CapsuleID style)
+  CapsuleID?: string;
+  CapsuleType?: string;
+  EventType?: string;
+  EventId?: number;
+  TargetIP?: string;
+  UserAgent?: string;
+  GeoLocation?: string;
+  TargetPath?: string;
+  ThreatLevel?: number;
+  TimestampNs?: string;
+  PackagedAt?: string;
+  KernelAnchor?: string;
+  KernelVersion?: string;
+  // RayID evidence fields (resonance + nested EvidencePayload)
+  resonance?: string;
+  kernel_sha?: string;
+  kernel_version?: string;
   ray_id?: string;
+  r2_key?: string;
+  evidence?: EvidencePayload;
+  retrieved_at?: string;
+  detail?: string;
+  error?: string;
+  // Phase 82: R2 flattened evidence artifact fields
+  sha512_payload?: string;
   ip_address?: string;
   asn?: string;
   path?: string;
@@ -158,12 +153,8 @@ interface EvidenceResult {
   wall_time_us?: number | null;
   edge_start_ts?: string;
   edge_end_ts?: string;
-  kernel_sha?: string;
   archived_at?: string;
   fetched_at?: string;
-  r2_key?: string;
-  error?: string;
-  detail?: string;
 }
 
 type ActiveTab = "alignment" | "evidence";
@@ -178,17 +169,14 @@ export default function VaultChainExplorerPage() {
   const [hashError,  setHashError]  = useState<string | null>(null);
 
   const isValidHash  = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
-  const isValidRayId = rayIdInput.trim().length >= 8;
 
   // Phase 82: Evidence Explorer state
-  const [evidenceId,     setEvidenceId]     = useState("");
-  const [vaultAuth,      setVaultAuth]      = useState("");
-  const [evidence,       setEvidence]       = useState<EvidenceResult | null>(null);
+  const [rayIdInput,      setRayIdInput]      = useState("");
+  const [evidenceResult,  setEvidenceResult]  = useState<EvidenceResult | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError,   setEvidenceError]   = useState<string | null>(null);
 
-  const isValidHash     = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
-  const isValidEvidenceId = evidenceId.trim().length >= 10;
+  const isValidEvidenceRayId = /^[a-zA-Z0-9]{16,32}$/.test(rayIdInput.trim());
 
   // ── Alignment verify ───────────────────────────────────────────────────────
   async function handleVerify(e: React.FormEvent) {
@@ -233,6 +221,24 @@ export default function VaultChainExplorerPage() {
       setRayError("Network error — unable to reach the Forensic Evidence Vault.");
     } finally {
       setRayLoading(false);
+    }
+  }
+
+  // ── Section B: Evidence Vault fetch handler ────────────────────────────────
+  async function handleEvidenceVaultFetch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isValidEvidenceRayId) return;
+    setEvidenceLoading(true);
+    setEvidenceResult(null);
+    setEvidenceError(null);
+    try {
+      const res  = await fetch(`/api/v1/generate-evidence?ray_id=${encodeURIComponent(rayIdInput.trim())}`);
+      const data = await res.json() as EvidenceResult;
+      setEvidenceResult(data);
+    } catch {
+      setEvidenceError("Network error — unable to reach the Evidence Vault.");
+    } finally {
+      setEvidenceLoading(false);
     }
   }
 
@@ -583,7 +589,7 @@ export default function VaultChainExplorerPage() {
           Retrieve a sealed forensic evidence bundle from R2 by Cloudflare RayID or SHA-512 payload.
           Evidence bundles are created by the Evidence Packaging Automation for every LEGAL_SCAN event.
         </p>
-        <form onSubmit={handleEvidenceLookup} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <form onSubmit={handleEvidenceVaultFetch} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <label style={{ color: BLUE_DIM, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
             RAYID OR SHA-512 PAYLOAD
           </label>
@@ -609,14 +615,14 @@ export default function VaultChainExplorerPage() {
           />
           <button
             type="submit"
-            disabled={!isValidRayId || evidenceLoading}
+            disabled={!isValidEvidenceRayId || evidenceLoading}
             style={{
               alignSelf:    "flex-start",
-              background:   isValidRayId && !evidenceLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
+              background:   isValidEvidenceRayId && !evidenceLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
               border:       "none",
               borderRadius: "6px",
-              color:        isValidRayId && !evidenceLoading ? "#000" : MUTED,
-              cursor:       isValidRayId && !evidenceLoading ? "pointer" : "not-allowed",
+              color:        isValidEvidenceRayId && !evidenceLoading ? "#000" : MUTED,
+              cursor:       isValidEvidenceRayId && !evidenceLoading ? "pointer" : "not-allowed",
               fontSize:     "0.9rem",
               fontWeight:   700,
               padding:      "0.6rem 1.8rem",
