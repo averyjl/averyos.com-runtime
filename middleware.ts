@@ -157,8 +157,13 @@ interface D1PreparedStatement {
   run(): Promise<{ success: boolean }>;
 }
 
+interface R2PutOptions {
+  httpMetadata?: { contentType?: string; contentEncoding?: string; [k: string]: string | undefined };
+  customMetadata?: Record<string, string>;
+}
+
 interface R2Bucket {
-  put(key: string, value: string | ArrayBuffer | ReadableStream, options?: Record<string, unknown>): Promise<unknown>;
+  put(key: string, value: string | ArrayBuffer | ReadableStream, options?: R2PutOptions): Promise<void>;
 }
 
 interface GatekeeperEnv {

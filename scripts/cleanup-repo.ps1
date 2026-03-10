@@ -85,8 +85,16 @@ if ($GcAggressive) {
     if ($DryRun) {
         Write-Host "[AOS][DRY-RUN] Would run: git gc --aggressive --prune=now" -ForegroundColor Yellow
     } else {
-        & git gc --aggressive --prune=now
-        Write-Host "[AOS] ✓ git gc complete" -ForegroundColor Green
+        try {
+            & git gc --aggressive --prune=now
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "[AOS] git gc exited with code $LASTEXITCODE — check git output above."
+            } else {
+                Write-Host "[AOS] ✓ git gc complete" -ForegroundColor Green
+            }
+        } catch {
+            Write-Warning "[AOS] git gc failed: $_"
+        }
     }
 }
 
