@@ -99,7 +99,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json() as Record<string, unknown>;
   } catch {
-    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 400);
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body is not valid JSON", 400);
   }
 
   const rawToken       = body["access_token"];
@@ -107,13 +107,13 @@ export async function POST(request: Request): Promise<Response> {
   const rawCapsuleId   = body["capsule_id"];
 
   if (!rawToken || typeof rawToken !== "string") {
-    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "access_token" });
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "access_token is required", 400);
   }
   if (!rawFingerprint || typeof rawFingerprint !== "string") {
-    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "machine_fingerprint" });
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "machine_fingerprint is required", 400);
   }
   if (!rawCapsuleId || typeof rawCapsuleId !== "string") {
-    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "capsule_id" });
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "capsule_id is required", 400);
   }
 
   const accessToken        = rawToken.trim();
@@ -121,16 +121,18 @@ export async function POST(request: Request): Promise<Response> {
   const capsuleId          = rawCapsuleId.trim();
 
   if (!UUID_RE.test(accessToken)) {
-    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 400, {
-      field:   "access_token",
-      detail:  "Must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).",
-    });
+    return aosErrorResponse(
+      AOS_ERROR.INVALID_FIELD,
+      "access_token must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+      400,
+    );
   }
   if (!FINGERPRINT_RE.test(machineFingerprint)) {
-    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 400, {
-      field:  "machine_fingerprint",
-      detail: "Must be a 64-character lowercase SHA-256 hex string.",
-    });
+    return aosErrorResponse(
+      AOS_ERROR.INVALID_FIELD,
+      "machine_fingerprint must be a 64-character lowercase SHA-256 hex string",
+      400,
+    );
   }
 
   // ── D1 lookup ──────────────────────────────────────────────────────────────
@@ -143,7 +145,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (!cfEnv.DB) {
-    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, 503);
+    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, "D1 database binding unavailable", 503);
   }
 
   let tokenRecord: TokenRecord | null;
@@ -162,26 +164,27 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (!tokenRecord) {
-    return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 401, {
-      detail: "Access token not found in the Sovereign Ledger.",
-    });
+    return aosErrorResponse(
+      AOS_ERROR.INVALID_AUTH,
+      "Access token not found in the Sovereign Ledger.",
+      401,
+    );
   }
 
   // ── Validate capsule match ─────────────────────────────────────────────────
   if (tokenRecord.capsule_id !== capsuleId) {
-    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 403, {
-      field:  "capsule_id",
-      detail: "Token is not authorised for the requested capsule.",
-    });
+    return aosErrorResponse(
+      AOS_ERROR.INVALID_FIELD,
+      "Token is not authorised for the requested capsule.",
+      403,
+    );
   }
 
   // ── Validate expiry ────────────────────────────────────────────────────────
   if (tokenRecord.expires_at) {
     const expiresAt = new Date(tokenRecord.expires_at).getTime();
     if (Date.now() > expiresAt) {
-      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 401, {
-        detail: "Access token has expired.",
-      });
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, "Access token has expired.", 401);
     }
   }
 
@@ -192,9 +195,11 @@ export async function POST(request: Request): Promise<Response> {
   if (tokenRecord.machine_fingerprint) {
     // Token is already bound to a machine — enforce single-use and fingerprint match.
     if (tokenRecord.redeemed) {
-      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 403, {
-        detail: "Access token has already been redeemed.",
-      });
+      return aosErrorResponse(
+        AOS_ERROR.INVALID_AUTH,
+        "Access token has already been redeemed.",
+        403,
+      );
     }
     const encoder       = new TextEncoder();
     const storedBytes   = encoder.encode(tokenRecord.machine_fingerprint);
@@ -203,10 +208,11 @@ export async function POST(request: Request): Promise<Response> {
     const len = Math.min(storedBytes.length, incomingBytes.length);
     for (let i = 0; i < len; i++) diff |= storedBytes[i] ^ incomingBytes[i];
     if (diff !== 0) {
-      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 403, {
-        detail:    "Hardware fingerprint mismatch — token is bound to a different machine.",
-        directive: "This capsule license is hardware-locked. Contact licensing@averyos.com to transfer.",
-      });
+      return aosErrorResponse(
+        AOS_ERROR.INVALID_AUTH,
+        "Hardware fingerprint mismatch — token is bound to a different machine. Contact licensing@averyos.com to transfer.",
+        403,
+      );
     }
     // Mark as redeemed now that fingerprint is verified
     try {
@@ -239,13 +245,15 @@ export async function POST(request: Request): Promise<Response> {
   const sessionKey = await deriveSessionKey(accessToken, machineFingerprint, KERNEL_SHA);
 
   // ── TAI auto-track ─────────────────────────────────────────────────────────
-  autoTrackAccomplishment({
-    title:       "Hardware-Attested Logic Unlock Live",
-    description: `Phase 81.2: Capsule ${capsuleId} session key issued to hardware-bound token. ` +
-                 `Machine fingerprint anchored. One-time redemption recorded in capsule_access_tokens.`,
-    phase:       "Phase 81.2",
-    category:    "INFRASTRUCTURE",
-  }).catch(() => {});
+  if (cfEnv.DB) {
+    autoTrackAccomplishment(cfEnv.DB, {
+      title:       "Hardware-Attested Logic Unlock Live",
+      description: `Phase 81.2: Capsule ${capsuleId} session key issued to hardware-bound token. ` +
+                   `Machine fingerprint anchored. One-time redemption recorded in capsule_access_tokens.`,
+      phase:       "Phase 81.2",
+      category:    "INFRASTRUCTURE",
+    });
+  }
 
   return Response.json(
     {
