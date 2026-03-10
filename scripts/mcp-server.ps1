@@ -90,11 +90,15 @@ function Write-D1VaultLog {
         return
     }
 
-    $timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
-    $sql  = "INSERT INTO sovereign_audit_logs (event_type, ip_address, path, user_agent, timestamp, sha512_pulse) VALUES (?, ?, ?, ?, ?, ?)"
+    # Double-Lock Anchorage: use AOS_KERNEL_ROOT env var if set, fall back to $KERNEL_SHA constant.
+    $kernelAnchor = if ($env:AOS_KERNEL_ROOT) { $env:AOS_KERNEL_ROOT } else { $KERNEL_SHA }
+    $timestamp    = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+
+    # Insert into sovereign_audit_logs with correct schema column names + kernel_sha anchor.
+    $sql  = "INSERT INTO sovereign_audit_logs (event_type, ip_address, target_path, user_agent, timestamp_ns, kernel_sha) VALUES (?, ?, ?, ?, ?, ?)"
     $body = @{
         sql    = $sql
-        params = @("OLLAMA_ALM_RESPONSE", "NODE_02_LOCAL", "/mcp/ollama", $ModelUsed, $timestamp, $PulseHash)
+        params = @("OLLAMA_ANCHOR", "NODE_02_LOCAL", "/mcp/ollama", $ModelUsed, $timestamp, $kernelAnchor)
     } | ConvertTo-Json -Compress
 
     $uri     = "$D1_API_BASE/accounts/$D1_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query"
@@ -105,11 +109,11 @@ function Write-D1VaultLog {
 
     try {
         if ($DryRun) {
-            Write-AosLog "INFO" "[DRY RUN] Would log pulse hash to D1: $($PulseHash.Substring(0,32))..."
+            Write-AosLog "INFO" "[DRY RUN] Would log OLLAMA_ANCHOR pulse to D1: kernel=$($kernelAnchor.Substring(0,16))... pulse=$($PulseHash.Substring(0,32))..."
         } else {
             $result = Invoke-RestMethod -Uri $uri -Method POST -Headers $headers -Body $body
             if ($result.success) {
-                Write-AosLog "INFO" "VaultChain log written: $($PulseHash.Substring(0,32))..."
+                Write-AosLog "INFO" "VaultChain OLLAMA_ANCHOR log written: kernel=$($kernelAnchor.Substring(0,16))... pulse=$($PulseHash.Substring(0,32))..."
             }
         }
     } catch {
