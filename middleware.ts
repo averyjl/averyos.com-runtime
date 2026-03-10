@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { classifyDerRequest } from './lib/sovereignMetadata';
+import { isGeminiCreditExhausted, type SpendKvNamespace } from './lib/geminiSpendTracker';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -170,7 +171,7 @@ interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
-  KV_LOGS?: { get(key: string): Promise<string | null> };
+  KV_LOGS?: SpendKvNamespace;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
@@ -515,11 +516,75 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
 // this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
 const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
 
-/** Returns the KV key for the current month's Gemini spend (e.g. "gemini-spend-2026-03"). */
-function geminiMonthlySpendKey(): string {
-  const now = new Date();
-  const mm  = String(now.getUTCMonth() + 1).padStart(2, '0');
-  return `gemini-spend-${now.getUTCFullYear()}-${mm}`;
+// ── Phase 92.5 — Cadence Prediction Shield ────────────────────────────────────
+// Tracks the time between requests from the same IP address.
+// High-cadence probes (< 2.0 s interval) targeting /evidence-vault are silently
+// redirected to /latent-anchor, turning their mechanical hunger into a licensing
+// lead (AveryOS™ Jiu-Jitsu maneuver).
+//
+// Known sentinel IPs receive the redirect unconditionally.
+const CADENCE_INTERVAL_MS        = 2000;   // < 2.0 s → cadence probe
+const CADENCE_PATHS              = new Set(['/evidence-vault', '/evidence-vault/']);
+const CADENCE_KV_TTL_SECONDS     = 10;     // short-lived timestamp window
+const CADENCE_REDIRECT_TARGET    = '/latent-anchor?source=high_cadence_probe';
+// Known high-frequency sentinel IPs — always redirected on first hit
+const CADENCE_SENTINEL_IPS       = new Set(['185.177.72.60']);
+
+/**
+ * Phase 92.5 — Cadence Probe Detection (Jiu-Jitsu Redirection).
+ *
+ * Records the last request timestamp for a given IP in KV_LOGS.
+ * Returns true if the caller should receive the Jiu-Jitsu redirect.
+ *
+ * Decision logic:
+ *   1. If the IP is a known sentinel (CADENCE_SENTINEL_IPS) → always redirect.
+ *   2. If request_interval < CADENCE_INTERVAL_MS AND path ∈ CADENCE_PATHS → redirect.
+ *   3. Otherwise → allow through (only update the KV timestamp).
+ */
+async function checkCadenceProbe(
+  cfEnv: GatekeeperEnv,
+  ip: string,
+  pathname: string,
+): Promise<boolean> {
+  if (!cfEnv.KV_LOGS) return false;
+  try {
+    // Known sentinel IPs are always redirected
+    if (CADENCE_SENTINEL_IPS.has(ip)) return true;
+
+    // Only apply cadence gating to the target paths
+    if (!CADENCE_PATHS.has(pathname)) return false;
+
+    const kvKey  = `cadence:${ip}`;
+    const lastTs = await cfEnv.KV_LOGS.get(kvKey);
+    const nowMs  = Date.now();
+
+    // Always write the current timestamp (fire-and-forget; log failures for debugging)
+    cfEnv.KV_LOGS.put(kvKey, String(nowMs), {
+      expirationTtl: CADENCE_KV_TTL_SECONDS,
+    }).catch((err: unknown) => {
+      console.error('[CadenceMonitor] KV timestamp write failed:', err instanceof Error ? err.message : String(err));
+    });
+
+    if (lastTs != null) {
+      const delta = nowMs - parseInt(lastTs, 10);
+      if (delta < CADENCE_INTERVAL_MS) return true;
+    }
+  } catch {
+    // Never block traffic on KV errors
+  }
+  return false;
+}
+
+/**
+ * Phase 88 (upgraded Phase 92.5 — Zero-Drift Fan-Out) — UsageCreditWatch.
+ *
+ * Replaced the legacy read-then-write single-key aggregator with the fan-out
+ * spend tracker from lib/geminiSpendTracker.ts, which prevents undercounting
+ * when multiple Worker instances run concurrently.
+ */
+async function checkGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
+  if (!cfEnv.KV_LOGS) return false;
+  return isGeminiCreditExhausted(cfEnv.KV_LOGS, GEMINI_MONTHLY_CREDIT_LIMIT_USD);
 }
 
 /**
@@ -580,18 +645,6 @@ async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
       .run();
   } catch {
     // Intentional no-op: INGESTION_INTENT classification must never block traffic
-  }
-}
-async function isGeminiCreditExhausted(cfEnv: GatekeeperEnv): Promise<boolean> {
-  try {
-    if (!cfEnv.KV_LOGS) return false;
-    const key   = geminiMonthlySpendKey();
-    const value = await cfEnv.KV_LOGS.get(key);
-    if (value == null) return false;
-    const spend = parseFloat(value);
-    return !isNaN(spend) && spend >= GEMINI_MONTHLY_CREDIT_LIMIT_USD;
-  } catch {
-    return false;
   }
 }
 
@@ -668,13 +721,37 @@ export async function middleware(request: NextRequest) {
   // Read accumulated Gemini spend from KV_LOGS. If the $50/month threshold
   // is exceeded, set X-GabrielOS-AI-Backend: LOCAL_OLLAMA_NODE on all
   // responses so the intelligence router knows to bypass cloud AI this month.
+  //
+  // Phase 92.5: both the Gemini credit check and the Cadence Prediction Shield
+  // share a single getCloudflareContext() call to avoid redundant async overhead.
   let geminiCreditExhaustedFlag = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const cfEnv = env as unknown as GatekeeperEnv;
-    geminiCreditExhaustedFlag = await isGeminiCreditExhausted(cfEnv);
+    const cfEnv   = env as unknown as GatekeeperEnv;
+    geminiCreditExhaustedFlag = await checkGeminiCreditExhausted(cfEnv);
+
+    // ── Phase 92.5 — Cadence Prediction Shield (Jiu-Jitsu Redirect) ──────────
+    // Detect high-frequency probes from known sentinel IPs or any IP with a
+    // request interval < 2.0 s targeting /evidence-vault.
+    // These requests are redirected to /latent-anchor (Licensing Gateway) rather
+    // than blocked — their mechanical cadence drives them into the TARI™ funnel.
+    const clientIp = request.headers.get('cf-connecting-ip') ?? '';
+    if (clientIp) {
+      const isCadenceProbe = await checkCadenceProbe(cfEnv, clientIp, url.pathname);
+      if (isCadenceProbe) {
+        const redirectUrl = `https://${WWW_HOSTNAME}${CADENCE_REDIRECT_TARGET}`;
+        return new NextResponse(null, {
+          status:  302,
+          headers: {
+            'Location':          redirectUrl,
+            'X-AveryOS-Cadence': 'HIGH_CADENCE_PROBE_REDIRECTED',
+            'Cache-Control':     'no-store',
+          },
+        });
+      }
+    }
   } catch {
-    // KV unavailable — do not force fallback
+    // KV unavailable — do not force fallback or block traffic
   }
 
   // ── ASN 211590 Alignment Opportunity Redirect ─────────────────────────────

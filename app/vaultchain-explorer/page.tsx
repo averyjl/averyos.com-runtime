@@ -50,23 +50,6 @@ interface VerifyResult {
   hash_type?: string;
 }
 
-interface EvidenceResult {
-  CapsuleID?: string;
-  CapsuleType?: string;
-  EventType?: string;
-  EventId?: number;
-  TargetIP?: string;
-  UserAgent?: string;
-  GeoLocation?: string;
-  TargetPath?: string;
-  ThreatLevel?: number;
-  TimestampNs?: string;
-  PackagedAt?: string;
-  KernelAnchor?: string;
-  KernelVersion?: string;
-  error?: string;
-}
-
 interface EvidencePayload {
   ray_id?: string;
   ip_address?: string;
@@ -87,8 +70,11 @@ interface EvidencePayload {
   captured_at?: string;
 }
 
+// Consolidated EvidenceResult — covers Phase 82 R2 artifacts, Phase 87 RayID
+// vault lookups, and legacy Capsule-packaged evidence bundles.
 interface EvidenceResult {
-  resonance: string;
+  // ── Phase 87/88: RayID evidence vault response ─────────────────────────────
+  resonance?: string;
   kernel_sha?: string;
   kernel_version?: string;
   ray_id?: string;
@@ -97,6 +83,41 @@ interface EvidenceResult {
   retrieved_at?: string;
   detail?: string;
   error?: string;
+  // ── Phase 82: R2 Evidence Artifact fields ──────────────────────────────────
+  sha512_payload?: string;
+  ip_address?: string;
+  asn?: string;
+  path?: string;
+  request_uri?: string;
+  request_method?: string;
+  request_referrer?: string | null;
+  request_protocol?: string | null;
+  client_city?: string | null;
+  client_lat?: string | null;
+  client_lon?: string | null;
+  waf_score_total?: number | null;
+  waf_score_sqli?: number | null;
+  bot_category?: string | null;
+  edge_colo?: string | null;
+  wall_time_us?: number | null;
+  edge_start_ts?: string;
+  edge_end_ts?: string;
+  archived_at?: string;
+  fetched_at?: string;
+  // ── Legacy Capsule-packaged evidence bundle ─────────────────────────────────
+  CapsuleID?: string;
+  CapsuleType?: string;
+  EventType?: string;
+  EventId?: number;
+  TargetIP?: string;
+  UserAgent?: string;
+  GeoLocation?: string;
+  TargetPath?: string;
+  ThreatLevel?: number;
+  TimestampNs?: string;
+  PackagedAt?: string;
+  KernelAnchor?: string;
+  KernelVersion?: string;
 }
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
@@ -135,35 +156,6 @@ function intentColor(intent: string | undefined): string {
   if (intent === 'LEGAL_SCAN') return RED;
   if (intent === 'DER_PROBE' || intent === 'HIGH_WAF_PROBE') return ORANGE;
   return GREEN;
-}
-
-// Phase 82: R2 Evidence Artifact from evidence/${sha512}.json
-interface EvidenceResult {
-  sha512_payload?: string;
-  ray_id?: string;
-  ip_address?: string;
-  asn?: string;
-  path?: string;
-  request_uri?: string;
-  request_method?: string;
-  request_referrer?: string | null;
-  request_protocol?: string | null;
-  client_city?: string | null;
-  client_lat?: string | null;
-  client_lon?: string | null;
-  waf_score_total?: number | null;
-  waf_score_sqli?: number | null;
-  bot_category?: string | null;
-  edge_colo?: string | null;
-  wall_time_us?: number | null;
-  edge_start_ts?: string;
-  edge_end_ts?: string;
-  kernel_sha?: string;
-  archived_at?: string;
-  fetched_at?: string;
-  r2_key?: string;
-  error?: string;
-  detail?: string;
 }
 
 export default function VaultChainExplorerPage() {
