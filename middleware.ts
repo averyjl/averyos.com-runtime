@@ -35,7 +35,9 @@ const MIN_BROWSER_HEADERS_THRESHOLD = 3;
 
 // ── Biometric Identity Shield — Entropy Weight Constants ──────────────────────
 // Each weight represents the signal strength of a specific browser attribute.
-// The total possible score is 90; a score ≥ 50 is classified as a real browser.
+// Phase 82: Total possible score is 100; a score ≥ 50 is classified as a real browser.
+// Canvas fingerprint signal (+10) is sent by the client-side SDK when a real browser
+// canvas context is available, carried as X-AveryOS-Canvas-FP header.
 // Weights are calibrated to match the difficulty of spoofing each signal.
 const ENTROPY_ACCEPT_HEADER     = 15; // complex mime-type Accept header (hard to fake)
 const ENTROPY_ACCEPT_LANG       = 15; // Accept-Language with locale subtags (e.g. en-US)
@@ -44,6 +46,9 @@ const ENTROPY_FETCH_METADATA    = 15; // Fetch Metadata triad (sec-fetch-dest/mo
 const ENTROPY_BROWSER_HEADERS   = 15; // ≥ MIN_BROWSER_HEADERS_THRESHOLD present
 const ENTROPY_CF_DEVICE_TYPE    = 10; // Cloudflare device-type classification
 const ENTROPY_BROWSER_UA        = 10; // browser UA pattern match
+// Phase 82 — Canvas fingerprint signal: client-side SDK sets X-AveryOS-Canvas-FP
+// to a non-empty value when a real HTMLCanvasElement is accessible (bots lack this).
+const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 hardening)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
@@ -133,6 +138,8 @@ interface GatekeeperEnv {
 /**
  * GabrielOS Legal Tripwire — fire-and-forget D1 audit insert.
  * Logs every hit to /health or /evidence-vault into sovereign_audit_logs.
+ * Phase 82: LEGAL_SCAN events (corporate UA) additionally trigger the
+ * /api/v1/audit-alert endpoint so FCM GabrielOS™ mobile push fires.
  * Errors are swallowed so logging failures never block legitimate access.
  */
 async function logSovereignAudit(request: NextRequest): Promise<void> {
@@ -146,6 +153,8 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     const ua = request.headers.get('user-agent') ?? 'UNKNOWN';
     const colo = request.headers.get('cf-ray')?.split('-')[1] ?? 'UNKNOWN';
     const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
+    const eventType = isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS';
+    const threatLevel = isCorporate ? 10 : 1;
     const timestampNs = Date.now().toString() + '000000';
 
     await cfEnv.DB.prepare(
@@ -154,15 +163,36 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
+        eventType,
         ip,
         ua,
         colo,
         url.pathname,
         timestampNs,
-        isCorporate ? 10 : 1
+        threatLevel
       )
       .run();
+
+    // Phase 82 — LEGAL_SCAN FCM push: forward to /api/v1/audit-alert for
+    // Tier-10 GabrielOS™ mobile notification via FCM HTTP v1.
+    if (isCorporate) {
+      const baseUrl = cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? 'https://averyos.com';
+      const vaultPass = cfEnv.VAULT_PASSPHRASE ?? '';
+      fetch(`${baseUrl}/api/v1/audit-alert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${vaultPass}`,
+        },
+        body: JSON.stringify({
+          event_type:  eventType,
+          target_ip:   ip,
+          target_path: url.pathname,
+        }),
+      }).catch(() => {
+        // Fire-and-forget: alert failures must never block request processing
+      });
+    }
   } catch {
     // Intentional no-op: audit logging must never block request processing
   }
@@ -469,7 +499,8 @@ export async function middleware(request: NextRequest) {
   // ── Biometric Identity Shield — Entropy Scoring ───────────────────────────
   // Computes a lightweight request-entropy score to detect automated/scripted
   // traffic that mimics browser headers but lacks genuine behavioral signals.
-  // Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Phase 82: Score ranges 0–100; ≥ 50 is treated as legitimate browser traffic.
+  // Canvas fingerprint signal (+10) added in Phase 82 hardening.
   const acceptHeader       = request.headers.get('accept') ?? '';
   const acceptLangHeader   = request.headers.get('accept-language') ?? '';
   const acceptEncHeader    = request.headers.get('accept-encoding') ?? '';
@@ -477,6 +508,8 @@ export async function middleware(request: NextRequest) {
   const secFetchMode       = request.headers.get('sec-fetch-mode') ?? '';
   const secFetchSite       = request.headers.get('sec-fetch-site') ?? '';
   const cfDeviceType       = request.headers.get('cf-device-type') ?? '';
+  // Phase 82: canvas fingerprint header — set by client-side SDK when real canvas is available
+  const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -492,6 +525,8 @@ export async function middleware(request: NextRequest) {
   if (cfDeviceType === 'mobile' || cfDeviceType === 'desktop' || cfDeviceType === 'tablet') entropyScore += ENTROPY_CF_DEVICE_TYPE;
   // +ENTROPY_BROWSER_UA for browser UA pattern
   if (hasBrowserPattern) entropyScore += ENTROPY_BROWSER_UA;
+  // +ENTROPY_CANVAS_FP for Phase 82 canvas fingerprint signal (real browser canvas API present)
+  if (canvasFp && canvasFp.length >= 8) entropyScore += ENTROPY_CANVAS_FP;
   // ─────────────────────────────────────────────────────────────────────────
 
   // Consider it a browser if:
