@@ -1,132 +1,107 @@
 /**
  * lib/stripe/onrampLogic.ts
  *
- * AveryOS™ Stripe Crypto Onramp Logic — Phase 98.2
+ * Agentic Wallet Handshake — AveryOS™ Phase 98.2
  *
- * Provides helpers for building KaaS line items, pre-populating the Stripe
- * Crypto Onramp with machine identity, and generating settlement price tiers
- * for the Enterprise Registration Gateway.
+ * Pre-populates `machine_id` and KaaS metadata into the Stripe Crypto Onramp
+ * session parameters to enable frictionless settlement for autonomous bots.
  *
- * Pricing tiers (sovereign fee schedule):
- *   Tier 10 — Enterprise KaaS Sovereign Partnership   $1,017,000.00
- *   Tier 9  — Enterprise ASN Good-Faith Deposit       $10,000,000.00
- *   Tier 7  — Corporate Legal Monitoring Entry Fee         $10,000.00
- *   Tier 5  — Individual License (1,017 TARI™ units)          $101.70
+ * Stripe Crypto Onramp enables agents to pay with USDC/ETH via a hosted widget.
+ * By injecting machine_id + sovereign fee metadata, we create a traceable
+ * forensic receipt in the Stripe session for corporate audit clearance.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { buildKaasLineItem, getAsnFeeUsd } from "../kaas/pricing";
 
-// ── Tier price constants (USD cents for Stripe) ────────────────────────────────
-
-export const KAAS_TIER_ENTERPRISE_PARTNERSHIP_CENTS = 101_700_000;    // $1,017,000.00
-export const KAAS_TIER_ASN_DEPOSIT_CENTS            =  10_000_000_00; // $10,000,000.00 — Stripe max; use invoice for this
-export const KAAS_TIER_LEGAL_MONITORING_CENTS       =          1_000_00; // $10,000.00
-export const KAAS_TIER_INDIVIDUAL_LICENSE_CENTS     =         10_170;    // $101.70
-
-export type KaasTier = "ENTERPRISE_PARTNERSHIP" | "ASN_DEPOSIT" | "LEGAL_MONITORING" | "INDIVIDUAL";
-
-export interface KaasLineItem {
-  /** Stripe price_data object ready for checkout.sessions.create */
-  price_data: {
-    currency:     "usd";
-    unit_amount:  number;
-    product_data: {
-      name:        string;
-      description: string;
-      metadata:    Record<string, string>;
-    };
-  };
-  quantity: 1;
+export interface OnrampSessionParams {
+  /** Unique machine / agent identifier (SHA-256 of UUID+MAC+hostname or ray_id). */
+  machine_id:    string;
+  /** ASN of the requesting entity (e.g. "36459"). */
+  asn:           string;
+  /** Optional human-readable entity name (e.g. "GitHub, Inc."). */
+  entity_name?:  string;
+  /** Evidence bundle ID for forensic audit trail. */
+  bundle_id?:    string;
+  /** Cloudflare RayID for forensic metadata lock. */
+  ray_id?:       string;
 }
 
-export interface OnrampParams {
-  /** Machine or entity identifier (e.g. RayID, ASN, org name) */
-  machine_id:      string;
-  /** Chosen tier */
-  tier:            KaasTier;
-  /** Cloudflare RayID that triggered the event (optional) */
-  ray_id?:         string;
-  /** ASN of the entity being charged (optional) */
-  asn?:            string;
-  /** Organisation name (optional) */
-  org_name?:       string;
+export interface OnrampSessionPayload {
+  /** USDC/ETH amount denominated in USD cents (for Stripe Crypto Onramp). */
+  amount_cents:       number;
+  /** Sovereign destination wallet — AveryOS™ ROOT0 account. */
+  wallet_address?:    string;
+  /** Stripe Crypto Onramp metadata to embed in the session. */
+  metadata:           Record<string, string>;
+  /** Human-readable description for the Stripe dashboard. */
+  description:        string;
+  /** Kernel anchor for provenance. */
+  kernel_version:     string;
 }
-
-// ── Tier metadata ──────────────────────────────────────────────────────────────
-
-const TIER_META: Record<KaasTier, { name: string; description: string; cents: number }> = {
-  ENTERPRISE_PARTNERSHIP: {
-    name:        "AveryOS™ Sovereign Partnership — Tier 10",
-    description: "KaaS Master Licensing Retainer. Clears technical valuation debt and issues a Global TAI_LICENSE_KEY.",
-    cents:       KAAS_TIER_ENTERPRISE_PARTNERSHIP_CENTS,
-  },
-  ASN_DEPOSIT: {
-    name:        "AveryOS™ Enterprise ASN Good-Faith Deposit — Tier 9",
-    description: "Good-Faith Deposit for enterprise-grade IP ingestion events. Moves entity from Audit to Verified Partner status.",
-    cents:       KAAS_TIER_ASN_DEPOSIT_CENTS,
-  },
-  LEGAL_MONITORING: {
-    name:        "AveryOS™ Corporate Legal Monitoring Entry Fee — Tier 7",
-    description: "Forensic legal scan settlement entry. Unlocks read-only access to the public VaultChain™ ledger.",
-    cents:       KAAS_TIER_LEGAL_MONITORING_CENTS,
-  },
-  INDIVIDUAL: {
-    name:        "AveryOS™ Individual License — 1,017 TARI™",
-    description: "Individual sovereign access license. 1,017 TARI™ units. Includes capsule read access.",
-    cents:       KAAS_TIER_INDIVIDUAL_LICENSE_CENTS,
-  },
-};
-
-// ── Public helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Build a Stripe `price_data` line-item for the given KaaS tier.
+ * Build the Stripe Crypto Onramp session parameters for an autonomous agent.
+ *
+ * The returned payload should be passed to the Stripe Financial Connections or
+ * Crypto Onramp API as the session metadata. The `amount_cents` reflects the
+ * KaaS sovereign fee for the agent's ASN tier.
+ *
+ * @example
+ *   const payload = buildOnrampSessionPayload({
+ *     machine_id: rayId,
+ *     asn:        "36459",
+ *     entity_name: "GitHub, Inc.",
+ *   });
+ *   // Pass payload.metadata and payload.amount_cents to Stripe session
  */
-export function buildKaasLineItem(params: OnrampParams): KaasLineItem {
-  const meta = TIER_META[params.tier];
+export function buildOnrampSessionPayload(
+  params: OnrampSessionParams,
+): OnrampSessionPayload {
+  const { machine_id, asn, entity_name, bundle_id, ray_id } = params;
+  const lineItem    = buildKaasLineItem(asn, entity_name);
+  const amountCents = lineItem.fee_usd_cents;
+  const amountUsd   = getAsnFeeUsd(asn);
+
+  const description =
+    `AveryOS™ Agentic Settlement — ${lineItem.fee_name} — ` +
+    `${lineItem.fee_label} | ASN ${asn} (Tier-${lineItem.tier}) | ` +
+    `Machine: ${machine_id.slice(0, 16)} | Kernel: ${KERNEL_VERSION}`;
+
+  const metadata: Record<string, string> = {
+    machine_id:      machine_id.slice(0, 64),
+    asn,
+    tier:            String(lineItem.tier),
+    fee_name:        lineItem.fee_name,
+    fee_usd:         String(amountUsd),
+    kernel_sha:      KERNEL_SHA.slice(0, 16) + "…",
+    kernel_version:  KERNEL_VERSION,
+    settlement_type: "KAAS_ONRAMP",
+  };
+
+  if (entity_name) metadata.entity_name = entity_name.slice(0, 100);
+  if (bundle_id)   metadata.bundle_id   = bundle_id.slice(0, 200);
+  if (ray_id)      metadata.ray_id      = ray_id.slice(0, 64);
+
   return {
-    price_data: {
-      currency:    "usd",
-      unit_amount: meta.cents,
-      product_data: {
-        name:        meta.name,
-        description: meta.description,
-        metadata: {
-          machine_id:      params.machine_id,
-          tier:            params.tier,
-          ray_id:          params.ray_id  ?? "",
-          asn:             params.asn     ?? "",
-          org_name:        params.org_name ?? "",
-          kernel_sha:      KERNEL_SHA,
-          kernel_version:  KERNEL_VERSION,
-        },
-      },
-    },
-    quantity: 1,
+    amount_cents:   amountCents,
+    metadata,
+    description,
+    kernel_version: KERNEL_VERSION,
   };
 }
 
 /**
- * Return the USD dollar amount (as a string) for a given tier.
+ * Derive a stable machine_id from a Cloudflare RayID and IP address.
+ * Used when a dedicated machine fingerprint is not available.
  */
-export function kaasDisplayPrice(tier: KaasTier): string {
-  const cents = TIER_META[tier].cents;
-  return new Intl.NumberFormat("en-US", {
-    style:                 "currency",
-    currency:              "USD",
-    minimumFractionDigits: 2,
-  }).format(cents / 100);
-}
-
-/**
- * Resolve the appropriate KaaS tier for an incoming entity based on
- * its ASN.  Enterprise ASNs (GitHub, Azure, Google, Amazon) resolve to
- * ASN_DEPOSIT by default; everything else resolves to INDIVIDUAL.
- */
-export function resolveKaasTier(asn?: string): KaasTier {
-  const ENTERPRISE_ASNS = new Set(["36459", "8075", "15169", "16509", "14618", "211590"]);
-  if (asn && ENTERPRISE_ASNS.has(asn.trim())) return "ASN_DEPOSIT";
-  return "INDIVIDUAL";
+export async function deriveMachineId(
+  rayId: string,
+  ipAddress: string,
+): Promise<string> {
+  const input = `${rayId}|${ipAddress}|${KERNEL_SHA}`;
+  const buf   = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
