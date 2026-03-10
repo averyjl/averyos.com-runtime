@@ -1,6 +1,6 @@
-// GabrielOS Edge-Guard v1.5
+// GabrielOS Edge-Guard v1.6
 // Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
-// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 78.1)
+// DER 2.0 Gateway — Dynamic Entity Recognition (Phase 83 — INGESTION_INTENT Engine)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 
@@ -51,7 +51,8 @@ const ENTROPY_BROWSER_UA        = 10; // browser UA pattern match
 const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 hardening)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
-// Full kernel anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+// Full kernel anchor — imported from sovereignConstants for single source of truth
+import { KERNEL_SHA } from './lib/sovereignConstants';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
@@ -120,77 +121,154 @@ const TARI_BILLED_PATHS = new Set([
 // Paths intercepted by the GabrielOS Legal Tripwire for D1 audit logging
 const GATEKEEPER_AUDIT_PATHS = new Set(['/health', '/evidence-vault']);
 
+// ── INGESTION_INTENT Weighted Algorithm — Phase 83 ────────────────────────────
+// Classifies request intent based on ASN, WAF Attack Score, and target path.
+// Output is a deterministic label used in sovereign_audit_logs.ingestion_intent.
+//
+// Tier-10 LEGAL_SCAN = (High-value ASN OR WAF score >80) AND logic-layer path
+// Tier-9  DER_PROBE  = High-value ASN + any path
+// Tier-1  PEER_ACCESS = everything else
+const INGESTION_TIER10_ASNS = new Set(['36459', '8075', '15169', '16509', '14618']);
+const INGESTION_LOGIC_PATHS = ['/hooks/', '/api/v1/vault', '/api/v1/licensing',
+                               '/.aoscap', '/latent-anchor', '/truth-anchor'];
+const WAF_HIGH_INTENT_THRESHOLD = 80;
+
+/**
+ * Compute the INGESTION_INTENT classification for a request.
+ * Returns a label (LEGAL_SCAN | DER_PROBE | PEER_ACCESS | CONFLICT_ZONE_PROBE).
+ */
+function classifyIngestionIntent(
+  clientAsn: string,
+  wafTotal: number,
+  pathname: string,
+): string {
+  const isHighValueAsn  = INGESTION_TIER10_ASNS.has(clientAsn);
+  const isHighWaf       = wafTotal >= WAF_HIGH_INTENT_THRESHOLD;
+  const isLogicLayerPath = INGESTION_LOGIC_PATHS.some(p => pathname.startsWith(p));
+
+  if ((isHighValueAsn || isHighWaf) && isLogicLayerPath) return 'LEGAL_SCAN';
+  if (isHighValueAsn) return 'DER_PROBE';
+  if (isHighWaf)      return 'HIGH_WAF_PROBE';
+  return 'PEER_ACCESS';
+}
+
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
 }
 
+interface R2Bucket {
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
+}
+
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  VAULT_R2?: R2Bucket;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
   VAULT_PASSPHRASE?: string;
   SITE_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
+  VAULT_R2?: R2Bucket;
 }
 
 /**
  * GabrielOS Legal Tripwire — fire-and-forget D1 audit insert.
- * Logs every hit to /health or /evidence-vault into sovereign_audit_logs.
- * Phase 82: LEGAL_SCAN events (corporate UA) additionally trigger the
- * /api/v1/audit-alert endpoint so FCM GabrielOS™ mobile push fires.
+ * Logs every hit to /health or /evidence-vault into sovereign_audit_logs,
+ * capturing the full Cloudflare metadata object for forensic evidence.
+ *
+ * Phase 81.5 Total Fidelity: populates WAF scores, edge timestamps,
+ * geolocation, INGESTION_INTENT classification, and kernel_sha anchor.
+ *
  * Errors are swallowed so logging failures never block legitimate access.
  */
 async function logSovereignAudit(request: NextRequest): Promise<void> {
   try {
+    const edgeStartTs = new Date().toISOString();
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
     if (!cfEnv.DB) return;
 
-    const url = new URL(request.url);
-    const ip = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const ua = request.headers.get('user-agent') ?? 'UNKNOWN';
-    const colo = request.headers.get('cf-ray')?.split('-')[1] ?? 'UNKNOWN';
-    const isCorporate = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
-    const eventType = isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS';
-    const threatLevel = isCorporate ? 10 : 1;
-    const timestampNs = Date.now().toString() + '000000';
+    const url           = new URL(request.url);
+    const ip            = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const ua            = request.headers.get('user-agent') ?? 'UNKNOWN';
+    const rayId         = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const colo          = rayId.split('-')[1] ?? 'UNKNOWN';
+    const clientAsn     = request.headers.get('cf-asn') ?? '';
+    const city          = request.headers.get('cf-ipcity') ?? '';
+    const country       = request.headers.get('cf-ipcountry') ?? '';
+    const wafTotalRaw   = request.headers.get('cf-waf-score-total') ?? '0';
+    const wafSqliRaw    = request.headers.get('cf-waf-score-sqli') ?? '0';
+    const wafTotal      = parseInt(wafTotalRaw, 10) || 0;
+    const wafSqli       = parseInt(wafSqliRaw,  10) || 0;
+    const isCorporate   = /Microsoft|Google|Meta|Amazon|Apple|Bot|Crawler|github-hookshot/i.test(ua);
+    const timestampNs   = Date.now().toString() + '000000';
+    const intent        = classifyIngestionIntent(clientAsn, wafTotal, url.pathname);
+    const threatLevel   = intent === 'LEGAL_SCAN' ? 10 : isCorporate ? 5 : 1;
+    const edgeEndTs     = new Date().toISOString();
+    const wallTimeUs    = Math.round(
+      (new Date(edgeEndTs).getTime() - new Date(edgeStartTs).getTime()) * 1000
+    );
 
+    // ── D1 Insert — Total Fidelity columns ───────────────────────────────────
     await cfEnv.DB.prepare(
       `INSERT INTO sovereign_audit_logs
-         (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns, threat_level)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+         (event_type, ip_address, user_agent, geo_location, target_path, timestamp_ns,
+          threat_level, waf_score_total, waf_score_sqli, wall_time_us,
+          edge_start_ts, edge_end_ts, kernel_sha, city, asn, client_country, ingestion_intent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        eventType,
+        intent === 'LEGAL_SCAN' ? 'LEGAL_SCAN' : isCorporate ? 'LEGAL_SCAN' : 'PEER_ACCESS',
         ip,
         ua,
         colo,
         url.pathname,
         timestampNs,
-        threatLevel
+        threatLevel,
+        wafTotal,
+        wafSqli,
+        wallTimeUs,
+        edgeStartTs,
+        edgeEndTs,
+        KERNEL_SHA,
+        city,
+        clientAsn,
+        country,
+        intent,
       )
       .run();
 
-    // Phase 82 — LEGAL_SCAN FCM push: forward to /api/v1/audit-alert for
-    // Tier-10 GabrielOS™ mobile notification via FCM HTTP v1.
-    if (isCorporate) {
-      const baseUrl = cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? 'https://averyos.com';
-      const vaultPass = cfEnv.VAULT_PASSPHRASE ?? '';
-      fetch(`${baseUrl}/api/v1/audit-alert`, {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${vaultPass}`,
-        },
-        body: JSON.stringify({
-          event_type:  eventType,
-          target_ip:   ip,
-          target_path: url.pathname,
-        }),
-      }).catch(() => {
-        // Fire-and-forget: alert failures must never block request processing
+    // ── R2 Evidence Dump — Full Cloudflare Metadata Object ───────────────────
+    // Persists the raw telemetry as evidence/${rayId}.json in VAULT_R2.
+    // This creates a direct, verifiable link between the D1 record and the
+    // physical JSON proof for the Forensic Evidence Explorer.
+    if (cfEnv.VAULT_R2 && rayId !== 'UNKNOWN') {
+      const evidencePayload = JSON.stringify({
+        ray_id:           rayId,
+        ip_address:       ip,
+        user_agent:       ua,
+        colo,
+        asn:              clientAsn,
+        city,
+        country,
+        path:             url.pathname,
+        waf_score_total:  wafTotal,
+        waf_score_sqli:   wafSqli,
+        wall_time_us:     wallTimeUs,
+        edge_start_ts:    edgeStartTs,
+        edge_end_ts:      edgeEndTs,
+        threat_level:     threatLevel,
+        ingestion_intent: intent,
+        kernel_sha:       KERNEL_SHA,
+        captured_at:      edgeStartTs,
+      }, null, 2);
+
+      cfEnv.VAULT_R2.put(`evidence/${rayId}.json`, evidencePayload, {
+        httpMetadata: { contentType: 'application/json' },
+      }).catch((err: unknown) => {
+        console.error('[AOS] VAULT_R2 evidence dump failed:', err instanceof Error ? err.message : String(err));
       });
     }
   } catch {
@@ -200,39 +278,128 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
 
 /**
  * RayID Vault — fire-and-forget insert of every edge request's Cloudflare
- * RayID and connecting IP into anchor_audit_logs.  This builds a forensic
- * ledger of every request that touches the sovereign perimeter.
+ * RayID, connecting IP, and high-fidelity forensic metadata into
+ * anchor_audit_logs.  Simultaneously archives the full log payload to the
+ * VAULT_R2 Evidence Vault as evidence/${sha512_payload}.json so that every
+ * entry has a physically retrievable billing-evidence artifact.
  * Errors are swallowed so vaulting failures never block legitimate traffic.
  */
 async function logRayIdAudit(request: NextRequest): Promise<void> {
+  const edgeStart = new Date();
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as GatekeeperEnv;
     if (!cfEnv.DB) return;
 
-    const url    = new URL(request.url);
-    const rayId  = request.headers.get('cf-ray') ?? 'UNKNOWN';
-    const ip     = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const asn    = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
-    const now    = new Date().toISOString();
+    const url     = new URL(request.url);
+    const rayId   = request.headers.get('cf-ray') ?? 'UNKNOWN';
+    const ip      = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
+    const asn     = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
+    const now     = edgeStart.toISOString();
+    const method  = request.method ?? 'GET';
 
+    // ── Cloudflare cf object forensic fields ─────────────────────────────────
+    // request.cf is available in Cloudflare Worker environments only.
+    // Cast via unknown to avoid TypeScript complaints in non-Worker builds.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cf = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const clientCity      = (cf['clientCity']           as string  | undefined) ?? null;
+    const clientLat       = (cf['clientLatitude']       as string  | undefined) ?? null;
+    const clientLon       = (cf['clientLongitude']      as string  | undefined) ?? null;
+    const requestProtocol = (cf['httpProtocol']         as string  | undefined) ?? null;
+    // wafAttackScore — overall Cloudflare WAF attack score (0-100, higher = more suspicious)
+    const wafScoreTotal   = (cf['wafAttackScore']       as number  | undefined) ?? null;
+    // wafSQLiAttackScore — SQL-injection-specific WAF sub-score (enterprise feature)
+    const wafScoreSqli    = (cf['wafSQLiAttackScore']   as number  | undefined) ?? null;
+    const botCategory     = (cf['verifiedBotCategory']  as string  | undefined) ?? null;
+    const edgeColo        = (cf['colo']                 as string  | undefined) ?? null;
+    const requestReferrer = request.headers.get('referer') ?? null;
+    const requestUri      = url.pathname + (url.search ? url.search : '');
+
+    // SHA-512 of the canonical request identity (RayID + method + path + timestamp)
+    // Used as a deterministic key for the R2 evidence file.
+    const payloadStr  = `${rayId}|${method}|${ip}|${url.pathname}|${now}`;
+    let sha512Payload = rayId; // fallback to RayID if Web Crypto unavailable
+    try {
+      const msgBuffer  = new TextEncoder().encode(payloadStr);
+      const hashBuffer = await crypto.subtle.digest('SHA-512', msgBuffer);
+      const hashArray  = Array.from(new Uint8Array(hashBuffer));
+      sha512Payload    = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      // Web Crypto unavailable (local dev) — use RayID as payload key
+    }
+
+    const edgeEnd   = new Date();
+    const wallTimeUs = Math.round((edgeEnd.getTime() - edgeStart.getTime()) * 1000);
+
+    // ── D1 insert ─────────────────────────────────────────────────────────────
     await cfEnv.DB.prepare(
       `INSERT INTO anchor_audit_logs
-         (anchored_at, sha512, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (anchored_at, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn,
+          sha512_payload, request_method, client_city, client_lat, client_lon,
+          request_uri, request_protocol, request_referrer,
+          waf_score_total, waf_score_sqli, bot_category, edge_colo,
+          wall_time_us, edge_start_ts, edge_end_ts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         now,
-        rayId,
         'EDGE_REQUEST',
         KERNEL_ANCHOR_DISPLAY,
         now,
         rayId,
         ip,
         url.pathname,
-        asn
+        asn,
+        sha512Payload,
+        method,
+        clientCity,
+        clientLat,
+        clientLon,
+        requestUri,
+        requestProtocol,
+        requestReferrer,
+        wafScoreTotal,
+        wafScoreSqli,
+        botCategory,
+        edgeColo,
+        wallTimeUs,
+        edgeStart.toISOString(),
+        edgeEnd.toISOString()
       )
       .run();
+
+    // ── R2 Evidence Vault archive ─────────────────────────────────────────────
+    // Write the full forensic log as an immutable JSON artifact.
+    // Path: evidence/${sha512_payload}.json
+    if (cfEnv.VAULT_R2) {
+      const evidencePayload = JSON.stringify({
+        sha512_payload: sha512Payload,
+        ray_id:         rayId,
+        ip_address:     ip,
+        asn,
+        path:           url.pathname,
+        request_uri:    requestUri,
+        request_method: method,
+        request_referrer: requestReferrer,
+        request_protocol: requestProtocol,
+        client_city:    clientCity,
+        client_lat:     clientLat,
+        client_lon:     clientLon,
+        waf_score_total: wafScoreTotal,
+        waf_score_sqli:  wafScoreSqli,
+        bot_category:   botCategory,
+        edge_colo:      edgeColo,
+        wall_time_us:   wallTimeUs,
+        edge_start_ts:  edgeStart.toISOString(),
+        edge_end_ts:    edgeEnd.toISOString(),
+        kernel_sha:     KERNEL_ANCHOR_DISPLAY,
+        archived_at:    edgeEnd.toISOString(),
+      });
+      cfEnv.VAULT_R2.put(`evidence/${sha512Payload}.json`, evidencePayload).catch(() => {
+        // Intentional no-op: R2 archiving must never block request processing
+      });
+    }
   } catch {
     // Intentional no-op: RayID vaulting must never block request processing
   }

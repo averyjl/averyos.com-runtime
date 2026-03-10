@@ -2,242 +2,285 @@
 /**
  * scripts/package-evidence.cjs
  *
- * AveryOS™ Evidence Packaging Automation — Sovereign Forensic Bundle Builder
+ * Phase 84 — Automated Evidence Packaging
  *
- * Triggered by Cloudflare Cron (every 5 minutes) via the /api/v1/cron/package-evidence
- * endpoint, which calls this logic.  Also runnable standalone as a Node.js script.
- *
- * Workflow:
- *   1. Fetch unpackaged LEGAL_SCAN events from D1 sovereign_audit_logs
- *      (events with no corresponding R2 evidence bundle).
- *   2. For each event, build a forensic JSON bundle anchored to KERNEL_SHA.
- *   3. Store bundle in R2 under evidence/<sha512>.json.
- *   4. Record the bundle_id in D1 anchor_audit_logs for immutable traceability.
- *   5. Log each packaged event as a FORENSIC accomplishment via autoTrackAccomplishment.
+ * Bundles Cloudflare D1 audit metadata + R2 JSON telemetry + BTC Block Hash
+ * into a signed forensic proof bundle (.aospak) for a given RayID.
  *
  * Usage:
- *   node scripts/package-evidence.cjs [--limit=50] [--dry-run]
+ *   node scripts/package-evidence.cjs --rayid <RAYID> [--out <output-dir>] [--dry-run]
  *
- * Environment variables (from .env.local or Cloudflare secrets):
- *   CLOUDFLARE_ACCOUNT_ID   — CF account ID
- *   CLOUDFLARE_API_TOKEN    — API token with D1:Read + R2:Write permissions
- *   D1_DATABASE_ID          — D1 database ID (averyos_kernel_db)
- *   VAULT_R2_BUCKET         — R2 bucket name for forensic evidence
- *   KERNEL_SHA              — Root0 SHA-512 anchor (imported from sovereignConstants)
+ * Required environment variables:
+ *   AVERYOS_D1_ACCOUNT_ID   — Cloudflare account ID
+ *   AVERYOS_D1_DATABASE_ID  — D1 database ID
+ *   AVERYOS_D1_API_TOKEN    — Cloudflare API token (D1:Read + R2:Read)
+ *   AVERYOS_R2_BUCKET       — R2 bucket name (defaults to "averyos-vault")
+ *   AVERYOS_R2_API_TOKEN    — Cloudflare API token with R2:Read (defaults to D1 token)
+ *   BTC_RPC_URL             — Optional: Bitcoin node JSON-RPC URL for live BTC anchor
+ *                             Falls back to mempool.space public API.
+ *
+ * Output: <out>/<rayid>.aospak  (JSON file with kernel_sha signature)
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 'use strict';
 
-const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
-const https  = require('https');
 const crypto = require('crypto');
+const fs     = require('fs');
+const https  = require('https');
+const path   = require('path');
 
-// ── Sovereign constants (mirror lib/sovereignConstants.ts) ────────────────────
+// ── Sovereign Kernel Anchor ───────────────────────────────────────────────────
 const KERNEL_SHA     = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
 const KERNEL_VERSION = 'v3.6.2';
+const CREATOR_LOCK   = 'Jason Lee Avery (ROOT0) 🤛🏻';
 
-// ── CLI flags ─────────────────────────────────────────────────────────────────
-const args    = process.argv.slice(2);
-const DRY_RUN = args.includes('--dry-run');
-const LIMIT   = (() => {
-  const flag = args.find(a => a.startsWith('--limit='));
-  return flag ? parseInt(flag.split('=')[1], 10) : 50;
-})();
+// ── CLI Args ──────────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+function getArg(name) {
+  const idx = args.indexOf(name);
+  return idx !== -1 ? args[idx + 1] : null;
+}
+const rayId  = getArg('--rayid');
+const outDir = getArg('--out') ?? './evidence-packages';
+const dryRun = args.includes('--dry-run');
 
-// ── Env config ────────────────────────────────────────────────────────────────
-const CF_ACCOUNT_ID  = process.env.CLOUDFLARE_ACCOUNT_ID  ?? '';
-const CF_API_TOKEN   = process.env.CLOUDFLARE_API_TOKEN   ?? '';
-const D1_DATABASE_ID = process.env.D1_DATABASE_ID         ?? '';
-const VAULT_BUCKET   = process.env.VAULT_R2_BUCKET        ?? 'averyos-evidence';
-const SITE_URL       = process.env.SITE_URL               ?? 'https://averyos.com';
+if (!rayId || !/^[a-zA-Z0-9]{8,64}$/.test(rayId)) {
+  console.error('[AOS] ERROR: --rayid <rayid> is required (8–64 alphanumeric characters)');
+  process.exit(1);
+}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Env ───────────────────────────────────────────────────────────────────────
+const D1_ACCOUNT_ID  = process.env.AVERYOS_D1_ACCOUNT_ID;
+const D1_DATABASE_ID = process.env.AVERYOS_D1_DATABASE_ID;
+const D1_API_TOKEN   = process.env.AVERYOS_D1_API_TOKEN;
+const R2_BUCKET      = process.env.AVERYOS_R2_BUCKET ?? 'averyos-vault';
+const R2_API_TOKEN   = process.env.AVERYOS_R2_API_TOKEN ?? D1_API_TOKEN;
+const BTC_RPC_URL    = process.env.BTC_RPC_URL;
 
-/**
- * Execute a D1 SQL query via the Cloudflare REST API.
- * @param {string} sql       — Parameterised SQL statement
- * @param {unknown[]} params — Bound parameters
- * @returns {Promise<unknown[]>} — Array of result rows
- */
-async function d1Query(sql, params = []) {
-  if (!CF_ACCOUNT_ID || !CF_API_TOKEN || !D1_DATABASE_ID) {
-    throw new Error('Missing Cloudflare credentials: set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, D1_DATABASE_ID');
-  }
-  const body = JSON.stringify({ sql, params });
-  const url  = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
-  const resp = await fetch(url, {
-    method:  'POST',
-    headers: {
-      Authorization:  `Bearer ${CF_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body,
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(level, msg) {
+  const prefix = level === 'INFO' ? '  ✓' : level === 'WARN' ? '  ⚠' : '  ✗';
+  console.log(`${prefix} [${new Date().toISOString()}] [${level}] ${msg}`);
+}
+
+// ── SHA-512 helper ────────────────────────────────────────────────────────────
+function sha512(input) {
+  return crypto.createHash('sha512').update(input, 'utf8').digest('hex');
+}
+
+// ── HTTP GET helper ───────────────────────────────────────────────────────────
+function httpGet(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const opts = {
+      hostname: u.hostname,
+      path:     u.pathname + u.search,
+      method:   'GET',
+      headers,
+    };
+    const req = https.request(opts, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, data: JSON.parse(body) }); }
+        catch { resolve({ status: res.statusCode, data: body }); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
   });
-  const data = await resp.json();
-  if (!data.success) {
-    throw new Error(`D1 query failed: ${JSON.stringify(data.errors)}`);
-  }
-  return data.result?.[0]?.results ?? [];
 }
 
-/**
- * Store a forensic evidence bundle in R2 via the Cloudflare REST API.
- * @param {string} key     — R2 object key (e.g. "evidence/abc123.json")
- * @param {string} content — JSON string to store
- */
-async function r2Put(key, content) {
-  if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
-    throw new Error('Missing Cloudflare credentials for R2 upload');
-  }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${VAULT_BUCKET}/objects/${encodeURIComponent(key)}`;
-  const resp = await fetch(url, {
-    method:  'PUT',
-    headers: {
-      Authorization:  `Bearer ${CF_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: content,
+// ── HTTP POST helper ──────────────────────────────────────────────────────────
+function httpPost(url, body, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const u       = new URL(url);
+    const payload = JSON.stringify(body);
+    const opts = {
+      hostname: u.hostname,
+      path:     u.pathname + u.search,
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        ...headers,
+      },
+    };
+    const req = https.request(opts, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
+        catch { resolve({ status: res.statusCode, data }); }
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
   });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`R2 PUT failed (${resp.status}): ${text}`);
+}
+
+// ── D1 Query ──────────────────────────────────────────────────────────────────
+async function queryD1(sql, params = []) {
+  if (!D1_ACCOUNT_ID || !D1_DATABASE_ID || !D1_API_TOKEN) {
+    log('WARN', 'D1 credentials not configured — skipping D1 query.');
+    return null;
   }
+  const url = `https://api.cloudflare.com/client/v4/accounts/${D1_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
+  const res = await httpPost(url, { sql, params }, { Authorization: `Bearer ${D1_API_TOKEN}` });
+  if (!res.data?.success) {
+    log('WARN', `D1 query failed: ${JSON.stringify(res.data?.errors ?? res.data)}`);
+    return null;
+  }
+  return res.data.result?.[0]?.results ?? null;
 }
 
-/**
- * Compute a SHA-512 fingerprint of an evidence bundle payload.
- * @param {string} payload — stringified bundle JSON
- * @returns {string} hex SHA-512
- */
-function sha512Sync(payload) {
-  return crypto.createHash('sha512').update(payload).digest('hex');
+// ── R2 Object Fetch ───────────────────────────────────────────────────────────
+async function fetchR2Object(key) {
+  if (!D1_ACCOUNT_ID || !R2_API_TOKEN) {
+    log('WARN', 'R2 credentials not configured — skipping R2 fetch.');
+    return null;
+  }
+  const url = `https://api.cloudflare.com/client/v4/accounts/${D1_ACCOUNT_ID}/r2/buckets/${R2_BUCKET}/objects/${key}`;
+  const res = await httpGet(url, { Authorization: `Bearer ${R2_API_TOKEN}` });
+  if (res.status !== 200) {
+    log('WARN', `R2 object not found: ${key} (status ${res.status})`);
+    return null;
+  }
+  return typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
 }
 
-/**
- * Build a canonical forensic evidence bundle for a LEGAL_SCAN event.
- * @param {object} row — sovereign_audit_logs row
- * @returns {{ bundleId: string, sha512: string, content: string }}
- */
-function buildBundle(row) {
-  const now      = new Date().toISOString();
-  const bundleId = `EVIDENCE_BUNDLE_${row.id}_${Date.now()}`;
-  const bundle   = {
-    CapsuleID:       bundleId,
-    CapsuleType:     'LEGAL_SCAN_EVIDENCE',
-    EventType:       row.event_type ?? 'LEGAL_SCAN',
-    EventId:         row.id,
-    TargetIP:        row.ip_address ?? 'UNKNOWN',
-    UserAgent:       row.user_agent ?? 'UNKNOWN',
-    GeoLocation:     row.geo_location ?? 'UNKNOWN',
-    TargetPath:      row.target_path ?? '/',
-    ThreatLevel:     row.threat_level ?? 10,
-    TimestampNs:     row.timestamp_ns,
-    PackagedAt:      now,
-    KernelAnchor:    KERNEL_SHA,
-    KernelVersion:   KERNEL_VERSION,
-    SovereignAnchor: '⛓️⚓⛓️',
-    CreatorLock:     '🤛🏻 Jason Lee Avery (ROOT0)',
-    LicenseUrl:      `${SITE_URL}/licensing`,
-  };
-  const content = JSON.stringify(bundle, null, 2);
-  const sha512  = sha512Sync(content);
-  return { bundleId, sha512, content };
+// ── BTC Block Hash ────────────────────────────────────────────────────────────
+async function fetchBtcAnchor() {
+  try {
+    if (BTC_RPC_URL) {
+      const res = await httpPost(BTC_RPC_URL, {
+        jsonrpc: '1.0', id: 'aos', method: 'getbestblockhash', params: [],
+      });
+      if (res.data?.result) {
+        log('INFO', `BTC anchor (local node): ${res.data.result.substring(0, 16)}…`);
+        return { hash: res.data.result, source: 'local_node' };
+      }
+    }
+  } catch {
+    log('WARN', 'Local BTC node unavailable — falling back to mempool.space');
+  }
+
+  try {
+    const tipRes = await httpGet('https://mempool.space/api/blocks/tip/hash');
+    const hash = typeof tipRes.data === 'string' ? tipRes.data.trim() : null;
+    if (hash && /^[a-f0-9]{64}$/.test(hash)) {
+      log('INFO', `BTC anchor (mempool.space): ${hash.substring(0, 16)}…`);
+      return { hash, source: 'mempool.space' };
+    }
+  } catch {
+    log('WARN', 'mempool.space BTC anchor unavailable');
+  }
+
+  return { hash: null, source: 'unavailable' };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+(async function main() {
+  console.log('\n⛓️⚓⛓️  AveryOS™ Evidence Packager — Phase 84');
+  console.log(`   RayID:        ${rayId}`);
+  console.log(`   Kernel:       ${KERNEL_VERSION} | ${KERNEL_SHA.substring(0, 16)}…`);
+  console.log(`   Output:       ${outDir}`);
+  if (dryRun) console.log('   Mode:         DRY RUN — no files written\n');
+  else console.log();
 
-async function main() {
-  console.log(`\n⛓️⚓⛓️  AveryOS™ Evidence Packaging Automation — Phase 82`);
-  console.log(`   Kernel: ${KERNEL_SHA.slice(0, 16)}…`);
-  console.log(`   Limit:  ${LIMIT} events${DRY_RUN ? '  [DRY-RUN]' : ''}\n`);
+  const packagedAt = new Date().toISOString();
 
-  // 1. Fetch unpackaged LEGAL_SCAN events
-  let rows;
-  try {
-    rows = await d1Query(
-      `SELECT id, event_type, ip_address, user_agent, geo_location,
-              target_path, timestamp_ns, threat_level
-       FROM sovereign_audit_logs
-       WHERE event_type = 'LEGAL_SCAN'
-         AND id NOT IN (
-           SELECT DISTINCT CAST(
-             CASE WHEN SUBSTR(event_type, 1, 11) = 'LEGAL_SCAN_'
-                  THEN SUBSTR(event_type, 12)
-                  ELSE '0'
-             END AS INTEGER
-           )
-           FROM anchor_audit_logs
-           WHERE event_type LIKE 'LEGAL_SCAN_%'
-             AND SUBSTR(event_type, 12) GLOB '[0-9]*'
-         )
-       ORDER BY id DESC
-       LIMIT ?`,
-      [LIMIT]
-    );
-  } catch (err) {
-    logAosError(AOS_ERROR.DB_QUERY_FAILED, `Failed to fetch LEGAL_SCAN events: ${err.message}`, err);
-    process.exit(1);
+  // 1. Fetch D1 audit metadata
+  log('INFO', 'Fetching D1 anchor_audit_logs for RayID…');
+  const d1Rows = await queryD1(
+    'SELECT * FROM anchor_audit_logs WHERE ray_id = ? LIMIT 10',
+    [rayId]
+  );
+  if (d1Rows?.length) {
+    log('INFO', `D1: found ${d1Rows.length} anchor_audit_log row(s)`);
+  } else {
+    log('WARN', 'D1: no anchor_audit_log rows found for this RayID');
   }
 
-  console.log(`   Found ${rows.length} unpackaged LEGAL_SCAN event(s).\n`);
-
-  let packaged = 0;
-  let failed   = 0;
-
-  for (const row of rows) {
-    try {
-      const { bundleId, sha512, content } = buildBundle(row);
-      const r2Key = `evidence/${sha512}.json`;
-
-      console.log(`   → Packaging event #${row.id} (IP: ${row.ip_address ?? 'UNKNOWN'})`);
-      console.log(`     Bundle: ${bundleId}`);
-      console.log(`     SHA-512: ${sha512.slice(0, 32)}…`);
-      console.log(`     R2 Key: ${r2Key}`);
-
-      if (!DRY_RUN) {
-        // Store in R2
-        await r2Put(r2Key, content);
-
-        // Anchor in D1 anchor_audit_logs
-        await d1Query(
-          `INSERT INTO anchor_audit_logs
-             (anchored_at, sha512, event_type, kernel_sha, timestamp, ray_id, ip_address, path, asn)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            new Date().toISOString(),
-            sha512,
-            `LEGAL_SCAN_${row.id}`,
-            KERNEL_SHA.slice(0, 32) + '…',
-            new Date().toISOString(),
-            bundleId,
-            row.ip_address ?? 'UNKNOWN',
-            row.target_path ?? '/',
-            row.geo_location ?? 'UNKNOWN',
-          ]
-        );
-
-        logAosHeal(AOS_ERROR.NOT_FOUND, `Evidence bundle packaged and stored in R2: ${r2Key}`);
-      }
-
-      packaged++;
-      console.log(`     ✅ Packaged${DRY_RUN ? ' (dry-run)' : ''}\n`);
-    } catch (err) {
-      failed++;
-      logAosError(AOS_ERROR.EXTERNAL_API_ERROR, `Failed to package event #${row.id}: ${err.message}`, err);
-    }
+  log('INFO', 'Fetching D1 sovereign_audit_logs for RayID…');
+  const d1SovRows = await queryD1(
+    'SELECT * FROM sovereign_audit_logs WHERE ip_address = (SELECT ip_address FROM anchor_audit_logs WHERE ray_id = ? LIMIT 1) LIMIT 10',
+    [rayId]
+  );
+  if (d1SovRows?.length) {
+    log('INFO', `D1: found ${d1SovRows.length} sovereign_audit_log row(s)`);
+  } else {
+    log('WARN', 'D1: no sovereign_audit_log rows found for this RayID');
   }
 
-  console.log(`\n   Summary: ${packaged} packaged, ${failed} failed.\n`);
-  console.log('   ⛓️⚓⛓️  Evidence packaging complete.\n');
+  // 2. Fetch R2 evidence JSON
+  log('INFO', `Fetching R2 evidence bundle: evidence/${rayId}.json…`);
+  const r2Raw = await fetchR2Object(`evidence/${rayId}.json`);
+  const r2Evidence = r2Raw ? JSON.parse(r2Raw) : null;
+  if (r2Evidence) {
+    log('INFO', 'R2 evidence bundle retrieved');
+  } else {
+    log('WARN', 'R2 evidence bundle not found — bundle will note absence');
+  }
 
-  if (failed > 0) process.exit(1);
-}
+  // 3. BTC anchor
+  log('INFO', 'Fetching BTC block anchor…');
+  const btcAnchor = await fetchBtcAnchor();
 
-main().catch((err) => {
-  logAosError(AOS_ERROR.INTERNAL_ERROR, `Unhandled error in package-evidence.cjs: ${err.message}`, err);
+  // 4. Compose bundle
+  const bundlePayload = {
+    ray_id:        rayId,
+    packaged_at:   packagedAt,
+    creator_lock:  CREATOR_LOCK,
+    kernel_sha:    KERNEL_SHA,
+    kernel_version: KERNEL_VERSION,
+    btc_anchor: {
+      block_hash: btcAnchor.hash,
+      source:     btcAnchor.source,
+      anchored_at: packagedAt,
+    },
+    d1_anchor_audit_logs:    d1Rows ?? [],
+    d1_sovereign_audit_logs: d1SovRows ?? [],
+    r2_evidence:             r2Evidence,
+    r2_key:                  `evidence/${rayId}.json`,
+  };
+
+  // 5. Double-lock signature: SHA-512(KERNEL_SHA + BTC_HASH + rayId + packagedAt)
+  const sigInput = `${KERNEL_SHA}:${btcAnchor.hash ?? 'UNAVAILABLE'}:${rayId}:${packagedAt}`;
+  const bundleSig = sha512(sigInput);
+  const finalBundle = {
+    ...bundlePayload,
+    double_lock_sig: bundleSig,
+    sig_input_preview: `${KERNEL_SHA.substring(0, 16)}…:${(btcAnchor.hash ?? 'UNAVAILABLE').substring(0, 16)}…:${rayId}:${packagedAt}`,
+  };
+
+  log('INFO', `Double-lock signature: ${bundleSig.substring(0, 32)}…`);
+
+  if (dryRun) {
+    console.log('\n[DRY RUN] .aospak bundle preview:');
+    console.log(JSON.stringify(finalBundle, null, 2));
+    console.log('\n[DRY RUN] No files written.');
+    return;
+  }
+
+  // 6. Write .aospak file
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+  const outPath = path.join(outDir, `${rayId}.aospak`);
+  fs.writeFileSync(outPath, JSON.stringify(finalBundle, null, 2), 'utf8');
+  log('INFO', `Evidence bundle written: ${outPath}`);
+
+  console.log('\n⛓️⚓⛓️  Evidence package complete.');
+  console.log(`   Bundle:      ${outPath}`);
+  console.log(`   Signature:   ${bundleSig.substring(0, 32)}…`);
+  console.log(`   Kernel:      ${KERNEL_SHA.substring(0, 16)}…`);
+  console.log(`   BTC Anchor:  ${btcAnchor.hash?.substring(0, 16) ?? 'UNAVAILABLE'}…`);
+  console.log();
+})().catch((err) => {
+  console.error('[AOS] FATAL:', err instanceof Error ? err.message : String(err));
   process.exit(1);
 });
-
-module.exports = { buildBundle, sha512Sync };

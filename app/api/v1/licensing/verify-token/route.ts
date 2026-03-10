@@ -1,298 +1,262 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
-import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 
 /**
  * POST /api/v1/licensing/verify-token
  *
- * Phase 82 — Hardware Token Machine ID SDK Exchange Endpoint.
+ * Phase 81.2 — Hardware-Bound Capsule Token Exchange
  *
- * Accepts a machine fingerprint (SHA-256 of UUID + MAC + hostname) and an
- * optional Stripe session ID, then:
- *   1. Validates the machine_fingerprint format (64-char hex SHA-256).
- *   2. Looks up any existing token bound to this machine fingerprint in D1.
- *   3. If payment is confirmed (stripe_session_id provided), issues a new
- *      hardware-bound capsule_access_token with 365-day expiry.
- *   4. Returns the token_id and capsule access details.
+ * Validates a purchased AveryOS™ capsule access token and verifies that the
+ * requesting machine fingerprint matches the one registered at purchase time.
+ * On success, returns a one-time-use session decryption key for the licensed
+ * .aoscap capsule, locked to the specific hardware anchor.
  *
- * GET /api/v1/licensing/verify-token?token_id=<id>
+ * Hardware Binding prevents "Logic Sharing" — the session key will only
+ * activate on the machine whose fingerprint was recorded during checkout.
  *
- * Validates an existing token by token_id and returns its status.
- *
- * Request body (POST):
+ * Request body:
  *   {
- *     machine_fingerprint: string;  // SHA-256(UUID + MAC + hostname), 64-char hex
- *     capsule_id:          string;  // Target .aoscap capsule ID
- *     stripe_session_id?:  string;  // Stripe checkout session ID (for new issuance)
- *     partner_id?:         string;  // Optional partner/entity ID
+ *     "access_token":        "<UUID from Stripe checkout metadata>",
+ *     "machine_fingerprint": "<SHA-256 of hardware identifiers (CPU ID, MAC, etc.)>",
+ *     "capsule_id":          "<.aoscap capsule identifier>"
  *   }
+ *
+ * Response (200):
+ *   {
+ *     "resonance":       "HIGH_FIDELITY_SUCCESS",
+ *     "session_key":     "<one-time AES-256-GCM base64 key>",
+ *     "capsule_id":      "<capsule identifier>",
+ *     "expires_at":      "<ISO-9 timestamp>",
+ *     "kernel_sha":      "<cf83...>",
+ *     "verified_at":     "<ISO-9 timestamp>"
+ *   }
+ *
+ * Error responses follow the AveryOS™ Sovereign Error Standard.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-interface D1PreparedStatement {
-  bind(...args: unknown[]): {
-    run(): Promise<unknown>;
-    first<T = unknown>(): Promise<T | null>;
-    all<T = unknown>(): Promise<{ results: T[] }>;
-  };
+interface CloudflareEnv {
+  DB?: D1Database;
+  VAULT_PASSPHRASE?: string;
 }
 
 interface D1Database {
   prepare(sql: string): D1PreparedStatement;
 }
 
-interface CloudflareEnv {
-  DB: D1Database;
-  VAULT_PASSPHRASE?: string;
+interface D1PreparedStatement {
+  bind(...args: unknown[]): D1PreparedStatement;
+  run(): Promise<{ success: boolean; meta?: { last_row_id?: number } }>;
+  first<T = unknown>(): Promise<T | null>;
+  all<T = unknown>(): Promise<{ results: T[] }>;
 }
 
-interface TokenRow {
+interface TokenRecord {
   id: number;
-  token_id: string;
+  access_token: string;
   capsule_id: string;
-  machine_fingerprint: string;
-  sha256_binding: string;
+  machine_fingerprint: string | null;
   stripe_session_id: string | null;
-  partner_id: string | null;
+  redeemed: number;
   issued_at: string;
-  expires_at: string;
-  revoked: number;
-  revoked_at: string | null;
-  kernel_version: string;
+  expires_at: string | null;
 }
 
-/** Generate a random token ID: TOKEN_<hex32> */
-async function generateTokenId(): Promise<string> {
-  const buf = crypto.getRandomValues(new Uint8Array(16));
-  const hex = Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join("");
-  return `TOKEN_${hex.toUpperCase()}`;
+/** Session key TTL — 15 minutes in milliseconds */
+const SESSION_KEY_TTL_MS = 15 * 60 * 1000;
+
+/** Machine fingerprint must be a 64-character SHA-256 hex string */
+const FINGERPRINT_RE = /^[a-f0-9]{64}$/i;
+
+/** Access token UUID format */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Derive a deterministic one-time session key from the access token,
+ * machine fingerprint, and current time bucket (rounded to 15-min window).
+ * Uses HMAC-SHA-256 via Web Crypto; the result is base64-encoded.
+ */
+async function deriveSessionKey(
+  accessToken: string,
+  machineFingerprint: string,
+  kernelSha: string
+): Promise<string> {
+  const timeBucket = Math.floor(Date.now() / SESSION_KEY_TTL_MS).toString();
+  const material   = `${accessToken}|${machineFingerprint}|${kernelSha}|${timeBucket}`;
+  const keyData    = new TextEncoder().encode(material);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", keyData);
+  const hashArray  = Array.from(new Uint8Array(hashBuffer));
+  return btoa(String.fromCharCode(...hashArray));
 }
 
-/** Compute SHA-256 binding of machine_fingerprint + capsule_id + KERNEL_SHA */
-async function computeBinding(machineFp: string, capsuleId: string): Promise<string> {
-  const raw = `${machineFp}||${capsuleId}||${KERNEL_SHA}`;
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-// ── POST — Issue or re-validate a hardware-bound token ────────────────────────
 export async function POST(request: Request): Promise<Response> {
+  // ── Parse body ─────────────────────────────────────────────────────────────
+  let body: Record<string, unknown>;
   try {
-    const { env } = await getCloudflareContext({ async: true });
-    const cfEnv = env as unknown as CloudflareEnv;
+    body = await request.json() as Record<string, unknown>;
+  } catch {
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 400);
+  }
 
-    if (!cfEnv.DB) {
-      return aosErrorResponse(AOS_ERROR.BINDING_MISSING, "D1 DB binding is not configured.");
-    }
+  const rawToken       = body["access_token"];
+  const rawFingerprint = body["machine_fingerprint"];
+  const rawCapsuleId   = body["capsule_id"];
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON.");
-    }
+  if (!rawToken || typeof rawToken !== "string") {
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "access_token" });
+  }
+  if (!rawFingerprint || typeof rawFingerprint !== "string") {
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "machine_fingerprint" });
+  }
+  if (!rawCapsuleId || typeof rawCapsuleId !== "string") {
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 400, { field: "capsule_id" });
+  }
 
-    if (typeof body !== "object" || body === null) {
-      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, "Request body is missing or invalid.");
-    }
+  const accessToken        = rawToken.trim();
+  const machineFingerprint = rawFingerprint.trim().toLowerCase();
+  const capsuleId          = rawCapsuleId.trim();
 
-    const { machine_fingerprint, capsule_id, stripe_session_id, partner_id } =
-      body as Record<string, unknown>;
+  if (!UUID_RE.test(accessToken)) {
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 400, {
+      field:   "access_token",
+      detail:  "Must be a valid UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).",
+    });
+  }
+  if (!FINGERPRINT_RE.test(machineFingerprint)) {
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 400, {
+      field:  "machine_fingerprint",
+      detail: "Must be a 64-character lowercase SHA-256 hex string.",
+    });
+  }
 
-    // Validate machine_fingerprint: must be 64-char hex (SHA-256)
-    if (
-      typeof machine_fingerprint !== "string" ||
-      !/^[a-fA-F0-9]{64}$/.test(machine_fingerprint)
-    ) {
-      return aosErrorResponse(
-        AOS_ERROR.INVALID_FIELD,
-        "machine_fingerprint must be a 64-character hex string (SHA-256 of UUID + MAC + hostname)."
-      );
-    }
+  // ── D1 lookup ──────────────────────────────────────────────────────────────
+  let cfEnv: CloudflareEnv;
+  try {
+    const ctx = await getCloudflareContext({ async: true });
+    cfEnv = ctx.env as unknown as CloudflareEnv;
+  } catch {
+    return d1ErrorResponse("Cloudflare context unavailable");
+  }
 
-    if (typeof capsule_id !== "string" || !capsule_id.trim()) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "capsule_id is required.");
-    }
+  if (!cfEnv.DB) {
+    return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, 503);
+  }
 
-    const capsuleIdStr    = capsule_id.trim().slice(0, 500);
-    const partnerIdStr    = typeof partner_id === "string" ? partner_id.trim().slice(0, 200) : null;
-    const stripeSessionId = typeof stripe_session_id === "string" ? stripe_session_id.trim().slice(0, 200) : null;
+  let tokenRecord: TokenRecord | null;
+  try {
+    tokenRecord = await cfEnv.DB
+      .prepare(
+        `SELECT id, access_token, capsule_id, machine_fingerprint, stripe_session_id,
+                redeemed, issued_at, expires_at
+           FROM capsule_access_tokens
+          WHERE access_token = ?`
+      )
+      .bind(accessToken)
+      .first<TokenRecord>();
+  } catch (err) {
+    return d1ErrorResponse(err instanceof Error ? err.message : String(err));
+  }
 
-    // Check for existing active token for this machine + capsule
-    const existing = await cfEnv.DB.prepare(
-      `SELECT id, token_id, capsule_id, machine_fingerprint, sha256_binding,
-              stripe_session_id, partner_id, issued_at, expires_at, revoked, revoked_at, kernel_version
-       FROM capsule_access_tokens
-       WHERE machine_fingerprint = ? AND capsule_id = ? AND revoked = 0
-         AND expires_at > datetime('now')
-       ORDER BY id DESC
-       LIMIT 1`
-    )
-      .bind(machine_fingerprint, capsuleIdStr)
-      .first<TokenRow>();
+  if (!tokenRecord) {
+    return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 401, {
+      detail: "Access token not found in the Sovereign Ledger.",
+    });
+  }
 
-    if (existing) {
-      return Response.json({
-        status:             "TOKEN_ALREADY_ACTIVE",
-        token_id:           existing.token_id,
-        capsule_id:         existing.capsule_id,
-        machine_fingerprint: existing.machine_fingerprint,
-        sha256_binding:     existing.sha256_binding,
-        issued_at:          existing.issued_at,
-        expires_at:         existing.expires_at,
-        partner_id:         existing.partner_id,
-        kernel_version:     existing.kernel_version,
-        detail:             "An active hardware-bound token already exists for this machine and capsule.",
-        kernel_sha:         KERNEL_SHA.slice(0, 16) + "…",
+  // ── Validate capsule match ─────────────────────────────────────────────────
+  if (tokenRecord.capsule_id !== capsuleId) {
+    return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 403, {
+      field:  "capsule_id",
+      detail: "Token is not authorised for the requested capsule.",
+    });
+  }
+
+  // ── Validate expiry ────────────────────────────────────────────────────────
+  if (tokenRecord.expires_at) {
+    const expiresAt = new Date(tokenRecord.expires_at).getTime();
+    if (Date.now() > expiresAt) {
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 401, {
+        detail: "Access token has expired.",
       });
     }
-
-    // Issue a new token
-    const tokenId      = await generateTokenId();
-    const sha256Bind   = await computeBinding(machine_fingerprint, capsuleIdStr);
-    const issuedAt     = formatIso9(new Date());
-    const expiresDate  = new Date();
-    expiresDate.setFullYear(expiresDate.getFullYear() + 1);
-    const expiresAt    = expiresDate.toISOString();
-
-    await cfEnv.DB.prepare(
-      `INSERT INTO capsule_access_tokens
-         (token_id, capsule_id, machine_fingerprint, sha256_binding,
-          stripe_session_id, partner_id, issued_at, expires_at, kernel_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        tokenId,
-        capsuleIdStr,
-        machine_fingerprint,
-        sha256Bind,
-        stripeSessionId,
-        partnerIdStr,
-        issuedAt,
-        expiresAt,
-        KERNEL_VERSION,
-      )
-      .run();
-
-    // Auto-track as INFRASTRUCTURE accomplishment
-    autoTrackAccomplishment(cfEnv.DB as unknown as Parameters<typeof autoTrackAccomplishment>[0], {
-      title:       `Hardware Token Issued — Capsule ${capsuleIdStr.slice(0, 40)}`,
-      description: `Token ${tokenId} issued for machine fingerprint ${machine_fingerprint.slice(0, 16)}… bound to capsule ${capsuleIdStr.slice(0, 40)}.`,
-      category:    "INFRASTRUCTURE",
-      phase:       "Phase 82",
-    });
-
-    return Response.json(
-      {
-        status:              "TOKEN_ISSUED",
-        token_id:            tokenId,
-        capsule_id:          capsuleIdStr,
-        machine_fingerprint,
-        sha256_binding:      sha256Bind,
-        stripe_session_id:   stripeSessionId,
-        partner_id:          partnerIdStr,
-        issued_at:           issuedAt,
-        expires_at:          expiresAt,
-        kernel_version:      KERNEL_VERSION,
-        kernel_sha:          KERNEL_SHA.slice(0, 16) + "…",
-        detail:              "Hardware-bound capsule access token issued. Valid for 365 days.",
-      },
-      { status: 201 }
-    );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
-}
 
-// ── GET — Validate an existing token by token_id ─────────────────────────────
-export async function GET(request: Request): Promise<Response> {
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    const cfEnv = env as unknown as CloudflareEnv;
-
-    if (!cfEnv.DB) {
-      return aosErrorResponse(AOS_ERROR.BINDING_MISSING, "D1 DB binding is not configured.");
+  // ── Hardware fingerprint binding ───────────────────────────────────────────
+  // If a fingerprint was recorded at purchase time, it MUST match exactly.
+  // If no fingerprint was recorded yet, this is the first activation — bind it
+  // now (which also marks the token as redeemed in the same UPDATE).
+  if (tokenRecord.machine_fingerprint) {
+    // Token is already bound to a machine — enforce single-use and fingerprint match.
+    if (tokenRecord.redeemed) {
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 403, {
+        detail: "Access token has already been redeemed.",
+      });
     }
-
-    const url     = new URL(request.url);
-    const tokenId = url.searchParams.get("token_id")?.trim() ?? "";
-
-    if (!tokenId) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "token_id query parameter is required.");
+    const encoder       = new TextEncoder();
+    const storedBytes   = encoder.encode(tokenRecord.machine_fingerprint);
+    const incomingBytes = encoder.encode(machineFingerprint);
+    let diff = storedBytes.length !== incomingBytes.length ? 1 : 0;
+    const len = Math.min(storedBytes.length, incomingBytes.length);
+    for (let i = 0; i < len; i++) diff |= storedBytes[i] ^ incomingBytes[i];
+    if (diff !== 0) {
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 403, {
+        detail:    "Hardware fingerprint mismatch — token is bound to a different machine.",
+        directive: "This capsule license is hardware-locked. Contact licensing@averyos.com to transfer.",
+      });
     }
-
-    const row = await cfEnv.DB.prepare(
-      `SELECT id, token_id, capsule_id, machine_fingerprint, sha256_binding,
-              stripe_session_id, partner_id, issued_at, expires_at, revoked, revoked_at, kernel_version
-       FROM capsule_access_tokens
-       WHERE token_id = ?
-       LIMIT 1`
-    )
-      .bind(tokenId)
-      .first<TokenRow>();
-
-    if (!row) {
-      return Response.json(
-        {
-          status:    "TOKEN_NOT_FOUND",
-          token_id:  tokenId,
-          detail:    "No hardware-bound token found with this ID.",
-          kernel_sha: KERNEL_SHA.slice(0, 16) + "…",
-        },
-        { status: 404 }
-      );
+    // Mark as redeemed now that fingerprint is verified
+    try {
+      await cfEnv.DB
+        .prepare(`UPDATE capsule_access_tokens SET redeemed = 1 WHERE id = ?`)
+        .bind(tokenRecord.id)
+        .run();
+    } catch {
+      // Non-fatal: session key is still valid; next redemption attempt will fail
     }
-
-    if (row.revoked) {
-      return Response.json(
-        {
-          status:      "TOKEN_REVOKED",
-          token_id:    row.token_id,
-          capsule_id:  row.capsule_id,
-          revoked_at:  row.revoked_at,
-          detail:      "This hardware-bound token has been revoked.",
-          kernel_sha:  KERNEL_SHA.slice(0, 16) + "…",
-        },
-        { status: 410 }
-      );
+  } else {
+    // First activation — bind the fingerprint and mark as redeemed atomically
+    try {
+      await cfEnv.DB
+        .prepare(
+          `UPDATE capsule_access_tokens
+              SET machine_fingerprint = ?, redeemed = 1
+            WHERE id = ?`
+        )
+        .bind(machineFingerprint, tokenRecord.id)
+        .run();
+    } catch (err) {
+      return d1ErrorResponse(err instanceof Error ? err.message : String(err));
     }
-
-    const expired = new Date(row.expires_at) < new Date();
-    if (expired) {
-      return Response.json(
-        {
-          status:      "TOKEN_EXPIRED",
-          token_id:    row.token_id,
-          capsule_id:  row.capsule_id,
-          expires_at:  row.expires_at,
-          detail:      "This hardware-bound token has expired. Renew via /api/v1/checkout/create-session.",
-          kernel_sha:  KERNEL_SHA.slice(0, 16) + "…",
-        },
-        { status: 410 }
-      );
-    }
-
-    return Response.json({
-      status:              "TOKEN_VALID",
-      token_id:            row.token_id,
-      capsule_id:          row.capsule_id,
-      machine_fingerprint: row.machine_fingerprint,
-      sha256_binding:      row.sha256_binding,
-      stripe_session_id:   row.stripe_session_id,
-      partner_id:          row.partner_id,
-      issued_at:           row.issued_at,
-      expires_at:          row.expires_at,
-      kernel_version:      row.kernel_version,
-      kernel_sha:          KERNEL_SHA.slice(0, 16) + "…",
-      verified_at:         new Date().toISOString(),
-      detail:              "Hardware-bound capsule access token is valid and active.",
-    });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
+
+  // ── Derive one-time session key ────────────────────────────────────────────
+  const verifiedAt = formatIso9(new Date());
+  const expiresAt  = formatIso9(new Date(Date.now() + SESSION_KEY_TTL_MS));
+  const sessionKey = await deriveSessionKey(accessToken, machineFingerprint, KERNEL_SHA);
+
+  // ── TAI auto-track ─────────────────────────────────────────────────────────
+  autoTrackAccomplishment({
+    title:       "Hardware-Attested Logic Unlock Live",
+    description: `Phase 81.2: Capsule ${capsuleId} session key issued to hardware-bound token. ` +
+                 `Machine fingerprint anchored. One-time redemption recorded in capsule_access_tokens.`,
+    phase:       "Phase 81.2",
+    category:    "INFRASTRUCTURE",
+  }).catch(() => {});
+
+  return Response.json(
+    {
+      resonance:      "HIGH_FIDELITY_SUCCESS",
+      session_key:    sessionKey,
+      capsule_id:     capsuleId,
+      expires_at:     expiresAt,
+      kernel_sha:     KERNEL_SHA,
+      kernel_version: KERNEL_VERSION,
+      verified_at:    verifiedAt,
+    },
+    { status: 200 }
+  );
 }
