@@ -166,8 +166,6 @@ interface EvidenceResult {
   detail?: string;
 }
 
-type ActiveTab = "alignment" | "evidence";
-
 export default function VaultChainExplorerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("hash");
 
@@ -177,18 +175,7 @@ export default function VaultChainExplorerPage() {
   const [hashLoading, setHashLoading] = useState(false);
   const [hashError,  setHashError]  = useState<string | null>(null);
 
-  const isValidHash  = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
-  const isValidRayId = rayIdInput.trim().length >= 8;
-
-  // Phase 82: Evidence Explorer state
-  const [evidenceId,     setEvidenceId]     = useState("");
-  const [vaultAuth,      setVaultAuth]      = useState("");
-  const [evidence,       setEvidence]       = useState<EvidenceResult | null>(null);
-  const [evidenceLoading, setEvidenceLoading] = useState(false);
-  const [evidenceError,   setEvidenceError]   = useState<string | null>(null);
-
-  const isValidHash     = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
-  const isValidEvidenceId = evidenceId.trim().length >= 10;
+  const isValidHash = /^[a-fA-F0-9]{128}$/.test(hashInput.trim());
 
   // ── Alignment verify ───────────────────────────────────────────────────────
   async function handleVerify(e: React.FormEvent) {
@@ -255,13 +242,6 @@ export default function VaultChainExplorerPage() {
       transition:    "all 0.2s",
     };
   }
-
-  const wafColor = (score: number | null | undefined) => {
-    if (score == null) return MUTED;
-    if (score > 80) return RED;
-    if (score > 40) return GOLD;
-    return GREEN;
-  };
 
   return (
     <main className="page" style={{ background: BG, minHeight: "100vh", color: "#fff" }}>
@@ -589,8 +569,8 @@ export default function VaultChainExplorerPage() {
           </label>
           <input
             type="text"
-            value={rayIdInput}
-            onChange={(e) => setRayIdInput(e.target.value)}
+            value={rayInput}
+            onChange={(e) => setRayInput(e.target.value)}
             placeholder="Enter Cloudflare RayID (e.g. 8a3f1b2c4d5e6f7g) or SHA-512 hash…"
             maxLength={128}
             spellCheck={false}
@@ -609,25 +589,25 @@ export default function VaultChainExplorerPage() {
           />
           <button
             type="submit"
-            disabled={!isValidRayId || evidenceLoading}
+            disabled={!isValidRayId || rayLoading}
             style={{
               alignSelf:    "flex-start",
-              background:   isValidRayId && !evidenceLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
+              background:   isValidRayId && !rayLoading ? BLUE_DIM : "rgba(100,180,255,0.1)",
               border:       "none",
               borderRadius: "6px",
-              color:        isValidRayId && !evidenceLoading ? "#000" : MUTED,
-              cursor:       isValidRayId && !evidenceLoading ? "pointer" : "not-allowed",
+              color:        isValidRayId && !rayLoading ? "#000" : MUTED,
+              cursor:       isValidRayId && !rayLoading ? "pointer" : "not-allowed",
               fontSize:     "0.9rem",
               fontWeight:   700,
               padding:      "0.6rem 1.8rem",
               transition:   "background 0.2s",
             }}
           >
-            {evidenceLoading ? "Fetching…" : "Fetch Evidence 🔍"}
+            {rayLoading ? "Fetching…" : "Fetch Evidence 🔍"}
           </button>
         </form>
 
-        {evidenceError && (
+        {rayError && (
           <div style={{
             marginTop:    "1.5rem",
             background:   "rgba(255,68,68,0.08)",
@@ -636,11 +616,11 @@ export default function VaultChainExplorerPage() {
             padding:      "1rem 1.25rem",
             color:        RED,
           }}>
-            {evidenceError}
+            {rayError}
           </div>
         )}
 
-        {evidenceResult && !evidenceResult.error && (
+        {rayResult && !rayResult.error && (
           <div style={{
             marginTop:    "1.5rem",
             background:   "rgba(100,180,255,0.05)",
@@ -664,16 +644,16 @@ export default function VaultChainExplorerPage() {
             </div>
             <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem", margin: 0 }}>
               {([
-                ["Capsule ID",    evidenceResult.CapsuleID],
-                ["Capsule Type",  evidenceResult.CapsuleType],
-                ["Event Type",    evidenceResult.EventType],
-                ["Event ID",      String(evidenceResult.EventId ?? "")],
-                ["Target IP",     evidenceResult.TargetIP],
-                ["Target Path",   evidenceResult.TargetPath],
-                ["Geo Location",  evidenceResult.GeoLocation],
-                ["Threat Level",  String(evidenceResult.ThreatLevel ?? "")],
-                ["Packaged At",   evidenceResult.PackagedAt],
-                ["Kernel Version",evidenceResult.KernelVersion],
+                ["Capsule ID",    rayResult.CapsuleID],
+                ["Capsule Type",  rayResult.CapsuleType],
+                ["Event Type",    rayResult.EventType],
+                ["Event ID",      String(rayResult.EventId ?? "")],
+                ["Target IP",     rayResult.TargetIP],
+                ["Target Path",   rayResult.TargetPath],
+                ["Geo Location",  rayResult.GeoLocation],
+                ["Threat Level",  String(rayResult.ThreatLevel ?? "")],
+                ["Packaged At",   rayResult.PackagedAt],
+                ["Kernel Version",rayResult.KernelVersion],
               ] as [string, string | undefined][]).map(([label, value]) => (
                 value ? (
                   <>
