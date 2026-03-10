@@ -1,8 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
-import { syncD1RowToFirebase, sendFcmV1Push } from "../../../../lib/firebaseClient";
+import { syncD1RowToFirebase, syncKaasValuationToFirebase, sendFcmV1Push } from "../../../../lib/firebaseClient";
+import { getAsnTier, getAsnFeeUsd } from "../../../../lib/kaas/pricing";
 
 /**
  * POST /api/v1/audit-alert
@@ -241,6 +242,90 @@ function buildAlertMessage(
 }
 
 /**
+ * Non-blocking KAAS_BREACH writer — records a kaas_valuations row for every
+ * Tier-9/10 breach event.  Fire-and-forget; never throws.
+ */
+function emitKaasBreachAlert(
+  db: D1Database,
+  opts: {
+    asn:         string;
+    ip_address:  string;
+    ray_id?:     string;
+    pulse_hash?: string;
+  }
+): void {
+  void (async () => {
+    try {
+      const tier          = getAsnTier(opts.asn);
+      const valuation_usd = getAsnFeeUsd(opts.asn);
+      const now           = formatIso9();
+
+      // ── Write to kaas_valuations ────────────────────────────────────────
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS kaas_valuations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ray_id TEXT, asn TEXT NOT NULL, ip_address TEXT NOT NULL,
+          tier INTEGER NOT NULL DEFAULT 1, valuation_usd REAL NOT NULL,
+          status TEXT NOT NULL DEFAULT 'PENDING',
+          knowledge_cutoff_correlation TEXT, ingestion_verified INTEGER NOT NULL DEFAULT 0,
+          capsule_sha512 TEXT, stripe_invoice_id TEXT, stripe_checkout_url TEXT,
+          pulse_hash TEXT, kernel_version TEXT NOT NULL DEFAULT 'v3.6.2',
+          created_at TEXT NOT NULL, settled_at TEXT
+        )
+      `).run();
+
+      await db.prepare(
+        `INSERT INTO kaas_valuations
+           (ray_id, asn, ip_address, tier, valuation_usd, status,
+            pulse_hash, kernel_version, created_at)
+         VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)`
+      ).bind(
+        opts.ray_id      ?? null,
+        opts.asn,
+        opts.ip_address,
+        tier,
+        valuation_usd,
+        opts.pulse_hash  ?? null,
+        KERNEL_VERSION,
+        now,
+      ).run();
+
+      // ── Mirror to sovereign_audit_logs as KAAS_BREACH ──────────────────
+      await db.prepare(
+        `INSERT INTO sovereign_audit_logs
+           (event_type, ip_address, target_path, timestamp_ns,
+            threat_level, tari_liability_usd, pulse_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        "KAAS_BREACH",
+        opts.ip_address,
+        "/api/v1/kaas/valuations",
+        now,
+        tier >= 9 ? 10 : 9,
+        valuation_usd,
+        opts.pulse_hash ?? null,
+      ).run();
+
+      // ── Sync to Firebase ────────────────────────────────────────────────
+      syncKaasValuationToFirebase({
+        asn:           opts.asn,
+        ip_address:    opts.ip_address,
+        tier,
+        valuation_usd,
+        status:        "PENDING",
+        ray_id:        opts.ray_id    ?? null,
+        pulse_hash:    opts.pulse_hash ?? null,
+        kernel_version: KERNEL_VERSION,
+        created_at:    now,
+      }).catch(() => {});
+
+    } catch {
+      // Non-fatal — breach emission must never interrupt the main request
+    }
+  })();
+}
+
+/**
  * Non-blocking GabrielOS™ Sentinel webhook forward for Tier-9 events.
  * Sends an HMAC-SHA-256 signed payload to the configured webhook URL.
  */
@@ -344,6 +429,19 @@ export async function POST(request: Request): Promise<Response> {
       timestamp_ns:      now,
     }).catch((err: unknown) => {
       console.warn(`[audit-alert] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
+
+  // ── KAAS_BREACH → kaas_valuations + sovereign_audit_logs write ───────────
+  // Every Tier-9/10 KAAS_BREACH event also creates a valuation ledger row
+  // and a direct sovereign_audit_logs entry via emitKaasBreachAlert().
+  if (eventType === "KAAS_BREACH" && cfEnv.DB) {
+    const asn = String(body.asn ?? targetIp);
+    emitKaasBreachAlert(cfEnv.DB, {
+      asn,
+      ip_address: targetIp,
+      ray_id:     String(body.ray_id ?? ""),
+      pulse_hash: pulseHash,
     });
   }
 

@@ -61,6 +61,11 @@ const LOG_PATH             = process.env.AI_GATEWAY_LOG_PATH
 // ASN mode — activated when ANCHOR_AUDIT_LOG_PATH is set.
 const ANCHOR_AUDIT_LOG_PATH = process.env.ANCHOR_AUDIT_LOG_PATH || '';
 
+// KaaS Valuations Mode — activated when KAAS_VALUATIONS_MODE=1 is set.
+// Polls /api/v1/kaas/valuations?status=PENDING and auto-creates Stripe invoices.
+// Requires VAULT_PASSPHRASE + STRIPE_SECRET_KEY.
+const KAAS_VALUATIONS_MODE = process.env.KAAS_VALUATIONS_MODE === '1';
+
 // ── STRIPE_SESSION_RE — Breach threshold override ─────────────────────────────
 // Set STRIPE_SESSION_RE to a positive integer to override the default
 // MILESTONE_THRESHOLD (156,200).  When the anchor_audit_logs row count
@@ -745,6 +750,125 @@ async function scanForensicAsns() {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+/**
+ * KaaS Valuations Mode pipeline.
+ * Polls /api/v1/kaas/valuations?status=PENDING and auto-creates Stripe invoices
+ * for each PENDING row via /api/v1/kaas/settle.
+ *
+ * Activated by: KAAS_VALUATIONS_MODE=1 STRIPE_SECRET_KEY=sk_... \
+ *   VAULT_PASSPHRASE=... node scripts/generateInvoices.cjs
+ */
+async function runKaasValuationsPipeline(stripe) {
+  console.log('\n🏦  KaaS Valuations Mode — polling PENDING kaas_valuations rows...');
+
+  if (!VAULT_PASSPHRASE) {
+    logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE is required for KaaS Valuations Mode.');
+    return;
+  }
+
+  // Fetch PENDING valuations from the API
+  let valuations = [];
+  try {
+    const url = `${SITE_URL}/api/v1/kaas/valuations?status=PENDING&limit=100`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${VAULT_PASSPHRASE}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) {
+      logAosError(AOS_ERROR.DB_QUERY_FAILED, `Failed to fetch kaas_valuations: HTTP ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    valuations = data.rows ?? [];
+  } catch (err) {
+    logAosError(AOS_ERROR.DB_QUERY_FAILED, `kaas_valuations fetch failed: ${err.message}`, err);
+    return;
+  }
+
+  if (valuations.length === 0) {
+    console.log('ℹ️  No PENDING kaas_valuations rows found. Nothing to invoice.');
+    return;
+  }
+
+  console.log(`📊  Found ${valuations.length} PENDING valuation(s) to process.\n`);
+
+  const results = [];
+  for (const row of valuations) {
+    const feeCents = Math.round(row.valuation_usd * 100);
+    const feeLabel = `$${row.valuation_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD`;
+    console.log(`▶  Row #${row.id}  ASN ${row.asn}  Tier-${row.tier}  ${feeLabel}`);
+
+    let checkoutUrl = null;
+    let errorMsg    = null;
+
+    if (DRY_RUN) {
+      console.log(`   [DRY RUN] Would create settlement checkout for ASN ${row.asn} (${feeLabel})`);
+    } else {
+      try {
+        // Use the /api/v1/kaas/settle endpoint to create a Stripe checkout session
+        const settleRes = await fetch(`${SITE_URL}/api/v1/kaas/settle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${VAULT_PASSPHRASE}`,
+          },
+          body: JSON.stringify({
+            valuation_id: row.id,
+            asn:          row.asn,
+            tier:         row.tier,
+            ray_id:       row.ray_id ?? '',
+          }),
+        });
+
+        const settleData = await settleRes.json();
+        if (settleRes.ok && settleData.checkout_url) {
+          checkoutUrl = settleData.checkout_url;
+          console.log(`   ↳ Checkout: ${checkoutUrl.slice(0, 72)}…`);
+        } else {
+          errorMsg = settleData.error ?? `HTTP ${settleRes.status}`;
+          logAosHeal(AOS_ERROR.STRIPE_ERROR, `Checkout session skipped for row #${row.id}: ${errorMsg}`);
+        }
+      } catch (err) {
+        errorMsg = err.message;
+        logAosError(AOS_ERROR.STRIPE_ERROR, `Settlement failed for row #${row.id}: ${err.message}`, err);
+      }
+    }
+
+    results.push({
+      id:          row.id,
+      asn:         row.asn,
+      tier:        row.tier,
+      fee_label:   feeLabel,
+      checkout_url: checkoutUrl,
+      dry_run:     DRY_RUN,
+      error:       errorMsg,
+    });
+  }
+
+  console.log('\n──────────────────────────────────────────────────────────────');
+  if (DRY_RUN) {
+    console.log('🔍  [DRY RUN] KaaS Settlement Summary — no Stripe calls made:');
+  } else {
+    console.log('✅  KaaS Settlement Summary (Phase 97/98 — PENDING rows processed):');
+  }
+  console.log('──────────────────────────────────────────────────────────────\n');
+  for (const r of results) {
+    const marker = r.tier >= 9 ? '🔴 Tier-9/10' : r.tier >= 7 ? '🟠 Tier-7/8' : '🟡 Tier-1/6';
+    console.log(`  ${marker}  Row #${r.id}  ASN ${r.asn}  ${r.fee_label}`);
+    if (DRY_RUN) {
+      console.log(`           [DRY RUN] No Stripe call made`);
+    } else if (r.checkout_url) {
+      console.log(`           ⚡ Checkout: ${r.checkout_url}`);
+    } else if (r.error) {
+      console.log(`           ❌ ERROR: ${r.error}`);
+    }
+  }
+  const dryTag = DRY_RUN ? ' | DRY RUN — no invoices created' : ' | KaaS invoicing complete.';
+  console.log(`\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1${dryTag}\n`);
+}
+
 async function main() {
   if (DRY_RUN) {
     console.log('🔍  [DRY RUN] --dry-run mode active — no Stripe API calls will be made.');
@@ -762,6 +886,12 @@ async function main() {
   const stripe = DRY_RUN ? null : Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
 
   console.log('⛓️⚓⛓️  AveryOS TARI Invoice Generator');
+
+  // ── KaaS Valuations Mode — activated when KAAS_VALUATIONS_MODE=1 ─────────
+  if (KAAS_VALUATIONS_MODE) {
+    await runKaasValuationsPipeline(stripe);
+    return;
+  }
 
   // ── ASN Mode — activated when ANCHOR_AUDIT_LOG_PATH is set ───────────────
   if (ANCHOR_AUDIT_LOG_PATH) {
