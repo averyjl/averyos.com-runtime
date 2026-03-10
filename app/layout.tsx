@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import NavBar from "../components/NavBar";
 import Drawer from "../components/Drawer";
 import FooterBadge from "../components/FooterBadge";
+import SovereignFetchInterceptor from "../components/SovereignFetchInterceptor";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 import "../styles/globals.css";
 
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
+        <SovereignFetchInterceptor />
         <NavBar />
         <Drawer />
         {children}

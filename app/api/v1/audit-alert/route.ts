@@ -411,6 +411,14 @@ export async function POST(request: Request): Promise<Response> {
       style: "currency",
       currency: "USD",
     });
+
+    // KAAS_BREACH enrichment (Gate 8 — GabrielOS™ Mobile Push v3):
+    // Include valuation_usd, asn, and tier in the FCM data payload so the
+    // Creator's mobile app can render a detailed financial summary.
+    const kaasAsn          = eventType === "KAAS_BREACH" ? String(body.asn ?? "") : "";
+    const kaasTier         = eventType === "KAAS_BREACH" ? String(body.tier ?? "") : "";
+    const kaasValuationUsd = eventType === "KAAS_BREACH" ? String(body.valuation_usd ?? liabilityUsd) : "";
+
     sendFcmV1Push(
       `🚨 TIER-${threatLevel} GabrielOS™: ${eventType}`,
       buildAlertMessage(targetIp, targetPath, liabilityFmt, pulseHash, signedEvidenceUrl),
@@ -420,6 +428,10 @@ export async function POST(request: Request): Promise<Response> {
         kernel_sha:        KERNEL_SHA.slice(0, 16) + "…",
         sovereign_anchor:  "⛓️⚓⛓️",
         creator_lock:      "🤛🏻",
+        // KAAS_BREACH-specific fields (populated only for KAAS_BREACH events)
+        ...(kaasAsn          ? { asn:           kaasAsn }          : {}),
+        ...(kaasTier         ? { tier:          kaasTier }         : {}),
+        ...(kaasValuationUsd ? { valuation_usd: kaasValuationUsd } : {}),
       },
     ).catch((err: unknown) => {
       console.warn(`[audit-alert] FCM v1 delivery failed: ${err instanceof Error ? err.message : String(err)}`);

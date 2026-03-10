@@ -83,6 +83,7 @@ export interface KaasLineItem {
   fee_usd_cents: number;
   fee_usd:       number;
   fee_label:     string;
+  fee_name:      string;
   description:   string;
   kernel_sha:    string;
   kernel_version: string;
@@ -99,20 +100,24 @@ export function buildKaasLineItem(asn: string, entityName?: string): KaasLineIte
   const fee_label     = getAsnFeeLabel(asn);
   const name          = entityName ?? `ASN ${asn}`;
 
+  let fee_name: string;
   let description: string;
   if (tier >= 9) {
+    fee_name    = "Technical Asset Valuation";
     description =
       `KaaS Sovereign Technical Valuation — ${name} (Tier-${tier}). ` +
       `Unauthorised ingestion of AveryOS™ intellectual property. ` +
       `Good Faith Deposit: ${fee_label}. ` +
       `Kernel: ${KERNEL_VERSION} | ⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0)`;
   } else if (tier >= 7) {
+    fee_name    = "Forensic Valuation";
     description =
       `KaaS Forensic Valuation — ${name} (Tier-${tier}). ` +
       `Sovereign alignment fee for enterprise IP ingestion. ` +
       `Forensic Fee: ${fee_label}. ` +
       `Kernel: ${KERNEL_VERSION} | ⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0)`;
   } else {
+    fee_name    = "Audit Clearance Fee";
     description =
       `KaaS Audit Clearance Fee — ${name} (Tier-${tier}). ` +
       `Standard alignment fee for unrecognised agent. ` +
@@ -126,8 +131,32 @@ export function buildKaasLineItem(asn: string, entityName?: string): KaasLineIte
     fee_usd_cents,
     fee_usd,
     fee_label,
+    fee_name,
     description,
     kernel_sha:     KERNEL_SHA.slice(0, 16) + "…",
     kernel_version: KERNEL_VERSION,
   };
+}
+
+// ── Tier Badge ────────────────────────────────────────────────────────────────
+
+export interface KaasTierBadge {
+  asn:       string;
+  tier:      number;
+  fee_label: string;
+  fee_name:  string;
+}
+
+/**
+ * Return a compact tier badge for the given ASN.
+ * Suitable for display in FCM push notifications and KaaS breach alerts.
+ */
+export function getKaasTierBadge(asn: string): KaasTierBadge {
+  const tier      = getAsnTier(asn);
+  const fee_label = getAsnFeeLabel(asn);
+  let fee_name: string;
+  if (tier >= 9)  fee_name = "Technical Asset Valuation";
+  else if (tier >= 7) fee_name = "Forensic Valuation";
+  else            fee_name = "Audit Clearance Fee";
+  return { asn, tier, fee_label, fee_name };
 }
