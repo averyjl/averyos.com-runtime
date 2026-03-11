@@ -76,37 +76,37 @@ const TIME_SOURCES: Array<{
   {
     name: "LocalFallback-1",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-2",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-3",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-4",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-5",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-6",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-7",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
 ];
 

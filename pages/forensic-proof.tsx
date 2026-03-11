@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSiteUrl } from "../lib/siteConfig";
 import AnchorBanner from "../components/AnchorBanner";
-import FooterBadge from "../components/FooterBadge";
 
 const G = "#ffffff";
 

@@ -44,21 +44,37 @@ export async function GET(request: Request): Promise<Response> {
     const db         = persist ? (cfEnv.DB ?? null) : null;
     const vaultChain = persist ? (cfEnv.VAULT ?? null) : null;
 
-    const result = await getSovereignTime(db, vaultChain);
+    const result = await getSovereignTime(
+      db ? async (r) => {
+        await db
+          .prepare(
+            `INSERT OR IGNORE INTO sovereign_time_log
+             (iso9, consensus_ms, sha512, consensus_count, outlier_count, kernel_sha)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(r.iso9, r.consensusMs, r.sha512, r.consensusCount, r.outlierCount, r.kernelSha)
+          .run();
+      } : undefined,
+      vaultChain ? async (r) => {
+        await vaultChain.put(`sovereign_time/${r.iso9}`, JSON.stringify(r));
+      } : undefined,
+    );
 
     return Response.json(
       {
         ok: true,
         sovereign_time: {
-          consensus_iso9:         result.consensusIso9,
+          consensus_iso9:         result.iso9,
           consensus_ms:           result.consensusMs,
           sha512:                 result.sha512,
-          consensus_source_count: result.consensusSourceCount,
-          outlier_count:          result.outliers.length,
-          outliers:               result.outliers.map((o) => ({
-            source: o.source,
-            delta_ms: Math.abs(o.timestampMs - result.consensusMs),
-          })),
+          consensus_source_count: result.consensusCount,
+          outlier_count:          result.outlierCount,
+          outliers:               result.sources
+            .filter((s) => !s.included && s.epochMs != null)
+            .map((s) => ({
+              source:   s.name,
+              delta_ms: s.deviationMs ?? 0,
+            })),
           kernel_sha:             KERNEL_SHA,
           kernel_version:         KERNEL_VERSION,
         },

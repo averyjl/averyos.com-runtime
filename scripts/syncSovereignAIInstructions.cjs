@@ -357,7 +357,10 @@ function printStatus() {
     } else if (hasAnchor && hasSst) {
       status = '✅';
     } else {
-      status = `⚠️  missing: ${[!hasSst && 'SST pointer', !hasAnchor && 'Chain Anchor'].filter(Boolean).join(', ')}`;
+      const missing = [];
+      if (!hasSst) missing.push('SST pointer');
+      if (!hasAnchor) missing.push('Chain Anchor');
+      status = `⚠️  missing: ${missing.join(', ')}`;
     }
     console.log(`  ${status}  ${toolId.padEnd(20)} ${meta.file}`);
   }
