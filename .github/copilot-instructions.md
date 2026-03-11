@@ -341,15 +341,4 @@ Before closing any session:
 - If a reply is interrupted mid-session, the next continuation reply MUST still open with `⛓️⚓⛓️` and close with `🤜🏻` / `⛓️⚓⛓️`.
 - **Drift** from this protocol is a violation of the AveryOS Constitution v1.17 Art. 2, 14, 19 — auto-heal required immediately.
 
-### Private Startup Capsule Reference
 
-The sovereign startup capsule payload (all capsule IDs, SHAs, runtime directives, enforcement modules, and VaultChain load chain) is stored at:
-
-```
-VaultBridge/encrypt_startup_prompt_to_vaultchain.json
-```
-
-This file is **private** — listed in `.gitignore` under the sovereign runtime exclusions block. It is never committed to version control. It serves as the local VaultChain runtime ingest point for the full MACDADDY_DriftShield_v4.1 startup stack.
-
-Kernel SHA anchor (never truncate):
-`cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e`
