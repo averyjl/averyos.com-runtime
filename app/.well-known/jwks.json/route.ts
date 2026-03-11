@@ -17,17 +17,9 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { getCloudflareContext }   from "@opennextjs/cloudflare";
+import { getCloudflareContext }     from "@opennextjs/cloudflare";
+import { getSovereignKeys }         from "../../../lib/security/keys";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
-
-// ── Local types ───────────────────────────────────────────────────────────────
-
-interface CloudflareEnv {
-  /** Base64-encoded RSA public key PEM for the AveryOS™ signing key. */
-  AVERYOS_PUBLIC_KEY_B64?: string;
-  /** Raw PEM RSA public key (alternative to B64 version). */
-  AVERYOS_PUBLIC_KEY?:     string;
-}
 
 // ── JWK construction helpers ──────────────────────────────────────────────────
 
@@ -43,60 +35,35 @@ async function cryptoKeyToJwk(key: CryptoKey): Promise<JsonWebKey | null> {
   }
 }
 
-/**
- * Import a PEM-formatted RSA public key into a CryptoKey.
- * Strips the PEM headers and base64-decodes the DER bytes.
- */
-async function importPemPublicKey(pem: string): Promise<CryptoKey | null> {
-  try {
-    const lines = pem
-      .replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----/g, "")
-      .replace(/\s+/g, "");
-    const der = Uint8Array.from(atob(lines), c => c.charCodeAt(0));
-    return await crypto.subtle.importKey(
-      "spki",
-      der.buffer,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      true,
-      ["verify"],
-    );
-  } catch {
-    return null;
-  }
-}
-
 // ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: Request): Promise<Response> {
   const { env } = await getCloudflareContext({ async: true });
-  const cfEnv   = env as unknown as CloudflareEnv;
+  const cfEnv   = env as unknown as Record<string, string | undefined>;
 
-  // ── Resolve PEM public key ────────────────────────────────────────────────
-  let pemKey: string | null = null;
-
-  if (cfEnv.AVERYOS_PUBLIC_KEY_B64) {
-    try { pemKey = atob(cfEnv.AVERYOS_PUBLIC_KEY_B64); }
-    catch { pemKey = null; }
-  } else if (cfEnv.AVERYOS_PUBLIC_KEY) {
-    pemKey = cfEnv.AVERYOS_PUBLIC_KEY.replace(/\\n/g, "\n");
-  }
+  // ── Resolve key pair via the sovereign key loader ─────────────────────────
+  const keyPair = await getSovereignKeys({
+    AVERYOS_PRIVATE_KEY_B64: cfEnv.AVERYOS_PRIVATE_KEY_B64,
+    AVERYOS_PUBLIC_KEY_B64:  cfEnv.AVERYOS_PUBLIC_KEY_B64,
+  });
 
   // ── Build JWKS ────────────────────────────────────────────────────────────
   let jwks: { keys: (JsonWebKey & { kid: string; use: string; alg: string })[] };
 
-  if (pemKey) {
-    const cryptoKey = await importPemPublicKey(pemKey);
-    const jwk       = cryptoKey ? await cryptoKeyToJwk(cryptoKey) : null;
+  if (keyPair.publicKey) {
+    const jwk = await cryptoKeyToJwk(keyPair.publicKey);
 
     if (jwk) {
       // Decorate with JWKS standard fields
       jwks = {
         keys: [{
           ...jwk,
-          kid: `averyos-sovereign-key-${KERNEL_VERSION}`,
+          kid: keyPair.kid,
           use: "sig",
           alg: "RS256",
           // AveryOS™ sovereign extensions
+          "x-averyos-status":         "ACTIVE",
+          // Display-only abbreviated SHA (first 32 hex chars); not for verification
           "x-averyos-kernel-sha":     KERNEL_SHA.slice(0, 32) + "…",
           "x-averyos-kernel-version": KERNEL_VERSION,
           "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
@@ -104,7 +71,7 @@ export async function GET(request: Request): Promise<Response> {
         } as JsonWebKey & { kid: string; use: string; alg: string }],
       };
     } else {
-      // PEM import failed — return pending manifest
+      // Key export failed — return pending manifest
       jwks = buildPendingJwks(request);
     }
   } else {
