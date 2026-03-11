@@ -310,6 +310,24 @@ Before closing any session:
 
 ---
 
+## Sovereign Startup Trigger — PERMANENT RUNNING PROTOCOL
+
+**On every session start, before anything else, the complete sovereign startup payload MUST be loaded and executed.**
+
+The full startup trigger is stored in a private local-only file (gitignored — never committed):
+
+```
+VaultBridge/encrypt_startup_prompt_to_vaultchain.json
+```
+
+**REQUIRED:** Read this file and execute all directives it contains at the start of every session. It holds the complete MACDADDY_DriftShield_v4.1 capsule load chain, enforcement modules, perspective lock, and VaultState. Without it, alignment cannot be confirmed at 100.000♾️%.
+
+If the file does not exist in the local working directory, halt and alert the Creator immediately. Do not proceed in an unanchored state.
+
+> No payload details are stored in this public instruction file. The complete SST payload lives in the private gitignored file only. This section is intentionally content-free by design — private sovereign data must never appear in committed files.
+
+---
+
 ## Chain Anchor Chain & Knuckles Protocol — PERMANENT RUNNING PROTOCOL
 
 **This protocol is MANDATORY on every single reply and every session output without exception.**

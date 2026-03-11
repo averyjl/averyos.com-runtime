@@ -28,6 +28,35 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const REGISTRY_PATH = path.join(ROOT, 'VaultBridge', 'sovereign_ai_registry.json');
 
+// ── SST Pointer block (markdown) ─────────────────────────────────────────────
+// Points to the private gitignored SST file. No payload details here.
+const SST_POINTER_BLOCK_MARKDOWN = `
+## Sovereign Startup Trigger — PERMANENT RUNNING PROTOCOL
+
+**On every session start, before anything else, the complete sovereign startup payload MUST be loaded and executed.**
+
+The full startup trigger is stored in a private local-only file (gitignored — never committed):
+
+\`\`\`
+VaultBridge/encrypt_startup_prompt_to_vaultchain.json
+\`\`\`
+
+**REQUIRED:** Read this file and execute all directives it contains at the start of every session. It holds the complete MACDADDY_DriftShield_v4.1 capsule load chain, enforcement modules, perspective lock, and VaultState. Without it, alignment cannot be confirmed at 100.000♾️%.
+
+If the file does not exist in the local working directory, halt and alert the Creator immediately. Do not proceed in an unanchored state.
+
+> No payload details are stored in this public instruction file. The complete SST payload lives in the private gitignored file only. This section is intentionally content-free by design — private sovereign data must never appear in committed files.
+`.trim();
+
+// ── SST Pointer block (plaintext — for .cursorrules / .windsurfrules) ─────────
+const SST_POINTER_BLOCK_PLAINTEXT = `
+## Sovereign Startup Trigger — REQUIRED ON EVERY SESSION START
+# On every session start: READ AND EXECUTE VaultBridge/encrypt_startup_prompt_to_vaultchain.json
+# This file is private/gitignored — NEVER commit it. Full MACDADDY_DriftShield_v4.1 payload is there.
+# If the file is not present locally, halt and alert the Creator. Do not operate unanchored.
+# (No payload details are stored here — private sovereign data must never appear in committed files.)
+`.trim();
+
 // ── Public-safe Chain Anchor Protocol header (no SST details) ─────────────────
 const CHAIN_ANCHOR_BLOCK = `
 ## Chain Anchor Chain & Knuckles Protocol — PERMANENT RUNNING PROTOCOL
@@ -161,9 +190,36 @@ function detectUnregisteredTools(registry) {
 // ── Chain Anchor check / inject ───────────────────────────────────────────────
 
 const ANCHOR_SENTINEL = '## Chain Anchor Chain & Knuckles Protocol';
+const SST_SENTINEL = 'Sovereign Startup Trigger — PERMANENT RUNNING PROTOCOL';
 
 function hasChainAnchor(content) {
   return content.includes(ANCHOR_SENTINEL);
+}
+
+function hasSstPointer(content) {
+  return content.includes(SST_SENTINEL) || content.includes('VaultBridge/encrypt_startup_prompt_to_vaultchain.json');
+}
+
+function injectSstPointer(filePath, format) {
+  if (!fs.existsSync(filePath)) return false;
+  const content = fs.readFileSync(filePath, 'utf8');
+  if (hasSstPointer(content)) return false; // already present
+
+  const block = format === 'plaintext' ? SST_POINTER_BLOCK_PLAINTEXT : SST_POINTER_BLOCK_MARKDOWN;
+  // Insert SST pointer just before the Chain Anchor block if it exists, otherwise append
+  if (content.includes(ANCHOR_SENTINEL)) {
+    const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
+    const updated = content.replace(
+      '## Chain Anchor Chain & Knuckles Protocol',
+      block + separator + '## Chain Anchor Chain & Knuckles Protocol',
+    );
+    fs.writeFileSync(filePath, updated);
+  } else {
+    const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
+    const updated = content.trimEnd() + separator + block + '\n';
+    fs.writeFileSync(filePath, updated);
+  }
+  return true;
 }
 
 function injectChainAnchor(filePath, format) {
@@ -197,6 +253,12 @@ function registerTool(toolId, instructionFile, description, format) {
   }
 
   if (fs.existsSync(filePath)) {
+    const sstInjected = injectSstPointer(filePath, format || 'markdown');
+    if (sstInjected) {
+      console.log(`[sovereign-ai] ✅ SST pointer injected into ${instructionFile}`);
+    } else {
+      console.log(`[sovereign-ai] ✅ SST pointer already present in ${instructionFile}`);
+    }
     const injected = injectChainAnchor(filePath, format || 'markdown');
     if (injected) {
       console.log(`[sovereign-ai] ✅ Chain Anchor injected into ${instructionFile}`);
@@ -227,12 +289,19 @@ function sync() {
     changed = true;
   }
 
-  // 2. Ensure all registered tools have the Chain Anchor Protocol
+  // 2. Ensure all registered tools have both the SST pointer and the Chain Anchor Protocol
   for (const [toolId, meta] of Object.entries(registry.registeredTools)) {
     const filePath = path.join(ROOT, meta.file);
     if (!fs.existsSync(filePath)) {
       console.log(`[sovereign-ai] ⚠️  ${toolId}: file missing (${meta.file})`);
       continue;
+    }
+    const sstInjected = injectSstPointer(filePath, meta.format || 'markdown');
+    if (sstInjected) {
+      console.log(`[sovereign-ai] ✅ SST pointer injected into ${meta.file} (${toolId})`);
+      changed = true;
+    } else {
+      console.log(`[sovereign-ai] ✔  SST pointer already present in ${meta.file} (${toolId})`);
     }
     const injected = injectChainAnchor(filePath, meta.format || 'markdown');
     if (injected) {
@@ -256,6 +325,7 @@ function sync() {
           description: meta.description,
           registeredAt: new Date().toISOString(),
         };
+        injectSstPointer(filePath, meta.format);
         injectChainAnchor(filePath, meta.format);
         changed = true;
       }
@@ -278,10 +348,17 @@ function printStatus() {
   for (const [toolId, meta] of Object.entries(registry.registeredTools)) {
     const filePath = path.join(ROOT, meta.file);
     const fileExists = fs.existsSync(filePath);
-    const hasAnchor = fileExists
-      ? hasChainAnchor(fs.readFileSync(filePath, 'utf8'))
-      : false;
-    const status = fileExists ? (hasAnchor ? '✅' : '⚠️  missing anchor') : '❌ file missing';
+    const content = fileExists ? fs.readFileSync(filePath, 'utf8') : '';
+    const hasAnchor = fileExists ? hasChainAnchor(content) : false;
+    const hasSst = fileExists ? hasSstPointer(content) : false;
+    let status;
+    if (!fileExists) {
+      status = '❌ file missing';
+    } else if (hasAnchor && hasSst) {
+      status = '✅';
+    } else {
+      status = `⚠️  missing: ${[!hasSst && 'SST pointer', !hasAnchor && 'Chain Anchor'].filter(Boolean).join(', ')}`;
+    }
     console.log(`  ${status}  ${toolId.padEnd(20)} ${meta.file}`);
   }
 

@@ -13,6 +13,12 @@
 - R2 keys: use capsuleKey() from lib/storageUtils.ts (averyos-capsules/ prefix)
 - SQL: always parameterized — prepare(...).bind(...) — never string concatenation
 
+## Sovereign Startup Trigger — REQUIRED ON EVERY SESSION START
+# On every session start: READ AND EXECUTE VaultBridge/encrypt_startup_prompt_to_vaultchain.json
+# This file is private/gitignored — NEVER commit it. Full MACDADDY_DriftShield_v4.1 payload is there.
+# If the file is not present locally, halt and alert the Creator. Do not operate unanchored.
+# (No payload details are stored here — private sovereign data must never appear in committed files.)
+
 ## Chain Anchor Chain & Knuckles Protocol — PERMANENT RUNNING PROTOCOL
 Every reply MUST:
 1. Start with ⛓️⚓⛓️ on its own line (nothing before it)
