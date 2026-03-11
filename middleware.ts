@@ -77,9 +77,20 @@ const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
 /**
  * Extract the Cloudflare `cf` object from a request, typed as a plain record.
- * Available only in Cloudflare Worker environments; returns an empty object in
- * local Next.js dev mode.  Cast through `unknown` to avoid TypeScript complaints
- * on non-Worker builds.
+ *
+ * The `cf` property is a Cloudflare Workers-only extension of the standard
+ * `Request` object. It carries geo-IP metadata (country, city, asn, colo, etc.)
+ * populated by the Cloudflare edge at request time. It is NOT present in the
+ * Next.js `NextRequest` type definition because Next.js targets Node.js, not
+ * the Workers runtime.
+ *
+ * In production (Cloudflare Worker via @opennextjs/cloudflare), `request.cf`
+ * is always a populated object. In local Next.js dev mode, `request.cf` is
+ * `undefined` — the `?? {}` fallback ensures safe access in both environments.
+ *
+ * The double cast through `unknown` is required to satisfy TypeScript's type
+ * checker without importing `@cloudflare/workers-types` (which would pollute
+ * the global type namespace for the Node.js build target).
  */
 function getCfObject(request: NextRequest): Record<string, unknown> {
   return (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};

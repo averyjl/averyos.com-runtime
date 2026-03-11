@@ -39,8 +39,10 @@ permissions:
 jobs:
   Analysis:
     runs-on: ubuntu-latest
-    # Skip gracefully when SONAR_TOKEN or SONAR_HOST_URL are not configured
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+    # Skip gracefully when SONAR_TOKEN or SONAR_HOST_URL are not configured.
+    # NOTE: Do NOT wrap with ${{ }} — that converts the boolean to the string
+    # "false" which GitHub then treats as truthy, causing the job to always run.
+    if: secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != ''
 
     steps:
       - name: Checkout Repository

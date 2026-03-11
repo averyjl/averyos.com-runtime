@@ -16,7 +16,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve as resolvePath, dirname } from "node:path";
 
 export async function resolve(specifier, context, nextResolve) {
-  // Only try to extend relative imports without a file extension
+  // Only try to extend relative imports without a file extension.
+  // The regex matches a trailing dot followed by 1–5 alphanumeric characters
+  // (case-insensitive), covering the most common extensions:
+  //   .ts, .js, .mjs, .cjs, .tsx, .jsx, .json, .yaml, .html, .wasm, etc.
+  // Imports without any extension (e.g. '../lib/sovereignConstants') are
+  // the ones we need to resolve, so we invert the match.
   if (
     (specifier.startsWith("./") || specifier.startsWith("../")) &&
     !specifier.match(/\.[a-z]{1,5}$/i)

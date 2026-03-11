@@ -239,7 +239,7 @@ const ForensicProofPage = () => {
           </div>
         </section>
 
-
+        <FooterBadge />
       </main>
     </>
   );
