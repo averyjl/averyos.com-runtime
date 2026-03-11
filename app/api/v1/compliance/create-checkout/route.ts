@@ -140,7 +140,7 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
-    const { bundleId, targetIp, rayId, asn, tariLiability } = body as Record<string, unknown>;
+    const { bundleId, targetIp, rayId, asn, tariLiability, tax_id, company_registration } = body as Record<string, unknown>;
 
     if (typeof bundleId !== "string" || !bundleId.trim()) {
       return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'bundleId is required.');
@@ -152,6 +152,14 @@ export async function POST(request: Request) {
 
     const asnStr = typeof asn === "string" ? asn.trim() : "";
     const rayIdStr = typeof rayId === "string" ? rayId.trim() : "";
+    const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
+    const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
+
+    // Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
+    const asnTier = asnStr ? getAsnTier(asnStr) : 0;
+    if (asnTier >= 9 && !taxIdStr) {
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "tax_id is required for Tier-10 enterprise entities.");
+    }
 
     const { liabilityCents, productName, productDescription, pricingTier } =
       determinePricing(tariLiability, asnStr, rayIdStr, bundleId);
@@ -218,6 +226,9 @@ export async function POST(request: Request) {
         victim_restoration_case_id: (rayIdStr || bundleId).slice(0, 200),
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
+        // Tier-10 enterprise compliance fields (Gate 108 — Roadmap #4)
+        ...(taxIdStr ? { tax_id: taxIdStr.slice(0, 64) } : {}),
+        ...(companyRegistrationStr ? { company_registration: companyRegistrationStr.slice(0, 64) } : {}),
       },
       payment_intent_data: {
         // statement_descriptor maps the RayID Proof directly into the bank record.
@@ -259,6 +270,9 @@ export async function POST(request: Request) {
         tariLiabilityCents: liabilityCents,
         tariLiabilityUsd: (liabilityCents / 100).toFixed(2),
         pricingTier,
+        // Tier-10 enterprise compliance fields
+        ...(taxIdStr ? { tax_id: taxIdStr } : {}),
+        ...(companyRegistrationStr ? { company_registration: companyRegistrationStr } : {}),
       },
       { status: 201 }
     );

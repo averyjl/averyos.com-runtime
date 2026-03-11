@@ -526,6 +526,10 @@ export async function POST(request: Request): Promise<Response> {
         kernel_sha:        KERNEL_SHA.slice(0, 16) + "…",
         sovereign_anchor:  "⛓️⚓⛓️",
         creator_lock:      "🤛🏻",
+        // GabrielOS™ Mobile Push v4 — Time Mesh iso9 anchor (Phase 108.1 / Roadmap #10)
+        // Attaches the iso9 microsecond-precision timestamp to every Tier-9 alert
+        // so the Creator's mobile app can verify temporal alignment with the Time Mesh.
+        alert_iso9:        formatIso9(),
         // KAAS_BREACH-specific fields (populated only for KAAS_BREACH events)
         ...(kaasAsn          ? { asn:           kaasAsn }          : {}),
         ...(kaasTier         ? { tier:          kaasTier }         : {}),
