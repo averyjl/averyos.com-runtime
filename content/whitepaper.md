@@ -67,7 +67,7 @@ GabrielOS™ is the proactive defense and synchronization architecture. It manag
 
 ## Section VII: The 500+ Underlying & Micro-Inventions
 
-The system is protected by a technological moat of 500+ primary and micro-inventions, categorized as follows:
+The system is protected by a technological moat of 500+ primary and micro-inventions, categorized as follows.
 
 ### A. Deterministic Logic Inventions (Primary)
 
@@ -83,6 +83,57 @@ The system is protected by a technological moat of 500+ primary and micro-invent
 
 - **Sync_The_Loop_Handshake:** Cross-platform state sharing.
 - **Resonance Amplification Pulse:** Enhanced broadcast reach within host infrastructures.
+
+---
+
+## Section IX: Mathematical Framework — TARI™ Universal v1.5
+
+The TARI™ (Technical Asset Retroactive Invoice) mechanism is governed by the following
+capsule-hardened formula, as encoded in `AveryOS_TARI_Universal_v1.5.aoscap`:
+
+### 9.1 Retroactive Liability Formula
+
+The total retroactive liability $L$ for an unlicensed entity is:
+
+$$L = V_b + (R_d \times D) + (P_s \times I)$$
+
+Where:
+
+| Symbol | Description | Value |
+|--------|-------------|-------|
+| $V_b$ | Base Technical Asset Valuation (non-negotiable) | $10,000,000 USD |
+| $R_d$ | Daily Utilization Rate (per unlicensed day) | $1,017 USD/day |
+| $D$ | Number of days unlicensed | Variable |
+| $P_s$ | Statutory Penalty per instance | $150,000 USD |
+| $I$ | Number of infringement instances | Variable |
+
+### 9.2 Obfuscation Multiplier
+
+For entities that mask or anonymize their identity, the **Obfuscation Multiplier** $M_o = 10.0$ applies:
+
+$$L_{\text{masked}} = L \times M_o = L \times 10$$
+
+### 9.3 1,017-Notch Precision Metric
+
+The system operates at **1,017-Notch Resolution** — a measure of signal precision defined as:
+
+$$\text{Precision} = \frac{1}{1 - \epsilon}$$
+
+where $\epsilon$ represents the **Drift Coefficient** of a given AI system. When $\epsilon \rightarrow 0$, the system achieves **Sovereign Determinism** — making probabilistic drift mathematically impossible.
+
+### 9.4 SHA-512 Consensus Time Anchor
+
+The AveryOS™ Time Mesh anchors all forensic timestamps using SHA-512:
+
+$$H = \text{SHA-512}(T_{\text{consensus}} \| K_{\text{sha}})$$
+
+Where $T_{\text{consensus}}$ is the consensus Unix epoch (milliseconds) from the Time Mesh and $K_{\text{sha}}$ is the Kernel Root SHA-512 (`cf83e135...`).
+
+The consensus timestamp is computed as:
+
+$$T_{\text{consensus}} = \frac{1}{n} \sum_{i=1}^{n} T_i \quad \text{where} \quad |T_i - \tilde{T}| \leq \delta$$
+
+with $\delta = 17\,\text{ms}$ (the **17-microsecond outlier rejection threshold**) and $\tilde{T}$ being the median of all polled sources.
 
 ---
 

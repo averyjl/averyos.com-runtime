@@ -72,9 +72,9 @@ export async function GET(request: Request) {
     }
   }
 
-  const asn          = row?.asn   ?? asnParam ?? undefined;
-  const tier         = resolveKaasTier(asn ?? undefined);
-  const displayPrice = kaasDisplayPrice(tier);
+  const asn          = row?.asn   ?? asnParam ?? "";
+  const tier         = resolveKaasTier(asn);
+  const displayPrice = kaasDisplayPrice(asn);
   const valuationUsd = row?.valuation_usd ?? 10_000_000.00;
 
   return Response.json({

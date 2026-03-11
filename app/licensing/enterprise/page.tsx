@@ -79,13 +79,23 @@ export default function EnterpriseRegistrationPage() {
   const [orgName, setOrgName]   = useState("");
   const [email, setEmail]       = useState("");
   const [machineId, setMachineId] = useState("");
+  // Gate 8 — Stripe Regional Compliance: tax_id + company_registration for Tier-10
+  const [taxId, setTaxId]                   = useState("");
+  const [companyRegistration, setCompanyReg] = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+
+  // Tier-10 settlements (ENTERPRISE_PARTNERSHIP + ASN_DEPOSIT) require additional fields
+  const isTier10 = selected === "ENTERPRISE_PARTNERSHIP" || selected === "ASN_DEPOSIT";
 
   async function handleProceed() {
     if (!selected) { setError("Please select a licensing tier."); return; }
     if (!orgName.trim()) { setError("Organisation name is required."); return; }
     if (!email.trim())   { setError("Contact email is required."); return; }
+    if (isTier10 && !taxId.trim()) {
+      setError("Tax ID / EIN is required for Tier-10 enterprise settlements over $1M.");
+      return;
+    }
     setError(null);
     setLoading(true);
 
@@ -94,10 +104,13 @@ export default function EnterpriseRegistrationPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tier:       selected,
-          org_name:   orgName.trim(),
-          email:      email.trim(),
-          machine_id: machineId.trim() || undefined,
+          tier:                 selected,
+          org_name:             orgName.trim(),
+          email:                email.trim(),
+          machine_id:           machineId.trim() || undefined,
+          // Gate 8 — Regional compliance fields (Tier-10 only)
+          ...(isTier10 && taxId.trim()                ? { tax_id:                taxId.trim() }                : {}),
+          ...(isTier10 && companyRegistration.trim()  ? { company_registration:  companyRegistration.trim() }  : {}),
         }),
       });
       const data = await res.json() as { url?: string; error?: string };
@@ -320,6 +333,35 @@ export default function EnterpriseRegistrationPage() {
               style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </label>
+
+          {/* Gate 8 — Stripe Regional Compliance: Tier-10 fields (>$1M settlements) */}
+          {isTier10 && (
+            <>
+              <div style={{ marginBottom: "0.6rem", padding: "0.5rem 0.75rem", background: "rgba(255,215,0,0.06)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", fontFamily: "monospace", fontSize: "0.78rem", color: GOLD_DIM }}>
+                ⚖️ Tier-10 Enterprise Settlement — Tax compliance fields are required for settlements over $1M.
+              </div>
+              <label style={{ display: "block", marginBottom: "1rem" }}>
+                <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Tax ID / EIN *{" "}<span style={{ color: "#ff9900" }}>(required for Tier-10)</span></span>
+                <input
+                  type="text"
+                  value={taxId}
+                  onChange={e => setTaxId(e.target.value)}
+                  placeholder="e.g. 12-3456789 (US EIN) or EU VAT number"
+                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+                />
+              </label>
+              <label style={{ display: "block", marginBottom: "1.4rem" }}>
+                <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Company Registration Number (optional)</span>
+                <input
+                  type="text"
+                  value={companyRegistration}
+                  onChange={e => setCompanyReg(e.target.value)}
+                  placeholder="e.g. Delaware Corp. ID, UK Companies House"
+                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+                />
+              </label>
+            </>
+          )}
 
           {error && (
             <p style={{ color: "#ff4444", fontFamily: "monospace", fontSize: "0.83rem", marginBottom: "1rem" }}>⚠ {error}</p>

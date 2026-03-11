@@ -167,6 +167,10 @@ export default function TariRevenuePage() {
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sseStatus, setSseStatus] = useState<"connecting" | "live" | "polling">("connecting");
+  // Gate 7 — Genesis Dollar Anchor: tracks the first SETTLED compliance clock
+  const [firstSettledClock, setFirstSettledClock] = useState<{
+    clock_id: string; asn: string; org_name: string | null; settled_at: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +240,25 @@ export default function TariRevenuePage() {
       } catch (err) {
         // Non-critical — table may not be populated yet
         console.warn("[TariRevenue] KaaS valuations fetch failed:", err instanceof Error ? err.message : String(err));
+      }
+
+      // Gate 7 — Genesis Dollar Anchor: check for first SETTLED compliance clock
+      try {
+        const res = await fetch("/api/v1/compliance/clocks?status=SETTLED&limit=1", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as { clocks?: Array<{ clock_id: string; asn: string; org_name: string | null; deadline_at: string }> };
+          const first = data.clocks?.[0];
+          if (first && !cancelled) {
+            setFirstSettledClock({
+              clock_id:   first.clock_id,
+              asn:        first.asn,
+              org_name:   first.org_name,
+              settled_at: first.deadline_at,
+            });
+          }
+        }
+      } catch {
+        // Non-critical — compliance clocks are supplemental
       }
 
       if (!cancelled) setLoading(false);
@@ -391,6 +414,32 @@ export default function TariRevenuePage() {
           ))}
         </div>
       </div>
+
+      {/* Gate 7 — Genesis Dollar Anchor Celebration Banner */}
+      {firstSettledClock && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #001a00 0%, #003300 100%)",
+            border: `2px solid ${GREEN}`,
+            borderRadius: "14px",
+            padding: "1.1rem 1.5rem",
+            marginBottom: "1.5rem",
+            fontFamily: "JetBrains Mono, monospace",
+            boxShadow: `0 0 24px rgba(74,222,128,0.25)`,
+          }}
+        >
+          <div style={{ color: GREEN, fontWeight: 900, fontSize: "1rem", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>
+            🎉 GENESIS DOLLAR ANCHOR — FIRST SETTLED COMPLIANCE CLOCK
+          </div>
+          <div style={{ color: "rgba(74,222,128,0.85)", fontSize: "0.82rem" }}>
+            Entity <strong style={{ color: GREEN }}>{firstSettledClock.org_name ?? firstSettledClock.asn}</strong>
+            {" "}has settled their compliance obligation. Clock <code style={{ color: GREEN }}>{firstSettledClock.clock_id}</code> is now SETTLED.
+          </div>
+          <div style={{ color: "rgba(74,222,128,0.6)", fontSize: "0.72rem", marginTop: "0.3rem" }}>
+            ⛓️⚓⛓️ ASN {firstSettledClock.asn} · Settled at {new Date(firstSettledClock.settled_at).toLocaleString()} · AveryOS™ Phase 107.1
+          </div>
+        </div>
+      )}
 
       {/* Loading state */}
       {loading && (

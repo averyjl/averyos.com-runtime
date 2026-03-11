@@ -4,6 +4,7 @@ import { formatIso9 } from "../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 import { syncD1RowToFirebase, syncKaasValuationToFirebase, sendFcmV1Push } from "../../../../lib/firebaseClient";
 import { getAsnTier, getAsnFeeUsd } from "../../../../lib/kaas/pricing";
+import { resolveJurisdiction, JURISDICTION_STATUTES } from "../../../../lib/forensics/globalVault";
 
 /**
  * POST /api/v1/audit-alert
@@ -371,7 +372,12 @@ export async function POST(request: Request): Promise<Response> {
   const eventType = String(body.event_type ?? "UNALIGNED_401").toUpperCase();
   const targetIp  = String(body.target_ip  ?? body.ip ?? "0.0.0.0");
   const targetPath = String(body.path ?? "/");
+  const countryCode = String(body.country_code ?? body.geo ?? "US").slice(0, 2).toUpperCase();
   const now = formatIso9();
+
+  // Resolve jurisdiction-aware statutory label for FCM payload (Gate 5)
+  const jurisdiction = resolveJurisdiction(countryCode);
+  const jurisdictionStatute = JURISDICTION_STATUTES[jurisdiction];
 
   // Compute pulse hash
   const pulseHash = await computePulseHash(targetIp, targetPath, now);
@@ -526,6 +532,11 @@ export async function POST(request: Request): Promise<Response> {
         kernel_sha:        KERNEL_SHA.slice(0, 16) + "…",
         sovereign_anchor:  "⛓️⚓⛓️",
         creator_lock:      "🤛🏻",
+        // Gate 5 — Jurisdiction-aware statutory labels for Creator's mobile app
+        jurisdiction,
+        statutory_label:   jurisdictionStatute.short,
+        damage_cap:        jurisdictionStatute.damage_cap,
+        statutory_framework: jurisdictionStatute.framework,
         // KAAS_BREACH-specific fields (populated only for KAAS_BREACH events)
         ...(kaasAsn          ? { asn:           kaasAsn }          : {}),
         ...(kaasTier         ? { tier:          kaasTier }         : {}),

@@ -196,3 +196,24 @@ dead_letter_queue    = "sovereign-log-ingress-dlq"
 # the Cloudflare dashboard (Firewall → Rate Limiting) for zero-downtime updates.
 # The wrangler-level ratelimit binding above handles programmatic enforcement
 # in middleware.ts (Worker-side gate).
+
+# ── Jurisdiction-Aware Rate Limiting — Phase 107.1 (Gate 4) ─────────────────
+# 1,017-Notch Rate Limiting rules keyed on jurisdiction (via resolveJurisdiction()).
+# Each jurisdiction bucket gets 1,017 requests per 60-second window.
+# Enforcement is handled in middleware.ts via RATE_LIMITER binding.
+# The [[rate_limiting]] section below documents the intended Cloudflare config;
+# the programmatic enforcement is applied in middleware.ts.
+#
+# Jurisdiction mapping (from lib/forensics/globalVault.ts::resolveJurisdiction):
+#   US  → 17 U.S.C. § 504(c)(2) — primary statutory framework
+#   EU  → EU AI Act Art. 53(1)(c) + CDSM Directive
+#   UK  → CDPA 1988 §§ 22–23
+#   JP  → Copyright Act Art. 30-4
+#
+# Rate limit keys:
+#   rate_limit:US:<ip>   → 1,017 req / 60 s
+#   rate_limit:EU:<ip>   → 1,017 req / 60 s  (EU AI Act compliance)
+#   rate_limit:UK:<ip>   → 1,017 req / 60 s
+#   rate_limit:JP:<ip>   → 1,017 req / 60 s
+#   rate_limit:ANY:<ip>  → 1,017 req / 60 s  (default fallback)
+
