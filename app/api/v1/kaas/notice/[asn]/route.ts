@@ -16,7 +16,7 @@
  * Query params:
  *   country_code   — optional ISO-3166 code to force a specific jurisdiction
  *   ip_address     — optional IP for evidence metadata
- *   org_name       — optional organisation name
+ *   org_name       — optional organization name
  *   format         — "json" (default) | "text" (plain text NOV)
  *
  * Auth: Bearer VAULT_PASSPHRASE
@@ -136,7 +136,7 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
     `═══════════════════════════════════════════════════════════════════`,
     ``,
     `  Target ASN:     ${asn}`,
-    `  Organisation:   ${orgNameQs}`,
+    `  organization:   ${orgNameQs}`,
     `  IP Address:     ${ipAddress}`,
     `  Jurisdiction:   ${jurisdiction}`,
     `  Tier:           ${tier}`,

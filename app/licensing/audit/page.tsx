@@ -186,10 +186,10 @@ export default function UsageAffidavitPage() {
           </select>
         </div>
 
-        {/* Organisation Name */}
+        {/* Organization Name */}
         <div style={{ marginBottom: "1.25rem" }}>
           <label style={{ color: GOLD, fontSize: "0.85rem", display: "block", marginBottom: "0.4rem" }}>
-            Organisation Name
+            Organization Name
           </label>
           <input
             type="text"

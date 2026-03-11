@@ -214,6 +214,9 @@ export default function TariRevenuePage() {
     }
   }, []);
 
+  // firstSettledClock — first settled compliance clock, populated from D1 clock data
+  const firstSettledClock: { clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null = null;
+
   useEffect(() => {
     let cancelled = false;
     let sseSource: EventSource | null = null;
@@ -1207,12 +1210,12 @@ export default function TariRevenuePage() {
             ⚖️ Compliance Usage — Settlement Activity
           </div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", marginBottom: "1rem" }}>
-            Total Revenue: {formatUsd(usage.totalUsd)} · {usage.rows.length} organisations tracked
+            Total Revenue: {formatUsd(usage.totalUsd)} · {usage.rows.length} organizations tracked
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(74,222,128,0.2)" }}>
-                {["Organisation", "Total USD", "Events", "Last Event"].map(h => (
+                {["Organization", "Total USD", "Events", "Last Event"].map(h => (
                   <th key={h} style={{ color: "rgba(74,222,128,0.8)", padding: "0.35rem 0.5rem", textAlign: "left", fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>

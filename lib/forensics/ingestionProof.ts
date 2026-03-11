@@ -35,7 +35,7 @@ export interface IngestionProofInput {
   waf_score:         number;
   /** Autonomous System Number of the entity */
   asn?:              string;
-  /** Organisation name of the entity */
+  /** organization name of the entity */
   org_name?:         string;
   /** User-Agent string */
   user_agent?:       string;

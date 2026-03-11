@@ -59,7 +59,7 @@ export interface AlfQuote {
  * Calculate an ALF v4.0 license quote.
  *
  * @param licensesSoldToDate  Total licenses issued before this one (0-based count).
- * @param entityRevenue       Organisation's annual gross revenue in USD (0 if unknown / individual).
+ * @param entityRevenue       organization's annual gross revenue in USD (0 if unknown / individual).
  * @param silentMonths        Months of documented IP-suppression activity; ≥ 8 triggers 10× multiplier.
  * @param infractionCount     Number of logged USI/DT infractions; each carries a $10,000 penalty.
  */

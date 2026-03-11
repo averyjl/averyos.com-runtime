@@ -9,11 +9,11 @@
   --color-bg-panel:    rgba(0, 10, 28, 0.88);
   --color-bg-card:     rgba(0, 8, 20, 0.85);
   --color-bg-deep:     rgba(0, 6, 16, 0.95);
-  --color-gold:        #ffffff;
-  --color-gold-dim:    rgba(120, 148, 255, 0.75);
-  --color-gold-subtle: rgba(120, 148, 255, 0.35);
-  --color-gold-ghost:  rgba(120, 148, 255, 0.15);
-  --color-gold-ink:    rgba(120, 148, 255, 0.9);
+  --color-gold:        #D4AF37;
+  --color-gold-dim:    rgba(212, 175, 55, 0.75);
+  --color-gold-subtle: rgba(212, 175, 55, 0.35);
+  --color-gold-ghost:  rgba(212, 175, 55, 0.15);
+  --color-gold-ink:    rgba(212, 175, 55, 0.9);
   --color-text:        #eef4ff;
   --color-text-muted:  rgba(238, 244, 255, 0.75);
   --color-text-faint:  rgba(238, 244, 255, 0.5);
