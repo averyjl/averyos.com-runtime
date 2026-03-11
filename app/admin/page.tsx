@@ -108,11 +108,18 @@ const ADMIN_PANELS = [
     color:       "#f87171",
   },
   {
-    path:        "/settlements",
+    path:        "/admin/settlements",
     icon:        "⚖️",
-    label:       "Settlements",
-    description: "Manage alignment settlement agreements and TARI™ invoices",
+    label:       "Settlement Dashboard",
+    description: "Creator-locked: TARI™ calculator, KaaS ledger, 72h audit countdowns, and SHA-512 evidence seals",
     color:       "#34d399",
+  },
+  {
+    path:        "/admin/monetization",
+    icon:        "💰",
+    label:       "Stripe Revenue Dashboard",
+    description: "Creator-locked: Live Stripe revenue, Genesis Dollar Anchor, and liability vs. collected comparison",
+    color:       "#4ade80",
   },
 ];
 
