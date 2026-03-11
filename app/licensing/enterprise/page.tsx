@@ -341,14 +341,22 @@ export default function EnterpriseRegistrationPage() {
                 ⚖️ Tier-10 Enterprise Settlement — Tax compliance fields are required for settlements over $1M.
               </div>
               <label style={{ display: "block", marginBottom: "1rem" }}>
-                <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Tax ID / EIN *{" "}<span style={{ color: "#ff9900" }}>(required for Tier-10)</span></span>
+                <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>
+                  Tax ID / EIN{" "}
+                  <span aria-label="required for Tier-10 settlements" style={{ color: "#ff9900" }}>
+                    * (required for Tier-10)
+                  </span>
+                </span>
                 <input
                   type="text"
                   value={taxId}
                   onChange={e => setTaxId(e.target.value)}
                   placeholder="e.g. 12-3456789 (US EIN) or EU VAT number"
+                  aria-required="true"
+                  aria-describedby="tax-id-hint"
                   style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
                 />
+                <span id="tax-id-hint" style={{ display: "none" }}>Tax identification number required for Tier-10 enterprise settlements exceeding $1M</span>
               </label>
               <label style={{ display: "block", marginBottom: "1.4rem" }}>
                 <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Company Registration Number (optional)</span>

@@ -24,6 +24,7 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 } from "../timePrecision";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -149,16 +150,6 @@ async function sha512hex(input: string): Promise<string> {
     .join("");
 }
 
-/**
- * Format a Unix ms timestamp as an ISO-9 string with 9 fractional digits.
- */
-function toIso9(epochMs: number): string {
-  const iso = new Date(epochMs).toISOString();
-  const [left, right] = iso.split(".");
-  const ms = (right ?? "000Z").replace("Z", "").slice(0, 3).padEnd(3, "0");
-  return `${left}.${ms}000000Z`;
-}
-
 /** Compute the median of a sorted numeric array. */
 function median(sorted: number[]): number {
   if (sorted.length === 0) return 0;
@@ -219,8 +210,7 @@ export async function getSovereignTime(
     const now = Date.now();
     const sha = await sha512hex(`${now}:${KERNEL_SHA}`);
     return {
-      iso9:           toIso9(now),
-      consensusMs:    now,
+      iso9:           formatIso9(new Date(now)),      consensusMs:    now,
       sha512:         sha,
       sources:        rawResults.map((r) => ({ ...r, included: false, deviationMs: null })),
       consensusCount: 0,
@@ -258,7 +248,7 @@ export async function getSovereignTime(
   });
 
   const result: SovereignTimeResult = {
-    iso9:           toIso9(consensusMs),
+    iso9:           formatIso9(new Date(consensusMs)),
     consensusMs,
     sha512,
     sources,

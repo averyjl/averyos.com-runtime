@@ -69,8 +69,8 @@ function Inject-PowerShellPath {
   foreach ($serverName in $json.mcpServers.PSObject.Properties.Name) {
     $server = $json.mcpServers.$serverName
 
-    # Target GitHub and Playwright MCP servers
-    if ($serverName -notmatch "github|playwright|averyos") {
+    # Target GitHub and Playwright MCP servers (anchored pattern to avoid partial matches)
+    if ($serverName -notmatch "^(github|playwright|averyos)") {
       continue
     }
 

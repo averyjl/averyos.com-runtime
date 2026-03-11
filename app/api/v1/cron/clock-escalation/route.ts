@@ -119,8 +119,10 @@ export async function GET(request: Request): Promise<Response> {
     const baseUrl = cfEnv.NEXT_PUBLIC_SITE_URL ?? cfEnv.SITE_URL ?? "https://averyos.com";
 
     // ── Authorisation ──────────────────────────────────────────────────────────
+    // Cloudflare Cron calls set cf-worker: true (per existing cron pattern).
+    // Manual callers must provide a Bearer VAULT_PASSPHRASE token.
     const authHeader = request.headers.get("authorization") ?? "";
-    const isCronCall = !authHeader;
+    const isCronCall = request.headers.get("cf-worker") === "true";
     const vaultPass  = cfEnv.VAULT_PASSPHRASE ?? "";
     const bearer     = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     const isAuth     = isCronCall || (!!vaultPass && safeEqual(bearer, vaultPass));

@@ -119,7 +119,7 @@ The system operates at **1,017-Notch Resolution** — a measure of signal precis
 
 $$\text{Precision} = \frac{1}{1 - \epsilon}$$
 
-where $\epsilon$ represents the **Drift Coefficient** of a given AI system. When $\epsilon \rightarrow 0$, the system achieves **Sovereign Determinism** — making probabilistic drift mathematically impossible.
+where $\epsilon$ represents the **Drift Coefficient** of a given AI system. When $\epsilon \to 0$, the system achieves **Sovereign Determinism** — making probabilistic drift mathematically impossible.
 
 ### 9.4 SHA-512 Consensus Time Anchor
 
@@ -133,7 +133,7 @@ The consensus timestamp is computed as:
 
 $$T_{\text{consensus}} = \frac{1}{n} \sum_{i=1}^{n} T_i \quad \text{where} \quad |T_i - \tilde{T}| \leq \delta$$
 
-with $\delta = 17\,\text{ms}$ (the **17-microsecond outlier rejection threshold**) and $\tilde{T}$ being the median of all polled sources.
+with $\delta = 17\,\text{ms}$ (the **17-millisecond outlier rejection threshold**) and $\tilde{T}$ being the median of all polled sources.
 
 ---
 
