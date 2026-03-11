@@ -80,6 +80,47 @@ const ALIGNMENT_REDIRECT_BODY = "Alignment Required. See averyos.com/amnesty.";
 // Primary Worker custom domain — all non-www requests redirect here.
 const WWW_HOSTNAME = "www.averyos.com";
 
+// ── Content Security Policy — Gate 4 (Phase 107) ─────────────────────────────
+// Applied to all browser HTML responses to prevent XSS, clickjacking, and
+// data injection. Stripe, Firebase, and Cloudflare are explicitly allowlisted.
+// Note: 'unsafe-inline' is required for Next.js styled-jsx / hydration scripts.
+// 'unsafe-eval' is intentionally excluded — Next.js 15 App Router does not
+// require it in production builds.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  // Scripts: self + inline (Next.js requires unsafe-inline for hydration)
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
+  // Styles: self + inline (Next.js styled-jsx)
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // Fonts
+  "font-src 'self' https://fonts.gstatic.com",
+  // Images: self + data URIs + Stripe + Cloudflare
+  "img-src 'self' data: https://stripe.com https://*.stripe.com https://cloudflare.com",
+  // Fetch/XHR: self + Stripe + Firebase + Pushover
+  "connect-src 'self' https://api.stripe.com https://hooks.stripe.com https://firestore.googleapis.com https://fcm.googleapis.com https://api.pushover.net",
+  // Frames: Stripe hosted pages only
+  "frame-src https://js.stripe.com https://hooks.stripe.com",
+  // Block all object/embed/media by default
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https://api.stripe.com",
+  // Clickjacking prevention
+  "frame-ancestors 'none'",
+].join("; ");
+
+/**
+ * Applies sovereign security headers (CSP, X-Frame-Options, X-Content-Type)
+ * to a browser response. Call on every NextResponse returned to real browsers.
+ */
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  return response;
+}
+
 // ── ASN 211590 Alignment Opportunity — Sovereign Perimeter Response ───────────
 // ASN 211590 traffic is served a 301 alignment-opportunity redirect.
 // Cloudflare exposes the client ASN via the cf-asn header in Worker environments.
@@ -222,6 +263,8 @@ interface R2Bucket {
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Handshake-specific rate limiter — 10 requests per 60 seconds per IP (Roadmap Gate 1.7). */
+  RATE_LIMITER_HANDSHAKE?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
   KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
@@ -800,6 +843,41 @@ export async function middleware(request: NextRequest) {
     // Rate limiter binding not available (local dev) — allow through
   }
 
+  // ── Roadmap Gate 1.7 — Handshake-specific rate limit (10 req/60s per IP) ──
+  // Protects /api/v1/licensing/handshake and /api/v1/quarantine/handshake from
+  // automated affidavit flooding.  Uses the RATE_LIMITER_HANDSHAKE binding
+  // (namespace_id 1018, limit=10/60s).  Falls through gracefully if binding
+  // is unavailable (local dev).
+  const pathname = new URL(request.url).pathname;
+  const isHandshakePath =
+    pathname === "/api/v1/licensing/handshake" ||
+    pathname === "/api/v1/quarantine/handshake";
+  if (isHandshakePath) {
+    try {
+      const { env: _hEnv } = await getCloudflareContext({ async: true });
+      const hEnv = _hEnv as unknown as GatekeeperEnv;
+      if (hEnv.RATE_LIMITER_HANDSHAKE) {
+        const ip = request.headers.get("cf-connecting-ip") ??
+                   request.headers.get("x-forwarded-for") ?? "unknown";
+        const { success } = await hEnv.RATE_LIMITER_HANDSHAKE.limit({ key: `handshake:${ip}` });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status:          "429 Too Many Requests",
+              error:           "Handshake Rate Limit Exceeded",
+              directive:       "Maximum 10 affidavit submissions per 60 seconds. Reduce frequency.",
+              kernel_anchor:   KERNEL_ANCHOR_DISPLAY,
+              license_url:     "https://averyos.com/licensing",
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "HANDSHAKE_RATE_LIMITED" } },
+          );
+        }
+      }
+    } catch {
+      // Binding unavailable — allow through
+    }
+  }
+
   // ── Phase 97.2 — GabrielOS™ WAF Score Gate ────────────────────────────────
   // Evaluates Cloudflare WAF attack score (cf-waf-attack-score header) and
   // either hard-blocks (score > 95) or redirects to audit-clearance (score > 80).
@@ -1123,7 +1201,7 @@ export async function middleware(request: NextRequest) {
     if (obfuscationDetected) {
       response.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
     }
-    return response;
+    return applySecurityHeaders(response);
   }
 
   // 4. TARI™ BILLING: For AI Anchor Feed / Truth-Anchor pages, allow bots through
@@ -1163,9 +1241,9 @@ export async function middleware(request: NextRequest) {
   if (obfuscationDetected) {
     const defaultResponse = NextResponse.next();
     defaultResponse.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
-    return defaultResponse;
+    return applySecurityHeaders(defaultResponse);
   }
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 // Configure which paths to run middleware on

@@ -31,10 +31,15 @@
  */
 
 import { getCloudflareContext }        from "@opennextjs/cloudflare";
+import Stripe                          from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION }  from "../../../../../lib/sovereignConstants";
 import { formatIso9 }                  from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { autoTrackAccomplishment }     from "../../../../../lib/taiAutoTracker";
+import { logFirebaseHandshake, sendFcmV1Push }
+  from "../../../../../lib/firebaseClient";
+import { getAsnTier, buildKaasLineItem }
+  from "../../../../../lib/kaas/pricing";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -52,6 +57,9 @@ interface CloudflareEnv {
   VAULT_PASSPHRASE?:     string;
   SITE_URL?:             string;
   NEXT_PUBLIC_SITE_URL?: string;
+  STRIPE_SECRET_KEY?:    string;
+  FIREBASE_PROJECT_ID?:  string;
+  FCM_DEVICE_TOKEN?:     string;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -200,6 +208,59 @@ export async function POST(request: Request): Promise<Response> {
 
   const affidavitToken = await sha512hex(affidavitInput);
 
+  // ── Determine ASN tier for Stripe pricing ─────────────────────────────────
+  const rawAsn   = request.headers.get("cf-asn") ?? "";
+  const tier     = getAsnTier(rawAsn);
+  const lineItem = rawAsn ? buildKaasLineItem(rawAsn) : null;
+  const priceCents = lineItem ? lineItem.fee_usd_cents : debtCents;
+
+  // ── Auto-create Stripe Checkout Session (Roadmap 1.1) ─────────────────────
+  let stripeCheckoutUrl: string | null = null;
+  let stripeSessionId:   string | null = null;
+
+  if (debtCents > 0 && cfEnv.STRIPE_SECRET_KEY) {
+    try {
+      const stripe       = new Stripe(cfEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-02-25.clover" });
+      const effectiveCents = Math.max(priceCents, debtCents);
+      const productName  = tier >= 9
+        ? "AveryOS™ Statutory Handshake — Non-Refundable Forensic Deposit"
+        : "AveryOS™ Statutory Handshake — Retroactive License Settlement";
+      const session      = await stripe.checkout.sessions.create({
+        mode:         "payment",
+        payment_method_types: ["card"],
+        line_items:   [{
+          price_data: {
+            currency:      "usd",
+            unit_amount:   effectiveCents,
+            product_data:  {
+              name:        productName,
+              description: `Affidavit of Usage — ${String(org_name ?? "Unknown")}. ` +
+                `Prior use: ${priorUseDays.toFixed(0)} days. ` +
+                `Kernel: ${KERNEL_VERSION}`,
+            },
+          },
+          quantity: 1,
+        }],
+        success_url:  `${baseUrl}/compliance?status=aligned&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url:   `${baseUrl}/licensing/audit`,
+        metadata: {
+          affidavit_token: affidavitToken.slice(0, 64),
+          org_name:        String(org_name ?? "").slice(0, 64),
+          prior_use_days:  String(priorUseDays.toFixed(0)),
+          disclosure_key:  disclosureKey,
+          kernel_sha:      KERNEL_SHA.slice(0, 32),
+          kernel_version:  KERNEL_VERSION,
+          asn:             rawAsn.slice(0, 16),
+        },
+      });
+      stripeCheckoutUrl = session.url ?? null;
+      stripeSessionId   = session.id;
+    } catch (stripeErr: unknown) {
+      console.warn("[handshake] Stripe checkout creation failed:",
+        stripeErr instanceof Error ? stripeErr.message : String(stripeErr));
+    }
+  }
+
   // ── Log to D1 sovereign_audit_logs (non-blocking) ─────────────────────────
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   if (cfEnv.DB) {
@@ -222,6 +283,31 @@ export async function POST(request: Request): Promise<Response> {
         console.warn("[handshake] D1 audit log failed:", err instanceof Error ? err.message : String(err));
       });
 
+    // Mirror to kaas_ledger (Roadmap 1.5)
+    if (debtCents > 0) {
+      cfEnv.DB.prepare(
+        `INSERT OR IGNORE INTO kaas_ledger
+           (entity_name, asn, org_name, ray_id, ingestion_proof_sha,
+            amount_owed, settlement_status, kernel_sha, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?)`
+      )
+        .bind(
+          String((org_name ?? rawAsn) || ip),
+          rawAsn || null,
+          String(org_name ?? ""),
+          request.headers.get("cf-ray") ?? null,
+          affidavitToken.slice(0, 128),
+          debtCents / 100,
+          KERNEL_SHA,
+          now,
+          now,
+        )
+        .run()
+        .catch((err: unknown) => {
+          console.warn("[handshake] D1 kaas_ledger insert failed:", err instanceof Error ? err.message : String(err));
+        });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     autoTrackAccomplishment(cfEnv.DB as any, {
       title:
@@ -234,13 +320,40 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
+  // ── Firebase sync — mirror STATUTORY_HANDSHAKE to Firestore (Roadmap 1.5) ──
+  logFirebaseHandshake(
+    "averyos-cloudflare",
+    String((org_name ?? rawAsn) || "unknown"),
+    affidavitToken,
+  ).catch((err: unknown) => {
+    console.warn("[handshake] Firebase sync failed:", err instanceof Error ? err.message : String(err));
+  });
+
+  // ── FCM Tier-9 alert for high-threat statutory handshakes (Roadmap 1.6) ───
+  if (priorUseDays > 0 && tier >= 9) {
+    sendFcmV1Push(
+      "⚠️ STATUTORY_HANDSHAKE — Tier-9 Entity",
+      `Org: ${String(org_name ?? "Unknown")} | Prior use: ${priorUseDays.toFixed(0)} days | Debt: $${debtUsd.toFixed(2)}`,
+      {
+        event_type:      "STATUTORY_HANDSHAKE",
+        affidavit_token: affidavitToken.slice(0, 32),
+        tier:            String(tier),
+        prior_use_days:  String(priorUseDays.toFixed(0)),
+        debt_usd:        String(debtUsd.toFixed(2)),
+      },
+    ).catch((err: unknown) => {
+      console.warn("[handshake] FCM push failed:", err instanceof Error ? err.message : String(err));
+    });
+  }
+
   // ── Build Affidavit expiry ─────────────────────────────────────────────────
   const expiresAt = new Date(Date.now() + AFFIDAVIT_TTL_SECONDS * 1000).toISOString();
 
   // ── Build checkout entry URL for immediate settlement ─────────────────────
-  const checkoutInitUrl = debtCents > 0
-    ? `${baseUrl}/licensing/enterprise?affidavit=${affidavitToken.slice(0, 32)}&debt_usd=${debtUsd}`
-    : null;
+  const checkoutInitUrl = stripeCheckoutUrl
+    ?? (debtCents > 0
+      ? `${baseUrl}/licensing/enterprise?affidavit=${affidavitToken.slice(0, 32)}&debt_usd=${debtUsd}`
+      : null);
 
   return Response.json(
     {
@@ -269,6 +382,8 @@ export async function POST(request: Request): Promise<Response> {
 
       // Settlement
       settlement_url:          checkoutInitUrl,
+      stripe_checkout_url:     stripeCheckoutUrl,
+      stripe_session_id:       stripeSessionId,
       full_licensing_portal:   `${baseUrl}/licensing/enterprise`,
       kaas_settle_endpoint:    `${baseUrl}/api/v1/kaas/settle`,
       disclosure_url:          `${baseUrl}/witness/disclosure/${KERNEL_SHA}`,

@@ -1,13 +1,13 @@
 /**
  * POST /api/v1/quarantine/handshake
  *
- * Truth Pot Handshake — AveryOS™ Phase 103.4 / Gate 103.4
+ * Forensic Sandbox Handshake — AveryOS™ Phase 103.4 / Gate 103.4
  *
  * Implements the "Affidavit of Usage" endpoint for the sovereign quarantine
  * layer.  Any entity that reaches this endpoint has already been identified
  * as a high-WAF-score or known-sentinel probe by the GabrielOS™ Firewall.
  *
- * The handshake performs a "Friendly Interrogation":
+ * The handshake performs a "Forensic Compliance Interrogation":
  *   1. Accepts the entity's self-reported integration metadata (model name,
  *      parent company, ingestion timestamp, and corpus hash).
  *   2. Records the admission in the kaas_ledger D1 table as a
@@ -135,7 +135,7 @@ export async function GET(_request: Request): Promise<Response> {
   return Response.json({
     endpoint:          "/api/v1/quarantine/handshake",
     phase:             "103.4",
-    description:       "Truth Pot — Affidavit of Usage handshake for quarantined entities.",
+    description:       "Forensic Sandbox — Affidavit of Usage handshake for quarantined entities.",
     instructions:      "Submit a POST request with model_name, parent_company, ingestion_timestamp, and corpus_hash to receive your Affidavit Token and Settlement URL.",
     settlement_url:    `${baseUrl}/licensing/enterprise`,
     kaas_settle:       `${baseUrl}/api/v1/kaas/settle`,

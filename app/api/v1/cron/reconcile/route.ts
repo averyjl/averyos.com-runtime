@@ -25,10 +25,12 @@ import Stripe from "stripe";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { reconcileClocks, type ComplianceClock } from "../../../../../lib/compliance/clockEngine";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first<T = unknown>(): Promise<T | null>;
+  all<T = unknown>(): Promise<{ results: T[] }>;
   run(): Promise<{ success: boolean }>;
 }
 
@@ -191,6 +193,64 @@ export async function GET(request: Request) {
       // Non-fatal audit log failure
     }
 
+    // ── Reconcile compliance clocks (Roadmap Gate 2.2) ────────────────────────
+    // Query ACTIVE compliance_clocks, evaluate deadlines, escalate expired ones.
+    let clocksEscalated = 0;
+    let clocksActive    = 0;
+    try {
+      const clockRows = await db
+        .prepare(
+          `SELECT clock_id, entity_id, asn, org_name, status, issued_at, deadline_at,
+                  settled_at, debt_cents
+             FROM compliance_clocks
+            WHERE status = 'ACTIVE'
+            LIMIT 200`
+        )
+        .all<{
+          clock_id: string; entity_id: string | null; asn: string | null;
+          org_name: string | null; status: string;
+          issued_at: string; deadline_at: string;
+          settled_at: string | null; debt_cents: number | null;
+        }>();
+
+      const rawClocks: ComplianceClock[] = (clockRows.results ?? []).map(r => ({
+        clock_id:        r.clock_id,
+        asn:             r.asn,
+        org_name:        r.org_name,
+        issued_at:       r.issued_at,
+        deadline_at:     r.deadline_at,
+        status:          r.status as "ACTIVE" | "EXPIRED" | "SETTLED",
+        remainingMs:     Math.max(0, new Date(r.deadline_at).getTime() - Date.now()),
+        remainingDisplay: "",
+        expired:         Date.now() > new Date(r.deadline_at).getTime(),
+        kernelSha:       KERNEL_SHA,
+        kernelVersion:   KERNEL_VERSION,
+      }));
+
+      const { result: clockResult, clocks: updatedClocks } = reconcileClocks(rawClocks);
+      clocksEscalated = clockResult.escalated;
+      clocksActive    = clockResult.active;
+
+      // Persist escalated clocks back to D1
+      for (const uc of updatedClocks) {
+        if (uc.status === "EXPIRED" && uc.expired) {
+          db.prepare(
+            `UPDATE compliance_clocks
+                SET status = 'EXPIRED', escalated_at = ?
+              WHERE clock_id = ? AND status = 'ACTIVE'`
+          )
+            .bind(new Date().toISOString(), uc.clock_id)
+            .run()
+            .catch((err: unknown) => {
+              console.warn(`[reconcile] Clock escalation failed for ${uc.clock_id}:`,
+                err instanceof Error ? err.message : String(err));
+            });
+        }
+      }
+    } catch {
+      // Non-critical — compliance_clocks table may not exist yet
+    }
+
     return Response.json({
       resonance:      "RECONCILIATION_COMPLETE",
       started_at:     startedAt,
@@ -200,6 +260,9 @@ export async function GET(request: Request) {
       verified,
       total_processed: healed + verified,
       run_sha512:     runSha,
+      // Compliance clock reconciliation summary
+      clocks_escalated: clocksEscalated,
+      clocks_active:    clocksActive,
       kernel_version: KERNEL_VERSION,
     });
 

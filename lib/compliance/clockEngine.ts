@@ -21,7 +21,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 /** Duration of the settlement window in milliseconds (72 hours). */
 export const SETTLEMENT_WINDOW_MS = 72 * 60 * 60 * 1_000; // 72 hours
 
-/** Duration of the settlement window in hours (for display and response fields). */
+/** Duration of the settlement window in hours. */
 export const SETTLEMENT_WINDOW_HOURS = 72;
 
 /** Status values for a settlement clock. */
@@ -172,4 +172,147 @@ function formatRemaining(ms: number): string {
   if (minutes > 0) parts.push(`${minutes}m`);
   if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
   return parts.join(" ");
+}
+
+// ── ComplianceClock (Phase 103.4 / 106) ──────────────────────────────────────
+
+/**
+ * ComplianceClock is a lightweight object used in Forensic Sandbox and
+ * Statutory Handshake endpoints to communicate a 72-hour settlement deadline
+ * with a stable clock_id for database persistence.
+ */
+export interface ComplianceClock {
+  /** Stable identifier for this clock instance (e.g. "clock_q_36459_1234567890"). */
+  clock_id:    string;
+  /** ASN of the entity under compliance obligation. */
+  asn:         string | null;
+  /** Organisation name (if known). */
+  org_name:    string | null;
+  /** ISO-8601 timestamp when the clock was issued. */
+  issued_at:   string;
+  /** ISO-8601 deadline (issued_at + 72 hours). */
+  deadline_at: string;
+  /** Clock status. */
+  status:      SettlementClockStatus;
+  /** Milliseconds remaining until deadline. */
+  remainingMs: number;
+  /** Human-readable remaining time string. */
+  remainingDisplay: string;
+  /** True if the deadline has passed without settlement. */
+  expired:     boolean;
+  /** Kernel anchor. */
+  kernelSha:   string;
+  kernelVersion: string;
+}
+
+/**
+ * Create a new ComplianceClock anchored to the current time.
+ *
+ * @param asn      ASN of the entity (e.g. "36459"). May be null.
+ * @param orgName  Organisation name (optional).
+ * @param clockId  Stable identifier for this clock (e.g. "clock_q_36459_<ts>").
+ * @returns        ComplianceClock record.
+ */
+export function createComplianceClock(
+  asn:     string | null,
+  orgName: string | null,
+  clockId: string,
+): ComplianceClock {
+  const now        = Date.now();
+  const deadlineMs = now + SETTLEMENT_WINDOW_MS;
+  const remaining  = SETTLEMENT_WINDOW_MS;
+
+  return {
+    clock_id:        clockId,
+    asn,
+    org_name:        orgName,
+    issued_at:       new Date(now).toISOString(),
+    deadline_at:     new Date(deadlineMs).toISOString(),
+    status:          "ACTIVE",
+    remainingMs:     remaining,
+    remainingDisplay: formatRemaining(remaining),
+    expired:         false,
+    kernelSha:       KERNEL_SHA,
+    kernelVersion:   KERNEL_VERSION,
+  };
+}
+
+// ── Reconciliation helper ─────────────────────────────────────────────────────
+
+export interface ClockReconcileResult {
+  /** Number of ACTIVE clocks that are now EXPIRED. */
+  escalated: number;
+  /** Number of ACTIVE clocks still within window. */
+  active:    number;
+  /** Number of SETTLED clocks skipped. */
+  settled:   number;
+  /** ISO-8601 reconciliation timestamp. */
+  reconciledAt: string;
+  /** Kernel anchor. */
+  kernelVersion: string;
+}
+
+/**
+ * Reconcile in-memory compliance clocks by evaluating their deadlines.
+ *
+ * For database-backed reconciliation, callers should query their D1 table
+ * (e.g. `kaas_ledger` or a dedicated `compliance_clocks` table) and pass
+ * the rows here. ACTIVE clocks whose deadline has passed are marked EXPIRED
+ * and should be ESCALATED to the /api/v1/kaas/settle flow.
+ *
+ * @param clocks Array of ComplianceClock records to evaluate.
+ * @returns      ClockReconcileResult summary + updated clocks array.
+ */
+export function reconcileClocks(
+  clocks: ComplianceClock[],
+): { result: ClockReconcileResult; clocks: ComplianceClock[] } {
+  const now = Date.now();
+  let escalated = 0;
+  let active    = 0;
+  let settled   = 0;
+
+  const updated = clocks.map((clock) => {
+    if (clock.status === "SETTLED") {
+      settled++;
+      return clock;
+    }
+
+    const deadlineMs = new Date(clock.deadline_at).getTime();
+    const expired    = now > deadlineMs;
+
+    if (expired && clock.status !== "EXPIRED") {
+      escalated++;
+      return {
+        ...clock,
+        status:          "EXPIRED" as SettlementClockStatus,
+        remainingMs:     0,
+        remainingDisplay: "EXPIRED",
+        expired:         true,
+      };
+    }
+
+    if (!expired) {
+      active++;
+      const remaining = deadlineMs - now;
+      return {
+        ...clock,
+        remainingMs:      remaining,
+        remainingDisplay: formatRemaining(remaining),
+        expired:          false,
+      };
+    }
+
+    return clock;
+  });
+
+  return {
+    result: {
+      escalated,
+      active,
+      settled,
+      reconciledAt:  new Date().toISOString(),
+      kernelVersion: KERNEL_VERSION,
+    },
+    clocks: updated,
+  };
 }

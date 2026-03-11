@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
+import {
+  STATUTORY_ADMIN_SETTLEMENT_CENTS,
+  STATUTORY_ADMIN_SETTLEMENT_LABEL,
+} from "../../lib/kaas/pricing";
 
 // Recharts is excluded from the SSR bundle via ssr:false to keep the
 // Cloudflare Worker under the 3 MiB compressed size limit.
@@ -163,14 +168,19 @@ export default function TariRevenuePage() {
   const [milestones, setMilestones] = useState<TaiMilestone[]>([]);
   const [stats, setStats] = useState<TariStatsData | null>(null);
   const [kaasValuations, setKaasValuations] = useState<KaasValuationsData | null>(null);
+  const [kaasLedger, setKaasLedger] = useState<{
+    rows: Array<{
+      id: number; entity_name: string; asn: string | null; org_name: string | null;
+      ray_id: string | null; amount_owed: number; settlement_status: string;
+      created_at: string; evidence_sha512?: string;
+    }>;
+    total_open_rows: number;
+  } | null>(null);
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sseStatus, setSseStatus] = useState<"connecting" | "live" | "polling">("connecting");
-  // Gate 7 — Genesis Dollar Anchor: tracks the first SETTLED compliance clock
-  const [firstSettledClock, setFirstSettledClock] = useState<{
-    clock_id: string; asn: string; org_name: string | null; settled_at: string;
-  } | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "ledger" | "compliance">("overview");
 
   useEffect(() => {
     let cancelled = false;
@@ -242,23 +252,25 @@ export default function TariRevenuePage() {
         console.warn("[TariRevenue] KaaS valuations fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
-      // Gate 7 — Genesis Dollar Anchor: check for first SETTLED compliance clock
+      // Fetch kaas_ledger handshake attestations (Roadmap Gate 1.2)
       try {
-        const res = await fetch("/api/v1/compliance/clocks?status=SETTLED&limit=1", { cache: "no-store" });
+        const res = await fetch("/api/v1/kaas/sync?action=status&limit=20", { cache: "no-store" });
         if (res.ok) {
-          const data = (await res.json()) as { clocks?: Array<{ clock_id: string; asn: string; org_name: string | null; deadline_at: string }> };
-          const first = data.clocks?.[0];
-          if (first && !cancelled) {
-            setFirstSettledClock({
-              clock_id:   first.clock_id,
-              asn:        first.asn,
-              org_name:   first.org_name,
-              settled_at: first.deadline_at,
-            });
-          }
+          const data = (await res.json()) as {
+            ledger: Array<{
+              id: number; entity_name: string; asn: string | null; org_name: string | null;
+              ray_id: string | null; amount_owed: number; settlement_status: string;
+              created_at: string; evidence_sha512?: string;
+            }>;
+            total_open_rows: number;
+          };
+          if (!cancelled) setKaasLedger({
+            rows: data.ledger ?? [],
+            total_open_rows: data.total_open_rows ?? 0,
+          });
         }
-      } catch {
-        // Non-critical — compliance clocks are supplemental
+      } catch (err) {
+        console.warn("[TariRevenue] KaaS ledger fetch failed:", err instanceof Error ? err.message : String(err));
       }
 
       if (!cancelled) setLoading(false);
@@ -622,6 +634,101 @@ export default function TariRevenuePage() {
         </div>
       </div>
 
+      {/* ── Roadmap Gate 1.2: Tab Navigation ────────────────────────────────── */}
+      <div style={{
+        display: "flex", gap: "0.5rem", marginBottom: "1.5rem",
+        borderBottom: `1px solid ${GOLD_BORDER}`, paddingBottom: "0.5rem",
+      }}>
+        {(["overview", "ledger", "compliance"] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding:      "0.45rem 1rem",
+              background:   activeTab === tab ? GOLD : "transparent",
+              color:        activeTab === tab ? "#000" : GOLD_DIM,
+              border:       `1px solid ${activeTab === tab ? GOLD : GOLD_BORDER}`,
+              borderRadius: "6px",
+              cursor:       "pointer",
+              fontFamily:   "JetBrains Mono, monospace",
+              fontSize:     "0.78rem",
+              fontWeight:   activeTab === tab ? 700 : 400,
+              textTransform: "capitalize",
+            }}
+          >
+            {tab === "overview" ? "📊 Overview" : tab === "ledger" ? "🔗 KaaS Ledger" : "⚖️ Compliance"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── KaaS Ledger Tab (Roadmap Gate 1.2) ─────────────────────────────── */}
+      {activeTab === "ledger" && (
+        <div
+          style={{
+            background:   "linear-gradient(135deg, #030010 0%, #080020 100%)",
+            border:       `1px solid rgba(100,165,250,0.25)`,
+            borderRadius: "12px",
+            padding:      "1rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily:   "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ color: "#60a5fa", fontWeight: 700, fontSize: "0.95rem", marginBottom: "0.5rem" }}>
+            🔗 KaaS Ledger — Handshake Attestations
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", marginBottom: "1rem" }}>
+            STATUTORY_HANDSHAKE · Forensic Compliance Portal · Roadmap Gate 1.2
+          </div>
+          {kaasLedger && kaasLedger.rows.length > 0 ? (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid rgba(100,165,250,0.2)` }}>
+                    {["Entity", "ASN", "Amount Owed", "Status", "Created", "Evidence SHA"].map(h => (
+                      <th key={h} style={{ color: "rgba(100,165,250,0.8)", padding: "0.35rem 0.5rem", textAlign: "left", fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {kaasLedger.rows.map(row => (
+                    <tr key={row.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
+                      <td style={{ color: "#fff",           padding: "0.3rem 0.5rem" }}>{row.entity_name || row.org_name || "—"}</td>
+                      <td style={{ color: "#60a5fa",        padding: "0.3rem 0.5rem" }}>{row.asn ?? "—"}</td>
+                      <td style={{ color: "#ffd700",        padding: "0.3rem 0.5rem" }}>
+                        {row.amount_owed.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                      </td>
+                      <td style={{
+                        color: row.settlement_status === "OPEN" ? "#f97316" : "#4ade80",
+                        padding: "0.3rem 0.5rem",
+                      }}>
+                        {row.settlement_status}
+                      </td>
+                      <td style={{ color: "rgba(255,255,255,0.55)", padding: "0.3rem 0.5rem" }}>
+                        {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td style={{ color: "rgba(255,255,255,0.4)", padding: "0.3rem 0.5rem", fontFamily: "monospace", fontSize: "0.65rem" }}>
+                        {row.evidence_sha512 ? row.evidence_sha512.slice(0, 16) + "…" : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.68rem", marginTop: "0.5rem" }}>
+                Showing {kaasLedger.rows.length} of {kaasLedger.total_open_rows} OPEN/PENDING records
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", padding: "1rem 0" }}>
+              No handshake attestations found in the kaas_ledger.
+              Submit an affidavit at <Link href="/licensing/handshake" style={{ color: "#60a5fa" }}>/licensing/handshake</Link> to populate this ledger.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Wrap existing sections in overview tab ─────────────────────────── */}
+      {activeTab === "overview" && <>
+
       {/* KaaS™ Live Debt Ledger — Phase 97 D1 kaas_valuations Table */}
       {kaasValuations && kaasValuations.rows.length > 0 && (
         <div
@@ -793,6 +900,107 @@ export default function TariRevenuePage() {
             <span>TOTAL ACCUMULATED LIABILITY</span>
             <span style={{ fontWeight: 700 }}>{formatUsd(usage.totalUsd)}</span>
           </div>
+
+          {/* ── Statutory Admin Settlement Line Item — 17 U.S.C. § 504 ─────── */}
+          {(() => {
+            const totalCents = Math.round(Number(usage.totalUsd) * 100);
+            const progressPct = Math.min(
+              100,
+              Math.round((totalCents / STATUTORY_ADMIN_SETTLEMENT_CENTS) * 100)
+            );
+            const reached = totalCents >= STATUTORY_ADMIN_SETTLEMENT_CENTS;
+            return (
+              <div
+                style={{
+                  padding: "0.85rem 1.25rem",
+                  borderTop: `1px solid ${GOLD_BORDER}`,
+                  fontFamily: "JetBrains Mono, monospace",
+                  background: reached
+                    ? "linear-gradient(135deg, rgba(255,68,68,0.12), rgba(120,0,0,0.18))"
+                    : "linear-gradient(135deg, rgba(255,215,0,0.06), rgba(80,40,0,0.1))",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "0.5rem",
+                    flexWrap: "wrap",
+                    gap: "0.35rem",
+                  }}
+                >
+                  <span style={{ color: GOLD, fontWeight: 700, fontSize: "0.78rem" }}>
+                    ⚖️ STATUTORY ADMIN SETTLEMENT — 17 U.S.C. § 504
+                  </span>
+                  <span
+                    style={{
+                      color: reached ? RED : GOLD,
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {STATUTORY_ADMIN_SETTLEMENT_LABEL}
+                    {reached && (
+                      <span
+                        style={{
+                          marginLeft: "0.5rem",
+                          fontSize: "0.65rem",
+                          background: "rgba(255,68,68,0.18)",
+                          border: "1px solid rgba(255,68,68,0.5)",
+                          borderRadius: "4px",
+                          padding: "0.1rem 0.4rem",
+                          color: RED,
+                        }}
+                      >
+                        THRESHOLD REACHED
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    height: "8px",
+                    background: "rgba(255,215,0,0.12)",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                    marginBottom: "0.35rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${progressPct}%`,
+                      background: reached
+                        ? "linear-gradient(90deg, #ff4444, #ff8800)"
+                        : "linear-gradient(90deg, #ffd700, #ffaa00)",
+                      borderRadius: "4px",
+                      transition: "width 0.6s ease",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: GOLD_DIM,
+                    fontSize: "0.68rem",
+                  }}
+                >
+                  <span>{progressPct}% of statutory minimum</span>
+                  <span>
+                    {reached
+                      ? "Settlement cap met — escalate to TARI™ invoice"
+                      : `${formatUsd((STATUTORY_ADMIN_SETTLEMENT_CENTS - totalCents) / 100)} remaining to cap`}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </section>
       )}
 
@@ -921,6 +1129,49 @@ export default function TariRevenuePage() {
             ))}
           </div>
         </section>
+      )}
+      </> /* end overview tab */}
+
+      {/* ── Compliance Tab ─────────────────────────────────────────────────── */}
+      {activeTab === "compliance" && usage && (
+        <div
+          style={{
+            background:   "linear-gradient(135deg, #030010 0%, #080020 100%)",
+            border:       `1px solid rgba(74,222,128,0.25)`,
+            borderRadius: "12px",
+            padding:      "1rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily:   "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ color: "#4ade80", fontWeight: 700, fontSize: "0.95rem", marginBottom: "0.5rem" }}>
+            ⚖️ Compliance Usage — Settlement Activity
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", marginBottom: "1rem" }}>
+            Total Revenue: {formatUsd(usage.totalUsd)} · {usage.rows.length} organisations tracked
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(74,222,128,0.2)" }}>
+                {["Organisation", "Total USD", "Events", "Last Event"].map(h => (
+                  <th key={h} style={{ color: "rgba(74,222,128,0.8)", padding: "0.35rem 0.5rem", textAlign: "left", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {usage.rows.map((row, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <td style={{ color: "#fff",    padding: "0.3rem 0.5rem" }}>{row.org_id}</td>
+                  <td style={{ color: "#ffd700", padding: "0.3rem 0.5rem" }}>{formatUsd(row.total_usd)}</td>
+                  <td style={{ color: "#60a5fa", padding: "0.3rem 0.5rem" }}>{row.total_events}</td>
+                  <td style={{ color: "rgba(255,255,255,0.55)", padding: "0.3rem 0.5rem" }}>
+                    {new Date(row.last_event).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );
