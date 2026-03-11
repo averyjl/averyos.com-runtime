@@ -27,7 +27,6 @@ const PURPLE_MID    = "rgba(98,0,234,0.18)";
 const PURPLE_BORDER = "rgba(120,60,255,0.35)";
 const GOLD          = "#ffd700";
 const GOLD_BORDER   = "rgba(255,215,0,0.35)";
-const GOLD_GLOW     = "rgba(255,215,0,0.08)";
 const WHITE         = "#ffffff";
 const GREEN         = "#4ade80";
 
