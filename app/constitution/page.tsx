@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 export const metadata: Metadata = {
   title: "AveryOS™ Constitution v1.17 — 10,000♾️ Year Anchor • AveryOS™",
@@ -108,7 +107,7 @@ export default function ConstitutionPage() {
         </div>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

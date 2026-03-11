@@ -3,7 +3,6 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import Link from "next/link";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import {
@@ -59,7 +58,7 @@ export default function AuditClearancePage() {
 
 function AuditClearancePortal() {
   const searchParams = useSearchParams();
-  const rayId = searchParams?.get("rayid") ?? "UNKNOWN";
+  const rayId = searchParams?.get("rayid") ?? "";
 
   // Settlement is resolved client-side based on ASN and org URL parameters.
   // The middleware injects asn/org params when redirecting cadence probes so
@@ -70,12 +69,33 @@ function AuditClearancePortal() {
   const [settlement, setSettlement] = useState<SettlementResult | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [detectedIp, setDetectedIp] = useState<string>("");
+  const [detectedAsn, setDetectedAsn] = useState<string>(asnParam);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [showConsent, setShowConsent] = useState(true);
+
+  // Dynamic IP + ASN detection — only runs after user consent
+  useEffect(() => {
+    if (!consentGiven) return;
+    const detect = async () => {
+      try {
+        const res  = await fetch("/api/v1/detect-asn", { cache: "no-store" });
+        const data = await res.json() as { asn?: string | null; ip?: string | null };
+        if (data.ip)  setDetectedIp(data.ip);
+        if (data.asn && !asnParam) setDetectedAsn(data.asn);
+      } catch {
+        // non-fatal — fall back to URL params or "UNKNOWN"
+      }
+    };
+    void detect();
+  }, [consentGiven, asnParam]);
 
   useEffect(() => {
-    setSettlement(resolveSettlement(asnParam || null, orgParam || null));
-  }, [asnParam, orgParam]);
+    setSettlement(resolveSettlement(detectedAsn || asnParam || null, orgParam || null));
+  }, [detectedAsn, asnParam, orgParam]);
 
   const capturedAt = new Date().toISOString();
+  const displayRayId = rayId || "—";
 
   async function handleClearance() {
     setCheckoutLoading(true);
@@ -85,16 +105,16 @@ function AuditClearancePortal() {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
-          ray_id:    rayId,
-          bundle_id: `audit-clearance-${rayId}`,
-          asn:       asnParam || undefined,
+          ray_id:    rayId || undefined,
+          bundle_id: rayId ? `audit-clearance-${rayId}` : `audit-clearance-${Date.now()}`,
+          asn:       detectedAsn || asnParam || undefined,
         }),
       });
-      const data = await res.json() as { url?: string; error?: string };
+      const data = await res.json() as { url?: string; error?: string; detail?: string };
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setCheckoutError(data.error ?? "Checkout creation failed. Please try again.");
+        setCheckoutError(data.detail ?? data.error ?? "Checkout creation failed. Please try again.");
       }
     } catch {
       setCheckoutError("Network error. Please try again.");
@@ -152,6 +172,44 @@ function AuditClearancePortal() {
           </div>
         </div>
 
+        {/* ── Consent Gate ─────────────────────────────────────────────────── */}
+        {showConsent && !consentGiven && (
+          <div style={card({ background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}` })}>
+            <h2 style={{ color: GOLD, fontSize: "1rem", fontWeight: 700, marginBottom: "0.8rem" }}>
+              🔍 Verification Check Required
+            </h2>
+            <p style={{ color: MUTED, fontSize: "0.87rem", lineHeight: 1.7, marginBottom: "0.9rem" }}>
+              To complete the audit assessment, the GabrielOS™ Firewall will check your
+              <strong style={{ color: "#fff" }}> IP address, ASN (network provider)</strong>, and
+              <strong style={{ color: "#fff" }}> session context</strong> to determine the correct
+              settlement tier. Do you consent to this check?
+            </p>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <button
+                onClick={() => { setConsentGiven(true); setShowConsent(false); }}
+                style={{
+                  flex: 1, padding: "0.75rem", background: GOLD, border: "none",
+                  borderRadius: "8px", color: "#000", fontWeight: 700, cursor: "pointer",
+                  fontFamily: "monospace", fontSize: "0.9rem",
+                }}
+              >
+                ✅ Yes, proceed with verification
+              </button>
+              <button
+                onClick={() => setShowConsent(false)}
+                style={{
+                  flex: 1, padding: "0.75rem", background: "transparent",
+                  border: `1px solid ${GOLD_BDR}`, borderRadius: "8px",
+                  color: GOLD_DIM, cursor: "pointer",
+                  fontFamily: "monospace", fontSize: "0.9rem",
+                }}
+              >
+                Skip verification
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Notice of Ingestion ──────────────────────────────────────────── */}
         <div style={card()}>
           <h2 style={{ color: GOLD, fontSize: "1rem", fontWeight: 700, marginBottom: "0.9rem" }}>
@@ -165,11 +223,9 @@ function AuditClearancePortal() {
             <strong style={{ color: "#fff" }}>AveryOS Sovereign Integrity License v1.0</strong>.
           </p>
           <div style={mono()}>
-            <div>Ray ID:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              <span style={{ color: rayId === "UNKNOWN" ? "rgba(255,215,0,0.4)" : GOLD }}>
-                {rayId === "UNKNOWN" ? "UNKNOWN — visit this page via the GabrielOS™ Firewall redirect for your session Ray ID" : rayId}
-              </span>
-            </div>
+            <div>Ray ID:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: GOLD }}>{displayRayId}</span></div>
+            {detectedIp && <div>IP Address:&nbsp;&nbsp;<span style={{ color: GOLD_DIM }}>{detectedIp}</span></div>}
+            {detectedAsn && <div>ASN:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: GOLD_DIM }}>{detectedAsn}</span></div>}
             <div>Captured At:&nbsp;<span style={{ color: GOLD_DIM }}>{capturedAt}</span></div>
             <div>Kernel:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: GOLD_DIM }}>{KERNEL_VERSION}</span></div>
             <div>SHA-512:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -261,7 +317,7 @@ function AuditClearancePortal() {
                 Instant settlement • Agentic-wallet compatible • SHA-512 proof bundle delivered on payment
               </p>
               {checkoutError && (
-                <div style={{ ...card({ background: RED_DIM, border: `1px solid ${RED}` }), color: "#ffaaaa", marginBottom: "1rem" }}>
+                <div style={{ ...card({ background: "rgba(255,68,68,0.1)", border: `1px solid ${RED}`, color: "#ffaaaa", marginBottom: "1rem" }) }}>
                   ⚠️ {checkoutError}
                 </div>
               )}
@@ -282,7 +338,7 @@ function AuditClearancePortal() {
                   transition:    "opacity 0.2s",
                 }}
               >
-                {checkoutLoading ? "Initiating Clearance…" : `⚡ Clear the Audit — ${settlement.clearanceFeeDisplay}`}
+                {checkoutLoading ? "Initiating Clearance…" : `⚡ Clear the Audit — ${settlement.clearanceFeeDisplay} USD`}
               </button>
             </div>
           ) : (
@@ -359,7 +415,7 @@ function AuditClearancePortal() {
         </p>
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

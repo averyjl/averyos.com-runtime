@@ -155,48 +155,64 @@ export async function POST(request: Request) {
       targetIp,
       rayId, ray_id,
       asn, tier, org_name,
+      organization: orgFromBody, email: emailFromBody, machine_id,
       tariLiability, tax_id, company_registration,
       organization, email, machine_id,
     } = body as Record<string, unknown>;
 
-    // ── Resolve composite fields ─────────────────────────────────────────────
-    // Accept both camelCase (bundleId/rayId) and snake_case (bundle_id/ray_id).
-    const bundleIdTrimmed     = typeof bundleId    === "string" ? bundleId.trim()    : "";
-    const bundleIdSnakeTrimmed = typeof bundle_id  === "string" ? bundle_id.trim()   : "";
-    const resolvedBundleId    = bundleIdTrimmed || bundleIdSnakeTrimmed || `checkout-${Date.now()}`;
+    // ── Resolve all required variables from the flexible request body ──────────
+    // Accept bundleId (camelCase) or bundle_id (snake_case); auto-generate if absent.
+    const resolvedBundleId = (typeof bundleId === "string" && bundleId.trim())
+      ? bundleId.trim()
+      : (typeof bundle_id === "string" && bundle_id.trim())
+        ? bundle_id.trim()
+        : `aos-bundle-${Date.now()}`;
 
-    const rayIdTrimmed        = typeof rayId    === "string" ? rayId.trim()    : "";
-    const rayIdSnakeTrimmed   = typeof ray_id   === "string" ? ray_id.trim()   : "";
-    const rayIdStr            = rayIdTrimmed || rayIdSnakeTrimmed;
+    // Accept rayId or ray_id; default to empty string.
+    const rayIdStr = (typeof rayId === "string" && rayId.trim())
+      ? rayId.trim()
+      : (typeof ray_id === "string" && ray_id.trim())
+        ? ray_id.trim()
+        : "";
 
-    // Enterprise self-registration path: has organization/email but no targetIp/asn.
-    const targetIpTrimmed = typeof targetIp === "string" ? targetIp.trim() : "";
-    const isEnterprisePath =
-      typeof organization === "string" && organization.trim().length > 0 &&
-      !targetIpTrimmed;
+    // Accept organization or org_name for the enterprise/agentic self-registration path.
+    const organization = (typeof orgFromBody === "string" && orgFromBody.trim())
+      ? orgFromBody.trim()
+      : (typeof org_name === "string" && org_name.trim())
+        ? org_name.trim()
+        : "";
 
-    // Resolve the target IP from the body field, the Cloudflare edge headers
-    // (populated by the GabrielOS™ Firewall on every request), or the machine
-    // identifier sent by the agentic portal — in that order.
-    const machineIdTrimmed = typeof machine_id === "string" ? machine_id.trim() : "";
-    const resolvedTargetIp: string =
-      targetIpTrimmed ||
-      (request as Request).headers.get("cf-connecting-ip") ??
-      (request as Request).headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      machineIdTrimmed ||
-      "AGENTIC";
+    // Accept email; not required for purely forensic/agentic paths.
+    const email = typeof emailFromBody === "string" ? emailFromBody.trim() : "";
+
+    // machine_id is used by the agentic portal as a proxy for targetIp.
+    const machineIdStr = typeof machine_id === "string" ? machine_id.trim() : "";
+
+    const asnStr = typeof asn === "string" ? asn.trim() : "";
+
+    // Resolve targetIp: explicit value > machine_id (agentic) > ASN placeholder > rayId placeholder.
+    const rawTargetIp = typeof targetIp === "string" ? targetIp.trim() : "";
+    const resolvedTargetIp = rawTargetIp
+      || machineIdStr
+      || (asnStr ? `asn:${asnStr}` : "")
+      || (rayIdStr ? `rayid:${rayIdStr}` : "")
+      || `unknown-${Date.now()}`;
+
+    // Enterprise path: self-registration using org name (agentic/enterprise portals).
+    // Forensic/audit path does not require org name.
+    const isEnterprisePath = Boolean(organization) && !rawTargetIp;
 
     // Validate enterprise-path required fields
     if (isEnterprisePath) {
-      if (typeof organization !== "string" || !organization.trim()) {
+      if (!organization) {
         return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'organization is required.');
       }
-      if (typeof email !== "string" || !email.trim()) {
+      if (!email) {
         return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'email is required.');
       }
     }
 
-    const asnStr = typeof asn === "string" ? asn.trim() : "";
+    // asnStr is resolved above; re-use it below.
     const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
     const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
 

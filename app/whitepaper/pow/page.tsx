@@ -22,7 +22,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -374,7 +373,7 @@ export default function PowGatePage() {
         </p>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

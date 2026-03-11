@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 export const metadata: Metadata = {
   title: "TARI Gate — Licensing Portal • AveryOS™",
@@ -185,7 +184,7 @@ export default function TariGatePage() {
         </p>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

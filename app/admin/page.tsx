@@ -17,7 +17,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 import SovereignErrorBanner from "../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
@@ -344,7 +343,7 @@ export default function AdminPage() {
           </Link>
         </div>
 
-        <FooterBadge />
+
       </main>
     );
   }
@@ -563,7 +562,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

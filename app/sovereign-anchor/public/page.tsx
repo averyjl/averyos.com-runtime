@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA } from "../../../lib/sovereignConstants";
 
 // ─── Public constants ─────────────────────────────────────────────────────────
@@ -455,7 +454,7 @@ export default function SovereignAnchorPublicPage() {
         </p>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

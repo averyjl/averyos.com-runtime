@@ -19,7 +19,6 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
@@ -147,7 +146,7 @@ function AuthGate({
           🔑 Authenticate
         </button>
       </div>
-      <FooterBadge />
+
     </main>
   );
 }
@@ -462,7 +461,7 @@ export default function AdminSettlementsPage() {
         </div>
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

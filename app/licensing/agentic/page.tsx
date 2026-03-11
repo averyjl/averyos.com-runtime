@@ -22,7 +22,6 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { kaasDisplayPrice, resolveKaasTier } from "../../../lib/stripe/onrampLogic";
 
@@ -134,9 +133,9 @@ export default function AgenticSettlementPortal() {
           source:     "AGENTIC_PORTAL",
         }),
       });
-      const data = await res.json() as CheckoutResponse;
+      const data = await res.json() as CheckoutResponse & { detail?: string };
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Checkout could not be initiated.");
+        setError(data.detail ?? data.error ?? "Checkout could not be initiated.");
         return;
       }
       window.location.href = data.url;
@@ -187,8 +186,8 @@ export default function AgenticSettlementPortal() {
                 {[
                   ["ASN",           detectedAsn],
                   ["IP Address",    detectedIp],
-                  ["Entity",        asnInfo?.name ?? "Residential / Individual"],
-                  ["Description",   asnInfo?.description ?? "Individual or residential user — standard Tier-1 license applies"],
+                  ["Entity",        asnInfo?.name ?? (detectedAsn === "UNKNOWN" ? "Residential / Individual" : `ASN ${detectedAsn}`)],
+                  ["Description",   asnInfo?.description ?? (detectedAsn === "UNKNOWN" ? "Individual or residential visitor — Tier-1 license applies" : `Network entity on ASN ${detectedAsn} — standard license applies`)],
                   ["KaaS Tier",     `Tier-${tier}`],
                   ["Settlement Fee",feeDisplay],
                   ["Machine ID",    machineId ? machineId.slice(0, 24) + "…" : "Generating…"],
@@ -302,7 +301,7 @@ export default function AgenticSettlementPortal() {
           ⛓️⚓⛓️ Kernel {KERNEL_VERSION} · {KERNEL_SHA.slice(0, 24)}… · Phase 105.1 — Agentic Wallet Pipeline 🤛🏻
         </div>
       </div>
-      <FooterBadge />
+
     </main>
   );
 }

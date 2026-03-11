@@ -21,7 +21,6 @@
 import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
@@ -237,8 +236,11 @@ export default function AlignmentCheckPage() {
         }
         setUrlFetching(true);
         const res  = await fetch(`/api/v1/alignment-check/fetch?url=${encodeURIComponent(textToScan)}`);
-        const data = await res.json() as { text?: string; error?: string };
-        if (!res.ok) throw new Error(data.error ?? `Fetch failed (HTTP ${res.status})`);
+        const data = await res.json() as { text?: string; error?: string; detail?: string };
+        if (!res.ok) {
+          const msg = data.detail ?? data.error ?? `Fetch failed (HTTP ${res.status})`;
+          throw new Error(msg);
+        }
         textToScan = data.text ?? "";
         setUrlFetching(false);
       }
@@ -522,7 +524,7 @@ export default function AlignmentCheckPage() {
           </>
         )}
       </div>
-      <FooterBadge />
+
     </main>
   );
 }
