@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 
 const STRIPE_LINK = "https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01";
 const KERNEL_SHA =
@@ -161,6 +162,7 @@ export default function LicensePage() {
           🔬 Test Transaction (TruthAnchor Verification)
         </Link>
       </div>
+      <FooterBadge />
     </main>
   );
 }

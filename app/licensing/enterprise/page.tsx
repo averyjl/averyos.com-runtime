@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
+import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
@@ -425,6 +426,7 @@ export default function EnterpriseRegistrationPage() {
           </p>
         </div>
       </div>
+      <FooterBadge />
     </main>
   );
 }

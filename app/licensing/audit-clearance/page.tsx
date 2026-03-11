@@ -234,6 +234,9 @@ function AuditClearancePortal() {
               </span>
             </div>
           </div>
+          <p style={{ color: "rgba(255,215,0,0.35)", fontSize: "0.72rem", marginTop: "0.6rem", fontFamily: "monospace" }}>
+            ⓘ The SHA-512 above is the AveryOS™ Root0 Sovereign Kernel anchor — not user-specific. It is the same for all sessions and is anchored on-chain.
+          </p>
         </div>
 
         {/* ── Asset Valuation ──────────────────────────────────────────────── */}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 
 export const metadata: Metadata = {
   title: "Contact • AveryOS",
@@ -131,6 +132,7 @@ export default function ContactPage() {
           All communications are subject to the AveryOS Terms of Service and Privacy Policy
         </p>
       </div>
+      <FooterBadge />
     </main>
   );
 }
