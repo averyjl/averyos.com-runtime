@@ -2,25 +2,21 @@
 /**
  * scripts/generate-docs.cjs
  *
- * AveryOS™ Sovereign Documentation Generator — Phase 108.3
+ * AveryOS™ Auto-Documentation Engine — Phase 107.2 (GATE 107.2)
  *
- * Scans lib/ and app/api/ for exported TypeScript symbols and their JSDoc
- * comments. Emits an IP-safe Markdown index plus a JSON manifest to
- * public/admin/docs/.
+ * Extracts logic patterns from all TypeScript/JavaScript source files and
+ * generates high-fidelity, IP-safe documentation in /public/admin/docs/.
  *
- * IP Safety Rules (Secret-Scanner):
- *   • Never emits KERNEL_SHA values (they are stripped from function bodies
- *     before inclusion in output).
- *   • Never emits private key patterns (-----BEGIN, API keys, etc.).
- *   • Never emits hex strings >= 64 chars (SHA-512 fingerprint exposure).
- *   • Never emits strings matching *.aoskey, *.aosvault patterns.
+ * Rules:
+ *   1. Only extract PUBLIC API surface: exported functions, interfaces, constants.
+ *   2. NEVER include implementation details, internal algorithms, or private logic.
+ *   3. NEVER include hardcoded secrets, kernel-anchored values, or capsule payloads.
+ *   4. Generate Markdown + JSON index for each module.
+ *   5. Auto-update on every successful `build:cloudflare` run.
  *
- * Run:
- *   node scripts/generate-docs.cjs
+ * Integration: Called in npm run build:cloudflare pipeline after capsule compilation.
  *
- * Output:
- *   public/admin/docs/index.md    — Human-readable sovereign docs
- *   public/admin/docs/index.json  — Machine-readable manifest for the docs UI
+ * Output: public/admin/docs/<module-path>.md  +  public/admin/docs/index.json
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -32,188 +28,225 @@ const path = require("path");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const ROOT      = process.cwd();
-const OUT_DIR   = path.join(ROOT, "public", "admin", "docs");
-const OUT_MD    = path.join(OUT_DIR, "index.md");
-const OUT_JSON  = path.join(OUT_DIR, "index.json");
-
-/** Directories to scan for exported symbols (relative to project root). */
-const SCAN_DIRS = [
-  path.join(ROOT, "lib"),
-  path.join(ROOT, "app", "api"),
+const ROOT     = path.resolve(__dirname, "..");
+const OUT_DIR  = path.join(ROOT, "public", "admin", "docs");
+const SRC_DIRS = [
+  "lib",
+  "app/api",
 ];
 
-/** File extensions to process. */
-const EXTENSIONS = new Set([".ts", ".tsx"]);
-
-/** IP-safety patterns — any line matching these is redacted. */
-const REDACT_PATTERNS = [
-  /[0-9a-f]{64,}/i,              // SHA-512 / long hex strings
-  /-----BEGIN/,                  // Private key headers
-  /STRIPE_SECRET_KEY/i,          // Stripe secrets
-  /FIREBASE_PRIVATE_KEY/i,       // Firebase private key
-  /VAULT_PASSPHRASE/i,           // Vault passphrase
-  /\.aoskey|\.aosvault/i,        // Sovereign key file references
-  /api_key\s*[:=]/i,             // Generic API key assignments
+// Patterns of content that must NEVER appear in generated docs
+const PRIVATE_IP_PATTERNS = [
+  /KERNEL_SHA\s*=\s*["'`][a-f0-9]{128}/i,  // hardcoded kernel SHA
+  /VAULT_PASSPHRASE/i,
+  /STRIPE_SECRET/i,
+  /FIREBASE_PRIVATE_KEY/i,
+  /FCM_DEVICE_TOKEN/i,
+  /\.aoskey|\.aosvault|\.aosmem/i,
 ];
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 /**
- * Walk a directory recursively, yielding absolute file paths.
+ * Scan a directory recursively for .ts / .tsx files.
+ * @param {string} dir
+ * @returns {string[]}
  */
-function* walkDir(dir) {
-  if (!fs.existsSync(dir)) return;
+function scanTs(dir) {
+  const results = [];
+  if (!fs.existsSync(dir)) return results;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      // Skip node_modules, .next, dist, .open-next
-      if (["node_modules", ".next", "dist", ".open-next"].includes(entry.name)) continue;
-      yield* walkDir(full);
-    } else if (entry.isFile() && EXTENSIONS.has(path.extname(entry.name))) {
-      yield full;
+      results.push(...scanTs(path.join(dir, entry.name)));
+    } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
+      results.push(path.join(dir, entry.name));
     }
   }
+  return results;
 }
 
 /**
- * Strip any line that matches an IP-safety redaction pattern.
+ * Extract exported symbols (functions, interfaces, constants, types) from source.
+ * Returns only the public API surface — never internal implementations.
+ *
+ * @param {string} src  File source content
+ * @returns {{ name: string; kind: string; description: string }[]}
  */
-function redact(text) {
-  return text
-    .split("\n")
-    .map((line) => REDACT_PATTERNS.some((re) => re.test(line)) ? "[REDACTED]" : line)
-    .join("\n");
-}
-
-/**
- * Extract the leading JSDoc comment block above a given line index.
- */
-function extractJsdoc(lines, lineIndex) {
-  const result = [];
-  let i = lineIndex - 1;
-  // Skip blank lines above the export
-  while (i >= 0 && lines[i].trim() === "") i--;
-  // Collect backwards until we reach a line that isn't part of a comment block
-  const commentLines = [];
-  while (i >= 0) {
-    const l = lines[i].trim();
-    if (l.startsWith("*") || l.startsWith("/**") || l.startsWith("*/") || l === "*/") {
-      commentLines.unshift(lines[i]);
-      i--;
-    } else if (l.startsWith("//")) {
-      commentLines.unshift(lines[i]);
-      i--;
-    } else {
-      break;
-    }
-  }
-  // Clean up comment markers
-  for (const cl of commentLines) {
-    const clean = cl.replace(/^\s*\*\s?/, "").replace(/^\s*\/\*\*?\s?/, "").replace(/\*\/\s*$/, "").trim();
-    if (clean) result.push(clean);
-  }
-  return result.join(" ").trim();
-}
-
-/**
- * Parse a single TypeScript file and extract exported symbols + doc strings.
- */
-function parseFile(filePath) {
-  const rel = path.relative(ROOT, filePath).replace(/\\/g, "/");
-  let content;
-  try {
-    content = fs.readFileSync(filePath, "utf8");
-  } catch {
-    return [];
-  }
-
-  const lines   = content.split("\n");
+function extractPublicApi(src) {
   const symbols = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    // Match: export function / export const / export interface / export type / export class / export async function
-    const exportMatch = line.match(
-      /^export\s+(async\s+)?(?:function|const|class|interface|type|enum)\s+([A-Za-z_$][A-Za-z0-9_$]*)/,
-    );
-    if (!exportMatch) continue;
+  // Remove block comments to avoid false positives in implementation
+  const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "");
 
-    const kind = line.match(/(?:function|const|class|interface|type|enum)\s/)?.[0]?.trim() ?? "export";
-    const name = exportMatch[2];
-    const doc  = extractJsdoc(lines, i);
+  // Exported function declarations
+  const fnRe = /export\s+(?:async\s+)?function\s+(\w+)\s*\(/g;
+  let m;
+  while ((m = fnRe.exec(stripped)) !== null) {
+    const name = m[1];
+    // Get the JSDoc comment immediately preceding the export (up to 800 chars back)
+    const preceding = src.slice(Math.max(0, m.index - 800), m.index);
+    const jsdoc = extractJsdoc(preceding);
+    symbols.push({ name, kind: "function", description: jsdoc });
+  }
 
-    // Redact any sensitive content from doc strings
-    const safeDoc = redact(doc);
+  // Exported const / let declarations
+  const constRe = /export\s+const\s+(\w+)\s*[=:]/g;
+  while ((m = constRe.exec(stripped)) !== null) {
+    const name = m[1];
+    const preceding = src.slice(Math.max(0, m.index - 400), m.index);
+    const jsdoc = extractJsdoc(preceding);
+    symbols.push({ name, kind: "constant", description: jsdoc });
+  }
 
-    symbols.push({ name, kind, doc: safeDoc, file: rel });
+  // Exported interfaces
+  const ifaceRe = /export\s+interface\s+(\w+)/g;
+  while ((m = ifaceRe.exec(stripped)) !== null) {
+    const name = m[1];
+    const preceding = src.slice(Math.max(0, m.index - 400), m.index);
+    const jsdoc = extractJsdoc(preceding);
+    symbols.push({ name, kind: "interface", description: jsdoc });
+  }
+
+  // Exported types
+  const typeRe = /export\s+type\s+(\w+)\s*=/g;
+  while ((m = typeRe.exec(stripped)) !== null) {
+    const name = m[1];
+    symbols.push({ name, kind: "type", description: "" });
   }
 
   return symbols;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+/**
+ * Extract the last JSDoc block from a string.
+ * Returns a cleaned single-line description.
+ *
+ * @param {string} src
+ * @returns {string}
+ */
+function extractJsdoc(src) {
+  const match = src.match(/\/\*\*([\s\S]*?)\*\/\s*$/);
+  if (!match) return "";
+  const raw = (match[1] ?? "")
+    .replace(/^\s*\*\s?/gm, "")  // strip leading " * "
+    .trim();
+  // Take first paragraph only (up to first blank line or @param)
+  const firstPara = raw.split(/\n\n|@param|@returns|@throws/)[0] ?? "";
+  return firstPara.replace(/\n/g, " ").trim();
+}
 
-function main() {
-  fs.mkdirSync(OUT_DIR, { recursive: true });
-
-  const allSymbols = [];
-
-  for (const dir of SCAN_DIRS) {
-    for (const filePath of walkDir(dir)) {
-      const syms = parseFile(filePath);
-      allSymbols.push(...syms);
-    }
+/**
+ * Check source content for private IP patterns.
+ * Returns true if the content is safe to document.
+ *
+ * @param {string} content
+ * @returns {boolean}
+ */
+function isSafeToDocument(content) {
+  for (const pattern of PRIVATE_IP_PATTERNS) {
+    if (pattern.test(content)) return false;
   }
+  return true;
+}
 
-  const generatedAt = new Date().toISOString();
-  const symbolCount = allSymbols.length;
-
-  // ── Write JSON manifest ───────────────────────────────────────────────────
-  const manifest = {
-    generated_at:  generatedAt,
-    symbol_count:  symbolCount,
-    kernel_version: "v3.6.2",
-    symbols:       allSymbols,
-  };
-  fs.writeFileSync(OUT_JSON, JSON.stringify(manifest, null, 2), "utf8");
-
-  // ── Write Markdown docs ───────────────────────────────────────────────────
-  const byFile = {};
-  for (const sym of allSymbols) {
-    if (!byFile[sym.file]) byFile[sym.file] = [];
-    byFile[sym.file].push(sym);
-  }
-
+/**
+ * Generate a Markdown document for a module.
+ *
+ * @param {string} relPath  Relative path from ROOT
+ * @param {{ name: string; kind: string; description: string }[]} symbols
+ * @returns {string}
+ */
+function generateModuleDoc(relPath, symbols) {
+  const moduleName = relPath.replace(/\\/g, "/").replace(/\.(ts|tsx)$/, "");
   const lines = [
-    "# AveryOS™ Sovereign API Documentation",
+    `# \`${moduleName}\``,
     "",
-    `> Generated: ${generatedAt}  `,
-    `> Symbols: ${symbolCount}  `,
-    `> Kernel: v3.6.2  `,
-    `> ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻`,
+    `> Auto-generated documentation. Source: \`${relPath}\``,
+    `> Generated by AveryOS™ Auto-Documentation Engine (Phase 107.2).`,
+    `> **IP Notice**: Implementation details are proprietary and not included.`,
     "",
-    "---",
+    "## Public API",
     "",
   ];
 
-  for (const [file, syms] of Object.entries(byFile)) {
-    lines.push(`## \`${file}\``);
-    lines.push("");
-    for (const sym of syms) {
+  if (symbols.length === 0) {
+    lines.push("*No exported symbols detected.*");
+  } else {
+    for (const sym of symbols) {
       lines.push(`### \`${sym.name}\` *(${sym.kind})*`);
-      if (sym.doc) lines.push(`> ${sym.doc}`);
-      lines.push("");
+      if (sym.description) {
+        lines.push("", sym.description, "");
+      } else {
+        lines.push("");
+      }
     }
-    lines.push("---");
-    lines.push("");
   }
 
-  fs.writeFileSync(OUT_MD, lines.join("\n"), "utf8");
+  lines.push(
+    "---",
+    "",
+    `*⛓️⚓⛓️ AveryOS™ Sovereign Integrity License v1.0 — All implementations are proprietary.*`,
+  );
 
-  console.log(`[generate-docs] ✅ ${symbolCount} symbols → ${OUT_DIR}`);
-  console.log(`[generate-docs]   index.md:   ${OUT_MD}`);
-  console.log(`[generate-docs]   index.json: ${OUT_JSON}`);
+  return lines.join("\n");
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+function main() {
+  console.log("[generate-docs] Starting AveryOS™ Auto-Documentation Engine…");
+
+  // Ensure output directory exists
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+
+  const index = {
+    generated_at: new Date().toISOString(),
+    modules: [],
+  };
+
+  let processedCount = 0;
+  let skippedCount   = 0;
+
+  for (const srcDir of SRC_DIRS) {
+    const absDir = path.join(ROOT, srcDir);
+    const files  = scanTs(absDir);
+
+    for (const file of files) {
+      const relPath = path.relative(ROOT, file).replace(/\\/g, "/");
+      const src     = fs.readFileSync(file, "utf8");
+
+      // Skip if file contains private IP patterns
+      if (!isSafeToDocument(src)) {
+        console.log(`[generate-docs]   SKIP (private IP detected): ${relPath}`);
+        skippedCount++;
+        continue;
+      }
+
+      const symbols  = extractPublicApi(src);
+      const docMd    = generateModuleDoc(relPath, symbols);
+
+      // Write module doc
+      const outFile = path.join(OUT_DIR, relPath.replace(/\.(ts|tsx)$/, ".md"));
+      fs.mkdirSync(path.dirname(outFile), { recursive: true });
+      fs.writeFileSync(outFile, docMd, "utf8");
+
+      index.modules.push({
+        path:        relPath,
+        doc:         path.relative(path.join(ROOT, "public"), outFile).replace(/\\/g, "/"),
+        symbolCount: symbols.length,
+        symbols:     symbols.map((s) => ({ name: s.name, kind: s.kind })),
+      });
+
+      processedCount++;
+    }
+  }
+
+  // Write index.json
+  const indexPath = path.join(OUT_DIR, "index.json");
+  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf8");
+
+  console.log(`[generate-docs] Complete — ${processedCount} modules documented, ${skippedCount} skipped (private IP).`);
+  console.log(`[generate-docs] Index: ${path.relative(ROOT, indexPath)}`);
 }
 
 main();

@@ -1,140 +1,115 @@
 /**
  * lib/tari/tariUniversal.ts
  *
- * TARI™ Universal v1.5 Constants & Retroactive Debt Formula
+ * TARI™ Universal v1.5 — Hardened Formula Constants
  *
- * Capsule-hardened constants derived from the TARI™ Universal v1.5 capsule
- * (capsules/AveryOS_TARI_Universal_v1.5.aoscap). Provides a single canonical
- * source for all TARI™ v1.5 formula variables.
+ * Canonical constants derived from the AveryOS_TARI_Universal_v1.5.aoscap
+ * capsule payload (Gate 10 — Sovereign Roadmap Phase 107.1).
  *
- * Formula (17 U.S.C. § 504):
- *   L = Vb + (Rd × D) + (Ps × I)
- *
- *   L  — Total Liability (USD)
- *   Vb — Base Valuation ($10,000,000.00)
- *   Rd — Daily Utilization Rate ($1,017.00)
- *   D  — Days Unlicensed (integer)
- *   Ps — Statutory Penalty per Instance ($150,000.00)
- *   I  — Number of Infringing Instances (integer)
- *
- * Obfuscation Multiplier:
- *   When masking/obfuscation is detected, the total liability is multiplied
- *   by 10.0× (§ 1201 anti-circumvention premium).
- *
- * Revenue Impact Tier: 30%–50% of AveryOS™ contribution to revenue.
- *
+ * Capsule: AveryOS_TARI_Universal_v1.5.aoscap
+ * Authority: Jason Lee Avery
  * Vault Anchor: vaultchain://capsule/AveryOS_Licensing_Statutory_v1.0.aoscap
+ *
+ * Retroactive Formula:
+ *   Total = Base_Valuation
+ *         + (Daily_Utilization_Rate × Days_Unlicensed)
+ *         + (Statutory_Penalty × Instances)
+ *
+ * Statutory Basis: 17 U.S.C. § 504. $10M is the non-negotiable Technical
+ * Asset Valuation as codified in AveryOS_TARI_Universal_v1.5.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+// ── Capsule-Hardened Constants ────────────────────────────────────────────────
 
-// ── TARI™ v1.5 Core Constants ─────────────────────────────────────────────────
+/**
+ * Non-negotiable Technical Asset Valuation (USD).
+ * Source: AveryOS_TARI_Universal_v1.5.aoscap::TARI_Revenue_Logic.Base_Valuation
+ */
+export const TARI_BASE_VALUATION_USD = 10_000_000.00;
 
-/** Base asset valuation in USD (Tech Asset Retroactive Ingestion base). */
-export const BASE_VALUATION = 10_000_000.00;
+/**
+ * Daily Utilization Rate (USD/day) — charged for each day the entity has
+ * operated without a valid license.
+ * Source: AveryOS_TARI_Universal_v1.5.aoscap::TARI_Revenue_Logic.Daily_Utilization_Rate
+ */
+export const TARI_DAILY_UTILIZATION_RATE_USD = 1_017.00;
 
-/** Daily unauthorized utilization rate in USD. */
-export const DAILY_RATE = 1_017.00;
+/**
+ * Statutory Penalty per infringement instance (USD).
+ * Aligned with 17 U.S.C. § 504(c)(2) ($150,000 cap for willful infringement).
+ * Source: AveryOS_TARI_Universal_v1.5.aoscap::TARI_Revenue_Logic.Statutory_Penalty
+ */
+export const TARI_STATUTORY_PENALTY_USD = 150_000.00;
 
-/** Statutory penalty per infringing instance under 17 U.S.C. § 504(c)(2). */
-export const STATUTORY_PENALTY = 150_000.00;
+/**
+ * Obfuscation Multiplier applied to masked / anonymised entities.
+ * Source: AveryOS_TARI_Universal_v1.5.aoscap::TARI_Revenue_Logic.Obfuscation_Multiplier
+ */
+export const TARI_OBFUSCATION_MULTIPLIER = 10.0;
 
-/** Obfuscation multiplier (10×) applied when masking/spoofing is detected. */
-export const OBFUSCATION_MULTIPLIER = 10.0;
+// ── Capsule Seal ──────────────────────────────────────────────────────────────
 
-/** Revenue impact tier range (as a tuple of [min, max] percentages). */
-export const REVENUE_IMPACT_TIER: [number, number] = [0.30, 0.50];
+/** SHA-512 fingerprint of AveryOS_TARI_Universal_v1.5.aoscap (truncated public seal). */
+export const TARI_UNIVERSAL_V1_5_CAPSULE_SHA = "d28b27e0318a";
 
-// ── Vault Anchor ──────────────────────────────────────────────────────────────
-
-/** Canonical VaultChain anchor for the TARI™ v1.5 capsule. */
+/** Vault anchor URI for this capsule. */
 export const TARI_VAULT_ANCHOR =
   "vaultchain://capsule/AveryOS_Licensing_Statutory_v1.0.aoscap";
 
-// ── TARI™ v1.5 Retroactive Debt Computation ──────────────────────────────────
+// ── Retroactive Debt Calculator ───────────────────────────────────────────────
 
-export interface TariRetroactiveResult {
-  /** Days unlicensed. */
-  daysUnlicensed: number;
-  /** Number of infringing instances. */
-  instances: number;
-  /** Whether obfuscation multiplier was applied. */
-  obfuscated: boolean;
-  /** Base valuation component (Vb). */
-  baseValuation: number;
-  /** Daily rate component (Rd × D). */
-  dailyComponent: number;
-  /** Statutory penalty component (Ps × I). */
-  statutoryComponent: number;
-  /** Pre-obfuscation total. */
-  subtotal: number;
-  /** Final total (with obfuscation if applicable). */
-  total: number;
-  /** Kernel anchor. */
-  kernelSha: string;
-  kernelVersion: string;
-  /** Vault anchor. */
-  vaultAnchor: string;
+export interface TariRetroactiveDebt {
+  /** Base technical asset valuation (USD). */
+  baseValuationUsd:   number;
+  /** Daily utilization charge for unlicensed days (USD). */
+  dailyChargeUsd:     number;
+  /** Statutory penalty for counted infringement instances (USD). */
+  statutoryPenaltyUsd: number;
+  /** Total retroactive debt (USD, pre-obfuscation). */
+  totalUsd:           number;
+  /** Total retroactive debt with obfuscation multiplier applied (masked entities only). */
+  totalObfuscatedUsd: number | null;
+  /** Number of unlicensed days used in the calculation. */
+  daysUnlicensed:     number;
+  /** Number of infringement instances counted. */
+  instances:          number;
+  /** Whether the obfuscation multiplier was applied. */
+  obfuscated:         boolean;
 }
 
 /**
- * Compute the total TARI™ v1.5 retroactive debt.
+ * Compute the TARI™ Universal v1.5 retroactive debt for an entity.
  *
- * Formula: L = (Vb + (Rd × D) + (Ps × I)) × obfuscationMultiplier
+ * Formula:
+ *   Total = Base_Valuation
+ *         + (Daily_Utilization_Rate × days_unlicensed)
+ *         + (Statutory_Penalty × instances)
  *
- * @param daysUnlicensed  Integer number of days the entity operated unlicensed.
- * @param instances       Integer number of infringing instances detected.
- * @param obfuscated      Whether masking / IP obfuscation was detected (10×).
- * @returns               Full TariRetroactiveResult breakdown.
- *
- * @example
- * // Standard (1 year, 5 instances, no obfuscation) → $11,121,205
- * computeTariRetroactiveDebt(365, 5, false)
- *
- * @example
- * // Obfuscated (1 year, 5 instances, 10× multiplier) → $111,212,050
- * computeTariRetroactiveDebt(365, 5, true)
+ * @param daysUnlicensed  Number of days the entity operated without a license.
+ * @param instances       Number of discrete infringement instances.
+ * @param masked          Pass `true` to apply the 10× Obfuscation Multiplier.
  */
 export function computeTariRetroactiveDebt(
   daysUnlicensed: number,
-  instances: number,
-  obfuscated: boolean,
-): TariRetroactiveResult {
-  const days = Math.max(0, Math.round(daysUnlicensed));
-  const inst = Math.max(0, Math.round(instances));
-
-  const dailyComponent    = DAILY_RATE * days;
-  const statutoryComponent = STATUTORY_PENALTY * inst;
-  const subtotal          = BASE_VALUATION + dailyComponent + statutoryComponent;
-  const total             = obfuscated ? subtotal * OBFUSCATION_MULTIPLIER : subtotal;
+  instances:      number,
+  masked          = false,
+): TariRetroactiveDebt {
+  const baseValuationUsd   = TARI_BASE_VALUATION_USD;
+  const dailyChargeUsd     = TARI_DAILY_UTILIZATION_RATE_USD * Math.max(0, daysUnlicensed);
+  const statutoryPenaltyUsd = TARI_STATUTORY_PENALTY_USD * Math.max(0, instances);
+  const totalUsd           = baseValuationUsd + dailyChargeUsd + statutoryPenaltyUsd;
+  const totalObfuscatedUsd = masked ? totalUsd * TARI_OBFUSCATION_MULTIPLIER : null;
 
   return {
-    daysUnlicensed:     days,
-    instances:          inst,
-    obfuscated,
-    baseValuation:      BASE_VALUATION,
-    dailyComponent,
-    statutoryComponent,
-    subtotal,
-    total,
-    kernelSha:          KERNEL_SHA,
-    kernelVersion:      KERNEL_VERSION,
-    vaultAnchor:        TARI_VAULT_ANCHOR,
+    baseValuationUsd,
+    dailyChargeUsd,
+    statutoryPenaltyUsd,
+    totalUsd,
+    totalObfuscatedUsd,
+    daysUnlicensed: Math.max(0, daysUnlicensed),
+    instances:      Math.max(0, instances),
+    obfuscated:     masked,
   };
-}
-
-/**
- * Format a TARI™ v1.5 debt result as a human-readable USD string.
- *
- * @example
- * formatTariDebt(computeTariRetroactiveDebt(365, 5, false))
- * // → "$11,121,205.00"
- */
-export function formatTariDebt(result: TariRetroactiveResult): string {
-  return result.total.toLocaleString("en-US", {
-    style:    "currency",
-    currency: "USD",
-  });
 }
