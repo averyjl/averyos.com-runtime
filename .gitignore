@@ -115,6 +115,12 @@ VaultHead*.aoscap
 exports/
 SETTLEMENT_NOTICE_*.md
 
+# ── Private startup capsule payload — never commit ────────────────────────────
+# VaultBridge/encrypt_startup_prompt_to_vaultchain.json holds the full
+# MACDADDY_DriftShield_v4.1 sovereign startup stack (capsule IDs, SHAs,
+# enforcement directives). Private — VaultChain runtime ingest only.
+VaultBridge/encrypt_startup_prompt_to_vaultchain.json
+
 # ── Electron app — build artifacts and dependencies ──────────────────────────
 electron/node_modules/
 electron/dist/
