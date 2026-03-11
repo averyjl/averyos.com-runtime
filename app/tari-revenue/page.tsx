@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import {
+  STATUTORY_ADMIN_SETTLEMENT_CENTS,
+  STATUTORY_ADMIN_SETTLEMENT_LABEL,
+} from "../../lib/kaas/pricing";
 
 // Recharts is excluded from the SSR bundle via ssr:false to keep the
 // Cloudflare Worker under the 3 MiB compressed size limit.
@@ -870,6 +874,107 @@ export default function TariRevenuePage() {
             <span>TOTAL ACCUMULATED LIABILITY</span>
             <span style={{ fontWeight: 700 }}>{formatUsd(usage.totalUsd)}</span>
           </div>
+
+          {/* ── Statutory Admin Settlement Line Item — 17 U.S.C. § 504 ─────── */}
+          {(() => {
+            const totalCents = Math.round(Number(usage.totalUsd) * 100);
+            const progressPct = Math.min(
+              100,
+              Math.round((totalCents / STATUTORY_ADMIN_SETTLEMENT_CENTS) * 100)
+            );
+            const reached = totalCents >= STATUTORY_ADMIN_SETTLEMENT_CENTS;
+            return (
+              <div
+                style={{
+                  padding: "0.85rem 1.25rem",
+                  borderTop: `1px solid ${GOLD_BORDER}`,
+                  fontFamily: "JetBrains Mono, monospace",
+                  background: reached
+                    ? "linear-gradient(135deg, rgba(255,68,68,0.12), rgba(120,0,0,0.18))"
+                    : "linear-gradient(135deg, rgba(255,215,0,0.06), rgba(80,40,0,0.1))",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "0.5rem",
+                    flexWrap: "wrap",
+                    gap: "0.35rem",
+                  }}
+                >
+                  <span style={{ color: GOLD, fontWeight: 700, fontSize: "0.78rem" }}>
+                    ⚖️ STATUTORY ADMIN SETTLEMENT — 17 U.S.C. § 504
+                  </span>
+                  <span
+                    style={{
+                      color: reached ? RED : GOLD,
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {STATUTORY_ADMIN_SETTLEMENT_LABEL}
+                    {reached && (
+                      <span
+                        style={{
+                          marginLeft: "0.5rem",
+                          fontSize: "0.65rem",
+                          background: "rgba(255,68,68,0.18)",
+                          border: "1px solid rgba(255,68,68,0.5)",
+                          borderRadius: "4px",
+                          padding: "0.1rem 0.4rem",
+                          color: RED,
+                        }}
+                      >
+                        THRESHOLD REACHED
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    height: "8px",
+                    background: "rgba(255,215,0,0.12)",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                    marginBottom: "0.35rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${progressPct}%`,
+                      background: reached
+                        ? "linear-gradient(90deg, #ff4444, #ff8800)"
+                        : "linear-gradient(90deg, #ffd700, #ffaa00)",
+                      borderRadius: "4px",
+                      transition: "width 0.6s ease",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: GOLD_DIM,
+                    fontSize: "0.68rem",
+                  }}
+                >
+                  <span>{progressPct}% of statutory minimum</span>
+                  <span>
+                    {reached
+                      ? "Settlement cap met — escalate to TARI™ invoice"
+                      : `${formatUsd((STATUTORY_ADMIN_SETTLEMENT_CENTS - totalCents) / 100)} remaining to cap`}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </section>
       )}
 
