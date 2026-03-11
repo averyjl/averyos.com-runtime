@@ -157,7 +157,6 @@ export async function POST(request: Request) {
       asn, tier, org_name,
       organization: orgFromBody, email: emailFromBody, machine_id,
       tariLiability, tax_id, company_registration,
-      organization, email, machine_id,
     } = body as Record<string, unknown>;
 
     // ── Resolve all required variables from the flexible request body ──────────

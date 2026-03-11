@@ -1023,3 +1023,72 @@ main().catch((err) => {
   logAosError(AOS_ERROR.INTERNAL_ERROR, err instanceof Error ? err.message : String(err), err);
   process.exit(1);
 });
+
+// ── TARI v1.5 Retroactive Debt Calculator — Gate 110.3 ───────────────────────
+
+/**
+ * Compute the retroactive TARI™ liability for all entities in the provided
+ * audit log entries, applying the AveryOS_TARI_Universal_v1.5 fee schedule.
+ *
+ * TARI v1.5 retroactive debt formula (per entity / ASN):
+ *   - Enterprise ASNs (ENTERPRISE_ASNS): $10,000,000 Good Faith Deposit
+ *   - All other ASNs: 1,017 TARI™ × $0.10/TARI = $101.70 per unique ASN
+ *   - Additional overuse surcharge: $0.01 per request above the first 1,017
+ *
+ * CapsuleID: AveryOS_TARI_Universal_v1.5
+ * SHA-512 Reference: c0647857 (AveryOS_TARI_Universal_v1.5.aoscap)
+ *
+ * @param {Array<{ asn?: string; request_count?: number }>} entries
+ *   Array of audit log rows with at least an `asn` field.
+ * @returns {{
+ *   totalDebtCents: number,
+ *   breakdown: Array<{ asn: string; requestCount: number; debtCents: number; tier: string }>
+ * }}
+ */
+function computeTariRetroactiveDebt(entries) {
+  const TARI_V15_CAPSULE = 'AveryOS_TARI_Universal_v1.5';
+
+  // Aggregate request counts by ASN
+  /** @type {Map<string, number>} */
+  const asnMap = new Map();
+  for (const entry of entries) {
+    const asn   = typeof entry.asn === 'string' ? entry.asn.trim() : 'unknown';
+    const count = typeof entry.request_count === 'number' ? entry.request_count : 1;
+    asnMap.set(asn, (asnMap.get(asn) ?? 0) + count);
+  }
+
+  const breakdown = [];
+  let totalDebtCents = 0;
+
+  for (const [asn, requestCount] of asnMap.entries()) {
+    let debtCents;
+    let tier;
+
+    if (ENTERPRISE_ASNS.has(asn)) {
+      // Enterprise entities owe the $10M Good Faith Deposit (flat rate)
+      debtCents = ENTERPRISE_DEPOSIT_CENTS;
+      tier      = 'ENTERPRISE_DEPOSIT';
+    } else {
+      // Base: 1,017 TARI™ individual license = $101.70
+      debtCents = INDIVIDUAL_LICENSE_CENTS;
+      tier      = 'INDIVIDUAL_v1.5';
+      // Overuse surcharge: $0.01 per request above the first 1,017
+      const overuseRequests = Math.max(0, requestCount - 1017);
+      debtCents += overuseRequests * PER_REQUEST_CENTS;
+    }
+
+    breakdown.push({ asn, requestCount, debtCents, tier });
+    totalDebtCents += debtCents;
+  }
+
+  // Sort descending by debt
+  breakdown.sort((a, b) => b.debtCents - a.debtCents);
+
+  console.log(`\n⛓️⚓⛓️  CapsuleID: ${TARI_V15_CAPSULE} — Retroactive Debt Computation`);
+  console.log(`   Total liability: $${(totalDebtCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+  console.log(`   Entities assessed: ${breakdown.length}`);
+
+  return { totalDebtCents, breakdown };
+}
+
+module.exports = { computeTariRetroactiveDebt };
