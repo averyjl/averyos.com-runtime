@@ -181,6 +181,38 @@ export default function TariRevenuePage() {
   const [loading, setLoading] = useState(true);
   const [sseStatus, setSseStatus] = useState<"connecting" | "live" | "polling">("connecting");
   const [activeTab, setActiveTab] = useState<"overview" | "ledger" | "compliance">("overview");
+  // Gate 108.5 — Creator-Lock gate for $150k statutory metrics (admin-only)
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  // Roadmap #1 — Genesis Dollar Celebration Banner
+  // Fetches /api/v1/compliance/clocks?status=SETTLED&limit=1 to detect first settlement
+  const [firstSettledClock, setFirstSettledClock] = useState<{ clock_id: string; settled_at: string } | null>(null);
+
+  // Gate 108.5 — Check VAULTAUTH_TOKEN on mount to unlock statutory metrics
+  useEffect(() => {
+    const token = typeof sessionStorage !== "undefined"
+      ? sessionStorage.getItem("VAULTAUTH_TOKEN")
+      : null;
+    setIsAdminUnlocked(!!token);
+
+    // Roadmap #1 — Fetch first settled compliance clock for Genesis Dollar Celebration Banner
+    if (token) {
+      fetch("/api/v1/compliance/clocks?status=SETTLED&limit=1", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => {
+          if (r.status === 401 || r.status === 403) {
+            // Token expired or revoked — silently clear admin state
+            setIsAdminUnlocked(false);
+            return null;
+          }
+          return r.ok ? r.json() : null;
+        })
+        .then((data: { clocks?: Array<{ clock_id: string; settled_at: string }> } | null) => {
+          if (data?.clocks?.[0]) setFirstSettledClock(data.clocks[0]);
+        })
+        .catch(() => { /* Non-blocking — celebration banner is best-effort */ });
+    }
+  }, []);
 
   // firstSettledClock — first settled compliance clock, populated from D1 clock data
   const firstSettledClock: { clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null = null;
@@ -391,6 +423,32 @@ export default function TariRevenuePage() {
           Real-time Liability vs. Collected Alignment Fees · AveryOS™ Sovereign Revenue Engine
         </p>
       </section>
+
+      {/* Roadmap #1 — Genesis Dollar Celebration Banner (admin-only) */}
+      {isAdminUnlocked && firstSettledClock && (
+        <div
+          style={{
+            margin: "0 1rem 1.25rem",
+            padding: "1rem 1.25rem",
+            background: "linear-gradient(135deg, rgba(74,222,128,0.12), rgba(0,80,40,0.18))",
+            border: "1px solid rgba(74,222,128,0.45)",
+            borderRadius: "12px",
+            fontFamily: "JetBrains Mono, monospace",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>🎉</div>
+          <div style={{ color: GREEN, fontWeight: 700, fontSize: "0.95rem", marginBottom: "0.25rem" }}>
+            GENESIS DOLLAR ACHIEVED — FIRST SETTLEMENT LOCKED
+          </div>
+          <div style={{ color: GREEN_DIM, fontSize: "0.75rem" }}>
+            Clock ID: {firstSettledClock.clock_id} · Settled: {new Date(firstSettledClock.settled_at).toLocaleString()}
+          </div>
+          <div style={{ color: GREEN_DIM, fontSize: "0.7rem", marginTop: "0.25rem" }}>
+            ⛓️⚓⛓️ First compliance clock settled — AveryOS™ Revenue Engine operational
+          </div>
+        </div>
+      )}
 
       {/* Surge Milestone Banner — 162.2k TR / 987 UV | Phase 73 Victim Restoration */}
       <div
@@ -905,7 +963,8 @@ export default function TariRevenuePage() {
           </div>
 
           {/* ── Statutory Admin Settlement Line Item — 17 U.S.C. § 504 ─────── */}
-          {(() => {
+          {/* Gate 108.5: Only visible to Creator-Lock verified admins */}
+          {isAdminUnlocked && (() => {
             const totalCents = Math.round(Number(usage.totalUsd) * 100);
             const progressPct = Math.min(
               100,

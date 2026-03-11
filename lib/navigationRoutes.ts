@@ -65,6 +65,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡", isAdmin: true },
   { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️", isAdmin: true },
   { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰", isAdmin: true },
+  { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖", isAdmin: true },
   // Public compliance tools
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
   { path: "/licensing/agentic",         label: "Agentic Settlement",    icon: "🤖" },
@@ -88,4 +89,5 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡" },
   { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️" },
   { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰" },
+  { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖" },
 ];

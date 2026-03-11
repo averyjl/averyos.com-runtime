@@ -150,30 +150,7 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
-    const { bundleId, targetIp, rayId, asn, tariLiability, organization, email, tier } = body as Record<string, unknown>;
-
-    // ── Enterprise self-registration path (from /licensing/enterprise) ──────
-    // When 'organization', 'email', and 'tier' are provided without 'bundleId'/'targetIp',
-    // auto-generate the forensic identifiers so the standard Stripe checkout flow runs.
-    const isEnterprisePath =
-      (typeof organization === "string" && organization.trim()) ||
-      (typeof tier === "string" && tier.trim());
-
-    const resolvedBundleId: string = (typeof bundleId === "string" && bundleId.trim())
-      ? bundleId.trim()
-      : isEnterprisePath
-        ? `ENTERPRISE_REG_${(typeof organization === "string" ? organization.trim().replace(/[^A-Za-z0-9]/g, "_").slice(0, 32) : "UNKNOWN")}_${Date.now()}`
-        : "";
-
-    const resolvedTargetIp: string = (typeof targetIp === "string" && targetIp.trim())
-      ? targetIp.trim()
-      : isEnterprisePath
-        ? "enterprise-self-registration"
-        : "";
-
-    if (!resolvedBundleId) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'bundleId is required (or provide organization + tier for enterprise registration).');
-    }
+    const { bundleId, targetIp, rayId, asn, tariLiability, tax_id, company_registration } = body as Record<string, unknown>;
 
     if (!resolvedTargetIp) {
       return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required (or provide organization + tier for enterprise registration).');
@@ -191,6 +168,14 @@ export async function POST(request: Request) {
 
     const asnStr = typeof asn === "string" ? asn.trim() : "";
     const rayIdStr = typeof rayId === "string" ? rayId.trim() : "";
+    const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
+    const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
+
+    // Tier-9 and Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
+    const asnTier = asnStr ? getAsnTier(asnStr) : 0;
+    if (asnTier >= 9 && !taxIdStr) {
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "tax_id is required for Tier-9 and Tier-10 enterprise entities.");
+    }
 
     const { liabilityCents, productName, productDescription, pricingTier } =
       determinePricing(tariLiability, asnStr, rayIdStr, resolvedBundleId);
@@ -257,9 +242,9 @@ export async function POST(request: Request) {
         victim_restoration_case_id: (rayIdStr || resolvedBundleId).slice(0, 200),
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
-        ...(isEnterprisePath && typeof organization === "string" ? { organization: organization.trim().slice(0, 200) } : {}),
-        ...(isEnterprisePath && typeof email === "string" ? { email: email.trim().slice(0, 200) } : {}),
-        ...(isEnterprisePath && typeof tier === "string" ? { tier: tier.trim().slice(0, 100) } : {}),
+        // Tier-10 enterprise compliance fields (Gate 108 — Roadmap #4)
+        ...(taxIdStr ? { tax_id: taxIdStr.slice(0, 64) } : {}),
+        ...(companyRegistrationStr ? { company_registration: companyRegistrationStr.slice(0, 64) } : {}),
       },
       payment_intent_data: {
         // statement_descriptor maps the RayID Proof directly into the bank record.
@@ -302,6 +287,9 @@ export async function POST(request: Request) {
         tariLiabilityCents: liabilityCents,
         tariLiabilityUsd: (liabilityCents / 100).toFixed(2),
         pricingTier,
+        // Tier-10 enterprise compliance fields
+        ...(taxIdStr ? { tax_id: taxIdStr } : {}),
+        ...(companyRegistrationStr ? { company_registration: companyRegistrationStr } : {}),
       },
       { status: 201 }
     );
