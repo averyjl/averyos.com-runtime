@@ -292,7 +292,7 @@ export default function IngestorRegistryPage() {
 
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

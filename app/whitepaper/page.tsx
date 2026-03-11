@@ -22,7 +22,6 @@ import { marked } from "marked";
 import katex from "katex";
 import type { Metadata } from "next";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 import { sanitizeHtml } from "../../lib/sanitizeHtml";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
@@ -178,7 +177,7 @@ export default function WhitepaperPage() {
         </span>
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

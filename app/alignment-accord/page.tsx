@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 export const metadata: Metadata = {
@@ -279,7 +278,7 @@ Public Witness   : https://averyos.com/witness`}
         </p>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

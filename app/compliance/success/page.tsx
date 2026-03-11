@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA } from "../../../lib/sovereignConstants";
 
 const MONO = "JetBrains Mono, monospace";
@@ -542,7 +541,7 @@ function ComplianceSuccessContent() {
         <JsonLdSnippet jsonLd={jsonLd} />
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

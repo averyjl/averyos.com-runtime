@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 const MONO = "JetBrains Mono, monospace";
 
@@ -369,7 +368,7 @@ export default function PartnersPage() {
         </Link>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }
