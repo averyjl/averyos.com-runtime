@@ -76,6 +76,44 @@ const ALIGNMENT_REDIRECT_BODY = "Alignment Required. See averyos.com/amnesty.";
 // Primary Worker custom domain — all non-www requests redirect here.
 const WWW_HOSTNAME = "www.averyos.com";
 
+// ── Content Security Policy — Gate 4 (Phase 107) ─────────────────────────────
+// Applied to all browser HTML responses to prevent XSS, clickjacking, and
+// data injection. Stripe, Firebase, and Cloudflare are explicitly allowlisted.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  // Scripts: self + inline (Next.js requires unsafe-inline for hydration)
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+  // Styles: self + inline (Next.js styled-jsx)
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // Fonts
+  "font-src 'self' https://fonts.gstatic.com",
+  // Images: self + data URIs + Stripe + Cloudflare
+  "img-src 'self' data: https://stripe.com https://*.stripe.com https://cloudflare.com",
+  // Fetch/XHR: self + Stripe + Firebase + Pushover
+  "connect-src 'self' https://api.stripe.com https://hooks.stripe.com https://firestore.googleapis.com https://fcm.googleapis.com https://api.pushover.net",
+  // Frames: Stripe hosted pages only
+  "frame-src https://js.stripe.com https://hooks.stripe.com",
+  // Block all object/embed/media by default
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https://api.stripe.com",
+  // Clickjacking prevention
+  "frame-ancestors 'none'",
+].join("; ");
+
+/**
+ * Applies sovereign security headers (CSP, X-Frame-Options, X-Content-Type)
+ * to a browser response. Call on every NextResponse returned to real browsers.
+ */
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  return response;
+}
+
 // ── ASN 211590 Alignment Opportunity — Sovereign Perimeter Response ───────────
 // ASN 211590 traffic is served a 301 alignment-opportunity redirect.
 // Cloudflare exposes the client ASN via the cf-asn header in Worker environments.
@@ -1121,7 +1159,7 @@ export async function middleware(request: NextRequest) {
     if (obfuscationDetected) {
       response.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
     }
-    return response;
+    return applySecurityHeaders(response);
   }
 
   // 4. TARI™ BILLING: For AI Anchor Feed / Truth-Anchor pages, allow bots through
@@ -1161,9 +1199,9 @@ export async function middleware(request: NextRequest) {
   if (obfuscationDetected) {
     const defaultResponse = NextResponse.next();
     defaultResponse.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
-    return defaultResponse;
+    return applySecurityHeaders(defaultResponse);
   }
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 // Configure which paths to run middleware on
