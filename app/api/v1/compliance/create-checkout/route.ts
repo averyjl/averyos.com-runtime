@@ -150,7 +150,13 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
-    const { bundleId, targetIp, rayId, asn, tariLiability, tax_id, company_registration } = body as Record<string, unknown>;
+    const {
+      bundleId, bundle_id,
+      targetIp,
+      rayId, ray_id,
+      asn, tier, org_name,
+      tariLiability, tax_id, company_registration,
+    } = body as Record<string, unknown>;
 
     if (!resolvedTargetIp) {
       return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required (or provide organization + tier for enterprise registration).');
@@ -167,9 +173,23 @@ export async function POST(request: Request) {
     }
 
     const asnStr = typeof asn === "string" ? asn.trim() : "";
-    const rayIdStr = typeof rayId === "string" ? rayId.trim() : "";
     const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
     const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
+
+    // Map UI tier labels to tariLiability when no asn is present
+    const resolvedLiability: unknown = (() => {
+      if (typeof tariLiability === "number" && tariLiability > 0) return tariLiability;
+      if (!asnStr && typeof tier === "string") {
+        const TIER_CENTS: Record<string, number> = {
+          ENTERPRISE_PARTNERSHIP: 1_000_000_000, // $10M
+          ASN_DEPOSIT:             100_000_000,  // $1M
+          LEGAL_MONITORING:          101_700,    // ~$1,017
+          INDIVIDUAL:                101_700,    // $1,017
+        };
+        return TIER_CENTS[tier] ?? 101_700;
+      }
+      return tariLiability;
+    })();
 
     // Tier-9 and Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
     const asnTier = asnStr ? getAsnTier(asnStr) : 0;
@@ -277,6 +297,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
+        url:         session.url,
         checkoutUrl: session.url,
         url: session.url,           // alias for enterprise page compatibility
         sessionId: session.id,
