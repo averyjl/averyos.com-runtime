@@ -136,7 +136,7 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
     `═══════════════════════════════════════════════════════════════════`,
     ``,
     `  Target ASN:     ${asn}`,
-    `  Organisation:   ${orgNameQs}`,
+    `  organization:   ${orgNameQs}`,
     `  IP Address:     ${ipAddress}`,
     `  Jurisdiction:   ${jurisdiction}`,
     `  Tier:           ${tier}`,

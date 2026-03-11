@@ -128,7 +128,7 @@ export interface EvidencePacketInput {
   ip_address: string;
   /** ISO-3166 country code of the client (e.g. "FR"). */
   country_code: string;
-  /** Organisation name (if known). */
+  /** organization name (if known). */
   org_name?: string | null;
   /** Detected ingestion intent label (e.g. "LEGAL_SCAN", "DER_PROBE"). */
   ingestion_intent?: string | null;
@@ -154,7 +154,7 @@ export interface EvidencePacket {
   country_code: string;
   /** Resolved statutory jurisdiction. */
   jurisdiction: Jurisdiction;
-  /** Organisation name (or "UNKNOWN"). */
+  /** organization name (or "UNKNOWN"). */
   org_name: string;
   /** Detected ingestion intent. */
   ingestion_intent: string;
@@ -294,7 +294,7 @@ export function formatEvidenceNotice(packet: EvidencePacket): string {
     `  Timestamp     : ${packet.timestamp}`,
     `  RayID         : ${packet.ray_id}`,
     `  ASN           : ${packet.asn}`,
-    `  Organisation  : ${packet.org_name}`,
+    `  organization  : ${packet.org_name}`,
     `  Country       : ${packet.country_code}`,
     `  Jurisdiction  : ${packet.jurisdiction}`,
     `  Intent        : ${packet.ingestion_intent}`,

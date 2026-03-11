@@ -133,7 +133,7 @@ export interface ComplianceClock {
   clock_id:    string;
   /** ASN of the entity under compliance obligation. */
   asn:         string | null;
-  /** Organisation name (if known). */
+  /** organization name (if known). */
   org_name:    string | null;
   /** ISO-8601 timestamp when the clock was issued. */
   issued_at:   string;
@@ -156,7 +156,7 @@ export interface ComplianceClock {
  * Create a new ComplianceClock anchored to the current time.
  *
  * @param asn      ASN of the entity (e.g. "36459"). May be null.
- * @param orgName  Organisation name (optional).
+ * @param orgName  organization name (optional).
  * @param clockId  Stable identifier for this clock (e.g. "clock_q_36459_<ts>").
  * @returns        ComplianceClock record.
  */

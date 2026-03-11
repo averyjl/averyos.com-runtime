@@ -188,7 +188,7 @@ export default function IngestorRegistryPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: "0.82rem" }}>
               <thead>
                 <tr>
-                  {["Rank", "ASN", "Organisation", "Tier", "Valuation", "Status", "Detected"].map(h => (
+                  {["Rank", "ASN", "Organization", "Tier", "Valuation", "Status", "Detected"].map(h => (
                     <th
                       key={h}
                       style={{

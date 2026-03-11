@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
@@ -105,7 +104,7 @@ export default function EnterpriseRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tier:                 selected,
-          org_name:             orgName.trim(),
+          organization:         orgName.trim(),
           email:                email.trim(),
           machine_id:           machineId.trim() || undefined,
           // Gate 8 — Regional compliance fields (Tier-10 only)
@@ -426,8 +425,6 @@ export default function EnterpriseRegistrationPage() {
           </p>
         </div>
       </div>
-
-      <FooterBadge />
     </main>
   );
 }
