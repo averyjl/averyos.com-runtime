@@ -161,29 +161,30 @@ export async function POST(request: Request) {
 
     // ── Resolve composite fields ─────────────────────────────────────────────
     // Accept both camelCase (bundleId/rayId) and snake_case (bundle_id/ray_id).
-    const resolvedBundleId =
-      (typeof bundleId === "string" && bundleId.trim()) ? bundleId.trim() :
-      (typeof bundle_id === "string" && bundle_id.trim()) ? bundle_id.trim() :
-      `checkout-${Date.now()}`;
+    const bundleIdTrimmed     = typeof bundleId    === "string" ? bundleId.trim()    : "";
+    const bundleIdSnakeTrimmed = typeof bundle_id  === "string" ? bundle_id.trim()   : "";
+    const resolvedBundleId    = bundleIdTrimmed || bundleIdSnakeTrimmed || `checkout-${Date.now()}`;
 
-    const rayIdStr =
-      (typeof rayId === "string" && rayId.trim()) ? rayId.trim() :
-      (typeof ray_id === "string" && ray_id.trim()) ? ray_id.trim() :
-      "";
+    const rayIdTrimmed        = typeof rayId    === "string" ? rayId.trim()    : "";
+    const rayIdSnakeTrimmed   = typeof ray_id   === "string" ? ray_id.trim()   : "";
+    const rayIdStr            = rayIdTrimmed || rayIdSnakeTrimmed;
 
     // Enterprise self-registration path: has organization/email but no targetIp/asn.
+    const targetIpTrimmed = typeof targetIp === "string" ? targetIp.trim() : "";
     const isEnterprisePath =
       typeof organization === "string" && organization.trim().length > 0 &&
-      !(typeof targetIp === "string" && targetIp.trim());
+      !targetIpTrimmed;
 
     // Resolve the target IP from the body field, the Cloudflare edge headers
     // (populated by the GabrielOS™ Firewall on every request), or the machine
     // identifier sent by the agentic portal — in that order.
+    const machineIdTrimmed = typeof machine_id === "string" ? machine_id.trim() : "";
     const resolvedTargetIp: string =
-      (typeof targetIp === "string" && targetIp.trim()) ? targetIp.trim() :
+      targetIpTrimmed ||
       (request as Request).headers.get("cf-connecting-ip") ??
       (request as Request).headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      (typeof machine_id === "string" && machine_id.trim() ? machine_id.trim() : "AGENTIC");
+      machineIdTrimmed ||
+      "AGENTIC";
 
     // Validate enterprise-path required fields
     if (isEnterprisePath) {
