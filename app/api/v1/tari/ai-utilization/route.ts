@@ -42,6 +42,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { recordGeminiSpend, GEMINI_COST_PER_1K_TOKENS, type GeminiSpendKV } from "../../../../../lib/geminiSpendTracker";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Fee constants ─────────────────────────────────────────────────────────────
 /** Per-invocation AI Inference Surcharge (on top of the $10M baseline). */
@@ -65,15 +66,6 @@ interface CloudflareEnv {
 }
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
-
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 

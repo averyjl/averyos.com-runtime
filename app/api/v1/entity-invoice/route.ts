@@ -4,6 +4,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../lib/timePrecision";
 import { autoTrackAccomplishment } from "../../../../lib/taiAutoTracker";
+import { safeEqual } from '../../../../lib/taiLicenseGate';
 
 /**
  * POST /api/v1/entity-invoice
@@ -78,15 +79,6 @@ const ASN_ORG_MAP: Record<string, string> = {
 };
 
 /** Constant-time string comparison to prevent timing attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 export async function POST(request: Request): Promise<Response> {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv = env as unknown as CloudflareEnv;
@@ -129,6 +121,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // Resolve organization name
   const orgName =
+    // eslint-disable-next-line security/detect-object-injection
     orgNameRaw || (asnStr ? ASN_ORG_MAP[asnStr] : null) || `Unknown Entity (ASN ${asnStr || "N/A"})`;
 
   const now = formatIso9();

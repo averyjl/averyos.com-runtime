@@ -39,6 +39,7 @@ import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { syncD1RowToFirebase } from "../../../../../lib/firebaseClient";
 import { recordGeminiSpend, GEMINI_COST_PER_1K_TOKENS, type GeminiSpendKV } from "../../../../../lib/geminiSpendTracker";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Cloudflare env interfaces ─────────────────────────────────────────────────
 
@@ -66,15 +67,6 @@ interface CloudflareEnv {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Constant-time string comparison to prevent timing attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** SHA-512 of an arbitrary string via Web Crypto. */
 async function sha512hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest(

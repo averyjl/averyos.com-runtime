@@ -180,6 +180,7 @@ function driftColor(label: string): string {
     LOW:      "#a3e635",
     CLEAN:    GREEN,
   };
+  // eslint-disable-next-line security/detect-object-injection
   return map[label] ?? GREEN;
 }
 

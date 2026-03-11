@@ -206,6 +206,7 @@ export async function POST(request: Request): Promise<Response> {
     const incomingBytes = encoder.encode(machineFingerprint);
     let diff = storedBytes.length !== incomingBytes.length ? 1 : 0;
     const len = Math.min(storedBytes.length, incomingBytes.length);
+    // eslint-disable-next-line security/detect-object-injection
     for (let i = 0; i < len; i++) diff |= storedBytes[i] ^ incomingBytes[i];
     if (diff !== 0) {
       return aosErrorResponse(

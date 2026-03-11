@@ -286,6 +286,7 @@ export async function POST(request: Request) {
           LEGAL_MONITORING:          101_700,    // ~$1,017
           INDIVIDUAL:                101_700,    // $1,017
         };
+        // eslint-disable-next-line security/detect-object-injection
         return TIER_CENTS[tier] ?? 101_700;
       }
       return tariLiability;

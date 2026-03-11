@@ -235,6 +235,7 @@ function derivePacketFingerprint(
 export function buildEvidencePacket(input: EvidencePacketInput): EvidencePacket {
   const timestamp    = formatIso9(new Date());
   const jurisdiction = resolveJurisdiction(input.country_code);
+  // eslint-disable-next-line security/detect-object-injection
   const statute      = JURISDICTION_STATUTES[jurisdiction];
 
   const valuationCents  = input.valuation_cents ?? 101_700;

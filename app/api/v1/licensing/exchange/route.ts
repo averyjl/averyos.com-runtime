@@ -3,6 +3,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from '../../../../../lib/sovereignConstant
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 import { formatIso9 } from '../../../../../lib/timePrecision';
 import { autoTrackAccomplishment } from '../../../../../lib/taiAutoTracker';
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 /**
  * POST /api/v1/licensing/exchange
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
   if (vaultPassphrase) {
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (token !== vaultPassphrase) {
+    if (!safeEqual(token, vaultPassphrase)) {
       return aosErrorResponse(AOS_ERROR.MISSING_AUTH,
         'Valid Bearer token required to issue hardware-attested tokens');
     }
@@ -239,7 +240,7 @@ export async function GET(request: Request) {
   if (vaultPassphrase) {
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (token !== vaultPassphrase) {
+    if (!safeEqual(token, vaultPassphrase)) {
       return aosErrorResponse(AOS_ERROR.MISSING_AUTH, 'Valid Bearer token required');
     }
   }

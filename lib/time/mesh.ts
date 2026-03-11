@@ -76,37 +76,37 @@ const TIME_SOURCES: Array<{
   {
     name: "LocalFallback-1",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-2",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-3",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-4",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-5",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-6",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
   {
     name: "LocalFallback-7",
     url:  "__local__",
-    parse: (_body) => Date.now(),
+    parse: () => Date.now(),
   },
 ];
 
@@ -155,7 +155,9 @@ function median(sorted: number[]): number {
   if (sorted.length === 0) return 0;
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 !== 0
+    // eslint-disable-next-line security/detect-object-injection
     ? sorted[mid]
+    // eslint-disable-next-line security/detect-object-injection
     : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
 }
 

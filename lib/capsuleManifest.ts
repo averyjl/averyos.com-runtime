@@ -59,6 +59,7 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
 
   let manifestPath: string;
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     manifestPath = fs.realpathSync(candidatePath);
   } catch {
     // File does not exist or cannot be resolved
@@ -70,9 +71,11 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
     return null;
   }
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (!fs.existsSync(manifestPath)) {
     return null;
   }
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const raw = fs.readFileSync(manifestPath, "utf-8");
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
 };

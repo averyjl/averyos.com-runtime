@@ -127,7 +127,7 @@ function computeRetroactiveDebt(
 
 // ── GET — probe info (no auth required) ───────────────────────────────────────
 
-export async function GET(_request: Request): Promise<Response> {
+export async function GET(): Promise<Response> {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as CloudflareEnv;
   const baseUrl = cfEnv.NEXT_PUBLIC_SITE_URL ?? cfEnv.SITE_URL ?? "https://averyos.com";

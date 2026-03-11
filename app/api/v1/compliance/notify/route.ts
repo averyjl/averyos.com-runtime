@@ -38,6 +38,7 @@ import { getAsnTier, getAsnFeeUsdCents, getAsnFeeLabel,
 } from "../../../../../lib/kaas/pricing";
 import { resolveJurisdiction, JURISDICTION_STATUTES }
   from "../../../../../lib/forensics/globalVault";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -58,15 +59,6 @@ interface CloudflareEnv {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** SHA-512 hex digest using the Web Crypto API. */
 async function sha512hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest(
@@ -155,6 +147,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── Determine jurisdiction ────────────────────────────────────────────────
   const jurisdiction = resolveJurisdiction(ccStr);
+  // eslint-disable-next-line security/detect-object-injection
   const statutes     = JURISDICTION_STATUTES[jurisdiction];
 
   // ── Start 72-hour compliance clock ───────────────────────────────────────

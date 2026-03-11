@@ -28,6 +28,7 @@ import {
 import { KERNEL_VERSION, KERNEL_SHA } from "../../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -70,15 +71,6 @@ interface KaasValuationRow {
 }
 
 /** Constant-time string comparison. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Authenticate the request via Bearer or x-vault-auth header. */
 function isAuthorized(request: Request, passphrase: string | undefined): boolean {
   if (!passphrase) return false;

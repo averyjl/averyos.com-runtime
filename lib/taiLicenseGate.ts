@@ -17,6 +17,31 @@
  */
 
 // ---------------------------------------------------------------------------
+// Constant-time string comparison — prevents timing side-channel attacks
+// that could allow brute-forcing secrets character-by-character.
+// Returns true only when both strings are equal in length and content.
+// ---------------------------------------------------------------------------
+export function safeEqual(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  if (aBytes.length !== bBytes.length) {
+    // Run through the longer array reading both to maintain constant-time behaviour
+    const maxLen = Math.max(aBytes.length, bBytes.length);
+    for (let i = 0; i < maxLen; i++) {
+      // eslint-disable-next-line security/detect-object-injection
+      void ((aBytes[i] ?? 0) ^ (bBytes[i] ?? 0));
+    }
+    return false;
+  }
+  let diff = 0;
+  // eslint-disable-next-line security/detect-object-injection
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
+// ---------------------------------------------------------------------------
 // License tier classification
 // ---------------------------------------------------------------------------
 
@@ -56,28 +81,6 @@ export function evaluateTaiAccess(
   vaultPassphrase: string,
   taiLicenseKey: string
 ): TaiGateResult {
-  // ── Constant-time comparison helper ───────────────────────────────────────
-  // Prevents timing side-channel attacks that could allow brute-forcing secrets
-  // character-by-character. Returns true only when both strings are equal in
-  // length and content, evaluated in constant time.
-  function safeEqual(a: string, b: string): boolean {
-    if (!a || !b) return false;
-    const enc = new TextEncoder();
-    const aBytes = enc.encode(a);
-    const bBytes = enc.encode(b);
-    if (aBytes.length !== bBytes.length) {
-      // Run through the longer array to maintain constant-time behaviour
-      const maxLen = Math.max(aBytes.length, bBytes.length);
-      for (let i = 0; i < maxLen; i++) {
-        void (aBytes[i] ?? 0);
-      }
-      return false;
-    }
-    let diff = 0;
-    for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-    return diff === 0;
-  }
-
   // ── Tier 1: Internal sovereign passphrase ─────────────────────────────────
   const authHeader = headers.get("authorization") ?? "";
   let bearerToken = "";

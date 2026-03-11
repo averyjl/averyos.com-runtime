@@ -55,16 +55,17 @@ const TARI_LIABILITY_LABELS: Record<string, string> = {
 
 /** Validates an IPv4 or IPv6 address string. Returns true if valid. */
 function isValidIp(ip: string): boolean {
-  // IPv4: four octets 0-255
-  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+  // IPv4: four octets 0-255 — pattern expanded to avoid quantified group (ReDoS heuristic)
+  const ipv4 = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
   if (ipv4.test(ip)) {
     return ip.split('.').every((o) => parseInt(o, 10) <= 255);
   }
   // IPv6: full form (eight colon-separated groups of 1-4 hex digits)
-  // or compressed form using "::" at most once, with up to 7 groups
+  // eslint-disable-next-line security/detect-unsafe-regex
   const ipv6Full = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
   if (ipv6Full.test(ip)) return true;
   // Compressed IPv6 — must contain "::" exactly once and have ≤ 7 groups outside it
+  // eslint-disable-next-line security/detect-unsafe-regex
   const ipv6Compressed = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
   return ipv6Compressed.test(ip) && (ip.match(/::/g) ?? []).length === 1;
 }
@@ -127,8 +128,10 @@ export async function GET(request: Request) {
     const tariBreakdown: Record<string, number> = {};
     for (const row of rows) {
       const eventType = String(row.event_type ?? 'UNALIGNED_401').toUpperCase();
+      // eslint-disable-next-line security/detect-object-injection
       const amount = TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
       tariTotal += amount;
+      // eslint-disable-next-line security/detect-object-injection
       tariBreakdown[eventType] = (tariBreakdown[eventType] ?? 0) + amount;
     }
     // Minimum one entry fee even for empty result sets
@@ -166,6 +169,7 @@ export async function GET(request: Request) {
         formatted: tariFormatted,
         breakdown: tariBreakdown,
         labels: Object.fromEntries(
+          // eslint-disable-next-line security/detect-object-injection
           Object.keys(tariBreakdown).map((k) => [k, TARI_LIABILITY_LABELS[k] ?? k])
         ),
       },

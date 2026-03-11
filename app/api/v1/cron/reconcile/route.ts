@@ -26,6 +26,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { reconcileClocks, type ComplianceClock } from "../../../../../lib/compliance/clockEngine";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -49,15 +50,6 @@ interface AlignmentRow {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Compute SHA-512 hex digest */
 async function sha512hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));

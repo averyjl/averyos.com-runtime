@@ -26,6 +26,7 @@ function buildHtml(
   yubikeyCert: string,
   generatedAt: string,
 ): string {
+  // eslint-disable-next-line security/detect-object-injection
   const label = ENTITY_LABEL[entityName] ?? entityName;
   const debtDisplay =
     debtUsd !== null
