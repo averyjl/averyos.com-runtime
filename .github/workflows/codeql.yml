@@ -73,12 +73,10 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
-
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        # queries: security-extended,security-and-quality
+        # Run the "security-and-quality" extended suite in addition to the default
+        # queries. The "+" prefix adds them on top of the default set rather than
+        # replacing it, maximising detection coverage at the design stage.
+        queries: +security-and-quality
 
     # If the analyze step fails for one of the languages you are analyzing with
     # "We were unable to automatically build your code", modify the matrix above
@@ -101,3 +99,73 @@ jobs:
       uses: github/codeql-action/analyze@89a39a4e59826350b863aa6b6252a07ad50cf83e
       with:
         category: "/language:${{matrix.language}}"
+        output: sarif-results
+
+    # ── AveryOS™ Design-Stage Security Gate ────────────────────────────────────
+    # Parse the SARIF output produced above. If any finding has CodeQL severity
+    # "error" (covers SSRF/CWE-918, SQLi, XSS, path-traversal, prototype pollution,
+    # and every other critical class), this step exits with code 1, failing the
+    # required status check and blocking the PR from merging into main.
+    #
+    # This makes CodeQL a hard gate at the DESIGN STAGE — security issues are
+    # caught and annotated in the PR diff before they ever reach production.
+    #
+    # To enforce this gate:
+    #   Repo Settings → Branches → main → Require status checks →
+    #   Add "CodeQL Advanced / Analyze (javascript-typescript)"
+    - name: Block PR on Security Findings
+      env:
+        LANGUAGE: ${{ matrix.language }}
+      run: |
+        node -e "
+        const fs   = require('fs');
+        const path = require('path');
+        const dir  = 'sarif-results';
+
+        if (!fs.existsSync(dir)) {
+          console.log('No SARIF output directory — skipping security gate.');
+          process.exit(0);
+        }
+
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.sarif'));
+        if (files.length === 0) {
+          console.log('No SARIF files — skipping security gate.');
+          process.exit(0);
+        }
+
+        let errorCount = 0;
+        for (const file of files) {
+          const sarif  = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+          for (const run of (sarif.runs || [])) {
+            for (const result of (run.results || [])) {
+              if (result.level !== 'error') continue;
+              errorCount++;
+              const loc    = ((result.locations || [])[0] || {});
+              const pLoc   = loc.physicalLocation || {};
+              const uri    = (pLoc.artifactLocation || {}).uri || 'unknown';
+              const line   = (pLoc.region || {}).startLine || 0;
+              const msg    = (result.message || {}).text || 'Security finding';
+              const ruleId = result.ruleId || '';
+              process.stderr.write(
+                '::error file=' + uri + ',line=' + line + '::' +
+                ruleId + ': ' + msg + '\n'
+              );
+            }
+          }
+        }
+
+        if (errorCount > 0) {
+          process.stderr.write(
+            '::error::AveryOS\u2122 Security Gate: ' + errorCount +
+            ' CodeQL error-severity finding(s) must be resolved before this ' +
+            'PR can merge. Navigate to the repository Security tab \u2192 ' +
+            'Code scanning alerts for full details and recommended remediation. ' +
+            'Each finding is also annotated inline in the PR diff above.\n'
+          );
+          process.exit(1);
+        }
+        console.log(
+          'AveryOS\u2122 Security Gate: 0 CodeQL error-severity findings. Safe to merge.'
+        );
+        "
+

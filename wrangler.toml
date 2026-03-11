@@ -156,6 +156,17 @@ name = "RATE_LIMITER"
 namespace_id = "1017"
 simple = { limit = 1017, period = 60 }
 
+# Handshake-specific rate limiting (Roadmap Gate 1.7 — 1,017-Notch Protection)
+# The /api/v1/licensing/handshake and /api/v1/quarantine/handshake endpoints are
+# additionally protected by middleware.ts which applies the RATE_LIMITER binding
+# with a stricter per-path key: "handshake:<ip>" at 10 requests per 60 seconds.
+# This prevents automated affidavit flooding while allowing legitimate usage.
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER_HANDSHAKE"
+namespace_id = "1018"
+simple = { limit = 10, period = 60 }
+
 # ── Cloudflare Cron Triggers ──────────────────────────────────────────────────
 # Evidence Packaging Automation: runs every 5 minutes.
 # Triggers GET /api/v1/cron/package-evidence to build R2 forensic bundles

@@ -259,6 +259,8 @@ interface R2Bucket {
 interface GatekeeperEnv {
   DB?: { prepare(query: string): D1PreparedStatement };
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Handshake-specific rate limiter — 10 requests per 60 seconds per IP (Roadmap Gate 1.7). */
+  RATE_LIMITER_HANDSHAKE?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
   KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
@@ -837,6 +839,41 @@ export async function middleware(request: NextRequest) {
     }
   } catch {
     // Rate limiter binding not available (local dev) — allow through
+  }
+
+  // ── Roadmap Gate 1.7 — Handshake-specific rate limit (10 req/60s per IP) ──
+  // Protects /api/v1/licensing/handshake and /api/v1/quarantine/handshake from
+  // automated affidavit flooding.  Uses the RATE_LIMITER_HANDSHAKE binding
+  // (namespace_id 1018, limit=10/60s).  Falls through gracefully if binding
+  // is unavailable (local dev).
+  const pathname = new URL(request.url).pathname;
+  const isHandshakePath =
+    pathname === "/api/v1/licensing/handshake" ||
+    pathname === "/api/v1/quarantine/handshake";
+  if (isHandshakePath) {
+    try {
+      const { env: _hEnv } = await getCloudflareContext({ async: true });
+      const hEnv = _hEnv as unknown as GatekeeperEnv;
+      if (hEnv.RATE_LIMITER_HANDSHAKE) {
+        const ip = request.headers.get("cf-connecting-ip") ??
+                   request.headers.get("x-forwarded-for") ?? "unknown";
+        const { success } = await hEnv.RATE_LIMITER_HANDSHAKE.limit({ key: `handshake:${ip}` });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status:          "429 Too Many Requests",
+              error:           "Handshake Rate Limit Exceeded",
+              directive:       "Maximum 10 affidavit submissions per 60 seconds. Reduce frequency.",
+              kernel_anchor:   KERNEL_ANCHOR_DISPLAY,
+              license_url:     "https://averyos.com/licensing",
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "HANDSHAKE_RATE_LIMITED" } },
+          );
+        }
+      }
+    } catch {
+      // Binding unavailable — allow through
+    }
   }
 
   // ── Phase 97.2 — GabrielOS™ WAF Score Gate ────────────────────────────────
