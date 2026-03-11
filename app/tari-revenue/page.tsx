@@ -214,9 +214,6 @@ export default function TariRevenuePage() {
     }
   }, []);
 
-  // firstSettledClock — first settled compliance clock, populated from D1 clock data
-  const firstSettledClock: { clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null = null;
-
   useEffect(() => {
     let cancelled = false;
     let sseSource: EventSource | null = null;
