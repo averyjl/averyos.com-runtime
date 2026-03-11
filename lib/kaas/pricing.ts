@@ -1,7 +1,7 @@
 /**
  * lib/kaas/pricing.ts
  *
- * KaaS (Kernel-as-a-Service) Pricing Engine — AveryOS™ Phase 97
+ * KaaS (Kernel-as-a-Service) Pricing Engine — AveryOS™ Phase 97/103
  *
  * Defines the sovereign fee schedule for entities that ingest, reproduce, or
  * train on AveryOS™ intellectual property without a valid license.
@@ -12,6 +12,10 @@
  *   Tier-8   (GitHub ASN 36459)            — $10,000,000 Technical Valuation
  *   Tier-7   (Other enterprise / Fortune 500) — $1,017,000 Forensic Valuation
  *   Tier-1–6 (Unrecognised agents)         — $1,017 Audit Clearance Fee
+ *
+ * Administrative Settlement (Gate 103.4):
+ *   Hardlocked $150,000 per-instance under 17 U.S.C. § 504(c)(2) for any
+ *   entity that bypasses the standard settlement path via an unlicensed script.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -47,6 +51,41 @@ export const KAAS_FEE_TIER_7_CENTS  = 101_700_000;   // $1,017,000.00
 
 /** $1,017 Audit Clearance Fee — Tier-1 through Tier-6 unrecognised agents. */
 export const KAAS_FEE_TIER_1_CENTS  = 101_700;        // $1,017.00
+
+// ── Statutory Administrative Settlement — Gate 103.4 ─────────────────────────
+/**
+ * Hardlocked $150,000 Administrative Settlement per instance.
+ *
+ * Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a
+ * copyrighted work. Applies when an entity accesses the AveryOS™ API via an
+ * unlicensed Python script or automated tool without a valid TAI_LICENSE_KEY,
+ * bypassing the standard KaaS settlement path.
+ *
+ * This value is the maximum statutory damage award per work and is hardlocked
+ * to ensure the Administrative Settlement offer is fully legally defensible.
+ */
+export const STATUTORY_ADMIN_SETTLEMENT_CENTS = 15_000_000; // $150,000.00
+
+/** Human-readable label for the $150,000 Administrative Settlement. */
+export const STATUTORY_ADMIN_SETTLEMENT_LABEL = "$150,000.00";
+
+/**
+ * Return the $150,000 Administrative Settlement amount in cents.
+ * Hardlocked — do not override.
+ */
+export function getStatutoryAdminSettlementCents(): number {
+  return STATUTORY_ADMIN_SETTLEMENT_CENTS;
+}
+
+/**
+ * Return the $150,000 Administrative Settlement amount as a formatted string.
+ */
+export function getStatutoryAdminSettlementLabel(): string {
+  return (STATUTORY_ADMIN_SETTLEMENT_CENTS / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
 
 // ── Fee Lookup ────────────────────────────────────────────────────────────────
 
@@ -135,6 +174,61 @@ export function buildKaasLineItem(asn: string, entityName?: string): KaasLineIte
     description,
     kernel_sha:     KERNEL_SHA.slice(0, 16) + "…",
     kernel_version: KERNEL_VERSION,
+  };
+}
+
+// ── Infringement Penalty (GATE 102.5) ────────────────────────────────────────
+
+/**
+ * Obfuscation/Infringement Multiplier — applied when masking headers or
+ * shell IPs are detected, representing the increased forensic cost of
+ * identifying masked malicious actors.
+ *
+ * TotalDebt = BaseValue × INFRINGEMENT_MULTIPLIER
+ */
+export const INFRINGEMENT_MULTIPLIER = 10;
+
+/**
+ * Apply the infringement penalty multiplier to a base fee in cents.
+ *
+ * @param baseCents  Base fee in USD cents before penalty
+ * @param multiplier Penalty multiplier (defaults to INFRINGEMENT_MULTIPLIER = 10)
+ * @returns          Total debt in USD cents after multiplier
+ */
+export function applyInfringementPenalty(
+  baseCents: number,
+  multiplier: number = INFRINGEMENT_MULTIPLIER,
+): number {
+  return Math.round(baseCents * multiplier);
+}
+
+/**
+ * Build a KaaS invoice line item with an optional infringement penalty applied.
+ * When `obfuscationDetected` is true the base fee is multiplied by
+ * INFRINGEMENT_MULTIPLIER (10×) to represent the Obfuscation Penalty.
+ */
+export function buildKaasLineItemWithPenalty(
+  asn: string,
+  entityName?: string,
+  obfuscationDetected = false,
+): KaasLineItem & { obfuscation_penalty: boolean; penalty_multiplier: number } {
+  const base   = buildKaasLineItem(asn, entityName);
+  const mult   = obfuscationDetected ? INFRINGEMENT_MULTIPLIER : 1;
+  const label  = obfuscationDetected
+    ? `${base.fee_label} ×${INFRINGEMENT_MULTIPLIER} Obfuscation Penalty`
+    : base.fee_label;
+  const desc   = obfuscationDetected
+    ? `${base.description} OBFUSCATION PENALTY (${INFRINGEMENT_MULTIPLIER}× multiplier applied — masked headers detected).`
+    : base.description;
+
+  return {
+    ...base,
+    fee_usd_cents:       base.fee_usd_cents * mult,
+    fee_usd:             (base.fee_usd_cents * mult) / 100,
+    fee_label:           label,
+    description:         desc,
+    obfuscation_penalty: obfuscationDetected,
+    penalty_multiplier:  mult,
   };
 }
 

@@ -165,6 +165,42 @@ function classifyIngestionIntent(
   return 'PEER_ACCESS';
 }
 
+// ── Jurisdictional Triage — Gate 104.1 ────────────────────────────────────────
+
+/** Supported statutory jurisdictions for Notice of Debt generation. */
+export type StatutoryJurisdiction = 'US' | 'EU' | 'UK' | 'JP' | 'UNKNOWN';
+
+/** EU member state ISO-3166 country codes. */
+const EU_COUNTRY_CODES_MW = new Set([
+  'AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI',
+  'FR','GR','HR','HU','IE','IT','LT','LU','LV','MT',
+  'NL','PL','PT','RO','SE','SI','SK',
+]);
+
+/**
+ * Resolve the applicable statutory jurisdiction for a request.
+ *
+ * Maps the Cloudflare cf-ipcountry header to one of four supported
+ * frameworks, ensuring that any generated "Notice of Debt" references
+ * the correct Law of the Land.
+ *
+ *   US  — 17 U.S.C. § 504(c)(2) + § 1201 (DMCA Anti-Circumvention)
+ *   EU  — EU AI Act Art. 53(1)(c) + CDSM Directive TDM opt-out
+ *   UK  — Copyright, Designs and Patents Act 1988, §§ 22–23
+ *   JP  — Copyright Act Art. 30-4 (unreasonable prejudice to rights holder)
+ *
+ * @param request - The incoming NextRequest.
+ * @returns StatutoryJurisdiction label.
+ */
+export function getStatutoryOrigin(request: NextRequest): StatutoryJurisdiction {
+  const country = (request.headers.get('cf-ipcountry') ?? '').toUpperCase().trim();
+  if (country === 'US') return 'US';
+  if (country === 'GB') return 'UK';
+  if (country === 'JP') return 'JP';
+  if (EU_COUNTRY_CODES_MW.has(country)) return 'EU';
+  return 'UNKNOWN';
+}
+
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   run(): Promise<{ success: boolean }>;
@@ -866,6 +902,43 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ── Phase 102.3 — Obfuscation / Masking Header Detector ─────────────────
+  // Detects shell IPs, proxy-chain headers, and fake User-Agent patterns that
+  // indicate an entity is deliberately masking its true origin.  When masking
+  // is detected the RayID is flagged for the 10× TARI™ Infringement Penalty
+  // via the X-GabrielOS-Infringement-Multiplier response header.
+  //
+  // Detection signals:
+  //   1. Via header present           — traffic routed through an intermediary proxy.
+  //   2. X-Forwarded-For present AND
+  //      differs from cf-connecting-ip — proxy or VPN masking the true IP.
+  //   3. X-Real-IP present AND
+  //      differs from cf-connecting-ip — reverse-proxy IP substitution.
+  //   4. Forwarded header present     — RFC 7239 proxy chaining.
+  //
+  // The flag is non-blocking — all traffic is allowed through so forensic
+  // collection can continue.  The header is consumed by /api/v1/licensing/handshake
+  // and the TARI™ Debt Calculator to apply the multiplier on the invoice.
+  let obfuscationDetected = false;
+  {
+    const cfIp    = request.headers.get('cf-connecting-ip') ?? '';
+    const viaHdr  = request.headers.get('via');
+    const xffHdr  = request.headers.get('x-forwarded-for') ?? '';
+    const xRealIp = request.headers.get('x-real-ip') ?? '';
+    const fwdHdr  = request.headers.get('forwarded');
+
+    const xffFirstHop = xffHdr ? xffHdr.split(',')[0].trim() : '';
+
+    if (
+      viaHdr ||
+      fwdHdr ||
+      (xffFirstHop && cfIp && xffFirstHop !== cfIp) ||
+      (xRealIp && cfIp && xRealIp !== cfIp)
+    ) {
+      obfuscationDetected = true;
+    }
+  }
+
   // ── Phase 98 / Phase 9 — KAAS_BREACH Emitter ─────────────────────────────
   // Fire-and-forget GabrielOS™ FCM push when middleware detects a Tier-9/10 ASN
   // or a WAF score > 90 against an encrypted .aoscap path.
@@ -1044,6 +1117,10 @@ export async function middleware(request: NextRequest) {
         response.headers.set('X-AveryOS-Community', 'HN_WATCHER');
       }
     }
+    // Phase 102.3 — flag masked/obfuscated origins for the 10× TARI™ penalty
+    if (obfuscationDetected) {
+      response.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
+    }
     return response;
   }
 
@@ -1080,6 +1157,12 @@ export async function middleware(request: NextRequest) {
 
   // 6. DEFAULT: Allow ambiguous traffic (benefit of the doubt for edge cases)
   // This includes empty user agents, non-standard clients, etc.
+  // Phase 102.3 — attach infringement multiplier flag if masking was detected
+  if (obfuscationDetected) {
+    const defaultResponse = NextResponse.next();
+    defaultResponse.headers.set('X-GabrielOS-Infringement-Multiplier', '10x');
+    return defaultResponse;
+  }
   return NextResponse.next();
 }
 

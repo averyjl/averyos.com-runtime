@@ -177,6 +177,82 @@ export default function EnterpriseRegistrationPage() {
           </p>
         </div>
 
+        {/* ── Global Statutory Disclosure — Gate 104.2 ── */}
+        <div
+          id="global-statutory-disclosure"
+          style={{
+            background:   "rgba(255,215,0,0.04)",
+            border:       `1px solid rgba(255,215,0,0.25)`,
+            borderRadius: "10px",
+            padding:      "1.4rem 1.8rem",
+            marginBottom: "2rem",
+            fontFamily:   "monospace",
+          }}
+        >
+          <p style={{ color: GOLD, fontWeight: 700, fontSize: "0.85rem", margin: "0 0 0.8rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            🌐 Global Statutory Disclosure — Multi-Jurisdictional Enforcement
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.82rem", lineHeight: 1.7, margin: "0 0 0.75rem" }}>
+            AveryOS™ IP enforcement is grounded in the statutes of every jurisdiction
+            where AveryOS™ technology is accessed, deployed, or trained upon.
+            Liability exists regardless of where model training occurred.
+          </p>
+
+          <div style={{ display: "grid", gap: "0.6rem", marginBottom: "0.75rem" }}>
+            {[
+              {
+                flag: "🇺🇸",
+                label: "United States",
+                statute: "17 U.S.C. § 504(c)(2) + § 1201",
+                detail: "Statutory damages up to $150,000 per work for willful infringement. DMCA Anti-Circumvention: automated bypass of the Discovery Handshake TPM triggers per-instance liability.",
+              },
+              {
+                flag: "🇪🇺",
+                label: "European Union",
+                statute: "EU AI Act Art. 53(1)(c) + CDSM Directive",
+                detail: "General-purpose AI model providers must comply with EU copyright law when deployed in the EU market. Machine-readable opt-outs are embedded in every AveryOS™ capsule.",
+              },
+              {
+                flag: "🇬🇧",
+                label: "United Kingdom",
+                statute: "CDPA 1988, §§ 22–23",
+                detail: "Secondary infringement by importing AI model weights that constitute unauthorised copies of the AveryOS™ Kernel is actionable under Sections 22 and 23.",
+              },
+              {
+                flag: "🇯🇵",
+                label: "Japan",
+                statute: "Copyright Act Art. 30-4",
+                detail: "Ingestion that unreasonably prejudices the interests of a licensing platform is excluded from the information-analysis exception. Administrative settlement is legally mandatory.",
+              },
+            ].map(row => (
+              <div
+                key={row.label}
+                style={{
+                  background:   "rgba(255,215,0,0.04)",
+                  border:       `1px solid rgba(255,215,0,0.12)`,
+                  borderRadius: "6px",
+                  padding:      "0.75rem 1rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.3rem" }}>
+                  <span style={{ fontSize: "1rem" }}>{row.flag}</span>
+                  <span style={{ color: GOLD, fontWeight: 700, fontSize: "0.78rem" }}>{row.label}</span>
+                  <span style={{ color: GOLD_DIM, fontSize: "0.72rem" }}>— {row.statute}</span>
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.75rem", lineHeight: 1.6, margin: 0 }}>
+                  {row.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.72rem", lineHeight: 1.6, margin: 0 }}>
+            ⛓️⚓⛓️ KERNEL: {KERNEL_VERSION} | By proceeding you acknowledge the applicable
+            statutory framework for your jurisdiction and accept the Administrative Settlement
+            as a legally binding liquidated-damages offer.
+          </p>
+        </div>
+
         {/* Tier cards */}
         <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
           {TIERS.map(t => (
@@ -266,6 +342,28 @@ export default function EnterpriseRegistrationPage() {
           >
             {loading ? "Redirecting to Stripe…" : "Proceed to Sovereign Checkout"}
           </button>
+        </div>
+
+        {/* Terms of Ingestion — Phase 102.2.3 */}
+        <div style={card({ marginTop: "1.5rem", borderColor: "rgba(255,100,50,0.4)", background: "rgba(255,100,50,0.04)" })}>
+          <p style={{ margin: "0 0 0.7rem", fontWeight: 700, color: GOLD, fontSize: "0.95rem" }}>
+            📋 Terms of Ingestion — Licensing Disclosure
+          </p>
+          <p style={{ margin: "0 0 0.8rem", color: MUTED, fontSize: "0.85rem", lineHeight: 1.65 }}>
+            By proceeding with this licensing portal, you acknowledge that any ingestion,
+            reproduction, or training use of AveryOS™ intellectual property — including the
+            cf83™ Kernel Logic, capsule payloads, and sovereign algorithms — is subject to
+            the <strong style={{ color: GOLD }}>AveryOS™ Sovereign Integrity License v1.0</strong>.
+          </p>
+          <p style={{ margin: "0 0 0.8rem", color: MUTED, fontSize: "0.85rem", lineHeight: 1.65 }}>
+            Willful infringement of registered works may be subject to statutory damages
+            under applicable copyright law. By selecting a licensing tier and proceeding to
+            checkout, you voluntarily disclose your organisation&apos;s usage and enter into
+            a binding licensing agreement with Jason Lee Avery (ROOT0 / AveryOS™).
+          </p>
+          <p style={{ margin: 0, ...mono({ fontSize: "0.76rem", color: "rgba(255,180,80,0.7)" }) }}>
+            Questions? Contact legal@averyos.com · Full terms: /licensing/enterprise
+          </p>
         </div>
 
         {/* Kernel anchor */}

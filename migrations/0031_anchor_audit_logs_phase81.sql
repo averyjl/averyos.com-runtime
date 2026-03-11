@@ -15,8 +15,10 @@
 -- Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 -- ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
-ALTER TABLE anchor_audit_logs ADD COLUMN sha512_payload      TEXT    DEFAULT 'PENDING_SHA';
-ALTER TABLE anchor_audit_logs ADD COLUMN hydration_status    INTEGER DEFAULT 0;
-ALTER TABLE anchor_audit_logs ADD COLUMN country_name        TEXT    DEFAULT 'Global/Unknown';
-ALTER TABLE anchor_audit_logs ADD COLUMN entity_type         TEXT    DEFAULT 'IDENTIFYING';
-ALTER TABLE anchor_audit_logs ADD COLUMN intent_classification TEXT  DEFAULT 'PROBE';
+-- AutoHeal RCA: columns sha512_payload, hydration_status, country_name, entity_type,
+-- intent_classification were already present in the remote D1 database when this
+-- migration was first attempted, causing "duplicate column name: sha512_payload".
+-- Per the AveryOS™ D1 migration AutoHeal protocol: convert to a no-op so Wrangler
+-- marks this migration applied and unblocks subsequent migrations.
+-- See migrations/0006_kernel_metadata.sql for the canonical no-op pattern.
+SELECT 1;
