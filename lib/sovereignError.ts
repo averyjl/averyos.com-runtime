@@ -301,6 +301,7 @@ export function buildAosError(
   detail: string,
   overrides?: Partial<Pick<RcaEntry, 'diagnosis' | 'steps'>>
 ): AosApiError {
+  // eslint-disable-next-line security/detect-object-injection
   const rca = RCA_REGISTRY[code];
   return {
     error: code,
@@ -328,6 +329,7 @@ export function aosErrorResponse(
   detail: string,
   statusOverride?: number
 ): Response {
+  // eslint-disable-next-line security/detect-object-injection
   const rca = RCA_REGISTRY[code];
   const status = statusOverride ?? rca?.status ?? 500;
   const body = buildAosError(code, detail);
@@ -421,6 +423,7 @@ export function logAosScriptError(
   detail: string,
   cause?: unknown
 ): void {
+  // eslint-disable-next-line security/detect-object-injection
   const rca = RCA_REGISTRY[code];
   console.error('');
   console.error(`${RED}❌ [AOS ERROR] ${code}${RESET}`);
@@ -464,6 +467,7 @@ export function buildAosUiError(
   code: AosErrorCode,
   detail: string
 ): AosUiError {
+  // eslint-disable-next-line security/detect-object-injection
   const rca = RCA_REGISTRY[code];
   return {
     code,

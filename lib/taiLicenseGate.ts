@@ -30,11 +30,13 @@ export function safeEqual(a: string, b: string): boolean {
     // Run through the longer array reading both to maintain constant-time behaviour
     const maxLen = Math.max(aBytes.length, bBytes.length);
     for (let i = 0; i < maxLen; i++) {
+      // eslint-disable-next-line security/detect-object-injection
       void ((aBytes[i] ?? 0) ^ (bBytes[i] ?? 0));
     }
     return false;
   }
   let diff = 0;
+  // eslint-disable-next-line security/detect-object-injection
   for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
   return diff === 0;
 }

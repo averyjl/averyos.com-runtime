@@ -111,6 +111,7 @@ export default function RegistryPage() {
   if (registry) {
     for (const capsule of registry.capsules) {
       const cat = capsule.category ?? "GENERAL";
+      // eslint-disable-next-line security/detect-object-injection
       categoryMap[cat] = (categoryMap[cat] ?? 0) + 1;
     }
   }

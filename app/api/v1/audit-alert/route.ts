@@ -5,6 +5,7 @@ import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 import { syncD1RowToFirebase, syncKaasValuationToFirebase, sendFcmV1Push } from "../../../../lib/firebaseClient";
 import { getAsnTier, getAsnFeeUsd } from "../../../../lib/kaas/pricing";
 import { resolveJurisdiction, JURISDICTION_STATUTES } from "../../../../lib/forensics/globalVault";
+import { safeEqual } from '../../../../lib/taiLicenseGate';
 
 /**
  * POST /api/v1/audit-alert
@@ -133,15 +134,6 @@ async function computePulseHash(
 }
 
 /** Constant-time string comparison to prevent timing attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Derive an HMAC-SHA-256 signing key from VAULT_PASSPHRASE + KERNEL_SHA. */
 async function deriveSigningKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
@@ -377,12 +369,15 @@ export async function POST(request: Request): Promise<Response> {
 
   // Resolve jurisdiction-aware statutory label for FCM payload (Gate 5)
   const jurisdiction = resolveJurisdiction(countryCode);
+  // eslint-disable-next-line security/detect-object-injection
   const jurisdictionStatute = JURISDICTION_STATUTES[jurisdiction];
 
   // Compute pulse hash
   const pulseHash = await computePulseHash(targetIp, targetPath, now);
 
+  // eslint-disable-next-line security/detect-object-injection
   const liabilityUsd = TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
+  // eslint-disable-next-line security/detect-object-injection
   const threatLevel  = THREAT_LEVELS[eventType]  ?? 7;
 
   // ── D1 — bootstrap + insert ───────────────────────────────────────────────

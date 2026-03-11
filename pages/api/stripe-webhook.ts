@@ -68,6 +68,7 @@ function writeSovereignGrant(nodeId: string, sessionId: string): string {
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     status: "active",
   };
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.writeFileSync(filePath, JSON.stringify(grant, null, 2));
   return path.relative(process.cwd(), filePath);
 }

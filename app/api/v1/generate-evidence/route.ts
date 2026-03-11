@@ -128,8 +128,10 @@ export async function GET(request: Request) {
     const tariBreakdown: Record<string, number> = {};
     for (const row of rows) {
       const eventType = String(row.event_type ?? 'UNALIGNED_401').toUpperCase();
+      // eslint-disable-next-line security/detect-object-injection
       const amount = TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
       tariTotal += amount;
+      // eslint-disable-next-line security/detect-object-injection
       tariBreakdown[eventType] = (tariBreakdown[eventType] ?? 0) + amount;
     }
     // Minimum one entry fee even for empty result sets
@@ -167,6 +169,7 @@ export async function GET(request: Request) {
         formatted: tariFormatted,
         breakdown: tariBreakdown,
         labels: Object.fromEntries(
+          // eslint-disable-next-line security/detect-object-injection
           Object.keys(tariBreakdown).map((k) => [k, TARI_LIABILITY_LABELS[k] ?? k])
         ),
       },

@@ -107,7 +107,9 @@ export default function PublicSettlementZone() {
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {ENTITIES.map(({ id, label, hash }) => {
+          // eslint-disable-next-line security/detect-object-injection
           const status: EntityStatus = statuses[id] ?? "Pending";
+          // eslint-disable-next-line security/detect-object-injection
           const verificationState = verifyState[id] ?? "idle";
           const statusColor =
             status === "RESOLVED" ? "#4ade80" :

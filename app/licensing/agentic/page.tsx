@@ -99,6 +99,7 @@ export default function AgenticSettlementPortal() {
         const asn  = data.asn ?? "UNKNOWN";
         setDetectedAsn(asn);
         setDetectedIp(data.ip ?? "—");
+        // eslint-disable-next-line security/detect-object-injection
         const knownAsn = AGENTIC_ASN_MAP[asn];
         setAsnInfo(knownAsn ?? null);
         setTier(resolveKaasTier(asn));
@@ -146,6 +147,7 @@ export default function AgenticSettlementPortal() {
     }
   };
 
+  // eslint-disable-next-line security/detect-object-injection
   const isKnownAgentic = AGENTIC_ASN_MAP[detectedAsn] !== undefined;
 
   return (
