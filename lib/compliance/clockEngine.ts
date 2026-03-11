@@ -15,6 +15,7 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 }                from "../timePrecision";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -74,8 +75,8 @@ export function startSettlementClock(
     : "ACTIVE";
 
   return {
-    attestationTs:   new Date(startMs).toISOString(),
-    deadlineTs:      new Date(deadlineMs).toISOString(),
+    attestationTs:   formatIso9(new Date(startMs)),
+    deadlineTs:      formatIso9(new Date(deadlineMs)),
     status,
     remainingMs:     settled ? 0 : remaining,
     remainingDisplay: settled ? "SETTLED" : formatRemaining(remaining),
@@ -173,8 +174,8 @@ export function createComplianceClock(
     clock_id:        clockId,
     asn,
     org_name:        orgName,
-    issued_at:       new Date(now).toISOString(),
-    deadline_at:     new Date(deadlineMs).toISOString(),
+    issued_at:       formatIso9(new Date(now)),
+    deadline_at:     formatIso9(new Date(deadlineMs)),
     status:          "ACTIVE",
     remainingMs:     remaining,
     remainingDisplay: formatRemaining(remaining),
@@ -257,7 +258,7 @@ export function reconcileClocks(
       escalated,
       active,
       settled,
-      reconciledAt:  new Date().toISOString(),
+      reconciledAt:  formatIso9(new Date()),
       kernelVersion: KERNEL_VERSION,
     },
     clocks: updated,
