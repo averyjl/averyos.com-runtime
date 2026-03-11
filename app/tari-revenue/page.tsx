@@ -199,7 +199,14 @@ export default function TariRevenuePage() {
       fetch("/api/v1/compliance/clocks?status=SETTLED&limit=1", {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (r.status === 401 || r.status === 403) {
+            // Token expired or revoked — silently clear admin state
+            setIsAdminUnlocked(false);
+            return null;
+          }
+          return r.ok ? r.json() : null;
+        })
         .then((data: { clocks?: Array<{ clock_id: string; settled_at: string }> } | null) => {
           if (data?.clocks?.[0]) setFirstSettledClock(data.clocks[0]);
         })

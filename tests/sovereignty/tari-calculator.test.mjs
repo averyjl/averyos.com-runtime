@@ -24,6 +24,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, "..", "..");
 
 // TARI™ v1.5 constants (mirrored from lib/tari/tariUniversal.ts)
+// NOTE: These are intentionally duplicated rather than imported from the TypeScript
+// source to keep this test suite zero-dependency (no TypeScript compilation required).
+// If the canonical values change in lib/tari/tariUniversal.ts, update these too.
 const BASE_VALUATION      = 10_000_000.00;
 const DAILY_RATE          = 1_017.00;
 const STATUTORY_PENALTY   = 150_000.00;

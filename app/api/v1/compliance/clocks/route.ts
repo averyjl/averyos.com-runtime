@@ -106,8 +106,7 @@ export async function GET(request: Request): Promise<Response> {
     args.push(limit, offset);
 
     const { results } = await cfEnv.DB.prepare(sql)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .bind(...args as any[])
+      .bind(...(args as Parameters<D1PreparedStatement["bind"]>))
       .all<ComplianceClockRow>();
 
     // ── Count total ───────────────────────────────────────────────────────────
@@ -123,8 +122,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     const countRow = await cfEnv.DB.prepare(countSql)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .bind(...countArgs as any[])
+      .bind(...(countArgs as Parameters<D1PreparedStatement["bind"]>))
       .first<{ total: number }>();
 
     return Response.json(

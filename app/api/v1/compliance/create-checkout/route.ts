@@ -155,10 +155,10 @@ export async function POST(request: Request) {
     const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
     const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
 
-    // Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
+    // Tier-9 and Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
     const asnTier = asnStr ? getAsnTier(asnStr) : 0;
     if (asnTier >= 9 && !taxIdStr) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "tax_id is required for Tier-10 enterprise entities.");
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, "tax_id is required for Tier-9 and Tier-10 enterprise entities.");
     }
 
     const { liabilityCents, productName, productDescription, pricingTier } =

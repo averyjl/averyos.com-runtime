@@ -36,7 +36,7 @@ export const OUTLIER_THRESHOLD_MS = 17;
 export const NTP_SOURCE_COUNT = 10;
 
 /** Timeout per individual source request in milliseconds. */
-const FETCH_TIMEOUT_MS = 4_000;
+export const FETCH_TIMEOUT_MS = 4_000;
 
 // ── NTP Source Definitions ────────────────────────────────────────────────────
 
