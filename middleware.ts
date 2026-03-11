@@ -296,9 +296,12 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     const ua            = request.headers.get('user-agent') ?? 'UNKNOWN';
     const rayId         = request.headers.get('cf-ray') ?? 'UNKNOWN';
     const colo          = rayId.split('-')[1] ?? 'UNKNOWN';
-    const clientAsn     = request.headers.get('cf-asn') ?? '';
-    const city          = request.headers.get('cf-ipcity') ?? '';
-    const country       = request.headers.get('cf-ipcountry') ?? '';
+    // Prefer request.cf fields (Cloudflare Worker env) over headers; fall back to headers for local dev.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cfObj         = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const clientAsn     = String(cfObj['asn'] ?? request.headers.get('cf-asn') ?? '');
+    const city          = String(cfObj['city'] ?? cfObj['clientCity'] ?? request.headers.get('cf-ipcity') ?? '');
+    const country       = String(cfObj['country'] ?? request.headers.get('cf-ipcountry') ?? '');
     const wafTotalRaw   = request.headers.get('cf-waf-score-total') ?? '0';
     const wafSqliRaw    = request.headers.get('cf-waf-score-sqli') ?? '0';
     const wafTotal      = parseInt(wafTotalRaw, 10) || 0;
@@ -413,7 +416,6 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
     const url     = new URL(request.url);
     const rayId   = request.headers.get('cf-ray') ?? 'UNKNOWN';
     const ip      = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const asn     = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
     const now     = edgeStart.toISOString();
     const method  = request.method ?? 'GET';
 
@@ -422,7 +424,13 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
     // Cast via unknown to avoid TypeScript complaints in non-Worker builds.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cf = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
-    const clientCity      = (cf['clientCity']           as string  | undefined) ?? null;
+
+    // Prefer request.cf for asn/city/country (populated in Worker env);
+    // fall back to cf-* headers for local development compatibility.
+    const asn         = String(cf['asn'] ?? request.headers.get('cf-asn') ?? 'UNKNOWN');
+    const cfCountry   = cf['country'] != null ? String(cf['country']) : (request.headers.get('cf-ipcountry') ?? null);
+    const clientCity      = (cf['clientCity'] as string | undefined)
+      ?? (cf['city'] ? String(cf['city']) : null);
     const clientLat       = (cf['clientLatitude']       as string  | undefined) ?? null;
     const clientLon       = (cf['clientLongitude']      as string  | undefined) ?? null;
     const requestProtocol = (cf['httpProtocol']         as string  | undefined) ?? null;
@@ -497,6 +505,7 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
         ray_id:         rayId,
         ip_address:     ip,
         asn,
+        country:        cfCountry,
         path:           url.pathname,
         request_uri:    requestUri,
         request_method: method,

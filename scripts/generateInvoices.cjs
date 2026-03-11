@@ -399,6 +399,67 @@ async function triggerAsnCheckoutSession(asnEntry, amountCents) {
   });
 }
 
+// ── TARI™ Universal Liability Engine (v1.5) ───────────────────────────────────
+// Mirrors lib/tariUniversal.ts for use in CommonJS scripts.
+// Fee schedule matches audit-alert/route.ts TARI_LIABILITY for consistency.
+
+const TARI_LIABILITY_USD_SCHEDULE = {
+  UNALIGNED_401:      1_017.00,
+  ALIGNMENT_DRIFT:    5_000.00,
+  PAYMENT_FAILED:    10_000.00,
+  POW_SOLVED:             0.00,
+  HN_WATCHER:             0.00,
+  DER_HIGH_VALUE:     1_017.00,
+  DER_SETTLEMENT:    10_000.00,
+  CONFLICT_ZONE_PROBE:    0.00,
+  LEGAL_SCAN:             0.00,
+  PEER_ACCESS:            0.00,
+  KAAS_BREACH:   10_000_000.00,
+  SOVEREIGN_SETTLEMENT:   0.00,
+};
+
+/**
+ * @typedef {Object} AuditLogEntry
+ * @property {string} [event_type] - TARI™ event type (e.g. 'UNALIGNED_401', 'LEGAL_SCAN').
+ *   Unknown types accrue $0 liability. Defaults to 'PEER_ACCESS' when absent.
+ * @property {string} [ip_address] - IP address of the event source.
+ * @property {string} [asn] - Autonomous System Number of the event source.
+ */
+
+/**
+ * Compute the total retroactive TARI™ debt for an array of audit log entries.
+ * Used by the ASN invoicing pipeline (v1.5) to aggregate liability before
+ * creating Stripe invoices.
+ *
+ * @param {AuditLogEntry[]} entries - Audit log rows (must include an `event_type` field)
+ * @returns {{ totalCents: number, totalUsd: number, eventCount: number, breakdown: object }}
+ */
+function computeTariRetroactiveDebt(entries) {
+  const breakdown = {};
+  let totalCents  = 0;
+
+  for (const entry of entries) {
+    const eventType      = String(entry.event_type ?? 'PEER_ACCESS');
+    const liabilityUsd   = TARI_LIABILITY_USD_SCHEDULE[eventType] ?? 0;
+    const liabilityCents = Math.round(liabilityUsd * 100);
+
+    if (!breakdown[eventType]) {
+      breakdown[eventType] = { count: 0, totalCents: 0, totalUsd: 0 };
+    }
+    breakdown[eventType].count      += 1;
+    breakdown[eventType].totalCents += liabilityCents;
+    breakdown[eventType].totalUsd    = breakdown[eventType].totalCents / 100;
+    totalCents += liabilityCents;
+  }
+
+  return {
+    totalCents,
+    totalUsd:   totalCents / 100,
+    eventCount: entries.length,
+    breakdown,
+  };
+}
+
 /**
  * Run the ASN invoicing pipeline.
  * Called when ANCHOR_AUDIT_LOG_PATH is set and the 135k milestone is reached.
@@ -430,6 +491,24 @@ async function runAsnInvoicingPipeline(stripe) {
 
   console.log(`✅  Milestone reached: ${total.toLocaleString()} rows ≥ ${MILESTONE_THRESHOLD.toLocaleString()}`);
   console.log('    962 Entities Documented | 156.2k Pulse Locked\n');
+
+  // ── TARI™ v1.5: Retroactive Debt Computation ─────────────────────────────
+  // Compute the total retroactive TARI™ liability across all audit log entries
+  // before generating individual invoices. This gives a global liability summary.
+  const retroDebt = computeTariRetroactiveDebt(rows);
+  console.log(`💰  TARI™ Retroactive Debt Summary (v1.5):`);
+  console.log(`    Total events processed : ${retroDebt.eventCount.toLocaleString()}`);
+  console.log(`    Total TARI™ liability  : $${retroDebt.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`);
+  if (Object.keys(retroDebt.breakdown).length > 0) {
+    const nonZero = Object.entries(retroDebt.breakdown).filter(([, v]) => v.totalCents > 0);
+    if (nonZero.length > 0) {
+      console.log(`    Breakdown by event type:`);
+      for (const [eventType, data] of nonZero) {
+        console.log(`      ${eventType.padEnd(25)} ${data.count.toString().padStart(6)} events  $${data.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`);
+      }
+    }
+  }
+  console.log('');
 
   if (byAsn.size === 0) {
     console.warn('⚠️  No ASN-attributed rows found. Verify that the anchor_audit_logs export includes the "asn" column (migration 0018).');

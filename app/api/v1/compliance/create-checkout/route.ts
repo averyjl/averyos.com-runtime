@@ -4,12 +4,74 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 import { buildKaasLineItem, getAsnTier } from "../../../../../lib/kaas/pricing";
+import { getSovereignKeys } from "../../../../../lib/security/keys";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
   NEXT_PUBLIC_SITE_URL?: string;
   SITE_URL?: string;
   DB?: unknown;
+  AVERYOS_PRIVATE_KEY_B64?: string;
+  AVERYOS_PUBLIC_KEY_B64?: string;
+}
+
+// ── JWT invoice token helpers ─────────────────────────────────────────────────
+
+/** Base64url-encode an ArrayBuffer or Uint8Array without spread (safe for large buffers). */
+function base64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/**
+ * Sign a compact RS256 JWT invoice token using the sovereign private key.
+ * Returns `null` when no key material is available (pending deployment).
+ *
+ * Claims:
+ *   iss  — averyos.com
+ *   sub  — bundleId (the Forensic Evidence Bundle identifier)
+ *   iat  — issued-at (Unix seconds)
+ *   exp  — expires-at (iat + 86400 — 24-hour validity window)
+ *   jti  — Stripe Checkout session ID (unique token ID)
+ *   tid  — pricing tier
+ *   lc   — TARI™ liability in USD cents
+ *   kv   — kernel version
+ */
+async function signInvoiceToken(
+  privateKey: CryptoKey,
+  kid: string,
+  claims: {
+    bundleId:      string;
+    sessionId:     string;
+    pricingTier:   string;
+    liabilityCents: number;
+  }
+): Promise<string> {
+  const enc  = new TextEncoder();
+  const now  = Math.floor(Date.now() / 1000);
+  const header  = { alg: "RS256", typ: "JWT", kid };
+  const payload = {
+    iss: "averyos.com",
+    sub: claims.bundleId,
+    jti: claims.sessionId,
+    iat: now,
+    exp: now + 86_400,
+    tid: claims.pricingTier,
+    lc:  claims.liabilityCents,
+    kv:  KERNEL_VERSION,
+  };
+  const signingInput = `${base64url(enc.encode(JSON.stringify(header)))}.${base64url(enc.encode(JSON.stringify(payload)))}`;
+  const signature    = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    privateKey,
+    enc.encode(signingInput),
+  );
+  return `${signingInput}.${base64url(signature)}`;
 }
 
 /** Individual Genesis Seed License: $101.70 USD (1,017 TARI™) — used when no ASN is provided */
@@ -335,6 +397,30 @@ export async function POST(request: Request) {
       });
     }
 
+    // ── RS256 Invoice Token — signed with the sovereign private key ───────────
+    // Provides a tamper-evident, verifiable proof-of-invoice that the caller
+    // can verify against the /api/v1/jwks endpoint.
+    // Gracefully absent when key material is not yet deployed.
+    let invoiceToken: string | null = null;
+    let invoiceTokenAlgorithm: string | null = null;
+    try {
+      const keyPair = await getSovereignKeys({
+        AVERYOS_PRIVATE_KEY_B64: cfEnv.AVERYOS_PRIVATE_KEY_B64,
+        AVERYOS_PUBLIC_KEY_B64:  cfEnv.AVERYOS_PUBLIC_KEY_B64,
+      });
+      if (keyPair.active && keyPair.privateKey) {
+        invoiceToken          = await signInvoiceToken(keyPair.privateKey, keyPair.kid, {
+          bundleId:       resolvedBundleId,
+          sessionId:      session.id,
+          pricingTier,
+          liabilityCents,
+        });
+        invoiceTokenAlgorithm = "RS256";
+      }
+    } catch {
+      // Key signing is non-fatal — invoice proceeds without the token
+    }
+
     return Response.json(
       {
         url:         session.url,
@@ -350,6 +436,8 @@ export async function POST(request: Request) {
         // Tier-10 enterprise compliance fields
         ...(taxIdStr ? { tax_id: taxIdStr } : {}),
         ...(companyRegistrationStr ? { company_registration: companyRegistrationStr } : {}),
+        // RS256 sovereign invoice token (present when AVERYOS_PRIVATE_KEY_B64 is configured)
+        ...(invoiceToken ? { invoiceToken, invoiceTokenAlgorithm } : {}),
       },
       { status: 201 }
     );
