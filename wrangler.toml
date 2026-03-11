@@ -168,9 +168,12 @@ namespace_id = "1018"
 simple = { limit = 10, period = 60 }
 
 # ── Cloudflare Cron Triggers ──────────────────────────────────────────────────
-# Evidence Packaging Automation: runs every 5 minutes.
-# Triggers GET /api/v1/cron/package-evidence to build R2 forensic bundles
-# for all unpackaged LEGAL_SCAN events (Phase 82).
+# Every-5-minute cron (Phase 82 / 107.1 / 110):
+#   1. GET /api/v1/cron/package-evidence   — R2 forensic bundle packaging
+#   2. GET /api/v1/cron/clock-escalation   — Compliance clock escalation + KaaS auto-settle
+#   3. GET /api/v1/time/sovereign          — Sovereign Time Mesh D1 snapshot (Phase 110.1)
+#      Archives a microsecond-precision consensus timestamp to D1 sovereign_time_log
+#      on every tick, ensuring hourly mesh snapshots are durably persisted.
 #
 # Also calls GET /api/v1/time/sovereign (Phase 108.1) on every 5-minute tick
 # to persist a new Stratum-Zero sovereign time mesh snapshot into the
