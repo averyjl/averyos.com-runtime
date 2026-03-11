@@ -295,12 +295,43 @@ export default function VaultChainExplorerPage() {
     setBatchLoading(false);
   }
 
-  function handleBatchDownload() {
-    const blob = new Blob([JSON.stringify(batchResults, null, 2)], { type: 'application/json' });
+  // Gate 6 — Wire buildEvidencePacket() from globalVault.ts into the download
+  async function handleBatchDownload() {
+    // For each result that has evidence data, generate a full EvidencePacket via the API
+    const enriched = await Promise.all(
+      batchResults.map(async (r) => {
+        const evidenceBase = r.evidence ?? {};
+        try {
+          const res = await fetch("/api/v1/evidence/packet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ray_id:           r.ray_id ?? r.evidence?.ray_id,
+              ip_address:       r.ip_address ?? r.evidence?.ip_address,
+              asn:              r.asn ?? r.evidence?.asn,
+              country_code:     r.evidence?.country ?? "US",
+              path:             r.path ?? r.evidence?.path ?? "/vaultchain-explorer",
+              ingestion_intent: r.evidence?.ingestion_intent ?? "VAULTCHAIN_BATCH",
+              tier:             typeof r.evidence?.threat_level === "number" ? r.evidence.threat_level : 1,
+              valuation_cents:  101_700,
+            }),
+          });
+          if (res.ok) {
+            const packet = await res.json() as Record<string, unknown>;
+            return { ...r, evidence_packet: packet };
+          }
+        } catch {
+          // Non-fatal — return raw result on packet generation failure
+        }
+        return { ...r, evidence_base: evidenceBase };
+      }),
+    );
+
+    const blob = new Blob([JSON.stringify(enriched, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `vaultchain-evidence-batch-${Date.now()}.json`;
+    a.download = `vaultchain-evidence-packet-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }

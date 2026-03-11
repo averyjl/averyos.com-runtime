@@ -13,18 +13,11 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { HIGH_VALUE_ASNS as SENTINEL_HIGH_VALUE_ASNS } from "../forensics/sentinels";
 
-/** Phase 86 enterprise ASNs — $10M asset valuation only, settlement disabled */
-export const HIGH_VALUE_ASNS = new Set([
-  "36459",  // GitHub / Microsoft
-  "8075",   // Microsoft Azure
-  "15169",  // Google LLC
-  "16509",  // Amazon.com
-  "14618",  // Amazon Technologies
-  "32934",  // Meta / Facebook
-  "13238",  // Yandex
-  "4812",   // China Telecom
-]);
+/** Phase 86 enterprise ASNs — $10M asset valuation only, settlement disabled.
+ *  Re-exported from lib/forensics/sentinels.ts for backward compatibility. */
+export const HIGH_VALUE_ASNS: ReadonlySet<string> = SENTINEL_HIGH_VALUE_ASNS;
 
 /** Organization name fragments that trigger elevated-only mode */
 const HIGH_VALUE_ORG_FRAGMENTS = [

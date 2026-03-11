@@ -50,6 +50,7 @@ import {
   createComplianceClock,
   SETTLEMENT_WINDOW_HOURS,
 } from "../../../../../lib/compliance/clockEngine";
+import { syncD1RowToFirebase } from "../../../../../lib/firebaseClient";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -241,6 +242,57 @@ export async function POST(request: Request): Promise<Response> {
         .run();
     } catch {
       // Non-critical — proceed even if audit logging fails
+    }
+
+    // ── Persist compliance clock to D1 (Gate 1 / Gate 2) ─────────────────────
+    try {
+      await cfEnv.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS compliance_clocks (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          clock_id       TEXT    NOT NULL UNIQUE,
+          asn            TEXT    NOT NULL DEFAULT 'UNKNOWN',
+          org_name       TEXT,
+          issued_at      TEXT    NOT NULL,
+          deadline_at    TEXT    NOT NULL,
+          status         TEXT    NOT NULL DEFAULT 'ACTIVE',
+          firebase_synced INTEGER NOT NULL DEFAULT 0,
+          kernel_sha     TEXT    NOT NULL,
+          kernel_version TEXT    NOT NULL,
+          created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+        )`
+      ).run();
+
+      const insertResult = await cfEnv.DB.prepare(
+        `INSERT OR IGNORE INTO compliance_clocks
+           (clock_id, asn, org_name, issued_at, deadline_at, status, kernel_sha, kernel_version)
+         VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?)`
+      )
+        .bind(
+          clock.clock_id,
+          clock.asn,
+          clock.org_name ?? null,
+          clock.issued_at,
+          clock.deadline_at,
+          KERNEL_SHA,
+          KERNEL_VERSION,
+        )
+        .run();
+
+      // ── Gate 2: Mirror to Firebase (non-blocking) ─────────────────────────
+      if (insertResult.success) {
+        syncD1RowToFirebase({
+          id:            clock.clock_id,
+          event_type:    "COMPLIANCE_CLOCK_CREATED",
+          ip_address:    ip,
+          target_path:   "/api/v1/quarantine/handshake",
+          threat_level:  tier >= 9 ? 10 : tier >= 7 ? 7 : 3,
+          tari_liability_usd: debtCents / 100,
+          pulse_hash:    evidencePacket.packet_fingerprint,
+          timestamp_ns:  now,
+        }).catch(() => {});
+      }
+    } catch {
+      // Non-critical — clock persistence must never interrupt the main request
     }
   }
 

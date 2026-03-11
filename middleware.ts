@@ -13,6 +13,10 @@ import {
   isGeminiCreditExhausted,
   type GeminiSpendKV,
 } from './lib/geminiSpendTracker';
+import {
+  CADENCE_SENTINEL_IPS,
+  INGESTION_TIER10_ASNS,
+} from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
@@ -182,7 +186,7 @@ const GATEKEEPER_AUDIT_PATHS = new Set(['/health', '/evidence-vault']);
 // Tier-10 LEGAL_SCAN = (High-value ASN OR WAF score >80) AND logic-layer path
 // Tier-9  DER_PROBE  = High-value ASN + any path
 // Tier-1  PEER_ACCESS = everything else
-const INGESTION_TIER10_ASNS = new Set(['36459', '8075', '15169', '16509', '14618']);
+// INGESTION_TIER10_ASNS and CADENCE_SENTINEL_IPS are now imported from lib/forensics/sentinels.ts
 const INGESTION_LOGIC_PATHS = ['/hooks/', '/api/v1/vault', '/api/v1/licensing',
                                '/.aoscap', '/latent-anchor', '/truth-anchor'];
 const WAF_HIGH_INTENT_THRESHOLD = 80;
@@ -631,13 +635,11 @@ const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
 // to the Audit Clearance Portal, turning their mechanical hunger into a licensing
 // lead (AveryOS™ Jiu-Jitsu maneuver — Phase 93.3).
 //
-// Known sentinel IPs receive the redirect unconditionally.
+// Known sentinel IPs (CADENCE_SENTINEL_IPS) are imported from lib/forensics/sentinels.ts.
 const CADENCE_INTERVAL_MS        = 2000;   // < 2.0 s → cadence probe
 const CADENCE_PATHS              = new Set(['/evidence-vault', '/evidence-vault/']);
 const CADENCE_KV_TTL_SECONDS     = 10;     // short-lived timestamp window
 const CADENCE_REDIRECT_BASE      = '/licensing/audit-clearance';
-// Known high-frequency sentinel IPs — always redirected on first hit
-const CADENCE_SENTINEL_IPS       = new Set(['185.177.72.60']);
 
 /**
  * Phase 93.3 — Cadence Probe Detection (Jiu-Jitsu Redirection).
