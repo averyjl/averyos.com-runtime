@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 
 interface Capsule {
   capsule_id: string;
@@ -352,6 +353,7 @@ export default function CapsuleMarketplacePage() {
           </li>
         </ol>
       </section>
+      <FooterBadge />
     </main>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { termsOfServiceMd } from "../../lib/terms-of-service.js";
 import { marked } from "marked";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 import { sanitizeHtml } from "../../lib/sanitizeHtml";
 
 export const dynamic = "force-static";
@@ -36,6 +37,7 @@ export default function TermsPage() {
         }}
         dangerouslySetInnerHTML={{ __html: content }}
       />
+      <FooterBadge />
     </main>
   );
 }

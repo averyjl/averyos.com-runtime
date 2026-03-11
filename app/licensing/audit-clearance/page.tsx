@@ -165,7 +165,11 @@ function AuditClearancePortal() {
             <strong style={{ color: "#fff" }}>AveryOS Sovereign Integrity License v1.0</strong>.
           </p>
           <div style={mono()}>
-            <div>Ray ID:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: GOLD }}>{rayId}</span></div>
+            <div>Ray ID:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <span style={{ color: rayId === "UNKNOWN" ? "rgba(255,215,0,0.4)" : GOLD }}>
+                {rayId === "UNKNOWN" ? "UNKNOWN — visit this page via the GabrielOS™ Firewall redirect for your session Ray ID" : rayId}
+              </span>
+            </div>
             <div>Captured At:&nbsp;<span style={{ color: GOLD_DIM }}>{capturedAt}</span></div>
             <div>Kernel:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: GOLD_DIM }}>{KERNEL_VERSION}</span></div>
             <div>SHA-512:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -174,6 +178,9 @@ function AuditClearancePortal() {
               </span>
             </div>
           </div>
+          <p style={{ color: "rgba(255,215,0,0.35)", fontSize: "0.72rem", marginTop: "0.6rem", fontFamily: "monospace" }}>
+            ⓘ The SHA-512 above is the AveryOS™ Root0 Sovereign Kernel anchor — not user-specific. It is the same for all sessions and is anchored on-chain.
+          </p>
         </div>
 
         {/* ── Asset Valuation ──────────────────────────────────────────────── */}
@@ -254,9 +261,9 @@ function AuditClearancePortal() {
                 Instant settlement • Agentic-wallet compatible • SHA-512 proof bundle delivered on payment
               </p>
               {checkoutError && (
-                <p style={{ color: RED, fontSize: "0.8rem", textAlign: "center", marginBottom: "0.8rem" }}>
-                  {checkoutError}
-                </p>
+                <div style={{ ...card({ background: RED_DIM, border: `1px solid ${RED}` }), color: "#ffaaaa", marginBottom: "1rem" }}>
+                  ⚠️ {checkoutError}
+                </div>
               )}
               <button
                 onClick={handleClearance}
@@ -275,7 +282,7 @@ function AuditClearancePortal() {
                   transition:    "opacity 0.2s",
                 }}
               >
-                {checkoutLoading ? "Initiating Clearance…" : "⚡ Clear the Audit — $1,017.00"}
+                {checkoutLoading ? "Initiating Clearance…" : `⚡ Clear the Audit — ${settlement.clearanceFeeDisplay}`}
               </button>
             </div>
           ) : (

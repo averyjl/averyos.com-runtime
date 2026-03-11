@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 import { KERNEL_SHA } from "../../lib/sovereignConstants";
 
 export const metadata: Metadata = {
@@ -125,6 +126,7 @@ export default function AboutPage() {
         <p><strong>Legal:</strong> legal@averyworld.com</p>
         <p><strong>Entity:</strong> AveryOS, LLC (Utah, USA)</p>
       </section>
+      <FooterBadge />
     </main>
   );
 }

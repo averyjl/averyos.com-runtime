@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import FooterBadge from "../../components/FooterBadge";
 import {
   STATUTORY_ADMIN_SETTLEMENT_CENTS,
   STATUTORY_ADMIN_SETTLEMENT_LABEL,
@@ -1235,6 +1236,7 @@ export default function TariRevenuePage() {
           </table>
         </div>
       )}
+      <FooterBadge />
     </main>
   );
 }

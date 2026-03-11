@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 
 const HASH_LENGTH = 128;
 const HASH_REGEX = /^[a-fA-F0-9]{128}$/;
@@ -224,6 +225,7 @@ const VerifyPage = () => {
           Validation engine: ACTIVE
         </div>
       </section>
+      <FooterBadge />
     </main>
   );
 };

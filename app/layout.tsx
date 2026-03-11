@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import NavBar from "../components/NavBar";
 import Drawer from "../components/Drawer";
-import FooterBadge from "../components/FooterBadge";
 import SovereignFetchInterceptor from "../components/SovereignFetchInterceptor";
 import WebGLFingerprintSdk from "../components/WebGLFingerprintSdk";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
@@ -88,7 +87,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <NavBar />
         <Drawer />
         {children}
-        <FooterBadge />
       </body>
     </html>
   );

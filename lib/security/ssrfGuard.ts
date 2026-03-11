@@ -66,6 +66,11 @@ export class SsrfBlockedError extends Error {
  * "Big Five" AI platforms: Google, Microsoft, Meta, OpenAI, Anthropic.
  */
 export const POLICY_WATCH_ALLOWLIST: Record<string, string> = {
+  // AveryOS™ — self-scan for alignment verification
+  "averyos.com":                 "averyos.com",
+  "api.averyos.com":             "api.averyos.com",
+  "www.averyos.com":             "averyos.com",
+
   // Google / Gemini
   "policies.google.com":         "policies.google.com",
 

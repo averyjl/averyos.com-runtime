@@ -187,8 +187,8 @@ export default function AgenticSettlementPortal() {
                 {[
                   ["ASN",           detectedAsn],
                   ["IP Address",    detectedIp],
-                  ["Entity",        asnInfo?.name ?? "Unknown / Residential"],
-                  ["Description",   asnInfo?.description ?? "Unclassified agent or individual"],
+                  ["Entity",        asnInfo?.name ?? "Residential / Individual"],
+                  ["Description",   asnInfo?.description ?? "Individual or residential user — standard Tier-1 license applies"],
                   ["KaaS Tier",     `Tier-${tier}`],
                   ["Settlement Fee",feeDisplay],
                   ["Machine ID",    machineId ? machineId.slice(0, 24) + "…" : "Generating…"],

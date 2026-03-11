@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
+import FooterBadge from "../../components/FooterBadge";
 import { KERNEL_SHA } from "../../lib/sovereignConstants";
 
 interface VaultChainTransaction {
@@ -425,6 +426,7 @@ export default function LedgerPage() {
           </div>
         </div>
       </section>
+      <FooterBadge />
     </main>
   );
 }

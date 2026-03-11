@@ -156,11 +156,34 @@ export async function POST(request: Request) {
       rayId, ray_id,
       asn, tier, org_name,
       tariLiability, tax_id, company_registration,
+      organization, email, machine_id,
     } = body as Record<string, unknown>;
 
-    if (!resolvedTargetIp) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required (or provide organization + tier for enterprise registration).');
-    }
+    // ── Resolve composite fields ─────────────────────────────────────────────
+    // Accept both camelCase (bundleId/rayId) and snake_case (bundle_id/ray_id).
+    const resolvedBundleId =
+      (typeof bundleId === "string" && bundleId.trim()) ? bundleId.trim() :
+      (typeof bundle_id === "string" && bundle_id.trim()) ? bundle_id.trim() :
+      `checkout-${Date.now()}`;
+
+    const rayIdStr =
+      (typeof rayId === "string" && rayId.trim()) ? rayId.trim() :
+      (typeof ray_id === "string" && ray_id.trim()) ? ray_id.trim() :
+      "";
+
+    // Enterprise self-registration path: has organization/email but no targetIp/asn.
+    const isEnterprisePath =
+      typeof organization === "string" && organization.trim().length > 0 &&
+      !(typeof targetIp === "string" && targetIp.trim());
+
+    // Resolve the target IP from the body field, the Cloudflare edge headers
+    // (populated by the GabrielOS™ Firewall on every request), or the machine
+    // identifier sent by the agentic portal — in that order.
+    const resolvedTargetIp: string =
+      (typeof targetIp === "string" && targetIp.trim()) ? targetIp.trim() :
+      (request as Request).headers.get("cf-connecting-ip") ??
+      (request as Request).headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      (typeof machine_id === "string" && machine_id.trim() ? machine_id.trim() : "AGENTIC");
 
     // Validate enterprise-path required fields
     if (isEnterprisePath) {
@@ -198,7 +221,7 @@ export async function POST(request: Request) {
     }
 
     const { liabilityCents, productName, productDescription, pricingTier } =
-      determinePricing(tariLiability, asnStr, rayIdStr, resolvedBundleId);
+      determinePricing(resolvedLiability, asnStr, rayIdStr, resolvedBundleId);
 
     const siteUrl =
       cfEnv.NEXT_PUBLIC_SITE_URL ??
@@ -299,7 +322,6 @@ export async function POST(request: Request) {
       {
         url:         session.url,
         checkoutUrl: session.url,
-        url: session.url,           // alias for enterprise page compatibility
         sessionId: session.id,
         bundleId: resolvedBundleId,
         targetIp: resolvedTargetIp,
