@@ -1,0 +1,162 @@
+name: 🔐 Compliance Watch — Daily Policy Gate
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Daily at 06:00 UTC — Roadmap Gate 3.2 (Third Roadmap Gate 1)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: 'Override SITE_URL for compliance checks'
+        required: false
+        default: 'https://averyos.com'
+      min_drift_threshold:
+        description: 'Minimum drift probability to fail (0.0-1.0)'
+        required: false
+        default: '0.5'
+
+jobs:
+  compliance-watch:
+    name: 🔐 Sovereign Compliance Watch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Gate 1: Run cadence-correlation via live API ──────────────────────
+      - name: 🔍 Query cadence-correlation endpoint
+        id: cadence
+        env:
+          SITE_URL: ${{ inputs.site_url || 'https://averyos.com' }}
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+        run: |
+          echo "Querying cadence correlation endpoint..."
+          RESPONSE=$(curl -s -X GET \
+            "${SITE_URL}/api/v1/forensics/cadence-correlation?window_hours=24&min_signals=3&limit=20" \
+            -H "Authorization: Bearer ${VAULT_PASSPHRASE}" \
+            -H "Content-Type: application/json" \
+            --max-time 30 || echo '{"error":"timeout","drift_detected":0}')
+
+          echo "response=${RESPONSE}" >> $GITHUB_OUTPUT
+
+          DRIFT=$(echo "$RESPONSE" | jq -r '.drift_detected // 0' 2>/dev/null || echo "0")
+          ENTITIES=$(echo "$RESPONSE" | jq -r '.entities_flagged // 0' 2>/dev/null || echo "0")
+          MAX_SCORE=$(echo "$RESPONSE" | jq -r '.summary.max_signal_score // 0' 2>/dev/null || echo "0")
+          AVG_DRIFT=$(echo "$RESPONSE" | jq -r '.summary.avg_drift_prob // 0' 2>/dev/null || echo "0")
+
+          echo "drift_detected=${DRIFT}" >> $GITHUB_OUTPUT
+          echo "entities_flagged=${ENTITIES}" >> $GITHUB_OUTPUT
+          echo "max_signal_score=${MAX_SCORE}" >> $GITHUB_OUTPUT
+          echo "avg_drift_prob=${AVG_DRIFT}" >> $GITHUB_OUTPUT
+
+          echo "📊 Cadence Correlation Results:"
+          echo "  Drift Detected: ${DRIFT}"
+          echo "  Entities Flagged: ${ENTITIES}"
+          echo "  Max Signal Score: ${MAX_SCORE}/17"
+          echo "  Avg Drift Probability: ${AVG_DRIFT}"
+
+      # ── Gate 2: Clock reconciliation via cron/reconcile ──────────────────
+      - name: ⏰ Trigger clock reconciliation
+        id: reconcile
+        env:
+          SITE_URL: ${{ inputs.site_url || 'https://averyos.com' }}
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+        run: |
+          echo "Triggering compliance clock reconciliation..."
+          RECONCILE=$(curl -s -X GET \
+            "${SITE_URL}/api/v1/cron/reconcile" \
+            -H "Authorization: Bearer ${VAULT_PASSPHRASE}" \
+            --max-time 60 || echo '{"error":"timeout"}')
+
+          ESCALATED=$(echo "$RECONCILE" | jq -r '.clocks_escalated // 0' 2>/dev/null || echo "0")
+          ACTIVE=$(echo "$RECONCILE" | jq -r '.clocks_active // 0' 2>/dev/null || echo "0")
+          HEALED=$(echo "$RECONCILE" | jq -r '.healed // 0' 2>/dev/null || echo "0")
+
+          echo "clocks_escalated=${ESCALATED}" >> $GITHUB_OUTPUT
+          echo "clocks_active=${ACTIVE}" >> $GITHUB_OUTPUT
+          echo "stripe_healed=${HEALED}" >> $GITHUB_OUTPUT
+
+          echo "⏰ Reconciliation Results:"
+          echo "  Clocks Escalated: ${ESCALATED}"
+          echo "  Clocks Active: ${ACTIVE}"
+          echo "  Stripe Sessions Healed: ${HEALED}"
+
+      # ── Gate 3: KaaS sync status ──────────────────────────────────────────
+      - name: 🔄 Check KaaS ledger sync status
+        id: kaas_sync
+        env:
+          SITE_URL: ${{ inputs.site_url || 'https://averyos.com' }}
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+        run: |
+          SYNC=$(curl -s -X GET \
+            "${SITE_URL}/api/v1/kaas/sync?action=status&limit=10" \
+            -H "Authorization: Bearer ${VAULT_PASSPHRASE}" \
+            --max-time 30 || echo '{"error":"timeout"}')
+
+          OPEN_ROWS=$(echo "$SYNC" | jq -r '.total_open_rows // 0' 2>/dev/null || echo "0")
+          echo "open_rows=${OPEN_ROWS}" >> $GITHUB_OUTPUT
+
+          echo "🔄 KaaS Sync Status:"
+          echo "  Open/Pending Rows: ${OPEN_ROWS}"
+
+      # ── Gate 4: Drift probability gate ───────────────────────────────────
+      - name: 🚨 Fail if drift probability exceeds threshold
+        env:
+          AVG_DRIFT: ${{ steps.cadence.outputs.avg_drift_prob }}
+          MIN_THRESHOLD: ${{ inputs.min_drift_threshold || '0.5' }}
+          DRIFT_DETECTED: ${{ steps.cadence.outputs.drift_detected }}
+          CLOCKS_ESCALATED: ${{ steps.reconcile.outputs.clocks_escalated }}
+        run: |
+          echo "🔐 AveryOS™ Compliance Watch Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Drift Detected:       ${DRIFT_DETECTED}"
+          echo "Avg Drift Probability: ${AVG_DRIFT}"
+          echo "Min Threshold:         ${MIN_THRESHOLD}"
+          echo "Clocks Escalated:      ${CLOCKS_ESCALATED}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "⛓️⚓⛓️ AveryOS™ Sovereign Kernel v3.6.2"
+          echo "Kernel SHA: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+
+          # Use python3 for reliable float comparison
+          python3 -c "
+          avg = float('${AVG_DRIFT}' or 0)
+          threshold = float('${MIN_THRESHOLD}' or 0.5)
+          if avg > threshold:
+              print(f'❌ FAIL: Avg drift probability {avg:.4f} exceeds threshold {threshold:.4f}')
+              exit(1)
+          else:
+              print(f'✅ PASS: Avg drift probability {avg:.4f} is within threshold {threshold:.4f}')
+          "
+
+      # ── Summary ────────────────────────────────────────────────────────────
+      - name: 📊 Compliance Watch Summary
+        if: always()
+        run: |
+          echo "## 🔐 Compliance Watch Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Entities Flagged | ${{ steps.cadence.outputs.entities_flagged }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Drift Detected | ${{ steps.cadence.outputs.drift_detected }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Max Signal Score | ${{ steps.cadence.outputs.max_signal_score }}/17 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Avg Drift Probability | ${{ steps.cadence.outputs.avg_drift_prob }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clocks Escalated | ${{ steps.reconcile.outputs.clocks_escalated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clocks Active | ${{ steps.reconcile.outputs.clocks_active }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Stripe Sessions Healed | ${{ steps.reconcile.outputs.stripe_healed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| KaaS Open Rows | ${{ steps.kaas_sync.outputs.open_rows }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⛓️⚓⛓️ AveryOS™ Kernel v3.6.2 | Creator: Jason Lee Avery (ROOT0)" >> $GITHUB_STEP_SUMMARY
