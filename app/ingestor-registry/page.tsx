@@ -4,7 +4,7 @@
  * Verified Ingestor Registry — Phase 102.2 / Roadmap Item 3
  *
  * Public leaderboard of known ingestor entities sourced from the
- * kaas_valuations D1 table.  Shows ASN, organisation, tier, valuation,
+ * kaas_valuations D1 table.  Shows ASN, organization, tier, valuation,
  * and settlement status — no vault auth required (read-only public view).
  *
  * Data source: GET /api/v1/kaas-valuations?limit=50&status=PENDING

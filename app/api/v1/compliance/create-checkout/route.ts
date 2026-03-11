@@ -140,20 +140,44 @@ export async function POST(request: Request) {
       return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'Request body is invalid or missing required fields.');
     }
 
-    const { bundleId, targetIp, rayId, asn, tariLiability, tax_id, company_registration } = body as Record<string, unknown>;
+    const {
+      bundleId, bundle_id,
+      targetIp,
+      rayId, ray_id,
+      asn, tier, org_name,
+      tariLiability, tax_id, company_registration,
+    } = body as Record<string, unknown>;
 
-    if (typeof bundleId !== "string" || !bundleId.trim()) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'bundleId is required.');
-    }
+    // Accept both camelCase and snake_case variants for compatibility
+    const bundleIdStr: string = (() => {
+      const raw = bundleId ?? bundle_id;
+      if (typeof raw === "string" && raw.trim()) return raw.trim();
+      // Auto-generate a bundle ID from the tier/timestamp if not provided
+      const tierStr = typeof tier === "string" ? tier.replace(/[^A-Z0-9_]/gi, "") : "ENTERPRISE";
+      return `BUNDLE_${tierStr}_${Date.now()}`;
+    })();
 
-    if (typeof targetIp !== "string" || !targetIp.trim()) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required.');
-    }
+    const targetIpStr = typeof targetIp === "string" ? targetIp.trim() : "FORM_SUBMISSION";
+    const rayIdStr    = typeof (rayId ?? ray_id) === "string" ? String(rayId ?? ray_id).trim() : "";
 
     const asnStr = typeof asn === "string" ? asn.trim() : "";
-    const rayIdStr = typeof rayId === "string" ? rayId.trim() : "";
     const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
     const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
+
+    // Map UI tier labels to tariLiability when no asn is present
+    const resolvedLiability: unknown = (() => {
+      if (typeof tariLiability === "number" && tariLiability > 0) return tariLiability;
+      if (!asnStr && typeof tier === "string") {
+        const TIER_CENTS: Record<string, number> = {
+          ENTERPRISE_PARTNERSHIP: 1_000_000_000, // $10M
+          ASN_DEPOSIT:             100_000_000,  // $1M
+          LEGAL_MONITORING:          101_700,    // ~$1,017
+          INDIVIDUAL:                101_700,    // $1,017
+        };
+        return TIER_CENTS[tier] ?? 101_700;
+      }
+      return tariLiability;
+    })();
 
     // Tier-9 and Tier-10 entities (ASN tier >= 9) are required to provide tax_id.
     const asnTier = asnStr ? getAsnTier(asnStr) : 0;
@@ -162,7 +186,7 @@ export async function POST(request: Request) {
     }
 
     const { liabilityCents, productName, productDescription, pricingTier } =
-      determinePricing(tariLiability, asnStr, rayIdStr, bundleId);
+      determinePricing(resolvedLiability, asnStr, rayIdStr, bundleIdStr);
 
     const siteUrl =
       cfEnv.NEXT_PUBLIC_SITE_URL ??
@@ -192,8 +216,8 @@ export async function POST(request: Request) {
               name: productName,
               description: productDescription,
               metadata: {
-                bundle_id: bundleId.slice(0, 500),
-                target_ip: targetIp.slice(0, 200),
+                bundle_id: bundleIdStr.slice(0, 500),
+                target_ip: targetIpStr.slice(0, 200),
                 ...(asnStr ? { asn: asnStr } : {}),
                 ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
               },
@@ -215,15 +239,15 @@ export async function POST(request: Request) {
         },
       },
       metadata: {
-        bundle_id: bundleId.slice(0, 500),
-        target_ip: targetIp.slice(0, 200),
+        bundle_id: bundleIdStr.slice(0, 500),
+        target_ip: targetIpStr.slice(0, 200),
         kernel_sha: KERNEL_SHA.slice(0, 128),
         kernel_version: KERNEL_VERSION,
         tari_liability_cents: String(liabilityCents),
         source: "averyos_compliance_portal",
         milestone: "LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED",
         // Federal EO Victim Restoration Case ID — maps RayID to restitution claim
-        victim_restoration_case_id: (rayIdStr || bundleId).slice(0, 200),
+        victim_restoration_case_id: (rayIdStr || bundleIdStr).slice(0, 200),
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
         // Tier-10 enterprise compliance fields (Gate 108 — Roadmap #4)
@@ -234,15 +258,15 @@ export async function POST(request: Request) {
         // statement_descriptor maps the RayID Proof directly into the bank record.
         statement_descriptor: statementDescriptor,
         metadata: {
-          bundle_id: bundleId.slice(0, 500),
-          target_ip: targetIp.slice(0, 200),
+          bundle_id: bundleIdStr.slice(0, 500),
+          target_ip: targetIpStr.slice(0, 200),
           kernel_sha: KERNEL_SHA.slice(0, 128),
           kernel_version: KERNEL_VERSION,
           ...(asnStr ? { asn: asnStr } : {}),
           ...(rayIdStr ? { ray_id: rayIdStr.slice(0, 200) } : {}),
         },
         description:
-          `AveryOS™ TARI™ Liability Resolution — Bundle: ${bundleId.slice(0, 200)}`,
+          `AveryOS™ TARI™ Liability Resolution — Bundle: ${bundleIdStr.slice(0, 200)}`,
       },
     });
 
@@ -251,9 +275,9 @@ export async function POST(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       autoTrackAccomplishment(cfEnv.DB as any, {
         title: `Compliance Checkout Created — ${pricingTier}`,
-        description: `Stripe checkout session ${session.id.slice(0, 16)} created. Liability: $${(liabilityCents / 100).toFixed(2)} USD. Bundle: ${bundleId.slice(0, 50)}.`,
+        description: `Stripe checkout session ${session.id.slice(0, 16)} created. Liability: $${(liabilityCents / 100).toFixed(2)} USD. Bundle: ${bundleIdStr.slice(0, 50)}.`,
         category: "LEGAL",
-        bundle_id: bundleId,
+        bundle_id: bundleIdStr,
         ray_id: rayIdStr || undefined,
         asn: asnStr || undefined,
       });
@@ -261,10 +285,11 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
+        url:         session.url,
         checkoutUrl: session.url,
         sessionId: session.id,
-        bundleId,
-        targetIp,
+        bundleId:  bundleIdStr,
+        targetIp:  targetIpStr,
         ...(asnStr ? { asn: asnStr } : {}),
         ...(rayIdStr ? { rayId: rayIdStr } : {}),
         tariLiabilityCents: liabilityCents,

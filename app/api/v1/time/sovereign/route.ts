@@ -15,9 +15,9 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { getSovereignTime }     from "../../../../lib/time/mesh";
-import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
+import { getSovereignTime }     from "../../../../../lib/time/mesh";
+import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;

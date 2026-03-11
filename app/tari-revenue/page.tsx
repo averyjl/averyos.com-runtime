@@ -1207,7 +1207,7 @@ export default function TariRevenuePage() {
             ⚖️ Compliance Usage — Settlement Activity
           </div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", marginBottom: "1rem" }}>
-            Total Revenue: {formatUsd(usage.totalUsd)} · {usage.rows.length} organisations tracked
+            Total Revenue: {formatUsd(usage.totalUsd)} · {usage.rows.length} organizations tracked
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
             <thead>

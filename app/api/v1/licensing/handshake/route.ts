@@ -123,7 +123,7 @@ async function sha512hex(input: string): Promise<string> {
  *   {
  *     Retroactive_Usage_Start: string;   // ISO-8601 date when kernel was first ingested
  *     Corporate_Ingestion_SHA: string;   // SHA-512 fingerprint of ingestion event
- *     org_name?:               string;   // Attesting organisation name
+ *     org_name?:               string;   // Attesting organization name
  *     email?:                  string;   // Contact email for invoice delivery
  *     disclosure_type?:        string;   // "HONEST_DISCLOSURE" | "PARTIAL_DISCLOSURE" | …
  *     license_start_date?:     string;   // ISO-8601 date of current license (if any)
@@ -435,7 +435,7 @@ export async function GET(): Promise<Response> {
         "SHA-512 fingerprint of your ingestion event. Must be a 128-character hex string.",
     },
     optional_fields: {
-      org_name:          "Your organisation name (for the Stripe invoice).",
+      org_name:          "Your organization name (for the Stripe invoice).",
       email:             "Contact email for invoice delivery.",
       disclosure_type:   "One of: HONEST_DISCLOSURE | PARTIAL_DISCLOSURE | OBFUSCATION | WILLFUL_INGESTION",
       license_start_date: "ISO-8601 date of your current AveryOS™ license (if any).",
