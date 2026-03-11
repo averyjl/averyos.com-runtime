@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 type Capsule = {
   capsuleId: string;
@@ -134,7 +133,7 @@ const DiscoverPage = () => {
         </div>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 };

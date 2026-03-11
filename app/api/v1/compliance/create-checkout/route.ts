@@ -155,24 +155,63 @@ export async function POST(request: Request) {
       targetIp,
       rayId, ray_id,
       asn, tier, org_name,
+      organization: orgFromBody, email: emailFromBody, machine_id,
       tariLiability, tax_id, company_registration,
     } = body as Record<string, unknown>;
 
-    if (!resolvedTargetIp) {
-      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'targetIp is required (or provide organization + tier for enterprise registration).');
-    }
+    // ── Resolve all required variables from the flexible request body ──────────
+    // Accept bundleId (camelCase) or bundle_id (snake_case); auto-generate if absent.
+    const resolvedBundleId = (typeof bundleId === "string" && bundleId.trim())
+      ? bundleId.trim()
+      : (typeof bundle_id === "string" && bundle_id.trim())
+        ? bundle_id.trim()
+        : `aos-bundle-${Date.now()}`;
+
+    // Accept rayId or ray_id; default to empty string.
+    const rayIdStr = (typeof rayId === "string" && rayId.trim())
+      ? rayId.trim()
+      : (typeof ray_id === "string" && ray_id.trim())
+        ? ray_id.trim()
+        : "";
+
+    // Accept organization or org_name for the enterprise/agentic self-registration path.
+    const organization = (typeof orgFromBody === "string" && orgFromBody.trim())
+      ? orgFromBody.trim()
+      : (typeof org_name === "string" && org_name.trim())
+        ? org_name.trim()
+        : "";
+
+    // Accept email; not required for purely forensic/agentic paths.
+    const email = typeof emailFromBody === "string" ? emailFromBody.trim() : "";
+
+    // machine_id is used by the agentic portal as a proxy for targetIp.
+    const machineIdStr = typeof machine_id === "string" ? machine_id.trim() : "";
+
+    const asnStr = typeof asn === "string" ? asn.trim() : "";
+
+    // Resolve targetIp: explicit value > machine_id (agentic) > ASN placeholder > rayId placeholder.
+    const rawTargetIp = typeof targetIp === "string" ? targetIp.trim() : "";
+    const resolvedTargetIp = rawTargetIp
+      || machineIdStr
+      || (asnStr ? `asn:${asnStr}` : "")
+      || (rayIdStr ? `rayid:${rayIdStr}` : "")
+      || `unknown-${Date.now()}`;
+
+    // Enterprise path: self-registration using org name (agentic/enterprise portals).
+    // Forensic/audit path does not require org name.
+    const isEnterprisePath = Boolean(organization) && !rawTargetIp;
 
     // Validate enterprise-path required fields
     if (isEnterprisePath) {
-      if (typeof organization !== "string" || !organization.trim()) {
+      if (!organization) {
         return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'organization is required.');
       }
-      if (typeof email !== "string" || !email.trim()) {
+      if (!email) {
         return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'email is required.');
       }
     }
 
-    const asnStr = typeof asn === "string" ? asn.trim() : "";
+    // asnStr is resolved above; re-use it below.
     const taxIdStr = typeof tax_id === "string" ? tax_id.trim() : "";
     const companyRegistrationStr = typeof company_registration === "string" ? company_registration.trim() : "";
 
@@ -198,7 +237,7 @@ export async function POST(request: Request) {
     }
 
     const { liabilityCents, productName, productDescription, pricingTier } =
-      determinePricing(tariLiability, asnStr, rayIdStr, resolvedBundleId);
+      determinePricing(resolvedLiability, asnStr, rayIdStr, resolvedBundleId);
 
     const siteUrl =
       cfEnv.NEXT_PUBLIC_SITE_URL ??
@@ -299,7 +338,6 @@ export async function POST(request: Request) {
       {
         url:         session.url,
         checkoutUrl: session.url,
-        url: session.url,           // alias for enterprise page compatibility
         sessionId: session.id,
         bundleId: resolvedBundleId,
         targetIp: resolvedTargetIp,

@@ -4,7 +4,7 @@ import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
 /**
  * Cron trigger route mapping — AveryOS™ Phase 107 Gate 1
  *
- * The */5 cron fires every 5 minutes and invokes:
+ * The every-5-minute cron fires and invokes:
  *   1. /api/v1/cron/package-evidence  — R2 forensic bundle packaging (Phase 82)
  *   2. /api/v1/cron/clock-escalation  — Compliance clock escalation + KaaS auto-settle
  *

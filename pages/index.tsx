@@ -6,7 +6,6 @@ import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
 import { DISCLOSURE_MIRROR_PATH, KERNEL_SHA } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
-import CapsuleEchoFooter from "../components/CapsuleEchoFooter";
 
 const THE_PROOF_PATH = DISCLOSURE_MIRROR_PATH;
 
@@ -349,7 +348,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
           </p>
         </footer>
 
-        <CapsuleEchoFooter />
+
       </main>
     </>
   );

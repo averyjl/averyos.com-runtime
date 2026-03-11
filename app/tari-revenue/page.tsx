@@ -185,7 +185,7 @@ export default function TariRevenuePage() {
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   // Roadmap #1 — Genesis Dollar Celebration Banner
   // Fetches /api/v1/compliance/clocks?status=SETTLED&limit=1 to detect first settlement
-  const [firstSettledClock, setFirstSettledClock] = useState<{ clock_id: string; settled_at: string } | null>(null);
+  const [firstSettledClock, setFirstSettledClock] = useState<{ clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null>(null);
 
   // Gate 108.5 — Check VAULTAUTH_TOKEN on mount to unlock statutory metrics
   useEffect(() => {
@@ -207,15 +207,12 @@ export default function TariRevenuePage() {
           }
           return r.ok ? r.json() : null;
         })
-        .then((data: { clocks?: Array<{ clock_id: string; settled_at: string }> } | null) => {
+        .then((data: { clocks?: Array<{ clock_id: string; asn: string | null; org_name: string | null; settled_at: string }> } | null) => {
           if (data?.clocks?.[0]) setFirstSettledClock(data.clocks[0]);
         })
         .catch(() => { /* Non-blocking — celebration banner is best-effort */ });
     }
   }, []);
-
-  // firstSettledClock — first settled compliance clock, populated from D1 clock data
-  const firstSettledClock: { clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null = null;
 
   useEffect(() => {
     let cancelled = false;

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DISCLOSURE_MIRROR_PATH } from "../../lib/sovereignConstants";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 export const metadata: Metadata = {
   title: "LawCodex — AveryOS™ Sovereign Legal Code • AveryOS™",
@@ -219,7 +218,7 @@ export default function LawCodexPage() {
         </Link>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

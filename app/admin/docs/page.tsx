@@ -16,7 +16,6 @@
 
 import { useEffect, useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION } from "../../../lib/sovereignConstants";
@@ -175,7 +174,7 @@ export default function SovereignDocsPage() {
             </button>
           </form>
         </div>
-        <FooterBadge />
+
       </main>
     );
   }
@@ -316,7 +315,7 @@ export default function SovereignDocsPage() {
         </div>
       </div>
 
-      <FooterBadge />
+
     </main>
   );
 }

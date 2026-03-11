@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG           = "#03000a";
@@ -978,7 +977,7 @@ export default function VaultChainExplorerPage() {
         </p>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

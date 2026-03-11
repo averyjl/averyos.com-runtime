@@ -17,7 +17,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 import { loadCapsuleRegistry } from "../../lib/capsuleRegistry";
 
@@ -495,7 +494,7 @@ export default function RegistryPage() {
         </div>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
 
 const LAWS = [
   {
@@ -185,7 +184,7 @@ export default function AIAlignmentPage() {
         </div>
       </section>
 
-      <FooterBadge />
+
     </main>
   );
 }
