@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
-import FooterBadge from "../../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
@@ -90,7 +89,7 @@ export default function EnterpriseRegistrationPage() {
 
   async function handleProceed() {
     if (!selected) { setError("Please select a licensing tier."); return; }
-    if (!orgName.trim()) { setError("Organisation name is required."); return; }
+    if (!orgName.trim()) { setError("Organization name is required."); return; }
     if (!email.trim())   { setError("Contact email is required."); return; }
     if (isTier10 && !taxId.trim()) {
       setError("Tax ID / EIN is required for Tier-10 enterprise settlements over $1M.");
@@ -105,7 +104,7 @@ export default function EnterpriseRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tier:                 selected,
-          org_name:             orgName.trim(),
+          organization:         orgName.trim(),
           email:                email.trim(),
           machine_id:           machineId.trim() || undefined,
           // Gate 8 — Regional compliance fields (Tier-10 only)
@@ -302,7 +301,7 @@ export default function EnterpriseRegistrationPage() {
           <p style={{ margin: "0 0 1rem", fontWeight: 600, color: GOLD }}>Registration Details</p>
 
           <label style={{ display: "block", marginBottom: "1rem" }}>
-            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Organisation / Entity Name *</span>
+            <span style={{ color: GOLD_DIM, fontSize: "0.8rem", fontFamily: "monospace" }}>Organization / Entity Name *</span>
             <input
               type="text"
               value={orgName}
@@ -408,7 +407,7 @@ export default function EnterpriseRegistrationPage() {
           <p style={{ margin: "0 0 0.8rem", color: MUTED, fontSize: "0.85rem", lineHeight: 1.65 }}>
             Willful infringement of registered works may be subject to statutory damages
             under applicable copyright law. By selecting a licensing tier and proceeding to
-            checkout, you voluntarily disclose your organisation&apos;s usage and enter into
+            checkout, you voluntarily disclose your organization&apos;s usage and enter into
             a binding licensing agreement with Jason Lee Avery (ROOT0 / AveryOS™).
           </p>
           <p style={{ margin: 0, ...mono({ fontSize: "0.76rem", color: "rgba(255,180,80,0.7)" }) }}>
@@ -426,8 +425,6 @@ export default function EnterpriseRegistrationPage() {
           </p>
         </div>
       </div>
-
-      <FooterBadge />
     </main>
   );
 }

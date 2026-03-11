@@ -1,38 +1,11 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
 import { KERNEL_SHA, DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 
 const CAPSULE_SHA =
   "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
 
 const FooterBadge = () => {
-  const [showTariModal, setShowTariModal] = useState(false);
-  const [tariRevenue, setTariRevenue] = useState<string | null>(null);
-  const [tariLoading, setTariLoading] = useState(false);
-  const [tariError, setTariError] = useState(false);
-  const [tariMeta, setTariMeta] = useState<{ requestCount?: number; orgCount?: number } | null>(null);
-
-  const fetchTariRevenue = () => {
-    setTariLoading(true);
-    setTariError(false);
-    fetch("/api/tari-revenue")
-      .then((r) => r.json())
-      .then((data) => {
-        setTariRevenue(
-          Number(data.totalUsd).toLocaleString("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })
-        );
-        setTariMeta({ requestCount: data.requestCount, orgCount: data.orgCount });
-        setTariLoading(false);
-      })
-      .catch(() => { setTariError(true); setTariLoading(false); });
-  };
-
   return (
     <footer className="footer-badge">
       <div style={{ 
@@ -91,20 +64,6 @@ const FooterBadge = () => {
         </div>
         <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', textAlign: 'center' }}>
           <span>© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved. Licensed under AveryOS™ Sovereign Integrity License v1.0</span>
-          <button
-            onClick={() => { setShowTariModal(true); fetchTariRevenue(); }}
-            style={{
-              background: 'none',
-              border: '1px solid rgba(120, 148, 255, 0.4)',
-              borderRadius: '4px',
-              color: 'rgba(120, 148, 255, 0.85)',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              padding: '0.2rem 0.5rem',
-            }}
-          >
-            /TARI-REVENUE
-          </button>
         </div>
         {/* Privacy, Terms, and IP Policy — subtle links under copyright */}
         <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.25rem' }}>
@@ -113,71 +72,6 @@ const FooterBadge = () => {
           <Link href="/ip-policy" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>IP Policy</Link>
         </div>
       </div>
-
-      {showTariModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="TARI Revenue"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.82)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-          onClick={() => setShowTariModal(false)}
-        >
-          <div
-            style={{
-              background: 'rgba(0, 6, 14, 0.98)',
-              border: '1px solid rgba(120, 148, 255, 0.45)',
-              borderRadius: '12px',
-              padding: '2rem',
-              maxWidth: '480px',
-              width: '90%',
-              color: 'rgba(238, 244, 255, 0.9)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '1.1rem' }}>
-              ⚡ TARI Revenue — 24h Liquid Liability
-            </h2>
-            <div style={{ fontFamily: 'monospace', fontSize: '2rem', fontWeight: 700, color: '#4ade80', margin: '1rem 0' }}>
-              {tariLoading ? '⏳ Loading...' : tariError ? '⚠️ Unavailable' : tariRevenue ?? '—'}
-            </div>
-            <p style={{ fontSize: '0.85rem', color: tariError ? 'rgba(248,113,113,0.8)' : 'rgba(238,244,255,0.7)', lineHeight: 1.6 }}>
-              {tariError
-                ? 'Could not load live TARI data. Check AI Gateway logs or try again.'
-                : 'Current 24-hour Liquid Liability calculated from AveryOS™ AI Gateway logs. All revenue is subject to AveryOS™ Sovereign Integrity License enforcement.'
-              }
-            </p>
-            {tariMeta && (
-              <p style={{ fontSize: '0.8rem', color: 'rgba(120,148,255,0.5)', marginTop: '0.5rem' }}>
-                {tariMeta.requestCount} request{tariMeta.requestCount !== 1 ? 's' : ''} •{' '}
-                {tariMeta.orgCount} corporate org{tariMeta.orgCount !== 1 ? 's' : ''} • 24h window
-              </p>
-            )}
-            <button
-              onClick={() => setShowTariModal(false)}
-              style={{
-                marginTop: '1rem',
-                background: 'rgba(120, 148, 255, 0.12)',
-                border: '1px solid rgba(120, 148, 255, 0.45)',
-                borderRadius: '6px',
-                color: '#ffffff',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                padding: '0.5rem 1.25rem',
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </footer>
   );
 };

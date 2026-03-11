@@ -206,8 +206,8 @@ export default function HandshakePage() {
             </select>
           </Field>
 
-          {/* Organisation */}
-          <Field label="Organisation Name">
+          {/* organization */}
+          <Field label="Organization Name">
             <input type="text" placeholder="Your company / org name" value={orgName} onChange={e => setOrgName(e.target.value)} style={inputStyle} />
           </Field>
 

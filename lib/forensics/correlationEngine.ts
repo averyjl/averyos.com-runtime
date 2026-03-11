@@ -58,7 +58,7 @@ export interface CorrelationSignals {
   waf_score:      number;
   /** Autonomous System Number (optional) */
   asn?:           string;
-  /** Organisation name (optional) */
+  /** organization name (optional) */
   org_name?:      string;
   /** User-Agent string (optional) */
   user_agent?:    string;

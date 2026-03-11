@@ -87,7 +87,7 @@ async function sha512hex(input: string): Promise<string> {
  *   {
  *     asn?:           string;   // Target ASN (e.g. "36459")
  *     ip_address?:    string;   // Target IP address
- *     org_name?:      string;   // Organisation name for the notice
+ *     org_name?:      string;   // organization name for the notice
  *     country_code?:  string;   // ISO-3166 two-letter country code
  *     ray_id?:        string;   // Cloudflare RayID for forensic linking
  *     debt_cents?:    number;   // Override debt amount in cents

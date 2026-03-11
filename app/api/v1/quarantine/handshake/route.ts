@@ -83,7 +83,7 @@ interface QuarantineHandshakeBody {
   corpus_hash?: unknown;
   /** ASN of the caller (optional; extracted from cf-asn if absent). */
   asn?: unknown;
-  /** Organisation name (optional). */
+  /** organization name (optional). */
   org_name?: unknown;
 }
 
