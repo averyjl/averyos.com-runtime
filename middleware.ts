@@ -73,6 +73,18 @@ import { applyWafGate } from './lib/security/wafLogic';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
+// ── Cloudflare cf-object helpers ──────────────────────────────────────────────
+
+/**
+ * Extract the Cloudflare `cf` object from a request, typed as a plain record.
+ * Available only in Cloudflare Worker environments; returns an empty object in
+ * local Next.js dev mode.  Cast through `unknown` to avoid TypeScript complaints
+ * on non-Worker builds.
+ */
+function getCfObject(request: NextRequest): Record<string, unknown> {
+  return (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+}
+
 // ── Sovereign Alignment Header — applied to all 301 redirect responses ────────
 // Allows "Watchers" to observe the alignment directive on every canonical redirect.
 const ALIGNMENT_HEADER_VALUE  = "TRUTH_ANCHORED_IN_JLA_ROOT_cf83";
@@ -298,7 +310,7 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     const colo          = rayId.split('-')[1] ?? 'UNKNOWN';
     // Prefer request.cf fields (Cloudflare Worker env) over headers; fall back to headers for local dev.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cfObj         = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const cfObj         = getCfObject(request);
     const clientAsn     = String(cfObj['asn'] ?? request.headers.get('cf-asn') ?? '');
     const city          = String(cfObj['city'] ?? cfObj['clientCity'] ?? request.headers.get('cf-ipcity') ?? '');
     const country       = String(cfObj['country'] ?? request.headers.get('cf-ipcountry') ?? '');
@@ -421,9 +433,7 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
 
     // ── Cloudflare cf object forensic fields ─────────────────────────────────
     // request.cf is available in Cloudflare Worker environments only.
-    // Cast via unknown to avoid TypeScript complaints in non-Worker builds.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cf = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const cf = getCfObject(request);
 
     // Prefer request.cf for asn/city/country (populated in Worker env);
     // fall back to cf-* headers for local development compatibility.
@@ -732,7 +742,7 @@ async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
     if (!INGESTION_TIER10_ASNS.has(clientAsn)) return;
 
     const url = new URL(request.url);
-    const cf  = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const cf  = getCfObject(request);
     const wafScore = typeof cf['wafAttackScore'] === 'number' ? cf['wafAttackScore'] : 0;
 
     const isSensitivePath  = INGESTION_LOGIC_PATHS.some(p => url.pathname.startsWith(p));

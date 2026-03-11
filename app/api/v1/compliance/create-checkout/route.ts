@@ -19,9 +19,8 @@ interface CloudflareEnv {
 
 /** Base64url-encode an ArrayBuffer or Uint8Array without spread (safe for large buffers). */
 function base64url(buf: ArrayBuffer | Uint8Array): string {
-  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const bytes  = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
   return btoa(binary)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -219,7 +218,6 @@ export async function POST(request: Request) {
       asn, tier, org_name,
       organization: orgFromBody, email: emailFromBody, machine_id,
       tariLiability, tax_id, company_registration,
-      organization, email, machine_id,
     } = body as Record<string, unknown>;
 
     // ── Resolve all required variables from the flexible request body ──────────
