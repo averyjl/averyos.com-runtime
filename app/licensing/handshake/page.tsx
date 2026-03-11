@@ -307,7 +307,7 @@ export default function HandshakePage() {
         </div>
       )}
 
-
+      <FooterBadge />
     </main>
   );
 }

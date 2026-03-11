@@ -12,8 +12,10 @@ on:
 jobs:
   Analysis:
     runs-on: ubuntu-latest
-    # Skip gracefully when SONAR_TOKEN is not configured
-    if: ${{ secrets.SONAR_TOKEN != '' }}
+    # Skip gracefully when SONAR_TOKEN is not configured.
+    # NOTE: Do NOT wrap with ${{ }} — that converts the boolean to the string
+    # "false" which GitHub then treats as truthy, causing the job to always run.
+    if: secrets.SONAR_TOKEN != ''
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:

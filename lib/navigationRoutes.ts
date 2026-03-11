@@ -60,7 +60,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/vault-gate", label: "Vault Gate", icon: "🔑", isAdmin: true },
   { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
-  { path: "/tari-revenue", label: "TARI™ Revenue", icon: "💹", isAdmin: true },
   { path: "/admin/forensics", label: "Forensic Dashboard", icon: "🔬", isAdmin: true },
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡", isAdmin: true },
   { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️", isAdmin: true },

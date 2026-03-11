@@ -365,7 +365,7 @@ export default function UsageAffidavitPage() {
         </div>
       )}
 
-
+      <FooterBadge />
     </main>
   );
 }
