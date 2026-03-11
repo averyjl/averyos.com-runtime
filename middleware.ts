@@ -79,10 +79,13 @@ const WWW_HOSTNAME = "www.averyos.com";
 // ── Content Security Policy — Gate 4 (Phase 107) ─────────────────────────────
 // Applied to all browser HTML responses to prevent XSS, clickjacking, and
 // data injection. Stripe, Firebase, and Cloudflare are explicitly allowlisted.
+// Note: 'unsafe-inline' is required for Next.js styled-jsx / hydration scripts.
+// 'unsafe-eval' is intentionally excluded — Next.js 15 App Router does not
+// require it in production builds.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   // Scripts: self + inline (Next.js requires unsafe-inline for hydration)
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
   // Styles: self + inline (Next.js styled-jsx)
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Fonts

@@ -72,7 +72,7 @@ export function buildSsrfSafeUrl(rawUrl: string, allowlist: Set<string>): URL {
     hostname.startsWith("127.") ||
     hostname.startsWith("10.") ||
     hostname.startsWith("192.168.") ||
-    hostname.match(/^172\.(1[6-9]|2\d|3[01])\./)
+    hostname.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)
   ) {
     throw new Error(`SSRF guard: private/loopback hostname "${hostname}" not permitted.`);
   }
