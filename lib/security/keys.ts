@@ -63,6 +63,20 @@ interface SovereignEnv {
    * the Cloudflare 1 KB secret limit. Concatenated with PART1 at runtime.
    */
   AVERYOS_PRIVATE_KEY_PART2?: string;
+  // ── Triple-Part Protocol (GATE 111.4.1 / GATE 111.6.3) ──────────────────
+  // UPPERCASE variants — professional standard for Cloudflare secrets.
+  // When all three are present they are trimmed, validated, and concatenated
+  // at runtime to reconstruct the full Base64 private-key string.
+  /** First third of the triple-split Base64 private key (UPPERCASE — preferred). */
+  AVERYOS_PRIVATE_KEY_B64_1_OF_3?: string;
+  /** Second third of the triple-split Base64 private key (UPPERCASE — preferred). */
+  AVERYOS_PRIVATE_KEY_B64_2_OF_3?: string;
+  /** Third third of the triple-split Base64 private key (UPPERCASE — preferred). */
+  AVERYOS_PRIVATE_KEY_B64_3_OF_3?: string;
+  // Lowercase variants — kept for backward compatibility; UPPERCASE takes precedence.
+  averyos_private_key_b64_1_of_3?: string;
+  averyos_private_key_b64_2_of_3?: string;
+  averyos_private_key_b64_3_of_3?: string;
 }
 
 // ── Key import helpers ────────────────────────────────────────────────────────

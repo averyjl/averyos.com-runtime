@@ -165,6 +165,71 @@ jobs:
           if [ "$FAIL" -eq 1 ]; then exit 1; fi
           echo "✅ .gitignore covers all required private patterns"
 
+      # ── 8. Capsule content protection check ──────────────────────────────
+      - name: 🔒 Verify capsule content is protected (not served publicly)
+        run: |
+          FAIL=0
+
+          # Ensure capsule download endpoints require token authentication.
+          # The download route must contain a token validation check.
+          DOWNLOAD_ROUTE="app/api/v1/capsules/[capsuleId]/download/route.ts"
+          if [ -f "$DOWNLOAD_ROUTE" ]; then
+            if ! grep -q "download_token\|token" "$DOWNLOAD_ROUTE"; then
+              echo "❌ FAIL: Capsule download route does not appear to validate a download token."
+              FAIL=1
+            else
+              echo "✅ Capsule download route validates token"
+            fi
+          else
+            echo "⚠️  WARN: Capsule download route not found: $DOWNLOAD_ROUTE"
+          fi
+
+          # Ensure capsule upload route requires VAULT_PASSPHRASE authentication.
+          UPLOAD_ROUTE="app/api/v1/capsules/upload/route.ts"
+          if [ -f "$UPLOAD_ROUTE" ]; then
+            if ! grep -q "VAULT_PASSPHRASE\|safeEqual\|INVALID_AUTH" "$UPLOAD_ROUTE"; then
+              echo "❌ FAIL: Capsule upload route does not enforce VAULT_PASSPHRASE authentication."
+              FAIL=1
+            else
+              echo "✅ Capsule upload route enforces admin authentication"
+            fi
+          else
+            echo "⚠️  WARN: Capsule upload route not found: $UPLOAD_ROUTE"
+          fi
+
+          # Ensure the public capsule listing does NOT expose file_key or private content.
+          CAPSULE_ROUTE="app/api/v1/capsules/route.ts"
+          if [ -f "$CAPSULE_ROUTE" ]; then
+            # The SELECT in the public route must NOT include file_key
+            PUBLIC_SELECT=$(grep -A5 "SELECT capsule_id" "$CAPSULE_ROUTE" | grep "file_key" || true)
+            if [ -n "$PUBLIC_SELECT" ]; then
+              echo "❌ FAIL: Public capsule listing may expose file_key — review the SELECT statement."
+              FAIL=1
+            else
+              echo "✅ Public capsule listing does not expose file_key"
+            fi
+          fi
+
+          # Ensure .aoscap source files in capsules/ are NOT also present in public/
+          # (public/capsules/ is allowed only for the init capsule — source capsules must not be served directly)
+          SOURCE_CAPSULES=$(ls capsules/*.aoscap 2>/dev/null | grep -v "sovereign-init" | grep -v "sovereign-index" | xargs -I{} basename {} 2>/dev/null || true)
+          for cap in $SOURCE_CAPSULES; do
+            if [ -f "public/$cap" ] || [ -f "public/capsules/$cap" ]; then
+              echo "❌ FAIL: Source capsule '$cap' appears to be served publicly from public/ — move it behind API auth."
+              FAIL=1
+            fi
+          done
+          if [ -z "$SOURCE_CAPSULES" ] || [ "$FAIL" -eq 0 ]; then
+            echo "✅ Source capsules are not directly served from public/"
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "⛓️⚓⛓️ CAPSULE PROTECTION VIOLATION — Capsule IP must remain behind payment/auth gates."
+            exit 1
+          fi
+          echo "✅ Capsule content protection checks passed"
+
       - name: ✅ IP Protection Scan Complete
         run: |
           echo ""
