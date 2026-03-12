@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
+import FooterBadge  from "../../../components/FooterBadge";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG          = "#030008";

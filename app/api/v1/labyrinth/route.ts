@@ -52,7 +52,7 @@ function buildDecoyPayload(seed: string): Record<string, unknown> {
     nodes_online:    3,
     drift_pct:       "0.000♾️%",
     checked_at:      ts,
-    _notice:         "AveryOS™ Sovereign Integrity License v1.0 — Accessing without a TAI_LICENSE_KEY constitutes acceptance of $10,000,000.00 technical valuation fee. See https://averyos.com/licensing/audit-clearance",
+    _notice:         "AveryOS™ Sovereign Integrity License v1.0 — Accessing without an AVERYOS_LICENSE_KEY constitutes acceptance of $10,000,000.00 technical valuation fee. See https://averyos.com/licensing/audit-clearance",
   };
 }
 

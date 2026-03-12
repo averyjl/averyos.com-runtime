@@ -151,30 +151,60 @@ export interface ComplianceClock {
   /** Kernel anchor. */
   kernelSha:   string;
   kernelVersion: string;
+  /**
+   * SHA-512 VaultChain™ pulse receipt — hex digest of
+   * `clock_id | issued_at | kernelSha`. Populated by
+   * `createComplianceClock()` and should be persisted to
+   * `sovereign_audit_logs` as the tamper-evident record of clock creation.
+   * Undefined only when crypto.subtle is unavailable.
+   */
+  pulse_hash?: string;
 }
 
 /**
  * Create a new ComplianceClock anchored to the current time.
  *
+ * Phase 110.1.5 upgrade: Returns a Promise; computes a SHA-512 pulse receipt
+ * (hex digest of `clock_id | issued_at | kernelSha`) and embeds it in
+ * `clock.pulse_hash`.  Callers should persist `pulse_hash` to
+ * `sovereign_audit_logs` as the tamper-evident VaultChain™ receipt.
+ *
  * @param asn      ASN of the entity (e.g. "36459"). May be null.
  * @param orgName  organization name (optional).
  * @param clockId  Stable identifier for this clock (e.g. "clock_q_36459_<ts>").
- * @returns        ComplianceClock record.
+ * @returns        Promise<ComplianceClock> record with SHA-512 pulse_hash.
  */
-export function createComplianceClock(
+export async function createComplianceClock(
   asn:     string | null,
   orgName: string | null,
   clockId: string,
-): ComplianceClock {
+): Promise<ComplianceClock> {
   const now        = Date.now();
   const deadlineMs = now + SETTLEMENT_WINDOW_MS;
   const remaining  = SETTLEMENT_WINDOW_MS;
+  const issuedAt   = formatIso9(new Date(now));
+
+  // ── SHA-512 VaultChain™ pulse receipt ─────────────────────────────────────
+  // Hash v1|clock_id|issued_at|kernelSha to produce a tamper-evident receipt.
+  // The v1 version prefix enables future format evolution without breaking
+  // existing hash verifications stored in sovereign_audit_logs.
+  let pulse_hash: string | undefined;
+  try {
+    const payload  = `v1|${clockId}|${issuedAt}|${KERNEL_SHA}`;
+    const encoded  = new TextEncoder().encode(payload);
+    const hashBuf  = await crypto.subtle.digest("SHA-512", encoded);
+    pulse_hash     = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    pulse_hash = undefined;
+  }
 
   return {
     clock_id:        clockId,
     asn,
     org_name:        orgName,
-    issued_at:       formatIso9(new Date(now)),
+    issued_at:       issuedAt,
     deadline_at:     formatIso9(new Date(deadlineMs)),
     status:          "ACTIVE",
     remainingMs:     remaining,
@@ -182,6 +212,7 @@ export function createComplianceClock(
     expired:         false,
     kernelSha:       KERNEL_SHA,
     kernelVersion:   KERNEL_VERSION,
+    pulse_hash,
   };
 }
 

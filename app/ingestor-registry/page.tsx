@@ -15,6 +15,7 @@
 
 import React, { useEffect, useState } from "react";
 import AnchorBanner    from "../../components/AnchorBanner";
+import FooterBadge     from "../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
@@ -282,7 +283,7 @@ export default function IngestorRegistryPage() {
           <strong style={{ color: GOLD }}>AveryOS™ Sovereign Integrity License v1.0</strong>.
           Entities appearing on this registry have triggered forensic detection events.
           Settlement via <span style={{ color: GOLD }}>/licensing/enterprise</span> clears
-          the debt and grants a TAI_LICENSE_KEY. Unsettled valuations may be escalated
+          the debt and grants an AVERYOS_LICENSE_KEY. Unsettled valuations may be escalated
           as statutory damages under <strong style={{ color: GOLD }}>17 U.S.C. § 504(c)(2)</strong>{" "}
           (up to $150,000 per work, willful infringement).
           <br /><br />
