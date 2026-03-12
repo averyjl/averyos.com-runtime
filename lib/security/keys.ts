@@ -113,8 +113,11 @@ async function importPublicKey(b64: string): Promise<CryptoKey | null> {
 /**
  * Detect whether a Base64 string decodes to a .NET RSAKeyValue XML bundle.
  * Returns true if the decoded value starts with an XML RSAKeyValue element.
+ * Returns false on any decode failure without surfacing internal errors.
  */
-function isXmlB64(b64: string): boolean {
+function isBase64EncodedXmlKey(b64: string): boolean {
+  // Quick sanity: valid Base64 consists only of [A-Za-z0-9+/=]
+  if (!/^[A-Za-z0-9+/]+=*$/.test(b64)) return false;
   try {
     const decoded = atob(b64).trimStart();
     return decoded.startsWith("<RSAKeyValue>") || decoded.startsWith("<RSAKeyValue ");
@@ -150,7 +153,7 @@ export async function getSovereignKeys(env: SovereignEnv): Promise<SovereignKeyP
   const kid = `averyos-sovereign-key-${KERNEL_VERSION}`;
 
   // Auto-detect XML-B64 bundle (GATE 111.3 — .NET ToXmlString(true) path)
-  if (env.AVERYOS_PRIVATE_KEY_B64 && isXmlB64(env.AVERYOS_PRIVATE_KEY_B64)) {
+  if (env.AVERYOS_PRIVATE_KEY_B64 && isBase64EncodedXmlKey(env.AVERYOS_PRIVATE_KEY_B64)) {
     return getSovereignKeysFromXml(env);
   }
 
