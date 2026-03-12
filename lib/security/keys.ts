@@ -63,35 +63,19 @@ interface SovereignEnv {
    * the Cloudflare 1 KB secret limit. Concatenated with PART1 at runtime.
    */
   AVERYOS_PRIVATE_KEY_PART2?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 1 of 3.
-   * Uppercase variant (Cloudflare dashboard name).
-   */
+  // ── Triple-Part Protocol (GATE 111.4.1 / GATE 111.6.3) ──────────────────
+  // UPPERCASE variants — professional standard for Cloudflare secrets.
+  // When all three are present they are trimmed, validated, and concatenated
+  // at runtime to reconstruct the full Base64 private-key string.
+  /** First third of the triple-split Base64 private key (UPPERCASE — preferred). */
   AVERYOS_PRIVATE_KEY_B64_1_OF_3?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 2 of 3.
-   * Uppercase variant (Cloudflare dashboard name).
-   */
+  /** Second third of the triple-split Base64 private key (UPPERCASE — preferred). */
   AVERYOS_PRIVATE_KEY_B64_2_OF_3?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 3 of 3.
-   * Uppercase variant (Cloudflare dashboard name).
-   */
+  /** Third third of the triple-split Base64 private key (UPPERCASE — preferred). */
   AVERYOS_PRIVATE_KEY_B64_3_OF_3?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 1 of 3.
-   * Lowercase variant — accepted for compatibility.
-   */
+  // Lowercase variants — kept for backward compatibility; UPPERCASE takes precedence.
   averyos_private_key_b64_1_of_3?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 2 of 3.
-   * Lowercase variant — accepted for compatibility.
-   */
   averyos_private_key_b64_2_of_3?: string;
-  /**
-   * Triple-Part Protocol (GATE 111.4.1) — Part 3 of 3.
-   * Lowercase variant — accepted for compatibility.
-   */
   averyos_private_key_b64_3_of_3?: string;
 }
 

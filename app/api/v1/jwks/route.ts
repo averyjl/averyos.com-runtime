@@ -40,9 +40,13 @@ export async function GET(request: Request): Promise<Response> {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as Record<string, string | undefined>;
 
+  // GATE 111.6.1 — pass all triple-part keys so JWKS shows ACTIVE with split-key protocol
   const keyPair = await getSovereignKeys({
-    AVERYOS_PRIVATE_KEY_B64: cfEnv.AVERYOS_PRIVATE_KEY_B64,
-    AVERYOS_PUBLIC_KEY_B64:  cfEnv.AVERYOS_PUBLIC_KEY_B64,
+    AVERYOS_PRIVATE_KEY_B64:        cfEnv.AVERYOS_PRIVATE_KEY_B64,
+    AVERYOS_PUBLIC_KEY_B64:         cfEnv.AVERYOS_PUBLIC_KEY_B64,
+    AVERYOS_PRIVATE_KEY_B64_1_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_1_OF_3,
+    AVERYOS_PRIVATE_KEY_B64_2_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_2_OF_3,
+    AVERYOS_PRIVATE_KEY_B64_3_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_3_OF_3,
   });
 
   const baseUrl = new URL(request.url).origin;
