@@ -27,5 +27,21 @@ jobs:
       # in public-facing documentation files under content/, public/, docs/.
       - name: Docs Secret-Scanner (Gate 110.2)
         run: node scripts/scan-docs.cjs
+      # Gate: Key-Rename Drift Guard — enforces AVERYOS_LICENSE_KEY permanently.
+      # Fails if the deprecated TAI_LICENSE_KEY name reappears in any source,
+      # config, or script file so the rename can never silently drift back.
+      # Addressed code-review note: this gate makes the rename a durable CI upgrade.
+      - name: Key-Rename Drift Guard (TAI_LICENSE_KEY → AVERYOS_LICENSE_KEY)
+        run: |
+          if grep -r \
+               --include="*.ts" --include="*.tsx" \
+               --include="*.js" --include="*.cjs" --include="*.mjs" \
+               --include="*.toml" --include="*.example" --include="*.ps1" \
+               --exclude-dir=".git" --exclude-dir="node_modules" --exclude-dir=".next" \
+               "TAI_LICENSE_KEY" .; then
+            echo "❌ Deprecated TAI_LICENSE_KEY found. Upgrade all references to AVERYOS_LICENSE_KEY."
+            exit 1
+          fi
+          echo "✅ Key-rename drift guard passed — AVERYOS_LICENSE_KEY is permanent."
       - run: npm run build --if-present
       - run: npm test
