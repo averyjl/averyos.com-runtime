@@ -172,6 +172,20 @@ function AuthGate({
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 
+// Derive a non-reversible token from the passphrase before storing/using it.
+async function hashPassphrase(passphrase: string): Promise<string> {
+  const enc = new TextEncoder();
+  const data = enc.encode(passphrase);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const bytes = new Uint8Array(digest);
+  // Convert to base64 for safe header/storage usage.
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 export default function QaDashboard() {
   const [checking,  setChecking]  = useState(true);
   const [authed,    setAuthed]    = useState(false);
@@ -202,13 +216,19 @@ export default function QaDashboard() {
   }, []);
 
   // ── Submit auth ────────────────────────────────────────────────────────────
-  const handleAuth = useCallback(() => {
-    if (!password.trim()) { setAuthError("Passphrase required."); return; }
-    sessionStorage.setItem("VAULTAUTH_TOKEN", password.trim());
-    setToken(password.trim());
-    setAuthed(true);
-    setPassword("");
-    setAuthError("");
+  const handleAuth = useCallback(async () => {
+    const trimmed = password.trim();
+    if (!trimmed) { setAuthError("Passphrase required."); return; }
+    try {
+      const derivedToken = await hashPassphrase(trimmed);
+      sessionStorage.setItem("VAULTAUTH_TOKEN", derivedToken);
+      setToken(derivedToken);
+      setAuthed(true);
+      setPassword("");
+      setAuthError("");
+    } catch {
+      setAuthError("Unable to process passphrase. Please retry.");
+    }
   }, [password]);
 
   // ── Load history ───────────────────────────────────────────────────────────
