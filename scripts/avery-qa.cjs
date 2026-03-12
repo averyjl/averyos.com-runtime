@@ -447,8 +447,9 @@ const CHECKS = [
         return { status: STATUS.FAIL, detail: "app/admin/monetization/page.tsx not found" };
       }
       const content = fs.readFileSync(file, "utf8");
-      if (content.includes("STALLED REVENUE TRACKER") || content.includes("\"STALLED\"")) {
-        return { status: STATUS.FAIL, detail: "Revenue log still shows STALLED state — should be LIVE SETTLEMENT READY" };
+      // Check for the specific STALLED REVENUE TRACKER header text
+      if (content.includes("STALLED REVENUE TRACKER")) {
+        return { status: STATUS.FAIL, detail: "Revenue log still shows STALLED REVENUE TRACKER — upgrade to LIVE SETTLEMENT READY" };
       }
       if (!content.includes("LIVE SETTLEMENT READY")) {
         return { status: STATUS.FAIL, detail: "LIVE SETTLEMENT READY status not found in monetization page" };

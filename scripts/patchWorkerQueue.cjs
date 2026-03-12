@@ -15,6 +15,20 @@
  *   • Acknowledges malformed messages immediately (no DLQ spam).
  *   • Retries on transient D1 write failures (up to Cloudflare max_retries).
  *
+ * NOTE ON INTENTIONAL DUPLICATION:
+ *   The queue handler logic below mirrors `lib/queue/logConsumerHandler.ts`.
+ *   This duplication is necessary because:
+ *     1. `.open-next/worker.js` is a plain-JS ES module bundle — it cannot
+ *        perform dynamic `require()` calls into TypeScript source files.
+ *     2. The OpenNext build has already bundled all TypeScript at the time
+ *        this patch runs, so we cannot import from `lib/` at patch time.
+ *     3. The self-contained approach keeps the Worker entrypoint portable and
+ *        avoids re-running the TypeScript compiler as part of this patch step.
+ *   The canonical source of truth is `lib/queue/logConsumerHandler.ts`.
+ *   Any changes to the queue processing logic must be applied to BOTH files.
+ *   The `_SOVEREIGN_BATCH_SIZE` constant (50) intentionally matches `BATCH_SIZE`
+ *   in the TypeScript module.
+ *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 "use strict";

@@ -128,7 +128,11 @@ export async function sovereignQueueHandler(
       body.timestamp_ns as string,
       typeof body.threat_level      === "number" ? body.threat_level      : 0,
       typeof body.ray_id            === "string" ? body.ray_id            : null,
-      typeof body.kernel_sha        === "string" ? body.kernel_sha        : KERNEL_SHA,
+      (() => {
+        if (typeof body.kernel_sha === "string") return body.kernel_sha;
+        console.warn("[SOVEREIGN_QUEUE] kernel_sha missing in message — defaulting to KERNEL_SHA anchor");
+        return KERNEL_SHA;
+      })(),
       typeof body.ingestion_intent  === "string" ? body.ingestion_intent  : null,
     );
 
