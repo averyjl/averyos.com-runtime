@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-12T19:34:41.818Z",
+  "generated_at": "2026-03-12T21:25:27.864Z",
   "modules": [
     {
       "path": "lib/ai/geminiClient.ts",
@@ -80,6 +80,41 @@
         {
           "name": "ModelBackend",
           "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/auth/vaultgate.ts",
+      "doc": "admin/docs/lib/auth/vaultgate.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "getCredential",
+          "kind": "function"
+        },
+        {
+          "name": "getCredentialsByUser",
+          "kind": "function"
+        },
+        {
+          "name": "saveCredential",
+          "kind": "function"
+        },
+        {
+          "name": "updateCounter",
+          "kind": "function"
+        },
+        {
+          "name": "deleteCredential",
+          "kind": "function"
+        },
+        {
+          "name": "VaultGateCredential",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultGateAnchor",
+          "kind": "interface"
         }
       ]
     },
@@ -1052,7 +1087,7 @@
     {
       "path": "lib/security/keys.ts",
       "doc": "admin/docs/lib/security/keys.md",
-      "symbolCount": 3,
+      "symbolCount": 4,
       "symbols": [
         {
           "name": "getSovereignKeys",
@@ -1060,6 +1095,10 @@
         },
         {
           "name": "getSovereignKeysFromXml",
+          "kind": "function"
+        },
+        {
+          "name": "getReconstructedSovereignKeys",
           "kind": "function"
         },
         {
@@ -1814,6 +1853,28 @@
     {
       "path": "app/api/v1/health-status/route.ts",
       "doc": "admin/docs/app/api/v1/health-status/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/hooks/vaultsig/setup/route.ts",
+      "doc": "admin/docs/app/api/v1/hooks/vaultsig/setup/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/hooks/vaultsig/success/route.ts",
+      "doc": "admin/docs/app/api/v1/hooks/vaultsig/success/route.md",
       "symbolCount": 1,
       "symbols": [
         {
