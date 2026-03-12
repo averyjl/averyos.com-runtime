@@ -92,6 +92,7 @@ function computeRetroactiveDebt(
   priorUseDays: number,
   multiplierKey: string,
 ): { debtUsd: number; debtCents: number; multiplier: number; cappedAt150k: boolean } {
+  // eslint-disable-next-line security/detect-object-injection
   const multiplier = RETROACTIVE_MULTIPLIERS[multiplierKey] ?? RETROACTIVE_MULTIPLIERS.DEFAULT;
   const rawUsd     = priorUseDays * BASELINE_DAILY_FEE_USD * multiplier;
   const cappedUsd  = Math.min(rawUsd, STATUTORY_MAX_PER_INSTANCE_USD);

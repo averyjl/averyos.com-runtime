@@ -123,7 +123,7 @@ export async function GET(request: Request): Promise<Response> {
   });
 }
 
-export async function POST(_request: Request): Promise<Response> {
+export async function POST(): Promise<Response> {
   // POST to the verify endpoint is treated as an attestation submission attempt.
   // Redirect the caller to the correct handshake endpoint.
   return Response.json(

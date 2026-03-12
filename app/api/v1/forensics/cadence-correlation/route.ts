@@ -35,6 +35,7 @@
 import { getCloudflareContext }        from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION }  from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -77,15 +78,6 @@ interface CadenceProbeResult {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 // Known sentinel IPs / high-value ASNs (mirrors middleware.ts)
 const SENTINEL_IPS  = new Set(["185.177.72.60"]);
 const HIGH_VALUE_ASNS = new Set(["8075", "15169", "36459", "16509", "32934"]);
@@ -132,6 +124,7 @@ function correlateCadenceProbes(
   // Signal 6: Uniform timing (bot-like cadence) — check if timestamps are regular
   const timestamps = rows.map(r => Number(r.timestamp_ns ?? "0") / 1e6).sort((a, b) => a - b);
   if (timestamps.length >= 3) {
+    // eslint-disable-next-line security/detect-object-injection
     const intervals = timestamps.slice(1).map((t, i) => t - timestamps[i]);
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const variance    = intervals.reduce((a, b) => a + Math.abs(b - avgInterval), 0) / intervals.length;

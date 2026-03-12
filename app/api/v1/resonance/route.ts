@@ -26,6 +26,7 @@ interface CloudflareEnv {
   KV_LOGS: KVNamespace;
   DB: D1Database;
   VAULT_PASSPHRASE?: string;
+  TAI_LICENSE_KEY?: string;
   AVERYOS_LICENSE_KEY?: string;
 }
 
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
     const gate = evaluateTaiAccess(
       request.headers,
       cfEnv.VAULT_PASSPHRASE ?? "",
-      cfEnv.AVERYOS_LICENSE_KEY ?? ""
+      cfEnv.AVERYOS_LICENSE_KEY ?? cfEnv.TAI_LICENSE_KEY ?? ""
     );
 
     const accessHdrs = resonanceAccessHeaders(gate);
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
     const gate = evaluateTaiAccess(
       request.headers,
       cfEnv.VAULT_PASSPHRASE ?? "",
-      cfEnv.AVERYOS_LICENSE_KEY ?? ""
+      cfEnv.AVERYOS_LICENSE_KEY ?? cfEnv.TAI_LICENSE_KEY ?? ""
     );
 
     const accessHdrs = resonanceAccessHeaders(gate);

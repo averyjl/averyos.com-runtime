@@ -76,6 +76,7 @@ const DEFAULT_PRICE: CapsulePrice = {
 };
 
 function getCapsulePrice(capsuleId: string): CapsulePrice {
+  // eslint-disable-next-line security/detect-object-injection
   return CAPSULE_PRICE_CATALOGUE[capsuleId] ?? DEFAULT_PRICE;
 }
 

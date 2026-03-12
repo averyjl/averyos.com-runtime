@@ -11,6 +11,7 @@ function base64urlToBuffer(base64url: string): ArrayBuffer {
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
+    // eslint-disable-next-line security/detect-object-injection
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes.buffer;

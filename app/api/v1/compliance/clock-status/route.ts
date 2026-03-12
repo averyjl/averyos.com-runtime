@@ -22,6 +22,7 @@ import { aosErrorResponse, AOS_ERROR }             from "../../../../../lib/sove
 import { getSettlementDeadline, reconcileClocks,
          createComplianceClock, SETTLEMENT_WINDOW_HOURS }
   from "../../../../../lib/compliance/clockEngine";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -53,15 +54,6 @@ interface ClockRow {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 // ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: Request): Promise<Response> {
@@ -139,7 +131,7 @@ export async function GET(request: Request): Promise<Response> {
     }
   } else {
     // No persisted clock — return a synthetic clock anchored to "now"
-    const synthetic = createComplianceClock(entityId, null, `clock_synthetic_${entityId}`);
+    const synthetic = await createComplianceClock(entityId, null, `clock_synthetic_${entityId}`);
     clockData       = getSettlementDeadline(synthetic.issued_at, settledQs);
     clockId         = synthetic.clock_id;
     source          = "SYNTHETIC";

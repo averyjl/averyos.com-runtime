@@ -19,6 +19,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -35,15 +36,6 @@ interface D1Database {
 }
 
 /** Constant-time string comparison. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Compute a SHA-512 summit seal anchored to the kernel. */
 async function computeSummitSeal(timestamp: string, meetingDate: string): Promise<string> {
   const input = `STRIPE_SUMMIT|${timestamp}|${meetingDate}|${KERNEL_SHA}`;

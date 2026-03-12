@@ -127,7 +127,7 @@ function computeRetroactiveDebt(
 
 // ── GET — probe info (no auth required) ───────────────────────────────────────
 
-export async function GET(_request: Request): Promise<Response> {
+export async function GET(): Promise<Response> {
   const { env } = await getCloudflareContext({ async: true });
   const cfEnv   = env as unknown as CloudflareEnv;
   const baseUrl = cfEnv.NEXT_PUBLIC_SITE_URL ?? cfEnv.SITE_URL ?? "https://averyos.com";
@@ -211,7 +211,7 @@ export async function POST(request: Request): Promise<Response> {
   });
 
   // ── Build compliance clock ──────────────────────────────────────────────────
-  const clock = createComplianceClock(
+  const clock = await createComplianceClock(
     asn,
     orgName || parentCompany || null,
     `clock_q_${asn}_${Date.now()}`,

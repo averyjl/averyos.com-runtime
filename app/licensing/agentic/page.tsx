@@ -99,6 +99,7 @@ export default function AgenticSettlementPortal() {
         const asn  = data.asn ?? "UNKNOWN";
         setDetectedAsn(asn);
         setDetectedIp(data.ip ?? "—");
+        // eslint-disable-next-line security/detect-object-injection
         const knownAsn = AGENTIC_ASN_MAP[asn];
         setAsnInfo(knownAsn ?? null);
         setTier(resolveKaasTier(asn));
@@ -146,6 +147,7 @@ export default function AgenticSettlementPortal() {
     }
   };
 
+  // eslint-disable-next-line security/detect-object-injection
   const isKnownAgentic = AGENTIC_ASN_MAP[detectedAsn] !== undefined;
 
   return (
@@ -164,7 +166,7 @@ export default function AgenticSettlementPortal() {
           <p style={{ color: MUTED, maxWidth: "520px", margin: "0 auto", lineHeight: 1.65, fontSize: "0.92rem" }}>
             Dedicated frictionless settlement path for <strong style={{ color: GOLD }}>autonomous agents</strong>,
             LLM inference nodes, and AI infrastructure operators. Clear forensic debt and obtain a
-            valid <strong style={{ color: GOLD }}>AveryOS Sovereign License Key</strong> for your ASN.
+            valid <strong style={{ color: GOLD }}>AVERYOS_LICENSE_KEY</strong> for your ASN.
           </p>
         </div>
 

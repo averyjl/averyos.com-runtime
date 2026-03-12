@@ -3,6 +3,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from '../../../../../lib/sovereignConstant
 import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 import { buildEvidencePacket, resolveJurisdiction, formatEvidenceNotice }
   from '../../../../../lib/forensics/globalVault';
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 /**
  * GET /api/v1/evidence/[rayid]
@@ -64,7 +65,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   if (vaultPassphrase) {
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (token !== vaultPassphrase) {
+    if (!safeEqual(token, vaultPassphrase)) {
       return aosErrorResponse(AOS_ERROR.MISSING_AUTH,
         'Valid Bearer token required to access forensic evidence');
     }

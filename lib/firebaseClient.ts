@@ -186,6 +186,7 @@ function normalisePem(raw: string): string {
 function base64urlEncode(data: Uint8Array | ArrayBuffer): string {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   let binary = "";
+  // eslint-disable-next-line security/detect-object-injection
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
@@ -202,6 +203,7 @@ async function importRsaPrivateKey(pemKey: string): Promise<CryptoKey> {
     .replace(/\s+/g, "");
   const binary = atob(b64);
   const bytes  = new Uint8Array(binary.length);
+  // eslint-disable-next-line security/detect-object-injection
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return crypto.subtle.importKey(
     "pkcs8",
@@ -289,6 +291,7 @@ function toFirestoreValue(v: unknown): FirestoreValue {
   if (typeof v === "object") {
     const fields: Record<string, FirestoreValue> = {};
     for (const [key, val] of Object.entries(v as Record<string, unknown>))
+      // eslint-disable-next-line security/detect-object-injection
       fields[key] = toFirestoreValue(val);
     return { mapValue: { fields } };
   }
@@ -297,6 +300,7 @@ function toFirestoreValue(v: unknown): FirestoreValue {
 
 function toFirestoreFields(doc: Record<string, unknown>): Record<string, FirestoreValue> {
   const fields: Record<string, FirestoreValue> = {};
+  // eslint-disable-next-line security/detect-object-injection
   for (const [key, val] of Object.entries(doc)) fields[key] = toFirestoreValue(val);
   return fields;
 }

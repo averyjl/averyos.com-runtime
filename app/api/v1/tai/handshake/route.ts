@@ -21,22 +21,15 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 interface CloudflareEnv {
-  AVERYOS_LICENSE_KEY?:     string;
+  TAI_LICENSE_KEY?:     string;
+  AVERYOS_LICENSE_KEY?: string;
   TAI_SENTINEL_TOKEN?:  string;
 }
 
 /** Constant-time comparison to avoid timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Token TTL: 24 hours */
 const SPT_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -45,7 +38,7 @@ export async function POST(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    const licenseKeySecret   = cfEnv.AVERYOS_LICENSE_KEY ?? "";
+    const licenseKeySecret   = cfEnv.AVERYOS_LICENSE_KEY ?? cfEnv.TAI_LICENSE_KEY ?? "";
     const sentinelTokenSecret = cfEnv.TAI_SENTINEL_TOKEN ?? "";
 
     if (!licenseKeySecret || !sentinelTokenSecret) {

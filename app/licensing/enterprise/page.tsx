@@ -43,7 +43,7 @@ const TIERS = [
     label:       "Sovereign Partnership",
     tier:        10,
     price:       kaasDisplayPrice("ENTERPRISE_PARTNERSHIP"),
-    description: "Global AveryOS Sovereign License Key + clears all technical valuation debt. Moves entity to Verified Partner status.",
+    description: "Global AVERYOS_LICENSE_KEY + clears all technical valuation debt. Moves entity to Verified Partner status.",
     highlight:   true,
   },
   {
@@ -142,7 +142,7 @@ export default function EnterpriseRegistrationPage() {
           <p style={{ color: MUTED, maxWidth: "560px", margin: "0 auto", lineHeight: 1.6 }}>
             Procurement officers, agentic wallets, and enterprise compliance systems:
             select your licensing tier to clear forensic debt and obtain a
-            Global <strong style={{ color: GOLD }}>AveryOS Sovereign License Key</strong>.
+            Global <strong style={{ color: GOLD }}>AVERYOS_LICENSE_KEY</strong>.
           </p>
         </div>
 

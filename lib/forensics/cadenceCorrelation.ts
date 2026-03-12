@@ -156,6 +156,7 @@ function vendorToTier(vendor: string): number {
     "Anthropic":  9,
     "Meta":       8,
   };
+  // eslint-disable-next-line security/detect-object-injection
   return map[vendor] ?? 7;
 }
 
@@ -194,6 +195,7 @@ export function correlateCadenceProbes(
   // Compute inter-probe intervals
   const intervals: number[] = [];
   for (let i = 1; i < sorted.length; i++) {
+    // eslint-disable-next-line security/detect-object-injection
     intervals.push(sorted[i].timestampMs - sorted[i - 1].timestampMs);
   }
   const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;

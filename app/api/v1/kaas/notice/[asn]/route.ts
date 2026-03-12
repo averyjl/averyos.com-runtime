@@ -40,6 +40,7 @@ import {
   buildEvidencePacket,
   formatEvidenceNotice,
 } from "../../../../../../lib/forensics/globalVault";
+import { safeEqual } from '../../../../../../lib/taiLicenseGate';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -48,15 +49,6 @@ interface CloudflareEnv {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 interface RouteParams {
   params: Promise<{ asn: string }>;
 }
@@ -102,6 +94,7 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
 
   // ── Jurisdiction determination ────────────────────────────────────────────
   const jurisdiction = resolveJurisdiction(countryCode);
+  // eslint-disable-next-line security/detect-object-injection
   const statutes     = JURISDICTION_STATUTES[jurisdiction];
 
   // ── Build evidence packet ─────────────────────────────────────────────────

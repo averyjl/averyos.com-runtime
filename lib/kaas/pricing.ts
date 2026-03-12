@@ -92,6 +92,7 @@ export function getStatutoryAdminSettlementLabel(): string {
 /** Return the KaaS tier (1–10) for a given ASN string. */
 export function getAsnTier(asn: string): number {
   const normalised = String(asn).replace(/^AS/i, "").trim();
+  // eslint-disable-next-line security/detect-object-injection
   return ENTERPRISE_ASN_TIERS[normalised] ?? 1;
 }
 

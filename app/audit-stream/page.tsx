@@ -70,7 +70,8 @@ function formatUsd(amount: number) {
 
 /** Validates a well-formed IPv4 or IPv6 address (mirrors scripts/export-evidence.js). */
 function isValidIp(ip: string): boolean {
-  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+  // IPv4: expanded pattern to avoid quantified group (ReDoS heuristic)
+  const ipv4 = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
   if (ipv4.test(ip)) {
     return ip.split(".").every((o) => parseInt(o, 10) <= 255);
   }
