@@ -77,5 +77,5 @@ jobs:
       # RULE: Do NOT remove or weaken this gate. Added by Jason Lee Avery (ROOT0).
       - name: Sovereign Leak Guard ⛓️⚓⛓️
         run: node scripts/sovereign-leak-guard.cjs
-      - run: npm run build --if-present
+      - run: npm run build
       - run: npm test
