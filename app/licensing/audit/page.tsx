@@ -20,10 +20,10 @@ import FooterBadge  from "../../../components/FooterBadge";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG          = "#030008";
-const GOLD        = "#ffd700";
-const GOLD_DIM    = "rgba(255,215,0,0.6)";
-const GOLD_BORDER = "rgba(255,215,0,0.3)";
-const GOLD_GLOW   = "rgba(255,215,0,0.06)";
+const GOLD        = "#D4AF37";
+const GOLD_DIM    = "rgba(212,175,55,0.6)";
+const GOLD_BORDER = "rgba(212,175,55,0.3)";
+const GOLD_GLOW   = "rgba(212,175,55,0.06)";
 const GREEN       = "#4ade80";
 const RED         = "#ff4444";
 const MUTED       = "rgba(255,255,255,0.55)";

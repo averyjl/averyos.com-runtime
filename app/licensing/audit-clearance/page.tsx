@@ -12,10 +12,10 @@ import {
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG        = "#03000a";
-const GOLD      = "#ffd700";
-const GOLD_DIM  = "rgba(255,215,0,0.55)";
-const GOLD_BDR  = "rgba(255,215,0,0.3)";
-const GOLD_GLOW = "rgba(255,215,0,0.08)";
+const GOLD      = "#D4AF37";
+const GOLD_DIM  = "rgba(212,175,55,0.55)";
+const GOLD_BDR  = "rgba(212,175,55,0.3)";
+const GOLD_GLOW = "rgba(212,175,55,0.08)";
 const RED_DIM   = "rgba(255,68,68,0.12)";
 const RED       = "#ff4444";
 const GREEN     = "#4ade80";
@@ -46,7 +46,7 @@ export default function AuditClearancePage() {
   return (
     <Suspense
       fallback={
-        <main style={{ background: "#03000a", minHeight: "100vh", color: "#ffd700", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace" }}>
+        <main style={{ background: "#03000a", minHeight: "100vh", color: "#D4AF37", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace" }}>
           ⛓️⚓⛓️ Loading Audit Record…
         </main>
       }
@@ -174,7 +174,7 @@ function AuditClearancePortal() {
 
         {/* ── Consent Gate ─────────────────────────────────────────────────── */}
         {showConsent && !consentGiven && (
-          <div style={card({ background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}` })}>
+          <div style={card({ background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}` })}>
             <h2 style={{ color: GOLD, fontSize: "1rem", fontWeight: 700, marginBottom: "0.8rem" }}>
               🔍 Verification Check Required
             </h2>
@@ -234,7 +234,7 @@ function AuditClearancePortal() {
               </span>
             </div>
           </div>
-          <p style={{ color: "rgba(255,215,0,0.35)", fontSize: "0.72rem", marginTop: "0.6rem", fontFamily: "monospace" }}>
+          <p style={{ color: "rgba(212,175,55,0.35)", fontSize: "0.72rem", marginTop: "0.6rem", fontFamily: "monospace" }}>
             ⓘ The SHA-512 above is the AveryOS™ Root0 Sovereign Kernel anchor — not user-specific. It is the same for all sessions and is anchored on-chain.
           </p>
         </div>
@@ -380,7 +380,7 @@ function AuditClearancePortal() {
         )}
 
         {/* ── Kernel Anchor ────────────────────────────────────────────────── */}
-        <div style={card({ background: "transparent", border: `1px solid rgba(255,215,0,0.12)` })}>
+        <div style={card({ background: "transparent", border: `1px solid rgba(212,175,55,0.12)` })}>
           <h2 style={{ color: GOLD_DIM, fontSize: "0.85rem", fontWeight: 700, marginBottom: "0.7rem" }}>
             🔐 Sovereign Kernel Anchor
           </h2>

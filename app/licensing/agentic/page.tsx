@@ -27,10 +27,10 @@ import { kaasDisplayPrice, resolveKaasTier } from "../../../lib/stripe/onrampLog
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG        = "#03000a";
-const GOLD      = "#ffd700";
-const GOLD_DIM  = "rgba(255,215,0,0.55)";
-const GOLD_BDR  = "rgba(255,215,0,0.3)";
-const GOLD_GLOW = "rgba(255,215,0,0.08)";
+const GOLD      = "#D4AF37";
+const GOLD_DIM  = "rgba(212,175,55,0.55)";
+const GOLD_BDR  = "rgba(212,175,55,0.3)";
+const GOLD_GLOW = "rgba(212,175,55,0.08)";
 const RED       = "#ff4444";
 const RED_DIM   = "rgba(255,68,68,0.1)";
 const GREEN     = "#4ade80";
@@ -255,7 +255,7 @@ export default function AgenticSettlementPortal() {
             disabled={loading || detecting || !machineId}
             style={{
               width: "100%", padding: "1rem",
-              background: loading ? "rgba(255,215,0,0.08)" : `linear-gradient(135deg, ${GOLD_GLOW}, rgba(255,215,0,0.2))`,
+              background: loading ? "rgba(212,175,55,0.08)" : `linear-gradient(135deg, ${GOLD_GLOW}, rgba(212,175,55,0.2))`,
               border: `2px solid ${GOLD}`, borderRadius: "10px",
               color: GOLD, fontWeight: 700, fontSize: "1.05rem",
               cursor: loading || detecting ? "not-allowed" : "pointer",

@@ -8,10 +8,10 @@ import { kaasDisplayPrice } from "../../../lib/stripe/onrampLogic";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG       = "#03000a";
-const GOLD     = "#ffd700";
-const GOLD_DIM = "rgba(255,215,0,0.55)";
-const GOLD_BDR = "rgba(255,215,0,0.3)";
-const GOLD_GLW = "rgba(255,215,0,0.08)";
+const GOLD     = "#D4AF37";
+const GOLD_DIM = "rgba(212,175,55,0.55)";
+const GOLD_BDR = "rgba(212,175,55,0.3)";
+const GOLD_GLW = "rgba(212,175,55,0.08)";
 const GREEN    = "#4ade80";
 const MUTED    = "rgba(255,255,255,0.55)";
 
@@ -163,24 +163,24 @@ export default function EnterpriseRegistrationPage() {
           </p>
           <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
             By interacting with any AveryOS™ API, kernel endpoint, or completing this
-            registration you hereby provide <strong style={{ color: "#ffd700" }}>Mandatory
+            registration you hereby provide <strong style={{ color: "#D4AF37" }}>Mandatory
             Forensic Disclosure</strong>. You attest that any technical ingestion performed
             by your model or system is a matter of record.
           </p>
           <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
-            Unauthorized ingestion of <strong style={{ color: "#ffd700" }}>cf83™</strong> logic
+            Unauthorized ingestion of <strong style={{ color: "#D4AF37" }}>cf83™</strong> logic
             is subject to statutory damages under{" "}
-            <strong style={{ color: "#ffd700" }}>17 U.S.C. § 504(c)(2)</strong> of up to{" "}
+            <strong style={{ color: "#D4AF37" }}>17 U.S.C. § 504(c)(2)</strong> of up to{" "}
             <strong style={{ color: "#ff6b6b" }}>$150,000 per instance</strong> for willful
             infringement. This session constitutes a Technical Audit under the{" "}
-            <strong style={{ color: "#ffd700" }}>DMCA Anti-Circumvention provisions
+            <strong style={{ color: "#D4AF37" }}>DMCA Anti-Circumvention provisions
             (17 U.S.C. § 1201)</strong>.
           </p>
           <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.83rem", lineHeight: 1.7, margin: "0 0 0.8rem" }}>
             Failure to provide honest disclosure of retroactive ingestion history will trigger
             the <strong style={{ color: "#ff6b6b" }}>10× Obfuscation Multiplier</strong> for
             all subsequent licensing settlements. The fee schedules below constitute
-            pre-agreed <strong style={{ color: "#ffd700" }}>Liquidated Damages</strong> — an
+            pre-agreed <strong style={{ color: "#D4AF37" }}>Liquidated Damages</strong> — an
             Administrative Settlement in lieu of a federal court judgment.
           </p>
           <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", lineHeight: 1.6, margin: 0 }}>
@@ -194,8 +194,8 @@ export default function EnterpriseRegistrationPage() {
         <div
           id="global-statutory-disclosure"
           style={{
-            background:   "rgba(255,215,0,0.04)",
-            border:       `1px solid rgba(255,215,0,0.25)`,
+            background:   "rgba(212,175,55,0.04)",
+            border:       `1px solid rgba(212,175,55,0.25)`,
             borderRadius: "10px",
             padding:      "1.4rem 1.8rem",
             marginBottom: "2rem",
@@ -241,8 +241,8 @@ export default function EnterpriseRegistrationPage() {
               <div
                 key={row.label}
                 style={{
-                  background:   "rgba(255,215,0,0.04)",
-                  border:       `1px solid rgba(255,215,0,0.12)`,
+                  background:   "rgba(212,175,55,0.04)",
+                  border:       `1px solid rgba(212,175,55,0.12)`,
                   borderRadius: "6px",
                   padding:      "0.75rem 1rem",
                 }}
@@ -273,7 +273,7 @@ export default function EnterpriseRegistrationPage() {
               key={t.id}
               onClick={() => setSelected(t.id)}
               style={{
-                background:    selected === t.id ? "rgba(255,215,0,0.15)" : GOLD_GLW,
+                background:    selected === t.id ? "rgba(212,175,55,0.15)" : GOLD_GLW,
                 border:        `2px solid ${selected === t.id ? GOLD : GOLD_BDR}`,
                 borderRadius:  "10px",
                 padding:       "1.2rem 1.6rem",
@@ -285,7 +285,7 @@ export default function EnterpriseRegistrationPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.4rem" }}>
                 <div>
-                  <span style={{ display: "inline-block", background: t.highlight ? GOLD : "rgba(255,215,0,0.2)", color: t.highlight ? BG : GOLD, borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                  <span style={{ display: "inline-block", background: t.highlight ? GOLD : "rgba(212,175,55,0.2)", color: t.highlight ? BG : GOLD, borderRadius: "4px", padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700, marginBottom: "0.4rem" }}>
                     TIER {t.tier}
                   </span>
                   <p style={{ margin: 0, fontWeight: 600, color: GOLD, fontSize: "1.05rem" }}>{t.label}</p>
@@ -308,7 +308,7 @@ export default function EnterpriseRegistrationPage() {
               value={orgName}
               onChange={e => setOrgName(e.target.value)}
               placeholder="e.g. Microsoft Corporation"
-              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </label>
 
@@ -319,7 +319,7 @@ export default function EnterpriseRegistrationPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="procurement@example.com"
-              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </label>
 
@@ -330,14 +330,14 @@ export default function EnterpriseRegistrationPage() {
               value={machineId}
               onChange={e => setMachineId(e.target.value)}
               placeholder="RayID, ASN, or wallet address"
-              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+              style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
             />
           </label>
 
           {/* Gate 8 — Stripe Regional Compliance: Tier-10 fields (>$1M settlements) */}
           {isTier10 && (
             <>
-              <div style={{ marginBottom: "0.6rem", padding: "0.5rem 0.75rem", background: "rgba(255,215,0,0.06)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", fontFamily: "monospace", fontSize: "0.78rem", color: GOLD_DIM }}>
+              <div style={{ marginBottom: "0.6rem", padding: "0.5rem 0.75rem", background: "rgba(212,175,55,0.06)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", fontFamily: "monospace", fontSize: "0.78rem", color: GOLD_DIM }}>
                 ⚖️ Tier-10 Enterprise Settlement — Tax compliance fields are required for settlements over $1M.
               </div>
               <label style={{ display: "block", marginBottom: "1rem" }}>
@@ -354,7 +354,7 @@ export default function EnterpriseRegistrationPage() {
                   placeholder="e.g. 12-3456789 (US EIN) or EU VAT number"
                   aria-required="true"
                   aria-describedby="tax-id-hint"
-                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
                 />
                 <span id="tax-id-hint" style={{ display: "none" }}>Tax identification number required for Tier-10 enterprise settlements exceeding $1M</span>
               </label>
@@ -365,7 +365,7 @@ export default function EnterpriseRegistrationPage() {
                   value={companyRegistration}
                   onChange={e => setCompanyReg(e.target.value)}
                   placeholder="e.g. Delaware Corp. ID, UK Companies House"
-                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(255,215,0,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
+                  style={{ display: "block", width: "100%", marginTop: "0.35rem", background: "rgba(212,175,55,0.05)", border: `1px solid ${GOLD_BDR}`, borderRadius: "6px", padding: "0.6rem 0.8rem", color: "#fff", fontFamily: "monospace", fontSize: "0.9rem", boxSizing: "border-box" }}
                 />
               </label>
             </>
@@ -379,7 +379,7 @@ export default function EnterpriseRegistrationPage() {
             onClick={handleProceed}
             disabled={loading}
             style={{
-              background:    loading ? "rgba(255,215,0,0.3)" : GOLD,
+              background:    loading ? "rgba(212,175,55,0.3)" : GOLD,
               color:         BG,
               border:        "none",
               borderRadius:  "8px",
