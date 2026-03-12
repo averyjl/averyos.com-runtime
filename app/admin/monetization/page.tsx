@@ -22,6 +22,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const DARK_BG    = "#000000";
@@ -141,36 +142,14 @@ function AuthGate({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function StripeRevenueDashboard() {
-  const [authed, setAuthed]         = useState(false);
-  const [checking, setChecking]     = useState(true);
-  const [password, setPassword]     = useState("");
-  const [authError, setAuthError]   = useState("");
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const { authed, checking, password, setPassword, authError, handleAuth } =
+    useVaultAuth();
 
   const [data, setData]             = useState<RevenueResponse | null>(null);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<AosUiError | null>(null);
   const [lookbackDays, setLookbackDays] = useState(90);
-
-  // ── Auth probe ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/v1/stripe/revenue?probe=1", { credentials: "same-origin" })
-      .then((r) => { if (r.ok) setAuthed(true); setChecking(false); })
-      .catch(() => setChecking(false));
-  }, []);
-
-  // ── Password submit ────────────────────────────────────────────────────────
-  const handlePasswordSubmit = async () => {
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method: "POST", credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: password }),
-      });
-      if (res.ok) setAuthed(true);
-      else setAuthError("⛔ Invalid token. Access denied.");
-    } catch { setAuthError("⛔ Auth check failed. Try again."); }
-  };
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -198,7 +177,7 @@ export default function StripeRevenueDashboard() {
         password={password}
         setPassword={setPassword}
         authError={authError}
-        onSubmit={handlePasswordSubmit}
+        onSubmit={() => void handleAuth()}
       />
     );
   }

@@ -19,6 +19,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
@@ -49,23 +50,20 @@ interface DocsManifest {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SovereignDocsPage() {
-  const [password,        setPassword]        = useState("");
-  const [authError,       setAuthError]       = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [manifest,        setManifest]        = useState<DocsManifest | null>(null);
-  const [search,          setSearch]          = useState("");
-  const [error,           setError]           = useState<AosUiError | null>(null);
-  const [loading,         setLoading]         = useState(false);
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const {
+    authed: isAuthenticated,
+    checking,
+    password,
+    setPassword,
+    authError,
+    handleAuth: handleAuthHook,
+  } = useVaultAuth();
 
-  // ── Auth check — probe a protected API to detect an existing HttpOnly cookie ─
-  // SECURITY: The raw passphrase is NEVER stored in sessionStorage or any
-  // browser-accessible storage. /api/v1/vault/auth sets an HttpOnly Secure
-  // cookie on successful login; credentials: "same-origin" sends it here.
-  useEffect(() => {
-    fetch("/api/v1/qa/results?limit=1", { credentials: "same-origin" })
-      .then(r => { setIsAuthenticated(r.ok); })
-      .catch(() => setIsAuthenticated(false));
-  }, []);
+  const [manifest, setManifest] = useState<DocsManifest | null>(null);
+  const [search,   setSearch]   = useState("");
+  const [error,    setError]    = useState<AosUiError | null>(null);
+  const [loading,  setLoading]  = useState(false);
 
   // ── Load docs manifest once authenticated ────────────────────────────────
   useEffect(() => {
@@ -90,30 +88,8 @@ export default function SovereignDocsPage() {
   }, [isAuthenticated]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  // POST the raw passphrase to /api/v1/vault/auth over HTTPS. The server
-  // validates and responds with Set-Cookie: aos-vault-auth=…; HttpOnly; Secure.
-  // The passphrase is NEVER written to sessionStorage or any browser storage.
-  async function handleAuth(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = password.trim();
-    if (!trimmed) return;
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method:      "POST",
-        credentials: "same-origin",
-        headers:     { "Content-Type": "application/json" },
-        body:        JSON.stringify({ token: trimmed }),
-      });
-      if (res.ok) {
-        setIsAuthenticated(true);
-        setPassword("");
-      } else {
-        setAuthError("⛔ Invalid passphrase. Access denied.");
-      }
-    } catch {
-      setAuthError("⛔ Auth check failed. Please retry.");
-    }
+  function handleAuth(e: React.FormEvent) {
+    void handleAuthHook(e);
   }
 
   // ── Filter ────────────────────────────────────────────────────────────────
@@ -135,7 +111,7 @@ export default function SovereignDocsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (isAuthenticated === null) {
+  if (checking) {
     return (
       <main className="page" style={{ background: PURPLE_DEEP, minHeight: "100vh" }}>
         <AnchorBanner />

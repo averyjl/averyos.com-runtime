@@ -18,6 +18,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION } from "../../../lib/sovereignConstants";
 
@@ -183,10 +184,9 @@ function AuthGate({
 // ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
 export default function QaDashboard() {
-  const [checking,  setChecking]  = useState(true);
-  const [authed,    setAuthed]    = useState(false);
-  const [password,  setPassword]  = useState("");
-  const [authError, setAuthError] = useState("");
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const { authed, checking, password, setPassword, authError, handleAuth } =
+    useVaultAuth();
 
   const [running,    setRunning]    = useState(false);
   const [runResult,  setRunResult]  = useState<QaRunResult | null>(null);
@@ -194,46 +194,6 @@ export default function QaDashboard() {
   const [loadingHist, setLoadingHist] = useState(false);
   const [uiError,    setUiError]    = useState<AosUiError | null>(null);
   const [expandSuite, setExpandSuite] = useState<Record<string, boolean>>({});
-
-  // ── Auth check on mount ────────────────────────────────────────────────────
-  // Probe the QA results API with credentials: "same-origin" — if the browser
-  // already holds a valid `aos-vault-auth` HttpOnly cookie (from a prior login)
-  // the request succeeds and we skip the password gate. The passphrase is NEVER
-  // read from or written to sessionStorage.
-  useEffect(() => {
-    fetch("/api/v1/qa/results?limit=1", { credentials: "same-origin" })
-      .then(r => {
-        if (r.ok) setAuthed(true);
-        setChecking(false);
-      })
-      .catch(() => setChecking(false));
-  }, []);
-
-  // ── Submit auth ────────────────────────────────────────────────────────────
-  // POST the raw passphrase to /api/v1/vault/auth over HTTPS. The server
-  // validates it and responds with Set-Cookie: aos-vault-auth=…; HttpOnly;
-  // Secure; SameSite=Strict. The passphrase is never written to any storage.
-  const handleAuth = useCallback(async () => {
-    const trimmed = password.trim();
-    if (!trimmed) { setAuthError("Passphrase required."); return; }
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method:      "POST",
-        credentials: "same-origin",
-        headers:     { "Content-Type": "application/json" },
-        body:        JSON.stringify({ token: trimmed }),
-      });
-      if (res.ok) {
-        setAuthed(true);
-        setPassword("");
-      } else {
-        setAuthError("⛔ Invalid passphrase. Access denied.");
-      }
-    } catch {
-      setAuthError("⛔ Auth check failed. Please retry.");
-    }
-  }, [password]);
 
   // ── Load history ───────────────────────────────────────────────────────────
   const loadHistory = useCallback(async () => {
