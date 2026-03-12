@@ -159,3 +159,4 @@ averyos_public_key_b64.txt
 averyos_key_part1.txt
 averyos_key_part2.txt
 averyos_key_part3.txt
+__tests__/generated/qa-run-*.json

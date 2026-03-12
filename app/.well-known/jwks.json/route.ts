@@ -67,7 +67,6 @@ export async function GET(request: Request): Promise<Response> {
           alg: "RS256",
           // AveryOS™ sovereign extensions
           "x-averyos-status":         "ACTIVE",
-          // Display-only abbreviated SHA (first 32 hex chars); not for verification
           "x-averyos-kernel-sha":     KERNEL_SHA,
           "x-averyos-kernel-version": KERNEL_VERSION,
           "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",

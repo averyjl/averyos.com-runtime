@@ -365,6 +365,116 @@ const CHECKS = [
       return { status: STATUS.FAIL, detail: "scripts/avery-qa.cjs not found" };
     },
   },
+
+  // ── Phase 112 GATE checks ──────────────────────────────────────────────
+
+  {
+    id: "gate112.1.queue-consumer-handler",
+    description: "lib/queue/logConsumerHandler.ts exists (Phase 112 GATE 112.1)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../lib/queue/logConsumerHandler.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/queue/logConsumerHandler.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("sovereignQueueHandler")) {
+        return { status: STATUS.FAIL, detail: "sovereignQueueHandler export not found in logConsumerHandler.ts" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate112.1.patch-worker-queue-script",
+    description: "scripts/patchWorkerQueue.cjs exists (Phase 112 GATE 112.1)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "patchWorkerQueue.cjs");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "scripts/patchWorkerQueue.cjs not found" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate112.2.jwks-full-sha",
+    description: "app/api/v1/jwks/route.ts uses full KERNEL_SHA (no truncation) (Phase 112 GATE 112.2)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/api/v1/jwks/route.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/api/v1/jwks/route.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("KERNEL_SHA.slice(")) {
+        return { status: STATUS.FAIL, detail: "KERNEL_SHA is still being truncated in app/api/v1/jwks/route.ts" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate112.2.well-known-jwks-full-sha",
+    description: "app/.well-known/jwks.json/route.ts uses full KERNEL_SHA (no truncation) (Phase 112 GATE 112.2)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/.well-known/jwks.json/route.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/.well-known/jwks.json/route.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("KERNEL_SHA.slice(")) {
+        return { status: STATUS.FAIL, detail: "KERNEL_SHA is still being truncated in app/.well-known/jwks.json/route.ts" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate112.5.revenue-log-live",
+    description: "app/admin/monetization/page.tsx shows LIVE SETTLEMENT READY (Phase 112 GATE 112.5)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      const file = path.resolve(__dirname, "../app/admin/monetization/page.tsx");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/admin/monetization/page.tsx not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      // Check for the specific STALLED REVENUE TRACKER header text
+      if (content.includes("STALLED REVENUE TRACKER")) {
+        return { status: STATUS.FAIL, detail: "Revenue log still shows STALLED REVENUE TRACKER — upgrade to LIVE SETTLEMENT READY" };
+      }
+      if (!content.includes("LIVE SETTLEMENT READY")) {
+        return { status: STATUS.FAIL, detail: "LIVE SETTLEMENT READY status not found in monetization page" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate112.sovereign-env-triple-part",
+    description: "lib/security/keys.ts SovereignEnv includes triple-part key fields",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../lib/security/keys.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("AVERYOS_PRIVATE_KEY_B64_1_OF_3")) {
+        return { status: STATUS.FAIL, detail: "AVERYOS_PRIVATE_KEY_B64_1_OF_3 missing from SovereignEnv" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
 ];
 
 // ── Result rendering ──────────────────────────────────────────────────────────

@@ -14,6 +14,19 @@ import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
  *
  * Both cron schedules are defined in wrangler.toml [triggers].
  *
+ * ── Sovereign Queue Consumer — Phase 112 GATE 112.1 ──────────────────────────
+ *
+ * The `sovereign-log-ingress` Cloudflare Queue consumer is wired into the
+ * Worker entrypoint by `scripts/patchWorkerQueue.cjs`, which runs as the final
+ * step of `build:cloudflare` and injects an async `queue()` export into
+ * `.open-next/worker.js`.  The handler logic lives in
+ * `lib/queue/logConsumerHandler.ts` and writes batched forensic log records to
+ * the `sovereign_audit_logs` D1 table.
+ *
+ * This resolves Cloudflare Worker error 11001 ("No queue consumers found")
+ * caused by the `[[queues.consumers]]` binding in wrangler.toml requiring a
+ * `queue()` export that the vanilla OpenNext Worker template does not provide.
+ *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 export default defineCloudflareConfig();
