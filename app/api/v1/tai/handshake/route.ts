@@ -24,7 +24,6 @@ import { formatIso9 } from "../../../../../lib/timePrecision";
 import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 interface CloudflareEnv {
-  TAI_LICENSE_KEY?:     string;
   AVERYOS_LICENSE_KEY?: string;
   TAI_SENTINEL_TOKEN?:  string;
 }
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    const licenseKeySecret   = cfEnv.AVERYOS_LICENSE_KEY ?? cfEnv.TAI_LICENSE_KEY ?? "";
+    const licenseKeySecret   = cfEnv.AVERYOS_LICENSE_KEY ?? "";
     const sentinelTokenSecret = cfEnv.TAI_SENTINEL_TOKEN ?? "";
 
     if (!licenseKeySecret || !sentinelTokenSecret) {

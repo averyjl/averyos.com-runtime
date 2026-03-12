@@ -51,23 +51,18 @@ interface SovereignEnv {
   AVERYOS_PRIVATE_KEY_B64?: string;
   /** Base64-encoded RSA public key (SPKI or PKCS#1 DER). */
   AVERYOS_PUBLIC_KEY_B64?:  string;
-  // ── Triple-Part Protocol (GATE 111.4.1) ──────────────────────────────────
-  // When the full key exceeds the Cloudflare 1 KB secret limit, it is split
-  // across three secrets.  Both UPPERCASE and lowercase binding names are
-  // accepted because Cloudflare stores secrets with the exact name supplied
-  // in the dashboard (the creator used lowercase).
-  /** Triple-Part Protocol — part 1 of 3 (uppercase binding name). */
-  AVERYOS_PRIVATE_KEY_B64_1_OF_3?: string;
-  /** Triple-Part Protocol — part 2 of 3 (uppercase binding name). */
-  AVERYOS_PRIVATE_KEY_B64_2_OF_3?: string;
-  /** Triple-Part Protocol — part 3 of 3 (uppercase binding name). */
-  AVERYOS_PRIVATE_KEY_B64_3_OF_3?: string;
-  /** Triple-Part Protocol — part 1 of 3 (lowercase binding name as stored in Cloudflare). */
-  averyos_private_key_b64_1_of_3?: string;
-  /** Triple-Part Protocol — part 2 of 3 (lowercase binding name as stored in Cloudflare). */
-  averyos_private_key_b64_2_of_3?: string;
-  /** Triple-Part Protocol — part 3 of 3 (lowercase binding name as stored in Cloudflare). */
-  averyos_private_key_b64_3_of_3?: string;
+  /**
+   * First half of the split Base64-encoded private key bundle.
+   * Used by the Split-Key Protocol (GATE 111.3.1) when the full key exceeds
+   * the Cloudflare 1 KB secret limit. Concatenated with PART2 at runtime.
+   */
+  AVERYOS_PRIVATE_KEY_PART1?: string;
+  /**
+   * Second half of the split Base64-encoded private key bundle.
+   * Used by the Split-Key Protocol (GATE 111.3.1) when the full key exceeds
+   * the Cloudflare 1 KB secret limit. Concatenated with PART1 at runtime.
+   */
+  AVERYOS_PRIVATE_KEY_PART2?: string;
 }
 
 // ── Key import helpers ────────────────────────────────────────────────────────
@@ -506,4 +501,61 @@ export async function getSovereignKeysFromXml(env: SovereignEnv): Promise<Sovere
     kernelSha:     KERNEL_SHA,
     kernelVersion: KERNEL_VERSION,
   };
+}
+
+// ── Split-Key Reconstructor (GATE 111.3.1) ────────────────────────────────────
+
+/**
+ * Load the AveryOS™ sovereign RSA key pair using the Split-Key Protocol.
+ *
+ * The Cloudflare Workers secret store enforces a 1 KB per-secret limit.
+ * When the Base64-encoded key bundle exceeds this limit the operator can
+ * split the bundle into two halves and store them as separate secrets:
+ *   `AVERYOS_PRIVATE_KEY_PART1`  — first half of the Base64 string
+ *   `AVERYOS_PRIVATE_KEY_PART2`  — second half of the Base64 string
+ *
+ * This function:
+ *  1. Concatenates PART1 + PART2 to reconstruct the full Base64 bundle.
+ *  2. Delegates to `getSovereignKeys()` with the reconstructed bundle exposed
+ *     as `AVERYOS_PRIVATE_KEY_B64`, preserving all existing key-format
+ *     auto-detection logic (DER PKCS#8 vs .NET XML-B64).
+ *  3. Falls back to `AVERYOS_PRIVATE_KEY_B64` directly if both PART1 and
+ *     PART2 are absent — this allows a seamless transition from the legacy
+ *     single-secret deployment to the split-key deployment without a
+ *     simultaneous secret rotation.
+ *
+ * @param env  Cloudflare Worker environment bindings.  Must contain either
+ *             (AVERYOS_PRIVATE_KEY_PART1 + AVERYOS_PRIVATE_KEY_PART2) or the
+ *             legacy AVERYOS_PRIVATE_KEY_B64.
+ * @returns    SovereignKeyPair with loaded keys (or nulls on failure).
+ */
+export async function getReconstructedSovereignKeys(env: SovereignEnv): Promise<SovereignKeyPair> {
+  const part1 = env.AVERYOS_PRIVATE_KEY_PART1 ?? "";
+  const part2 = env.AVERYOS_PRIVATE_KEY_PART2 ?? "";
+
+  // Detect misconfiguration: exactly one part is set but not both.
+  // We log a console warning (not an error that could leak key material)
+  // so operators can identify the issue without silently failing.
+  if ((part1 && !part2) || (!part1 && part2)) {
+    console.warn(
+      "[AveryOS™ VaultKey] Split-key misconfiguration detected: " +
+      "only one of AVERYOS_PRIVATE_KEY_PART1 / AVERYOS_PRIVATE_KEY_PART2 is set. " +
+      "Both parts must be present for key reconstruction. " +
+      "Falling back to AVERYOS_PRIVATE_KEY_B64.",
+    );
+  }
+
+  // If both parts are present, reconstruct and override the env key slot.
+  // Basic sanity: each part must contain only valid Base64 characters.
+  const b64Pattern = /^[A-Za-z0-9+/]+=*$/;
+  if (part1 && part2 && b64Pattern.test(part1) && b64Pattern.test(part2)) {
+    const reconstructedEnv: SovereignEnv = {
+      ...env,
+      AVERYOS_PRIVATE_KEY_B64: part1 + part2,
+    };
+    return getSovereignKeys(reconstructedEnv);
+  }
+
+  // Fallback: use the legacy AVERYOS_PRIVATE_KEY_B64 directly
+  return getSovereignKeys(env);
 }

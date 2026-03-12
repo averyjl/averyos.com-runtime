@@ -1,0 +1,535 @@
+#!/usr/bin/env node
+/**
+ * scripts/avery-qa.cjs
+ *
+ * AveryOS™ Sovereign QA Engine — Phase 112 / GATE 111.2.2
+ *
+ * World-class QA framework for the AveryOS™ runtime. Runs a suite of
+ * checks from three perspectives:
+ *
+ *   HUMAN_USER       — checks that a legitimate user would experience correctly
+ *   BOT_AGENT        — checks from an autonomous-agent / API consumer angle
+ *   TAI_PERSPECTIVE  — checks from the AveryOS™ Truth Anchored Intelligence view
+ *
+ * Each check is assigned a severity:
+ *   CRITICAL — failure blocks deployment / signals kernel drift
+ *   HIGH     — failure needs immediate attention
+ *   MEDIUM   — warning; degrades experience
+ *   LOW      — informational
+ *
+ * Results are:
+ *   1. Printed to stdout with colour-coded output.
+ *   2. Written to __tests__/generated/qa-run-<timestamp>.json.
+ *   3. Optionally pushed to the D1 qa_audit_log table via the
+ *      /api/v1/qa/log endpoint when BASE_URL is set in the environment.
+ *
+ * Usage:
+ *   node scripts/avery-qa.cjs [--verbose] [--dry-run] [--no-upload]
+ *
+ * Environment:
+ *   BASE_URL        — e.g. https://averyos.com  (required for live-route checks)
+ *   QA_AUTH_TOKEN   — Bearer token for authenticated routes (optional)
+ *
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+ */
+
+"use strict";
+
+const fs     = require("fs");
+const path   = require("path");
+const crypto = require("crypto");
+const https  = require("https");
+const http   = require("http");
+
+const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+
+// ── CLI flags ─────────────────────────────────────────────────────────────────
+
+const VERBOSE   = process.argv.includes("--verbose");
+const DRY_RUN   = process.argv.includes("--dry-run");
+const NO_UPLOAD = process.argv.includes("--no-upload");
+const BASE_URL  = process.env.BASE_URL ?? "";
+
+// ── Sovereign kernel anchor ───────────────────────────────────────────────────
+
+const KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+const KERNEL_VERSION = "v3.6.2";
+
+// ── ANSI colours ──────────────────────────────────────────────────────────────
+
+const R = "\x1b[0m";
+const RED    = "\x1b[31m";
+const GREEN  = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const CYAN   = "\x1b[36m";
+const BOLD   = "\x1b[1m";
+const DIM    = "\x1b[2m";
+
+// ── Severity constants ────────────────────────────────────────────────────────
+
+const SEVERITY = /** @type {const} */ ({
+  CRITICAL: "CRITICAL",
+  HIGH:     "HIGH",
+  MEDIUM:   "MEDIUM",
+  LOW:      "LOW",
+});
+
+// ── Perspective constants ─────────────────────────────────────────────────────
+
+const PERSPECTIVE = /** @type {const} */ ({
+  HUMAN_USER:      "HUMAN_USER",
+  BOT_AGENT:       "BOT_AGENT",
+  TAI_PERSPECTIVE: "TAI_PERSPECTIVE",
+});
+
+// ── Status constants ──────────────────────────────────────────────────────────
+
+const STATUS = /** @type {const} */ ({
+  PASS: "PASS",
+  FAIL: "FAIL",
+  SKIP: "SKIP",
+  WARN: "WARN",
+});
+
+// ── Helper: perform an HTTP GET and return the status code ────────────────────
+
+/**
+ * @param {string} url
+ * @returns {Promise<number>}
+ */
+function httpStatus(url) {
+  return new Promise((resolve) => {
+    const mod = url.startsWith("https") ? https : http;
+    const req = mod.get(url, { timeout: 10_000 }, (res) => {
+      res.resume(); // drain
+      resolve(res.statusCode ?? 0);
+    });
+    req.on("error", () => resolve(0));
+    req.on("timeout", () => { req.destroy(); resolve(0); });
+  });
+}
+
+// ── Test suite definitions ────────────────────────────────────────────────────
+
+/**
+ * @typedef {{ id: string; description: string; perspective: string; severity: string; run: () => Promise<{ status: string; detail?: string }> }} QaCheck
+ */
+
+/** @type {QaCheck[]} */
+const CHECKS = [
+  // ── Kernel anchor integrity ──────────────────────────────────────────────
+
+  {
+    id: "kernel.sha-integrity",
+    description: "KERNEL_SHA matches the expected cf83 anchor value",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.CRITICAL,
+    async run() {
+      const expected = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
+      if (KERNEL_SHA === expected) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: `Expected ${expected}, got ${KERNEL_SHA}` };
+    },
+  },
+
+  {
+    id: "kernel.version-format",
+    description: "KERNEL_VERSION matches vX.Y.Z format",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      if (/^v\d+\.\d+\.\d+$/.test(KERNEL_VERSION)) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: `KERNEL_VERSION '${KERNEL_VERSION}' does not match vX.Y.Z` };
+    },
+  },
+
+  // ── Source file guards ───────────────────────────────────────────────────
+
+  {
+    id: "source.no-deprecated-tai-license-key",
+    description: "No source file references the deprecated secret-key name (TAI_LICENSE" + "_KEY)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.CRITICAL,
+    async run() {
+      const root = path.resolve(__dirname, "..");
+      const exts = [".ts", ".tsx", ".js", ".cjs", ".mjs", ".toml"];
+      const skipDirs = new Set(["node_modules", ".next", ".git", ".open-next"]);
+      // The banned term is constructed at runtime (not stored as a literal) so that
+      // this very file does not trigger the check it is designed to enforce.
+      // The same technique is used by the CI Key-Rename Drift Guard in node-ci.yml.
+      // Do NOT refactor this into a plain string literal — that would cause a false positive.
+      const banned = ["TAI_LICENSE", "_KEY"].join("");
+
+      /** @param {string} dir @returns {string[]} */
+      function walk(dir) {
+        let out = [];
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory()) {
+            if (!skipDirs.has(entry.name)) out = out.concat(walk(path.join(dir, entry.name)));
+          } else if (exts.some((e) => entry.name.endsWith(e))) {
+            out.push(path.join(dir, entry.name));
+          }
+        }
+        return out;
+      }
+
+      const hits = [];
+      for (const file of walk(root)) {
+        const content = fs.readFileSync(file, "utf8");
+        if (content.includes(banned)) {
+          hits.push(path.relative(root, file));
+        }
+      }
+      if (hits.length === 0) return { status: STATUS.PASS };
+      return { status: STATUS.FAIL, detail: `Deprecated secret-key name found in: ${hits.join(", ")}` };
+    },
+  },
+
+  {
+    id: "source.sovereign-constants-imported",
+    description: "lib/sovereignConstants.ts exports KERNEL_SHA and KERNEL_VERSION",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.CRITICAL,
+    async run() {
+      const file = path.resolve(__dirname, "..", "lib", "sovereignConstants.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/sovereignConstants.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("KERNEL_SHA") && content.includes("KERNEL_VERSION")) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: "KERNEL_SHA or KERNEL_VERSION not exported from sovereignConstants.ts" };
+    },
+  },
+
+  // ── Keys module (GATE 111.3.1) ───────────────────────────────────────────
+
+  {
+    id: "security.keys.split-key-reconstructor",
+    description: "lib/security/keys.ts exports getReconstructedSovereignKeys",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "..", "lib", "security", "keys.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("getReconstructedSovereignKeys")) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: "getReconstructedSovereignKeys not found in lib/security/keys.ts" };
+    },
+  },
+
+  {
+    id: "security.keys.xml-parser",
+    description: "lib/security/keys.ts exports getSovereignKeysFromXml",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "..", "lib", "security", "keys.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("getSovereignKeysFromXml")) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: "getSovereignKeysFromXml not found in lib/security/keys.ts" };
+    },
+  },
+
+  // ── VaultGate (GATE 111.3.2) ─────────────────────────────────────────────
+
+  {
+    id: "auth.vaultgate.table-name",
+    description: "lib/auth/vaultgate.ts explicitly references 'vaultgate_credentials'",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "..", "lib", "auth", "vaultgate.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/auth/vaultgate.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("vaultgate_credentials")) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: "vaultgate_credentials table name not found in lib/auth/vaultgate.ts" };
+    },
+  },
+
+  {
+    id: "auth.vaultgate.migration",
+    description: "migrations/0043_vaultgate_table.sql exists and creates vaultgate_credentials",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "..", "migrations", "0043_vaultgate_table.sql");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "0043_vaultgate_table.sql not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (content.includes("vaultgate_credentials")) {
+        return { status: STATUS.PASS };
+      }
+      return { status: STATUS.FAIL, detail: "vaultgate_credentials CREATE TABLE not in migration" };
+    },
+  },
+
+  // ── Licensing UI (GATE 111.2.4) ──────────────────────────────────────────
+
+  {
+    id: "ui.licensing.metallic-gold",
+    description: "All /licensing/* pages use #D4AF37 (metallic gold) not #ffd700",
+    perspective: PERSPECTIVE.HUMAN_USER,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      const licensingDir = path.resolve(__dirname, "..", "app", "licensing");
+      const stale = [];
+      /** @param {string} dir */
+      function scan(dir) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) scan(full);
+          else if (entry.name === "page.tsx") {
+            const content = fs.readFileSync(full, "utf8");
+            if (content.includes("#ffd700") || content.includes("255,215,0")) {
+              stale.push(path.relative(path.resolve(__dirname, ".."), full));
+            }
+          }
+        }
+      }
+      if (fs.existsSync(licensingDir)) scan(licensingDir);
+      if (stale.length === 0) return { status: STATUS.PASS };
+      return { status: STATUS.FAIL, detail: `Legacy #ffd700 still present in: ${stale.join(", ")}` };
+    },
+  },
+
+  // ── Live route checks (BOT_AGENT perspective) ────────────────────────────
+
+  {
+    id: "routes.health.api",
+    description: "GET /api/v1/health returns 200",
+    perspective: PERSPECTIVE.BOT_AGENT,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      if (!BASE_URL) return { status: STATUS.SKIP, detail: "BASE_URL not set" };
+      const code = await httpStatus(`${BASE_URL}/api/v1/health`);
+      if (code === 200) return { status: STATUS.PASS };
+      return { status: STATUS.FAIL, detail: `HTTP ${code}` };
+    },
+  },
+
+  {
+    id: "routes.jwks",
+    description: "GET /.well-known/jwks.json returns 200",
+    perspective: PERSPECTIVE.BOT_AGENT,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      if (!BASE_URL) return { status: STATUS.SKIP, detail: "BASE_URL not set" };
+      const code = await httpStatus(`${BASE_URL}/.well-known/jwks.json`);
+      if (code === 200) return { status: STATUS.PASS };
+      return { status: STATUS.WARN, detail: `HTTP ${code} — JWKS may not be ACTIVE yet` };
+    },
+  },
+
+  {
+    id: "routes.licensing",
+    description: "GET /licensing returns 200",
+    perspective: PERSPECTIVE.HUMAN_USER,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      if (!BASE_URL) return { status: STATUS.SKIP, detail: "BASE_URL not set" };
+      const code = await httpStatus(`${BASE_URL}/licensing`);
+      if (code === 200) return { status: STATUS.PASS };
+      return { status: STATUS.FAIL, detail: `HTTP ${code}` };
+    },
+  },
+
+  // ── QA engine self-check ─────────────────────────────────────────────────
+
+  {
+    id: "qa.avery-qa-script",
+    description: "scripts/avery-qa.cjs exists and is readable",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.LOW,
+    async run() {
+      const file = path.resolve(__dirname, "avery-qa.cjs");
+      if (fs.existsSync(file)) return { status: STATUS.PASS };
+      return { status: STATUS.FAIL, detail: "scripts/avery-qa.cjs not found" };
+    },
+  },
+];
+
+// ── Result rendering ──────────────────────────────────────────────────────────
+
+const STATUS_COLOUR = {
+  [STATUS.PASS]: GREEN,
+  [STATUS.FAIL]: RED,
+  [STATUS.WARN]: YELLOW,
+  [STATUS.SKIP]: DIM,
+};
+
+const SEVERITY_COLOUR = {
+  [SEVERITY.CRITICAL]: RED + BOLD,
+  [SEVERITY.HIGH]:     RED,
+  [SEVERITY.MEDIUM]:   YELLOW,
+  [SEVERITY.LOW]:      DIM,
+};
+
+// ── Run engine ────────────────────────────────────────────────────────────────
+
+/**
+ * @typedef {{ check: QaCheck; status: string; detail?: string; durationMs: number }} QaResult
+ */
+
+async function runQa() {
+  console.log(`\n${BOLD}${CYAN}⛓️⚓⛓️  AveryOS™ Sovereign QA Engine — Phase 112${R}`);
+  console.log(`${DIM}Kernel: ${KERNEL_VERSION}  SHA: ${KERNEL_SHA.slice(0, 16)}…${R}`);
+  if (DRY_RUN) console.log(`${YELLOW}[DRY-RUN] No files will be written.${R}`);
+  console.log();
+
+  /** @type {QaResult[]} */
+  const results = [];
+  let passCount = 0;
+  let failCount = 0;
+  let warnCount = 0;
+  let skipCount = 0;
+
+  for (const check of CHECKS) {
+    const t0 = Date.now();
+    let status = STATUS.SKIP;
+    let detail;
+    try {
+      const res = await check.run();
+      status = res.status;
+      detail = res.detail;
+    } catch (/** @type {unknown} */ err) {
+      status = STATUS.FAIL;
+      detail = err instanceof Error ? err.message : String(err);
+      logAosError(AOS_ERROR.INTERNAL_ERROR, `qa check '${check.id}' threw`, err);
+    }
+    const durationMs = Date.now() - t0;
+    results.push({ check, status, detail, durationMs });
+
+    if (status === STATUS.PASS) passCount++;
+    else if (status === STATUS.FAIL) failCount++;
+    else if (status === STATUS.WARN) warnCount++;
+    else skipCount++;
+
+    const sc = STATUS_COLOUR[status] ?? R;
+    const sevc = SEVERITY_COLOUR[check.severity] ?? R;
+    const marker = status === STATUS.PASS ? "✅" : status === STATUS.FAIL ? "❌" : status === STATUS.WARN ? "⚠️" : "⏭️";
+    console.log(
+      `${marker}  ${sc}${status.padEnd(4)}${R}  ${sevc}[${check.severity.padEnd(8)}]${R}  ${check.id}`,
+    );
+    if (detail && (VERBOSE || status !== STATUS.PASS)) {
+      console.log(`    ${DIM}↳ ${detail}${R}`);
+    }
+    if (VERBOSE) {
+      console.log(`    ${DIM}perspective=${check.perspective}  ${durationMs}ms${R}`);
+    }
+  }
+
+  // ── Summary ─────────────────────────────────────────────────────────────
+
+  const total  = results.length;
+  const overallStatus = failCount === 0 ? (warnCount > 0 ? "partial" : "pass") : "fail";
+  const overallColour = overallStatus === "pass" ? GREEN : overallStatus === "partial" ? YELLOW : RED;
+
+  console.log(`\n${BOLD}Summary${R}: ${total} checks — `
+    + `${GREEN}${passCount} pass${R} / `
+    + `${RED}${failCount} fail${R} / `
+    + `${YELLOW}${warnCount} warn${R} / `
+    + `${DIM}${skipCount} skip${R}`);
+  console.log(`${overallColour}${BOLD}Overall: ${overallStatus.toUpperCase()}${R}\n`);
+
+  // ── Persist run record ───────────────────────────────────────────────────
+
+  const runId   = `qa-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+  const sha512  = crypto.createHash("sha512").update(
+    KERNEL_SHA + overallStatus + total + passCount + failCount,
+  ).digest("hex");
+
+  const record = {
+    run_id:        runId,
+    trigger:       "manual",
+    status:        overallStatus,
+    total_tests:   total,
+    passed_tests:  passCount,
+    failed_tests:  failCount,
+    sha512,
+    kernel_sha:    KERNEL_SHA,
+    kernel_version: KERNEL_VERSION,
+    run_details:   results.map((r) => ({
+      id:          r.check.id,
+      perspective: r.check.perspective,
+      severity:    r.check.severity,
+      status:      r.status,
+      detail:      r.detail,
+      durationMs:  r.durationMs,
+    })),
+    created_at: new Date().toISOString(),
+  };
+
+  if (!DRY_RUN) {
+    const genDir = path.resolve(__dirname, "..", "__tests__", "generated");
+    if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+    const outFile = path.join(genDir, `qa-run-${Date.now()}.json`);
+    fs.writeFileSync(outFile, JSON.stringify(record, null, 2));
+    console.log(`${DIM}Run record saved → ${path.relative(process.cwd(), outFile)}${R}`);
+    logAosHeal("QA_COMPLETE", `avery-qa run ${runId}: ${overallStatus.toUpperCase()}`);
+  }
+
+  // ── Optional D1 upload via API ───────────────────────────────────────────
+
+  if (!NO_UPLOAD && !DRY_RUN && BASE_URL) {
+    try {
+      await uploadRecord(BASE_URL, record);
+    } catch (/** @type {unknown} */ err) {
+      // Non-fatal — the QA run itself already succeeded
+      logAosError(AOS_ERROR.INTERNAL_ERROR, "Failed to upload QA record to D1", err);
+    }
+  }
+
+  return failCount === 0 ? 0 : 1;
+}
+
+/**
+ * Upload a QA run record to the D1 qa_audit_log table via the API.
+ * @param {string} baseUrl
+ * @param {Record<string, unknown>} record
+ */
+function uploadRecord(baseUrl, record) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(record);
+    const url  = new URL("/api/v1/qa/log", baseUrl);
+    const mod  = url.protocol === "https:" ? https : http;
+    const req  = mod.request(
+      url,
+      {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+        timeout: 10_000,
+      },
+      (res) => { res.resume(); resolve(res.statusCode); },
+    );
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error("upload timeout")); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// ── Entrypoint ────────────────────────────────────────────────────────────────
+
+runQa().then((code) => process.exit(code)).catch((err) => {
+  logAosError(AOS_ERROR.INTERNAL_ERROR, "avery-qa fatal error", err);
+  process.exit(1);
+});

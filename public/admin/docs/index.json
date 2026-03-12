@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-12T01:36:13.973Z",
+  "generated_at": "2026-03-12T19:34:41.818Z",
   "modules": [
     {
       "path": "lib/ai/geminiClient.ts",
@@ -599,6 +599,21 @@
       ]
     },
     {
+      "path": "lib/hooks/useVaultAuth.ts",
+      "doc": "admin/docs/lib/hooks/useVaultAuth.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "useVaultAuth",
+          "kind": "function"
+        },
+        {
+          "name": "VaultAuthState",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/kaas/pricing.ts",
       "doc": "admin/docs/lib/kaas/pricing.md",
       "symbolCount": 19,
@@ -782,6 +797,131 @@
       ]
     },
     {
+      "path": "lib/qa/engine.ts",
+      "doc": "admin/docs/lib/qa/engine.md",
+      "symbolCount": 11,
+      "symbols": [
+        {
+          "name": "assessRunStatus",
+          "kind": "function"
+        },
+        {
+          "name": "computeQaSha512",
+          "kind": "function"
+        },
+        {
+          "name": "buildQaRunRecord",
+          "kind": "function"
+        },
+        {
+          "name": "buildQaSuite",
+          "kind": "function"
+        },
+        {
+          "name": "runTest",
+          "kind": "function"
+        },
+        {
+          "name": "QaTestResult",
+          "kind": "interface"
+        },
+        {
+          "name": "QaSuiteResult",
+          "kind": "interface"
+        },
+        {
+          "name": "QaRunRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "QaTestPerspective",
+          "kind": "type"
+        },
+        {
+          "name": "QaTestSeverity",
+          "kind": "type"
+        },
+        {
+          "name": "QaRunStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/qa/performance.ts",
+      "doc": "admin/docs/lib/qa/performance.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "runBenchmark",
+          "kind": "function"
+        },
+        {
+          "name": "assertBenchmarkAvg",
+          "kind": "function"
+        },
+        {
+          "name": "assertBenchmarkP95",
+          "kind": "function"
+        },
+        {
+          "name": "PERF_THRESHOLDS",
+          "kind": "constant"
+        },
+        {
+          "name": "BenchmarkResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/qa/security.ts",
+      "doc": "admin/docs/lib/qa/security.md",
+      "symbolCount": 10,
+      "symbols": [
+        {
+          "name": "assessSecurityHeaders",
+          "kind": "function"
+        },
+        {
+          "name": "isSanitizedSafe",
+          "kind": "function"
+        },
+        {
+          "name": "XSS_PAYLOADS",
+          "kind": "constant"
+        },
+        {
+          "name": "SQL_INJECTION_PAYLOADS",
+          "kind": "constant"
+        },
+        {
+          "name": "BOT_USER_AGENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "BROWSER_USER_AGENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "ABUSE_HEADERS",
+          "kind": "constant"
+        },
+        {
+          "name": "RECOMMENDED_SECURITY_HEADERS",
+          "kind": "constant"
+        },
+        {
+          "name": "PROBE_PATHS",
+          "kind": "constant"
+        },
+        {
+          "name": "SecurityHeaderReport",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/resonanceLayer.ts",
       "doc": "admin/docs/lib/resonanceLayer.md",
       "symbolCount": 9,
@@ -912,10 +1052,14 @@
     {
       "path": "lib/security/keys.ts",
       "doc": "admin/docs/lib/security/keys.md",
-      "symbolCount": 2,
+      "symbolCount": 3,
       "symbols": [
         {
           "name": "getSovereignKeys",
+          "kind": "function"
+        },
+        {
+          "name": "getSovereignKeysFromXml",
           "kind": "function"
         },
         {
