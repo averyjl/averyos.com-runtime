@@ -120,6 +120,13 @@ const ADMIN_PANELS = [
     description: "Creator-locked: Live Stripe revenue, Genesis Dollar Anchor, and liability vs. collected comparison",
     color:       "#4ade80",
   },
+  {
+    path:        "/admin/qa",
+    icon:        "🧪",
+    label:       "QA Engine Dashboard",
+    description: "World-class sovereign QA: unit test results, security checks, performance benchmarks, and SHA-512 audit log",
+    color:       "#60a5fa",
+  },
 ];
 
 // ── Amnesty Countdown helper ──────────────────────────────────────────────────
