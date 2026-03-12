@@ -22,6 +22,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION, KERNEL_SHA } from "../../../lib/sovereignConstants";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const DARK_BG    = "#000000";
@@ -103,10 +104,9 @@ function formatTs(ts: string): string {
 }
 
 export default function TaiAccomplishmentsDashboard() {
-  const [authed, setAuthed]       = useState(false);
-  const [checking, setChecking]   = useState(true);
-  const [password, setPassword]   = useState("");
-  const [authError, setAuthError] = useState("");
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const { authed, checking, password, setPassword, authError, handleAuth } =
+    useVaultAuth();
 
   const [data, setData]         = useState<AiResponse | null>(null);
   const [loading, setLoading]   = useState(false);
@@ -120,33 +120,6 @@ export default function TaiAccomplishmentsDashboard() {
 
   const [filterCat, setFilterCat] = useState("ALL");
   const [filterPhase, setFilterPhase] = useState("");
-
-  // ── Vault cookie probe on mount ────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/v1/tai/accomplishments?full=1&limit=1", { credentials: "same-origin" })
-      .then(r => {
-        if (r.ok) setAuthed(true);
-        setChecking(false);
-      })
-      .catch(() => setChecking(false));
-  }, []);
-
-  // ── Password submit ────────────────────────────────────────────────────────
-  const handlePasswordSubmit = async () => {
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: password }),
-      });
-      if (res.ok) setAuthed(true);
-      else setAuthError("⛔ Invalid token. Access denied.");
-    } catch {
-      setAuthError("⛔ Auth check failed. Try again.");
-    }
-  };
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -244,7 +217,7 @@ export default function TaiAccomplishmentsDashboard() {
             Enter your VAULTAUTH_TOKEN to access sovereign milestones.
           </p>
           <form
-            onSubmit={e => { e.preventDefault(); void handlePasswordSubmit(); }}
+            onSubmit={e => { e.preventDefault(); void handleAuth(); }}
             style={{ width: "100%" }}
           >
             <input

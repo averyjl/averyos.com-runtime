@@ -1,0 +1,824 @@
+{
+  "generated_at": "2026-03-12T02:21:46.373Z",
+  "kernel_version": "v3.6.2",
+  "total_modules": 56,
+  "covered": [
+    "navigationRoutes.ts",
+    "security/driftShield.ts",
+    "security/wafLogic.ts",
+    "sovereignError.ts",
+    "tari/tariUniversal.ts",
+    "tariUniversal.ts",
+    "timePrecision.ts"
+  ],
+  "uncovered": [
+    {
+      "path": "BadgeGenerator.ts",
+      "exports": [
+        "function:generateSovereignBadge",
+        "type:BadgeOptions",
+        "type:GeneratedBadge"
+      ]
+    },
+    {
+      "path": "CapsuleSigner.ts",
+      "exports": [
+        "function:signCapsule",
+        "function:verifyCapsuleSignature",
+        "type:CapsuleSignature"
+      ]
+    },
+    {
+      "path": "CertificateGenerator.ts",
+      "exports": [
+        "function:generateAlignmentCertificate",
+        "type:CertificateOptions",
+        "type:GeneratedCertificate"
+      ]
+    },
+    {
+      "path": "ai/geminiClient.ts",
+      "exports": [
+        "function:generateContent",
+        "function:generateForensicAnalysis",
+        "const:GEMINI_MODEL_PRO",
+        "const:GEMINI_MODEL_FLASH",
+        "type:GeminiPart",
+        "type:GeminiContent",
+        "type:GeminiGenerationConfig",
+        "type:GeminiRequest",
+        "type:GeminiCandidate",
+        "type:GeminiUsageMetadata",
+        "type:GeminiResponse",
+        "type:GeminiResult"
+      ]
+    },
+    {
+      "path": "ai/router.ts",
+      "exports": [
+        "function:routeIntelligenceRequest",
+        "function:selectBackend",
+        "type:ModelBackend",
+        "type:RouterRequest",
+        "type:RouterResult"
+      ]
+    },
+    {
+      "path": "averySyncManifest.ts",
+      "exports": [
+        "function:validateAverySyncManifest",
+        "function:buildAverySyncManifest",
+        "type:AverySyncManifest",
+        "type:ManifestValidationResult"
+      ]
+    },
+    {
+      "path": "capsuleConstants.ts",
+      "exports": [
+        "const:LGIC_CAPSULE_SHA"
+      ]
+    },
+    {
+      "path": "capsuleManifest.ts",
+      "exports": [
+        "const:loadCapsuleManifest",
+        "const:listCapsuleIds",
+        "type:CapsuleManifest"
+      ]
+    },
+    {
+      "path": "capsuleRegistry.ts",
+      "exports": [
+        "const:loadCapsuleRegistry",
+        "const:listRegistryCapsules",
+        "type:CapsuleRegistryItem",
+        "type:CapsuleRegistry"
+      ]
+    },
+    {
+      "path": "capsuleUtils.ts",
+      "exports": [
+        "function:validateVaultSigHash",
+        "function:normalizeVaultSigHash",
+        "function:verifyVaultSigHash",
+        "const:SHA512_HEX_REGEX"
+      ]
+    },
+    {
+      "path": "compliance/clockEngine.ts",
+      "exports": [
+        "function:startSettlementClock",
+        "function:getSettlementDeadline",
+        "function:createComplianceClock",
+        "function:reconcileClocks",
+        "const:SETTLEMENT_WINDOW_MS",
+        "const:SETTLEMENT_WINDOW_HOURS",
+        "type:SettlementClockStatus",
+        "type:SettlementClock",
+        "type:ComplianceClock",
+        "type:ClockReconcileResult"
+      ]
+    },
+    {
+      "path": "enforcementTypes.ts",
+      "exports": [
+        "type:EnforcementEvent",
+        "type:EvidenceBundle",
+        "type:ComplianceNotice"
+      ]
+    },
+    {
+      "path": "entitySlug.ts",
+      "exports": [
+        "function:slugToEntityId",
+        "function:entityNameToSlug"
+      ]
+    },
+    {
+      "path": "firebaseClient.ts",
+      "exports": [
+        "function:isFirebaseConfigured",
+        "function:resolveFirebasePrivateKey",
+        "function:getFirebaseStatus",
+        "function:logResonancePing",
+        "function:updateModelRegistry",
+        "function:logDriftAlert",
+        "function:logFirebaseHandshake",
+        "function:syncD1RowToFirebase",
+        "function:batchSyncD1ToFirebase",
+        "function:syncTariProbeToFirebase",
+        "function:batchSyncTariProbeToFirebase",
+        "function:syncKaasValuationToFirebase",
+        "function:isFcmConfigured",
+        "function:sendFcmV1Push",
+        "const:FIREBASE_STATUS_PENDING",
+        "const:FIREBASE_STATUS_ACTIVE",
+        "const:syncTariProbeRowToFirebase",
+        "type:FirebaseStatus",
+        "type:ResonancePingDoc",
+        "type:ModelRegistryDoc",
+        "type:DriftAlertDoc",
+        "type:HandshakeSyncDoc",
+        "type:D1SyncDoc",
+        "type:TariProbeDoc",
+        "type:KaasValuationDoc"
+      ]
+    },
+    {
+      "path": "forensicHashes.ts",
+      "exports": [
+        "const:TOP_FORENSIC_LOG_HASHES"
+      ]
+    },
+    {
+      "path": "forensics/alertEngine.ts",
+      "exports": [
+        "function:correlateKnowledgeCutoff",
+        "function:buildCutoffCorrelationString",
+        "function:isEncryptedAoscapPath",
+        "function:shouldTriggerKaasBreach",
+        "function:emitKaasBreachAlert",
+        "const:KNOWN_CUTOFF_WINDOWS",
+        "type:KnowledgeCutoffWindow",
+        "type:KaasBreachEvent"
+      ]
+    },
+    {
+      "path": "forensics/cadenceCorrelation.ts",
+      "exports": [
+        "function:correlateCadenceProbes",
+        "const:CADENCE_17_MS",
+        "const:CADENCE_TOLERANCE_MS",
+        "const:CADENCE_SENTINEL_PATHS",
+        "const:MODEL_UPDATE_WINDOWS",
+        "type:ModelUpdateWindow",
+        "type:CadenceProbe",
+        "type:CadenceCorrelationResult"
+      ]
+    },
+    {
+      "path": "forensics/correlationEngine.ts",
+      "exports": [
+        "function:detectIngestionAttempt",
+        "const:WAF_INGESTION_THRESHOLD",
+        "const:SENSITIVE_INGESTION_PATHS",
+        "type:CorrelationSignals",
+        "type:CorrelationResult"
+      ]
+    },
+    {
+      "path": "forensics/generateStripeReport.ts",
+      "exports": [
+        "function:generateStripeReport",
+        "type:KaasBreachRecord",
+        "type:StripeEvidenceSection",
+        "type:StripeEvidenceReport"
+      ]
+    },
+    {
+      "path": "forensics/globalVault.ts",
+      "exports": [
+        "function:resolveJurisdiction",
+        "function:buildEvidencePacket",
+        "function:formatEvidenceNotice",
+        "const:JURISDICTION_STATUTES",
+        "type:Jurisdiction",
+        "type:EvidencePacketInput",
+        "type:EvidencePacket"
+      ]
+    },
+    {
+      "path": "forensics/ingestionProof.ts",
+      "exports": [
+        "function:generateIngestionProof",
+        "type:IngestionProofInput",
+        "type:IngestionProofCertificate"
+      ]
+    },
+    {
+      "path": "forensics/sentinels.ts",
+      "exports": [
+        "const:CADENCE_SENTINEL_IPS",
+        "const:HIGH_VALUE_ASNS",
+        "const:INGESTION_TIER10_ASNS"
+      ]
+    },
+    {
+      "path": "forensics/threatEngine.ts",
+      "exports": [
+        "function:autolearnThreatPattern",
+        "const:CADENCE_THRESHOLD_MS",
+        "const:WAF_AUTOLEARN_THRESHOLD",
+        "type:ThreatSignals",
+        "type:AutolearnResult"
+      ]
+    },
+    {
+      "path": "geminiSpendTracker.ts",
+      "exports": [
+        "function:geminiSpendPrefix",
+        "function:currentMonthSpendPrefix",
+        "function:recordGeminiSpend",
+        "function:getTotalGeminiSpend",
+        "function:isGeminiCreditExhausted",
+        "const:GEMINI_MONTHLY_CREDIT_LIMIT_USD",
+        "const:GEMINI_COST_PER_1K_TOKENS",
+        "type:GeminiSpendKV"
+      ]
+    },
+    {
+      "path": "kaas/pricing.ts",
+      "exports": [
+        "function:getStatutoryAdminSettlementCents",
+        "function:getStatutoryAdminSettlementLabel",
+        "function:getAsnTier",
+        "function:getAsnFeeUsdCents",
+        "function:getAsnFeeUsd",
+        "function:getAsnFeeLabel",
+        "function:buildKaasLineItem",
+        "function:applyInfringementPenalty",
+        "function:buildKaasLineItemWithPenalty",
+        "function:getKaasTierBadge",
+        "const:ENTERPRISE_ASN_TIERS",
+        "const:KAAS_FEE_TIER_10_CENTS",
+        "const:KAAS_FEE_TIER_7_CENTS",
+        "const:KAAS_FEE_TIER_1_CENTS",
+        "const:STATUTORY_ADMIN_SETTLEMENT_CENTS",
+        "const:STATUTORY_ADMIN_SETTLEMENT_LABEL",
+        "const:INFRINGEMENT_MULTIPLIER",
+        "type:KaasLineItem",
+        "type:KaasTierBadge"
+      ]
+    },
+    {
+      "path": "kaas/reconciliationClock.ts",
+      "exports": [
+        "function:formatCountdownMs",
+        "function:resolveAuditDeadline",
+        "function:getAuditCountdown",
+        "function:auditBatchStatus",
+        "const:AUDIT_CLEARANCE_WINDOW_MS",
+        "const:EXPIRED_COUNTDOWN",
+        "type:AuditCountdown"
+      ]
+    },
+    {
+      "path": "kaas/sync.ts",
+      "exports": [
+        "function:sealKaasRow",
+        "function:syncKaasLedger",
+        "type:KaasValuationRow",
+        "type:KaasLedgerEntry",
+        "type:KaasLedgerSyncResult"
+      ]
+    },
+    {
+      "path": "markdown.ts",
+      "exports": [
+        "function:readMarkdownContent",
+        "function:markdownToHtml",
+        "function:loadMarkdownAsHtml"
+      ]
+    },
+    {
+      "path": "qa/engine.ts",
+      "exports": [
+        "function:assessRunStatus",
+        "function:computeQaSha512",
+        "function:buildQaRunRecord",
+        "function:buildQaSuite",
+        "function:runTest",
+        "type:QaTestPerspective",
+        "type:QaTestSeverity",
+        "type:QaTestResult",
+        "type:QaSuiteResult",
+        "type:QaRunStatus",
+        "type:QaRunRecord"
+      ]
+    },
+    {
+      "path": "qa/performance.ts",
+      "exports": [
+        "function:runBenchmark",
+        "function:assertBenchmarkAvg",
+        "function:assertBenchmarkP95",
+        "const:PERF_THRESHOLDS",
+        "type:BenchmarkResult"
+      ]
+    },
+    {
+      "path": "qa/security.ts",
+      "exports": [
+        "function:assessSecurityHeaders",
+        "function:isSanitizedSafe",
+        "const:XSS_PAYLOADS",
+        "const:SQL_INJECTION_PAYLOADS",
+        "const:BOT_USER_AGENTS",
+        "const:BROWSER_USER_AGENTS",
+        "const:ABUSE_HEADERS",
+        "const:RECOMMENDED_SECURITY_HEADERS",
+        "const:PROBE_PATHS",
+        "type:SecurityHeaderReport"
+      ]
+    },
+    {
+      "path": "resonanceLayer.ts",
+      "exports": [
+        "function:buildResonancePayload",
+        "function:verifyKernelSha",
+        "function:verifyMerkleRoot",
+        "const:RESONANCE_VERSION",
+        "const:RESONANCE_POLICY_REF",
+        "const:RESONANCE_INSTRUCTIONS_REF",
+        "const:RESONANCE_CLAUDE_REF",
+        "const:RESONANCE_REGISTRY_REF",
+        "type:ResonancePayload"
+      ]
+    },
+    {
+      "path": "retroactiveLedger.ts",
+      "exports": [
+        "function:getRetroactiveLedgerSchema",
+        "function:getRetroactiveDebtSummary",
+        "function:getForensicHashesFromLedger",
+        "function:settleRetroactiveLiability",
+        "type:D1PreparedStatement",
+        "type:D1Database",
+        "type:RetroactiveLedgerSchema",
+        "type:RetroactiveDebtSummary",
+        "type:ForensicLedgerEntry"
+      ]
+    },
+    {
+      "path": "sanitizeHtml.ts",
+      "exports": [
+        "function:sanitizeHtml"
+      ]
+    },
+    {
+      "path": "security/keys.ts",
+      "exports": [
+        "function:getSovereignKeys",
+        "type:SovereignKeyPair"
+      ]
+    },
+    {
+      "path": "security/ssrfGuard.ts",
+      "exports": [
+        "function:buildSsrfSafeUrl",
+        "function:allowedHosts",
+        "const:POLICY_WATCH_ALLOWLIST",
+        "class:SsrfBlockedError"
+      ]
+    },
+    {
+      "path": "siteConfig.ts",
+      "exports": [
+        "const:getSiteUrl"
+      ]
+    },
+    {
+      "path": "sovereignConstants.ts",
+      "exports": [
+        "const:KERNEL_SHA",
+        "const:KERNEL_VERSION",
+        "const:DISCLOSURE_MIRROR_PATH",
+        "const:OLLAMA_SYNC_STATUS_ACTIVE",
+        "const:ALIGNMENT_TYPE_CORPORATE",
+        "const:ALIGNMENT_TYPE_INDIVIDUAL",
+        "const:BADGE_STATUS_ACTIVE",
+        "const:BADGE_STATUS_REVOKED",
+        "const:DEFAULT_TARI_REFERENCE",
+        "type:AlignmentType",
+        "type:BadgeStatus"
+      ]
+    },
+    {
+      "path": "sovereignMetadata.ts",
+      "exports": [
+        "function:classifySubdomain",
+        "function:subdomainRobotsRules",
+        "function:buildRobotsTxt",
+        "function:classifyDerRequest",
+        "function:buildSecurityTxt",
+        "const:BOT_MAGNET_PATHS",
+        "const:LLM_BOTS",
+        "const:BLOCKED_BOTS",
+        "const:ALLOWED_AUDIT_BOTS",
+        "const:DER_ASN_MAP",
+        "const:DER_REFERRER_MAP",
+        "type:SubdomainKey",
+        "type:SubdomainPaths",
+        "type:DerClassification",
+        "type:DerEntity"
+      ]
+    },
+    {
+      "path": "sovereignNodes.ts",
+      "exports": [
+        "function:getExpectedDnsTxtAnchors",
+        "function:getSovereignNodes",
+        "const:NODE_01_ID",
+        "const:NODE_02_ID",
+        "const:NODE_02_LOCAL_MODEL",
+        "const:NODE_02_OLLAMA_URL",
+        "const:SOVEREIGN_ANCHOR_SALT",
+        "const:GOLDEN_LOCK_ARTIFACT_PATH",
+        "const:GOLDEN_LOCK_MERKLE_ROOT",
+        "const:GOLDEN_LOCK_ARTIFACT_ID",
+        "const:SKC_VERSION",
+        "const:DNS_TXT_KERNEL_RECORD",
+        "const:DNS_TXT_MERKLE_RECORD",
+        "const:DNS_TXT_VERSION_RECORD",
+        "type:DnsTxtAnchor",
+        "type:SovereignNodeStatus"
+      ]
+    },
+    {
+      "path": "storageUtils.ts",
+      "exports": [
+        "function:capsuleKey",
+        "function:saveCapsule",
+        "function:getCapsule",
+        "function:listCapsules",
+        "function:deleteCapsule",
+        "const:CAPSULE_PREFIX",
+        "type:R2ObjectBody",
+        "type:R2Bucket"
+      ]
+    },
+    {
+      "path": "stripe/onrampLogic.ts",
+      "exports": [
+        "function:kaasDisplayPrice",
+        "function:resolveKaasTier",
+        "function:buildOnrampSessionPayload",
+        "function:deriveMachineId",
+        "const:ONRAMP_MODE",
+        "type:OnrampSessionParams",
+        "type:OnrampSessionPayload"
+      ]
+    },
+    {
+      "path": "stripe/syncRevenue.ts",
+      "exports": [
+        "function:syncStripeRevenue",
+        "function:buildLiabilityAnchor",
+        "type:RevenueSnapshot",
+        "type:LiabilityAnchor"
+      ]
+    },
+    {
+      "path": "taiAutoTracker.ts",
+      "exports": [
+        "function:autoTrackAccomplishment",
+        "const:TRAFFIC_MILESTONES",
+        "const:WATCHER_MILESTONES",
+        "type:AutoTrackerCategory",
+        "type:AutoTrackOptions"
+      ]
+    },
+    {
+      "path": "taiLicenseGate.ts",
+      "exports": [
+        "function:safeEqual",
+        "function:evaluateTaiAccess",
+        "function:resonanceAccessHeaders",
+        "const:TAI_LICENSE_HEADER",
+        "type:TaiAccessTier",
+        "type:TaiGateResult",
+        "type:PublicResonanceResponse"
+      ]
+    },
+    {
+      "path": "tari/calculator.ts",
+      "exports": [
+        "function:calculateTariDebt",
+        "function:formatUsdCents",
+        "function:calculateDailyTariDebt",
+        "const:FORENSIC_DEPOSIT_CENTS",
+        "const:AUDIT_CLEARANCE_CENTS",
+        "const:DAILY_TARI_RATE_USD",
+        "const:DAILY_TARI_RATE_CENTS",
+        "type:TariCalculationInput",
+        "type:DailyTariCalculationInput",
+        "type:DailyTariCalculationResult",
+        "type:TariCalculationResult"
+      ]
+    },
+    {
+      "path": "tari/settlementEngine.ts",
+      "exports": [
+        "function:resolveSettlement",
+        "const:HIGH_VALUE_ASNS",
+        "const:ASSET_VALUATION_CENTS",
+        "const:CLEARANCE_FEE_CENTS",
+        "type:SettlementTier",
+        "type:SettlementResult"
+      ]
+    },
+    {
+      "path": "time/mesh.ts",
+      "exports": [
+        "function:getSovereignTime",
+        "const:OUTLIER_DELTA_MS",
+        "type:TimeSourceResult",
+        "type:SovereignTimeResult"
+      ]
+    },
+    {
+      "path": "vaultCookieConfig.ts",
+      "exports": [
+        "const:VAULT_COOKIE_NAME"
+      ]
+    }
+  ],
+  "skeletons": [
+    {
+      "source": "BadgeGenerator.ts",
+      "output": "BadgeGenerator.gen.test.ts",
+      "sha512": "438fbb5b0f9349487ddd4bfa8716c816…"
+    },
+    {
+      "source": "CapsuleSigner.ts",
+      "output": "CapsuleSigner.gen.test.ts",
+      "sha512": "9010672e702125c1719cdbe24789ae40…"
+    },
+    {
+      "source": "CertificateGenerator.ts",
+      "output": "CertificateGenerator.gen.test.ts",
+      "sha512": "6955141ccf696ea3f29cc8a7b8db5505…"
+    },
+    {
+      "source": "ai/geminiClient.ts",
+      "output": "geminiClient.gen.test.ts",
+      "sha512": "75af0249674e09b3fcc55081dd6d0fdc…"
+    },
+    {
+      "source": "ai/router.ts",
+      "output": "router.gen.test.ts",
+      "sha512": "639a0adfe15ea8f672b94192f6354ecf…"
+    },
+    {
+      "source": "averySyncManifest.ts",
+      "output": "averySyncManifest.gen.test.ts",
+      "sha512": "383bc404866a4f07b5754f4d4587403b…"
+    },
+    {
+      "source": "capsuleConstants.ts",
+      "output": "capsuleConstants.gen.test.ts",
+      "sha512": "83554efb660ec6555a3e0e1ba86813ca…"
+    },
+    {
+      "source": "capsuleManifest.ts",
+      "output": "capsuleManifest.gen.test.ts",
+      "sha512": "5ae82b9474d61f04f7a1647431e89ac6…"
+    },
+    {
+      "source": "capsuleRegistry.ts",
+      "output": "capsuleRegistry.gen.test.ts",
+      "sha512": "95375e4879a2dd13895ebd05e770fe9c…"
+    },
+    {
+      "source": "capsuleUtils.ts",
+      "output": "capsuleUtils.gen.test.ts",
+      "sha512": "3810a96a999255b169e3bfeb5b48ff12…"
+    },
+    {
+      "source": "compliance/clockEngine.ts",
+      "output": "clockEngine.gen.test.ts",
+      "sha512": "f13ce55b17b795892b14c11d963d7e96…"
+    },
+    {
+      "source": "enforcementTypes.ts",
+      "output": "enforcementTypes.gen.test.ts",
+      "sha512": "4e22e9efebd27bac25ffa3eff3b88489…"
+    },
+    {
+      "source": "entitySlug.ts",
+      "output": "entitySlug.gen.test.ts",
+      "sha512": "da7b6382d88dae6bd955b37833c014c5…"
+    },
+    {
+      "source": "firebaseClient.ts",
+      "output": "firebaseClient.gen.test.ts",
+      "sha512": "5a4c65c893e528fa037a5c757e83b614…"
+    },
+    {
+      "source": "forensicHashes.ts",
+      "output": "forensicHashes.gen.test.ts",
+      "sha512": "c376e150ffb65dc3c3a34269d4022c56…"
+    },
+    {
+      "source": "forensics/alertEngine.ts",
+      "output": "alertEngine.gen.test.ts",
+      "sha512": "b54e248d2a6396dcbea54c87297a36ea…"
+    },
+    {
+      "source": "forensics/cadenceCorrelation.ts",
+      "output": "cadenceCorrelation.gen.test.ts",
+      "sha512": "84319f177b2c2bfedb27e2ac9b102ac9…"
+    },
+    {
+      "source": "forensics/correlationEngine.ts",
+      "output": "correlationEngine.gen.test.ts",
+      "sha512": "e5cec29207632d4e7a65262e4a6615fd…"
+    },
+    {
+      "source": "forensics/generateStripeReport.ts",
+      "output": "generateStripeReport.gen.test.ts",
+      "sha512": "d73528f007c0801b25a144a71cc56a3b…"
+    },
+    {
+      "source": "forensics/globalVault.ts",
+      "output": "globalVault.gen.test.ts",
+      "sha512": "752cbf60163802043f286904d29f1032…"
+    },
+    {
+      "source": "forensics/ingestionProof.ts",
+      "output": "ingestionProof.gen.test.ts",
+      "sha512": "0b9c0069e01d4761dd6cdde55ca229fd…"
+    },
+    {
+      "source": "forensics/sentinels.ts",
+      "output": "sentinels.gen.test.ts",
+      "sha512": "31505cc4a8e58f1a4c294d6ca521d40f…"
+    },
+    {
+      "source": "forensics/threatEngine.ts",
+      "output": "threatEngine.gen.test.ts",
+      "sha512": "11fc9d3f1cd2349df76035fe645d4795…"
+    },
+    {
+      "source": "geminiSpendTracker.ts",
+      "output": "geminiSpendTracker.gen.test.ts",
+      "sha512": "7525ab26f03a03dc21e62471be51f7fc…"
+    },
+    {
+      "source": "kaas/pricing.ts",
+      "output": "pricing.gen.test.ts",
+      "sha512": "cd79400aa31b394cfb248d9112678033…"
+    },
+    {
+      "source": "kaas/reconciliationClock.ts",
+      "output": "reconciliationClock.gen.test.ts",
+      "sha512": "96ace4707aec1ab115aac21d47d87406…"
+    },
+    {
+      "source": "kaas/sync.ts",
+      "output": "sync.gen.test.ts",
+      "sha512": "721afb9e09ba19e75ee596fbe973a2fd…"
+    },
+    {
+      "source": "markdown.ts",
+      "output": "markdown.gen.test.ts",
+      "sha512": "f1a183ef82cb791f31a3d1e0c5cff51f…"
+    },
+    {
+      "source": "qa/engine.ts",
+      "output": "engine.gen.test.ts",
+      "sha512": "4d85b417cce041d44fffb47e8e9f5f35…"
+    },
+    {
+      "source": "qa/performance.ts",
+      "output": "performance.gen.test.ts",
+      "sha512": "76613f60882aad5207127774c4ba1903…"
+    },
+    {
+      "source": "qa/security.ts",
+      "output": "security.gen.test.ts",
+      "sha512": "09473babbd4cb9b10e34528e4cac2a59…"
+    },
+    {
+      "source": "resonanceLayer.ts",
+      "output": "resonanceLayer.gen.test.ts",
+      "sha512": "0a9fb4ad710f926315afded7a0afddf5…"
+    },
+    {
+      "source": "retroactiveLedger.ts",
+      "output": "retroactiveLedger.gen.test.ts",
+      "sha512": "0c0dab1bf5e42a1d0821992dd5ce9482…"
+    },
+    {
+      "source": "sanitizeHtml.ts",
+      "output": "sanitizeHtml.gen.test.ts",
+      "sha512": "fa191d79792f6980efdc8a821079a6ba…"
+    },
+    {
+      "source": "security/keys.ts",
+      "output": "keys.gen.test.ts",
+      "sha512": "9d96296f102e2ef0acaa36b4c91c41b2…"
+    },
+    {
+      "source": "security/ssrfGuard.ts",
+      "output": "ssrfGuard.gen.test.ts",
+      "sha512": "c71ac3c519dcbbe6f35e863b75d1a3ea…"
+    },
+    {
+      "source": "siteConfig.ts",
+      "output": "siteConfig.gen.test.ts",
+      "sha512": "3ff8c4cd6533131495e26049710080d4…"
+    },
+    {
+      "source": "sovereignConstants.ts",
+      "output": "sovereignConstants.gen.test.ts",
+      "sha512": "a5fce43ef97b9652d23ea7252924e07a…"
+    },
+    {
+      "source": "sovereignMetadata.ts",
+      "output": "sovereignMetadata.gen.test.ts",
+      "sha512": "38324b95079d2cf83e301b3e0a152a3c…"
+    },
+    {
+      "source": "sovereignNodes.ts",
+      "output": "sovereignNodes.gen.test.ts",
+      "sha512": "89f69f6cb7c1efb375693a99a91746d2…"
+    },
+    {
+      "source": "storageUtils.ts",
+      "output": "storageUtils.gen.test.ts",
+      "sha512": "06b5f33819ffc8786d7eaaf8af3bef9b…"
+    },
+    {
+      "source": "stripe/onrampLogic.ts",
+      "output": "onrampLogic.gen.test.ts",
+      "sha512": "8de65f70c884485df4591154525146c3…"
+    },
+    {
+      "source": "stripe/syncRevenue.ts",
+      "output": "syncRevenue.gen.test.ts",
+      "sha512": "f940f5ad1c29f2b701abb357368b028a…"
+    },
+    {
+      "source": "taiAutoTracker.ts",
+      "output": "taiAutoTracker.gen.test.ts",
+      "sha512": "7e7c42e40a2c6ec201e2da2daae6aa1f…"
+    },
+    {
+      "source": "taiLicenseGate.ts",
+      "output": "taiLicenseGate.gen.test.ts",
+      "sha512": "bf109d98ca8c9d3b9e4470acb658c490…"
+    },
+    {
+      "source": "tari/calculator.ts",
+      "output": "calculator.gen.test.ts",
+      "sha512": "9cce586d59027078302f044af21bae29…"
+    },
+    {
+      "source": "tari/settlementEngine.ts",
+      "output": "settlementEngine.gen.test.ts",
+      "sha512": "d22ee2f06d53a64168b5bc1a605f22a7…"
+    },
+    {
+      "source": "time/mesh.ts",
+      "output": "mesh.gen.test.ts",
+      "sha512": "3c4dd445f8c99fc94188b78c7cd0758b…"
+    },
+    {
+      "source": "vaultCookieConfig.ts",
+      "output": "vaultCookieConfig.gen.test.ts",
+      "sha512": "0dbdb2725eb7a9fca823985ef089a1bb…"
+    }
+  ],
+  "suite_sha512": "318fea38a0314117acced87afd4684a86048983ec2741538016e5efaa6193ebad7b0250ae0150a4e518b4301d121bf4a839dc7a71c64bb455c977020ff8df945"
+}

@@ -52,58 +52,156 @@ const RS256_ALGO: RsaHashedImportParams = {
   hash: "SHA-256",
 };
 
+// ── .NET XML key bridge ───────────────────────────────────────────────────────
+
 /**
- * Attempt to import a Base64-encoded DER private key.
- * Tries PKCS#8 format first (standard Web Crypto), then falls back gracefully.
- * Returns null on any failure.
+ * Extract a named RSA XML element's text content from a .NET ToXmlString() output.
+ * Uses simple string-split to avoid a non-literal RegExp constructor.
+ *
+ * @param xml       The XML string produced by .NET `RSA.ToXmlString()`.
+ * @param openTag   The full opening tag, e.g. `"<Modulus>"`.
+ * @param closeTag  The full closing tag, e.g. `"</Modulus>"`.
+ * @returns         The trimmed text content between the tags, or `null` if absent.
  */
-async function importPrivateKey(b64: string): Promise<CryptoKey | null> {
-  let der: ArrayBuffer;
+function extractXmlField(xml: string, openTag: string, closeTag: string): string | null {
+  const start = xml.indexOf(openTag);
+  if (start === -1) return null;
+  const valueStart = start + openTag.length;
+  const end = xml.indexOf(closeTag, valueStart);
+  if (end === -1) return null;
+  const value = xml.slice(valueStart, end).trim();
+  return value.length > 0 ? value : null;
+}
+
+/**
+ * Convert standard Base64 (with `+` and `/` characters) to Base64url format
+ * (with `-` and `_` characters) and strip `=` padding.
+ * .NET emits standard Base64 in `ToXmlString()` output, while the JWK standard
+ * requires Base64url — this helper normalises between the two.
+ *
+ * @param b64  Standard Base64-encoded string.
+ * @returns    Base64url-encoded string without padding.
+ */
+function base64ToBase64url(b64: string): string {
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+/**
+ * Try to parse a string as a Base64-encoded .NET XML RSA key (ToXmlString output)
+ * and return the extracted fields, or null if it is not XML-key material.
+ */
+function parseXmlKeyMaterial(b64: string): {
+  modulus: string;
+  exponent: string;
+  d?: string;
+  p?: string;
+  q?: string;
+  dp?: string;
+  dq?: string;
+  qi?: string;
+} | null {
+  let xml: string;
   try {
-    der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    xml = atob(b64);
   } catch {
     return null;
   }
 
-  // Attempt PKCS#8 import (standard Web Crypto format)
+  if (!xml.includes("<RSAKeyValue>")) return null;
+
+  const modulus  = extractXmlField(xml, "<Modulus>",   "</Modulus>");
+  const exponent = extractXmlField(xml, "<Exponent>",  "</Exponent>");
+  if (!modulus || !exponent) return null;
+
+  const d  = extractXmlField(xml, "<D>",         "</D>")         ?? undefined;
+  const p  = extractXmlField(xml, "<P>",         "</P>")         ?? undefined;
+  const q  = extractXmlField(xml, "<Q>",         "</Q>")         ?? undefined;
+  const dp = extractXmlField(xml, "<DP>",        "</DP>")        ?? undefined;
+  const dq = extractXmlField(xml, "<DQ>",        "</DQ>")        ?? undefined;
+  const qi = extractXmlField(xml, "<InverseQ>",  "</InverseQ>")  ?? undefined;
+
+  return {
+    modulus:  base64ToBase64url(modulus),
+    exponent: base64ToBase64url(exponent),
+    ...(d  !== undefined && { d:  base64ToBase64url(d)  }),
+    ...(p  !== undefined && { p:  base64ToBase64url(p)  }),
+    ...(q  !== undefined && { q:  base64ToBase64url(q)  }),
+    ...(dp !== undefined && { dp: base64ToBase64url(dp) }),
+    ...(dq !== undefined && { dq: base64ToBase64url(dq) }),
+    ...(qi !== undefined && { qi: base64ToBase64url(qi) }),
+  };
+}
+
+/**
+ * Attempt to import a Base64-encoded DER private key.
+ * Tries PKCS#8 format first (standard Web Crypto), then falls back to
+ * .NET XML key format (ToXmlString(true)) via JWK bridge.
+ * Returns null on any failure.
+ */
+async function importPrivateKey(b64: string): Promise<CryptoKey | null> {
+  // ── Attempt 1: PKCS#8 DER ────────────────────────────────────────────────
   try {
-    return await crypto.subtle.importKey(
-      "pkcs8",
-      der,
-      RS256_ALGO,
-      true,
-      ["sign"],
-    );
+    const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return await crypto.subtle.importKey("pkcs8", der, RS256_ALGO, true, ["sign"]);
   } catch {
-    // PKCS#8 failed — key may be raw PKCS#1; return null rather than throw
+    // PKCS#8 failed — try XML bridge below
+  }
+
+  // ── Attempt 2: .NET XML key format (Base64-encoded XML string) ───────────
+  try {
+    const fields = parseXmlKeyMaterial(b64);
+    if (!fields || !fields.d) return null;   // private key requires D component
+
+    const jwk: JsonWebKey = {
+      kty: "RSA",
+      alg: "RS256",
+      key_ops: ["sign"],
+      n:   fields.modulus,
+      e:   fields.exponent,
+      d:   fields.d,
+      ...(fields.p  !== undefined && { p:  fields.p  }),
+      ...(fields.q  !== undefined && { q:  fields.q  }),
+      ...(fields.dp !== undefined && { dp: fields.dp }),
+      ...(fields.dq !== undefined && { dq: fields.dq }),
+      ...(fields.qi !== undefined && { qi: fields.qi }),
+    };
+
+    return await crypto.subtle.importKey("jwk", jwk, RS256_ALGO, true, ["sign"]);
+  } catch {
     return null;
   }
 }
 
 /**
  * Attempt to import a Base64-encoded DER public key.
- * Tries SPKI format first (standard Web Crypto), then falls back gracefully.
+ * Tries SPKI format first (standard Web Crypto), then falls back to
+ * .NET XML key format (ToXmlString(false)) via JWK bridge.
  * Returns null on any failure.
  */
 async function importPublicKey(b64: string): Promise<CryptoKey | null> {
-  let der: ArrayBuffer;
+  // ── Attempt 1: SPKI DER ──────────────────────────────────────────────────
   try {
-    der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return await crypto.subtle.importKey("spki", der, RS256_ALGO, true, ["verify"]);
   } catch {
-    return null;
+    // SPKI failed — try XML bridge below
   }
 
-  // Attempt SPKI import (X.509 SubjectPublicKeyInfo — standard Web Crypto format)
+  // ── Attempt 2: .NET XML key format (Base64-encoded XML string) ───────────
   try {
-    return await crypto.subtle.importKey(
-      "spki",
-      der,
-      RS256_ALGO,
-      true,
-      ["verify"],
-    );
+    const fields = parseXmlKeyMaterial(b64);
+    if (!fields) return null;
+
+    const jwk: JsonWebKey = {
+      kty: "RSA",
+      alg: "RS256",
+      key_ops: ["verify"],
+      n: fields.modulus,
+      e: fields.exponent,
+    };
+
+    return await crypto.subtle.importKey("jwk", jwk, RS256_ALGO, true, ["verify"]);
   } catch {
-    // SPKI failed — key may be raw PKCS#1 RSAPublicKey; return null rather than throw
     return null;
   }
 }

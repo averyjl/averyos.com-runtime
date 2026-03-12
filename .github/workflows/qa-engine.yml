@@ -1,0 +1,165 @@
+name: AveryOS™ Sovereign QA Engine
+
+# ⛓️⚓⛓️  Phase 112 — Continuous QA Pipeline
+#
+# Runs on every push and pull-request to main.
+# Performs:
+#   1. Supply-chain audit (npm audit)
+#   2. ESLint (lint)
+#   3. TypeScript type-check (tsc --noEmit)
+#   4. Full unit test suite (node:test) — all test files including new coverage
+#   5. QA Test Generator — identifies uncovered modules, writes report
+#   6. Annotates PR with test summary
+#
+# ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Verbose output"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+  checks:   write
+  pull-requests: write
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  qa-engine:
+    name: "QA Engine — Unit Tests + Coverage Report"
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      - name: "⛓️ Checkout repository"
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      # ── Node.js ──────────────────────────────────────────────────────────────
+      - name: "⚙️  Set up Node.js ${{ env.NODE_VERSION }}"
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      # ── Install dependencies ──────────────────────────────────────────────────
+      - name: "📦 Install dependencies (npm ci)"
+        run: npm ci
+
+      # ── Supply-chain security ─────────────────────────────────────────────────
+      - name: "🔐 Supply-chain vulnerability audit"
+        run: npm audit --audit-level=high
+
+      # ── Lint ─────────────────────────────────────────────────────────────────
+      - name: "🔍 ESLint"
+        run: npm run lint
+
+      # ── TypeScript type check ─────────────────────────────────────────────────
+      - name: "📐 TypeScript type check (tsc --noEmit)"
+        run: ./node_modules/.bin/tsc --noEmit
+
+      # ── Unit tests — original suite ───────────────────────────────────────────
+      - name: "🧪 Unit tests — original suite"
+        run: |
+          node --loader ./__tests__/loader.mjs \
+               --experimental-strip-types \
+               --test \
+               __tests__/tariUniversal.test.ts \
+               __tests__/sovereignKeys.test.ts \
+               __tests__/timeMesh.test.ts \
+               __tests__/navigationRoutes.test.ts
+        env:
+          NODE_OPTIONS: "--no-warnings"
+
+      # ── Unit tests — new QA Engine coverage ──────────────────────────────────
+      - name: "🧪 Unit tests — QA Engine coverage (WAF, DriftShield, SovereignError, TimePrecision, QA Engine)"
+        run: |
+          node --loader ./__tests__/loader.mjs \
+               --experimental-strip-types \
+               --test \
+               __tests__/wafLogic.test.ts \
+               __tests__/driftShield.test.ts \
+               __tests__/sovereignError.test.ts \
+               __tests__/timePrecision.test.ts \
+               __tests__/qaEngine.test.ts
+        env:
+          NODE_OPTIONS: "--no-warnings"
+
+      # ── CJS unit tests ────────────────────────────────────────────────────────
+      - name: "🧪 Unit tests — CJS (generateInvoices)"
+        run: node --test __tests__/generateInvoices.test.cjs
+
+      # ── Full test suite summary ───────────────────────────────────────────────
+      - name: "📊 Full unit test suite (all files)"
+        run: npm run test:unit
+        env:
+          NODE_OPTIONS: "--no-warnings"
+
+      # ── QA Test Generator ─────────────────────────────────────────────────────
+      - name: "🤖 QA Test Generator — coverage gap scan"
+        run: node scripts/qaTestGenerator.cjs --verbose
+        continue-on-error: true   # Gaps are warnings, not hard failures
+
+      # ── Coverage report artifact ──────────────────────────────────────────────
+      - name: "📋 Upload coverage gap report"
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: qa-coverage-report
+          path: __tests__/generated/_coverage_report.json
+          if-no-files-found: ignore
+
+      # ── PR annotation ─────────────────────────────────────────────────────────
+      - name: "💬 Annotate PR with QA summary"
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const fs = require('fs');
+            let report = null;
+            try {
+              report = JSON.parse(fs.readFileSync('__tests__/generated/_coverage_report.json', 'utf8'));
+            } catch (_e) {
+              // Report not generated yet
+            }
+
+            const lines = [
+              '## 🧪 AveryOS™ Sovereign QA Engine Report',
+              '',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Total lib/ modules | ${report ? report.total_modules : 'N/A'} |`,
+              `| Modules with coverage | ${report ? report.covered.length : 'N/A'} |`,
+              `| Uncovered modules | ${report ? report.uncovered.length : 'N/A'} |`,
+              `| Kernel version | ${report ? report.kernel_version : 'N/A'} |`,
+            ];
+
+            if (report && report.uncovered && report.uncovered.length > 0) {
+              lines.push('');
+              lines.push('### ⚠️ Modules Lacking Test Coverage');
+              lines.push('');
+              for (const m of report.uncovered.slice(0, 20)) {
+                lines.push(`- \`${m.path}\``);
+              }
+              if (report.uncovered.length > 20) {
+                lines.push(`- … and ${report.uncovered.length - 20} more. Run \`npm run qa:generate\` locally for full list.`);
+              }
+            }
+
+            lines.push('');
+            lines.push('⛓️⚓⛓️ *AveryOS™ Sovereign QA Engine · CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻*');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              body:         lines.join('\n'),
+            });

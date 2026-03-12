@@ -23,6 +23,7 @@ import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { getAuditCountdown } from "../../../lib/kaas/reconciliationClock";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const DARK_BG    = "#000000";
@@ -153,10 +154,9 @@ function AuthGate({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminSettlementsPage() {
-  const [authed, setAuthed]     = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const { authed, checking, password, setPassword, authError, handleAuth } =
+    useVaultAuth();
 
   const [rows, setRows]         = useState<KaasRow[]>([]);
   const [total, setTotal]       = useState(0);
@@ -166,27 +166,6 @@ export default function AdminSettlementsPage() {
 
   const [calcTier, setCalcTier] = useState(TARI_TIERS[0]);
   const [calcCount, setCalcCount] = useState(1);
-
-  // ── Auth probe ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/v1/kaas/valuations?limit=1", { credentials: "same-origin" })
-      .then((r) => { if (r.ok) setAuthed(true); setChecking(false); })
-      .catch(() => setChecking(false));
-  }, []);
-
-  // ── Password submit ────────────────────────────────────────────────────────
-  const handlePasswordSubmit = async () => {
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method: "POST", credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: password }),
-      });
-      if (res.ok) setAuthed(true);
-      else setAuthError("⛔ Invalid token. Access denied.");
-    } catch { setAuthError("⛔ Auth check failed. Try again."); }
-  };
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -214,7 +193,7 @@ export default function AdminSettlementsPage() {
         password={password}
         setPassword={setPassword}
         authError={authError}
-        onSubmit={handlePasswordSubmit}
+        onSubmit={() => void handleAuth()}
       />
     );
   }

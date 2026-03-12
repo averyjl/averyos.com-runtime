@@ -19,6 +19,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
@@ -49,25 +50,20 @@ interface DocsManifest {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SovereignDocsPage() {
-  const [token,           setToken]           = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [manifest,        setManifest]        = useState<DocsManifest | null>(null);
-  const [search,          setSearch]          = useState("");
-  const [error,           setError]           = useState<AosUiError | null>(null);
-  const [loading,         setLoading]         = useState(false);
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const {
+    authed: isAuthenticated,
+    checking,
+    password,
+    setPassword,
+    authError,
+    handleAuth: handleAuthHook,
+  } = useVaultAuth();
 
-  // ── Auth check from sessionStorage ────────────────────────────────────────
-  useEffect(() => {
-    const stored = typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem("aos_vault_token")
-      : null;
-    if (stored) {
-      setToken(stored);
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, []);
+  const [manifest, setManifest] = useState<DocsManifest | null>(null);
+  const [search,   setSearch]   = useState("");
+  const [error,    setError]    = useState<AosUiError | null>(null);
+  const [loading,  setLoading]  = useState(false);
 
   // ── Load docs manifest once authenticated ────────────────────────────────
   useEffect(() => {
@@ -93,10 +89,7 @@ export default function SovereignDocsPage() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function handleAuth(e: React.FormEvent) {
-    e.preventDefault();
-    if (!token.trim()) return;
-    sessionStorage.setItem("aos_vault_token", token.trim());
-    setIsAuthenticated(true);
+    void handleAuthHook(e);
   }
 
   // ── Filter ────────────────────────────────────────────────────────────────
@@ -118,7 +111,7 @@ export default function SovereignDocsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (isAuthenticated === null) {
+  if (checking) {
     return (
       <main className="page" style={{ background: PURPLE_DEEP, minHeight: "100vh" }}>
         <AnchorBanner />
@@ -140,12 +133,15 @@ export default function SovereignDocsPage() {
           <p style={{ color: WHITE, opacity: 0.7, marginBottom: "1.5rem", fontSize: "0.9rem" }}>
             Enter your VAULTAUTH_TOKEN to access the AveryOS™ Sovereign API Documentation.
           </p>
+          {authError && (
+            <p style={{ color: "#ff4444", fontSize: "0.85rem", marginBottom: "1rem" }}>{authError}</p>
+          )}
           <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             <input
               type="password"
               placeholder="VAULTAUTH_TOKEN"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               style={{
                 background:  "rgba(255,255,255,0.07)",
                 border:      `1px solid ${GOLD_BORDER}`,

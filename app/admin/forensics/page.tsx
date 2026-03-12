@@ -19,6 +19,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const DARK_BG     = "#060010";
@@ -82,10 +83,10 @@ function groupRows(rows: AuditRow[]): GroupedEntry[] {
 }
 
 export default function ForensicDashboard() {
-  const [authed, setAuthed]                   = useState(false);
-  const [checking, setChecking]               = useState(true);
-  const [password, setPassword]               = useState("");
-  const [authError, setAuthError]             = useState("");
+  // ── VaultGate auth — uses dedicated /api/v1/vault/auth-check endpoint ─────
+  const { authed, checking, password, setPassword, authError, handleAuth } =
+    useVaultAuth();
+
   const [rows, setRows]                       = useState<AuditRow[]>([]);
   const [grouped, setGrouped]                 = useState<GroupedEntry[]>([]);
   const [loading, setLoading]                 = useState(false);
@@ -93,44 +94,6 @@ export default function ForensicDashboard() {
   const [lastRefresh, setLastRefresh]         = useState<string>("");
   const [limit, setLimit]                     = useState(500);
   const [rateLimitCount, setRateLimitCount]   = useState<number | null>(null);
-
-  // ── VaultGate auth check on mount ────────────────────────────────────────
-  // On mount, probe the forensics API with a minimal limit — if the browser
-  // carries a valid `aos-vault-auth` HttpOnly cookie (set by a previous login),
-  // the request will succeed and we skip the password gate.  The token is NEVER
-  // stored in sessionStorage or any browser-accessible storage from this page.
-  const AUTH_PROBE_LIMIT = 1; // minimal — only used to verify cookie validity
-  useEffect(() => {
-    fetch(`/api/v1/forensics/rayid-log?limit=${AUTH_PROBE_LIMIT}`, { credentials: "same-origin" })
-      .then(r => {
-        if (r.ok) { setAuthed(true); }
-        setChecking(false);
-      })
-      .catch(() => setChecking(false));
-  }, []);
-
-  // ── Password submit — sets HttpOnly Secure cookie via POST ───────────────
-  // The token is sent to /api/v1/vault/auth which validates it server-side
-  // and responds with `Set-Cookie: aos-vault-auth=...; HttpOnly; Secure`.
-  // The raw token never touches browser-accessible storage.
-  const handlePasswordSubmit = async () => {
-    setAuthError("");
-    try {
-      const res = await fetch("/api/v1/vault/auth", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: password }),
-      });
-      if (res.ok) {
-        setAuthed(true);
-      } else {
-        setAuthError("⛔ Invalid token. Access denied.");
-      }
-    } catch {
-      setAuthError("⛔ Auth check failed. Try again.");
-    }
-  };
 
   // ── Data fetch — credentials: "same-origin" sends the HttpOnly cookie ────
   const fetchData = useCallback(async () => {
@@ -208,7 +171,7 @@ export default function ForensicDashboard() {
             placeholder="VAULTAUTH_TOKEN"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handlePasswordSubmit()}
+            onKeyDown={e => { if (e.key === "Enter") void handleAuth(); }}
             style={{
               width: "100%",
               padding: "0.75rem",
@@ -225,7 +188,7 @@ export default function ForensicDashboard() {
             <p style={{ color: RED, marginBottom: "0.75rem", fontSize: "0.85rem" }}>{authError}</p>
           )}
           <button
-            onClick={handlePasswordSubmit}
+            onClick={() => void handleAuth()}
             style={{
               width: "100%",
               padding: "0.75rem",
