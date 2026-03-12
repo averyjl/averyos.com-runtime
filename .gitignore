@@ -147,3 +147,4 @@ electron/.cache/
 policy-diffs/
 averyos_keys_bundle.txt
 averyos_private_key_b64.txt
+averyos_public_key_b64.txt
