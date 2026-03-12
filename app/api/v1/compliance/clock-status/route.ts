@@ -131,7 +131,7 @@ export async function GET(request: Request): Promise<Response> {
     }
   } else {
     // No persisted clock — return a synthetic clock anchored to "now"
-    const synthetic = createComplianceClock(entityId, null, `clock_synthetic_${entityId}`);
+    const synthetic = await createComplianceClock(entityId, null, `clock_synthetic_${entityId}`);
     clockData       = getSettlementDeadline(synthetic.issued_at, settledQs);
     clockId         = synthetic.clock_id;
     source          = "SYNTHETIC";

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "Public leaderboard of entities whose ASNs have been detected ingesting AveryOS™ IP. " +
     "Sovereign debt valuations recorded on the VaultChain™ ledger. " +
-    "Settlement clears forensic debt and grants a TAI_LICENSE_KEY.",
+    "Settlement clears forensic debt and grants an AVERYOS_LICENSE_KEY.",
   robots: {
     index: true,
     follow: true,

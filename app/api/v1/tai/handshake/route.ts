@@ -25,6 +25,7 @@ import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 interface CloudflareEnv {
   TAI_LICENSE_KEY?:     string;
+  AVERYOS_LICENSE_KEY?: string;
   TAI_SENTINEL_TOKEN?:  string;
 }
 
@@ -37,13 +38,13 @@ export async function POST(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
 
-    const licenseKeySecret   = cfEnv.TAI_LICENSE_KEY ?? "";
+    const licenseKeySecret   = cfEnv.AVERYOS_LICENSE_KEY ?? cfEnv.TAI_LICENSE_KEY ?? "";
     const sentinelTokenSecret = cfEnv.TAI_SENTINEL_TOKEN ?? "";
 
     if (!licenseKeySecret || !sentinelTokenSecret) {
       return aosErrorResponse(
         AOS_ERROR.VAULT_NOT_CONFIGURED,
-        "TAI_LICENSE_KEY or TAI_SENTINEL_TOKEN is not configured on this Worker.",
+        "AVERYOS_LICENSE_KEY or TAI_SENTINEL_TOKEN is not configured on this Worker.",
       );
     }
 
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     if (!safeEqual(providedKey, licenseKeySecret)) {
-      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, "Invalid TAI_LICENSE_KEY.");
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, "Invalid AVERYOS_LICENSE_KEY.");
     }
 
     // ── Issue Sovereign Pulse Token ───────────────────────────────────────────
