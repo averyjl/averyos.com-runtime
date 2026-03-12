@@ -23,5 +23,44 @@ jobs:
       # Scans all deps including devDependencies; this is intentional so that
       # compromised build tools (e.g. a malicious ESLint plugin) are also caught.
       - run: npm audit --audit-level=high
+      # Gate 110.2: Docs Secret-Scanner — fails if any IP, SHA, or secret is found
+      # in public-facing documentation files under content/, public/, docs/.
+      - name: Docs Secret-Scanner (Gate 110.2)
+        run: node scripts/scan-docs.cjs
+      # Gate: Key-Rename Drift Guard — enforces AVERYOS_LICENSE_KEY permanently.
+      # Fails if the deprecated TAI_LICENSE_KEY name reappears in any source,
+      # config, or script file so the rename can never silently drift back.
+      # Addressed code-review note: this gate makes the rename a durable CI upgrade.
+      - name: Key-Rename Drift Guard (TAI_LICENSE_KEY → AVERYOS_LICENSE_KEY)
+        run: |
+          if grep -r \
+               --include="*.ts" --include="*.tsx" \
+               --include="*.js" --include="*.cjs" --include="*.mjs" \
+               --include="*.toml" --include="*.example" --include="*.ps1" \
+               --exclude-dir=".git" --exclude-dir="node_modules" --exclude-dir=".next" \
+               "TAI_LICENSE_KEY" .; then
+            echo "❌ Deprecated TAI_LICENSE_KEY found. Upgrade all references to AVERYOS_LICENSE_KEY."
+            exit 1
+          fi
+          echo "✅ Key-rename drift guard passed — AVERYOS_LICENSE_KEY is permanent."
+      # ⛓️⚓⛓️ Gate: Sovereign Leak Guard — dynamic, comprehensive git-tree protection
+      # Replaces the hardcoded 3-file Sovereign Key Files Guard with a fully dynamic
+      # guard that covers ALL .gitignore patterns and ALL tracked files.
+      #
+      # Layer 1 — Git-Tree Pattern Guard:
+      #   Reads every pattern from .gitignore at runtime and checks `git ls-files`
+      #   against all of them. Stays current automatically as .gitignore grows.
+      #   Covers key files, docs, tests, logs, configs, env files, backups, etc.
+      #   Applies gitignore negation (! rules) with last-rule-wins semantics so
+      #   intentionally-tracked exceptions (.gitkeep, source capsules) are not flagged.
+      #
+      # Layer 2 — Content Pattern Guard:
+      #   Scans ALL tracked files for embedded private key material (PEM blocks
+      #   with actual key content, Stripe live keys, GitHub PATs).
+      #
+      # Cannot be bypassed locally — runs server-side on GitHub's infrastructure.
+      # RULE: Do NOT remove or weaken this gate. Added by Jason Lee Avery (ROOT0).
+      - name: Sovereign Leak Guard ⛓️⚓⛓️
+        run: node scripts/sovereign-leak-guard.cjs
       - run: npm run build --if-present
       - run: npm test

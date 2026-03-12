@@ -19,6 +19,8 @@ import {
 } from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
 import { enforceDriftShield } from './lib/security/driftShield';
+import { KERNEL_SHA } from './lib/sovereignConstants';
+import { applyWafGate } from './lib/security/wafLogic';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -69,8 +71,6 @@ const ENTROPY_WEBGL_FP          = 10; // WebGL entropy signal present (Biometric
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
-import { KERNEL_SHA } from './lib/sovereignConstants';
-import { applyWafGate } from './lib/security/wafLogic';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
@@ -142,6 +142,14 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // GATE 110.2.2 — Allow sovereign AveryOS™ headers in CORS preflight responses
+  // so that Cloudflare Insights and other cross-origin requests are not blocked
+  // when they include custom AveryOS™ authentication or kernel-anchor headers.
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-TAI-License-Key, X-AveryOS-Canvas-FP, " +
+    "X-AveryOS-WebGL-FP, signature-agent, x-averyos-kernel-sha",
+  );
   return response;
 }
 
@@ -986,6 +994,26 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // ── DriftShield v4.1 — /api/v1/ Zero-Noise & Jitter Gate (Phase 109.4) ────
+  // Enforces MACDADDY_DriftShield_v4.1 on all /api/v1/ routes.
+  // Blocks requests carrying x-averyos-jitter=1 (probabilistic jitter) and
+  // rejects requests that exceed the configured WAF score threshold.
+  if (url.pathname.startsWith('/api/v1/')) {
+    const driftResult = enforceDriftShield(request);
+    if (!driftResult.pass) {
+      return NextResponse.json(
+        {
+          error:          driftResult.reason,
+          code:           driftResult.code,
+          kernel_sha:     driftResult.kernelSha,
+          kernel_version: driftResult.kernelVersion,
+          directive:      "DriftShield v4.1: Request rejected. Obtain an AveryOS™ license at https://averyos.com/licensing",
+        },
+        { status: driftResult.code, headers: { 'X-GabrielOS-Block': 'DRIFT_SHIELD', 'Cache-Control': 'no-store' } }
+      );
+    }
+  }
+
   // ── Phase 97.3.1 — Sovereign Audit Gate: /api/v1/ WAF 95-Threshold ────────
   // If a request targets /api/v1/ and carries a WAF attack score > 95, redirect
   // to the Audit Clearance Portal with the RayID appended (do NOT hard-block —
@@ -1013,27 +1041,39 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── Phase 111 — DriftShield v4.1: /api/v1/ Integrity Gate ───────────────
-  // Evaluates every /api/v1/ request against the MACDADDY_DriftShield_v4.1
-  // policy (WAF threshold 60, zero-noise filter, optional entropy check).
-  // Requests that fail are hard-blocked with 403 — this is a tighter gate
-  // than the 95-threshold redirect above and fires first for clear drift.
+  // ── Phase 110.1.3 — DriftShield Enforcement: /api/v1/ OIDC Bot Block ────
+  // Runs MACDADDY DriftShield v4.1 on all /api/v1/ requests to block
+  // probabilistic-jitter bots attempting to bypass the OIDC handshake.
   if (url.pathname.startsWith('/api/v1/')) {
-    const driftShieldEnv = (await getCloudflareContext({ async: true }).catch(() => null))?.env as Record<string, string | undefined> | undefined;
-    const dsOutcome = enforceDriftShield(request, driftShieldEnv);
+    // Extract only the DriftShield-relevant env fields to satisfy the
+    // DriftShieldEnv interface, avoiding an opaque double type assertion.
+    interface DsEnvShape {
+      DRIFT_SHIELD_THRESHOLD?:   string;
+      DRIFT_SHIELD_ENTROPY_MIN?: string;
+      DRIFT_SHIELD_ZERO_NOISE?:  string;
+    }
+    let dsEnv: DsEnvShape | undefined;
+    try {
+      const { env: cfEnvDs } = await getCloudflareContext({ async: true });
+      const raw = cfEnvDs as unknown as Record<string, unknown>;
+      dsEnv = {
+        DRIFT_SHIELD_THRESHOLD:   typeof raw["DRIFT_SHIELD_THRESHOLD"]   === "string" ? raw["DRIFT_SHIELD_THRESHOLD"]   : undefined,
+        DRIFT_SHIELD_ENTROPY_MIN: typeof raw["DRIFT_SHIELD_ENTROPY_MIN"] === "string" ? raw["DRIFT_SHIELD_ENTROPY_MIN"] : undefined,
+        DRIFT_SHIELD_ZERO_NOISE:  typeof raw["DRIFT_SHIELD_ZERO_NOISE"]  === "string" ? raw["DRIFT_SHIELD_ZERO_NOISE"]  : undefined,
+      };
+    } catch {
+      dsEnv = undefined;
+    }
+    const dsOutcome = enforceDriftShield(request, dsEnv);
     if (!dsOutcome.pass) {
-      return new NextResponse(
-        JSON.stringify({ error: dsOutcome.reason, kernelSha: dsOutcome.kernelSha }),
-        {
-          status: dsOutcome.code,
-          headers: {
-            'Content-Type':          'application/json',
-            'X-GabrielOS-Directive': 'DRIFT_SHIELD_BLOCK',
-            'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
-            'Cache-Control':         'no-store',
-          },
-        }
-      );
+      return new NextResponse(dsOutcome.reason, {
+        status: dsOutcome.code,
+        headers: {
+          'X-GabrielOS-Directive': 'DRIFTSHIELD_BLOCK',
+          'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
+          'Cache-Control':         'no-store',
+        },
+      });
     }
   }
 

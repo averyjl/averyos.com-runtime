@@ -211,7 +211,7 @@ export async function POST(request: Request): Promise<Response> {
   });
 
   // ── Build compliance clock ──────────────────────────────────────────────────
-  const clock = createComplianceClock(
+  const clock = await createComplianceClock(
     asn,
     orgName || parentCompany || null,
     `clock_q_${asn}_${Date.now()}`,

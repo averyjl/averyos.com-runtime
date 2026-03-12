@@ -74,12 +74,12 @@ export const TAI_LICENSE_HEADER = "x-tai-license-key";
  *
  * @param headers         - Inbound request headers
  * @param vaultPassphrase - Value of VAULT_PASSPHRASE env secret (may be empty)
- * @param taiLicenseKey   - Value of TAI_LICENSE_KEY env secret (may be empty)
+ * @param taiLicenseKey   - Value of AVERYOS_LICENSE_KEY env secret (may be empty)
  */
 export function evaluateTaiAccess(
   headers: Headers,
   vaultPassphrase: string,
-  taiLicenseKey: string
+  averyosLicenseKey: string
 ): TaiGateResult {
   // ── Tier 1: Internal sovereign passphrase ─────────────────────────────────
   const authHeader = headers.get("authorization") ?? "";
@@ -100,12 +100,12 @@ export function evaluateTaiAccess(
 
   // ── Tier 2: TAI™ / licensed-IP key ────────────────────────────────────────
   // Callers supply the key in the X-TAI-License-Key header.
-  // The server secret TAI_LICENSE_KEY is the single accepted value.
+  // The server secret AVERYOS_LICENSE_KEY is the single accepted value.
   // (In a production multi-tenant system this would validate against a D1
   //  license registry, but a single env secret is the minimal-change approach.)
   const submittedKey = headers.get(TAI_LICENSE_HEADER)?.trim() ?? "";
 
-  if (taiLicenseKey && safeEqual(submittedKey, taiLicenseKey)) {
+  if (averyosLicenseKey && safeEqual(submittedKey, averyosLicenseKey)) {
     return {
       tier: "TAI_LICENSED",
       fullAccess: true,

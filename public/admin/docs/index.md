@@ -470,7 +470,7 @@
 > $1,017 Audit Clearance Fee — Tier-1 through Tier-6 unrecognised agents.
 
 ### `STATUTORY_ADMIN_SETTLEMENT_CENTS` *(const)*
-> // ── Statutory Administrative Settlement — Gate 103.4 ───────────────────────── Hardlocked $150,000 Administrative Settlement per instance. Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a copyrighted work. Applies when an entity accesses the AveryOS™ API via an unlicensed Python script or automated tool without a valid TAI_LICENSE_KEY, bypassing the standard KaaS settlement path. This value is the maximum statutory damage award per work and is hardlocked to ensure the Administrative Settlement offer is fully legally defensible. /
+> // ── Statutory Administrative Settlement — Gate 103.4 ───────────────────────── Hardlocked $150,000 Administrative Settlement per instance. Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a copyrighted work. Applies when an entity accesses the AveryOS™ API via an unlicensed Python script or automated tool without a valid AVERYOS_LICENSE_KEY, bypassing the standard KaaS settlement path. This value is the maximum statutory damage award per work and is hardlocked to ensure the Administrative Settlement offer is fully legally defensible. /
 
 ### `STATUTORY_ADMIN_SETTLEMENT_LABEL` *(const)*
 > Human-readable label for the $150,000 Administrative Settlement.

@@ -152,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── Start 72-hour compliance clock ───────────────────────────────────────
   const clockId = `clock_nov_${asn || ipStr}_${Date.now()}`;
-  const clock   = createComplianceClock(asn || null, orgStr, clockId);
+  const clock   = await createComplianceClock(asn || null, orgStr, clockId);
 
   // ── Generate NOV fingerprint ─────────────────────────────────────────────
   const novInput   = [asn, ipStr, orgStr, now, KERNEL_SHA].join("|");
@@ -183,12 +183,12 @@ export async function POST(request: Request): Promise<Response> {
         console.warn("[notify] D1 clock persist failed:", err instanceof Error ? err.message : String(err));
       });
 
-    // Audit log
+    // Audit log — includes SHA-512 pulse_hash receipt for VaultChain™ permanence
     cfEnv.DB.prepare(
       `INSERT OR IGNORE INTO sovereign_audit_logs
          (event_type, ip_address, user_agent, target_path, timestamp_ns, threat_level,
-          kernel_sha, asn, client_country, ingestion_intent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          kernel_sha, asn, client_country, ingestion_intent, pulse_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         "COMPLIANCE_NOTICE_ISSUED",
@@ -201,11 +201,38 @@ export async function POST(request: Request): Promise<Response> {
         asn || null,
         ccStr,
         "COMPLIANCE_NOTICE",
+        novToken,
       )
       .run()
       .catch((err: unknown) => {
         console.warn("[notify] D1 audit log failed:", err instanceof Error ? err.message : String(err));
       });
+
+    // VaultChain™ SHA-512 pulse receipt — GATE 110.1.5
+    if (clock.pulse_hash) {
+      cfEnv.DB.prepare(
+        `INSERT OR IGNORE INTO sovereign_audit_logs
+           (event_type, ip_address, user_agent, target_path, timestamp_ns, threat_level,
+            kernel_sha, asn, client_country, ingestion_intent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          "COMPLIANCE_CLOCK_SHA512_RECEIPT",
+          ipStr,
+          request.headers.get("user-agent") ?? "unknown",
+          "/api/v1/compliance/notify",
+          now,
+          tier >= 9 ? 10 : tier >= 7 ? 7 : 5,
+          KERNEL_SHA,
+          asn || null,
+          ccStr,
+          `PULSE_HASH:${clock.pulse_hash}`,
+        )
+        .run()
+        .catch((err: unknown) => {
+          console.warn("[notify] D1 pulse receipt log failed:", err instanceof Error ? err.message : String(err));
+        });
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     autoTrackAccomplishment(cfEnv.DB as any, {

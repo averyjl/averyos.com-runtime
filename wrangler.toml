@@ -126,7 +126,7 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put GITHUB_PAT
 #   wrangler secret put VAULT_PASSPHRASE
 #   wrangler secret put BLOCKCHAIN_API_KEY      # BlockCypher — BTC block anchor salt
-#   wrangler secret put TAI_LICENSE_KEY         # TAI™ license gate for /api/v1/resonance
+#   wrangler secret put AVERYOS_LICENSE_KEY     # AveryOS™ license gate for /api/v1/resonance
 #   wrangler secret put GABRIEL_SENTINEL_WEBHOOK # GabrielOS™ Sentinel webhook URL
 #   wrangler secret put PUSHOVER_APP_TOKEN      # Pushover notifications
 #   wrangler secret put PUSHOVER_USER_KEY       # Pushover user key
