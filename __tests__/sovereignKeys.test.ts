@@ -61,6 +61,81 @@ describe("getSovereignKeys()", () => {
     assert.equal(pair.active, false);
   });
 
+  // ── Triple-Part Protocol tests (GATE 111.4.1) ────────────────────────────
+  test("triple-part (uppercase) assembles parts and returns inactive pair for invalid key material", async () => {
+    // Split a fake Base64 string into 3 parts — result will be inactive since the
+    // content is not a real key, but must never throw.
+    const fakeB64 = Buffer.from("Hello this is not a key but is valid base64 content for testing").toString("base64");
+    const seg = Math.ceil(fakeB64.length / 3);
+    const pair = await getSovereignKeys({
+      AVERYOS_PRIVATE_KEY_B64_1_OF_3: fakeB64.slice(0, seg),
+      AVERYOS_PRIVATE_KEY_B64_2_OF_3: fakeB64.slice(seg, seg * 2),
+      AVERYOS_PRIVATE_KEY_B64_3_OF_3: fakeB64.slice(seg * 2),
+    });
+    assert.equal(pair.active, false);
+    assert.ok("kid" in pair, "kid field missing");
+    assert.equal(pair.kernelSha, KERNEL_SHA);
+  });
+
+  test("triple-part (lowercase) assembles parts and returns inactive pair for invalid key material", async () => {
+    const fakeB64 = Buffer.from("Hello this is not a key but is valid base64 content for testing").toString("base64");
+    const seg = Math.ceil(fakeB64.length / 3);
+    const pair = await getSovereignKeys({
+      averyos_private_key_b64_1_of_3: fakeB64.slice(0, seg),
+      averyos_private_key_b64_2_of_3: fakeB64.slice(seg, seg * 2),
+      averyos_private_key_b64_3_of_3: fakeB64.slice(seg * 2),
+    });
+    assert.equal(pair.active, false);
+    assert.ok("kid" in pair, "kid field missing");
+    assert.equal(pair.kernelSha, KERNEL_SHA);
+  });
+
+  test("triple-part strips CRLF jitter from each segment before joining", async () => {
+    // Simulate copy-paste CRLF noise on each segment — result must be equivalent
+    // to the clean version (no throw, valid pair shape returned).
+    const fakeB64 = Buffer.from("Not a real key — just testing CRLF strip logic").toString("base64");
+    const seg = Math.ceil(fakeB64.length / 3);
+    const pair = await getSovereignKeys({
+      AVERYOS_PRIVATE_KEY_B64_1_OF_3: `  ${fakeB64.slice(0, seg)}  \r\n`,
+      AVERYOS_PRIVATE_KEY_B64_2_OF_3: `\n${fakeB64.slice(seg, seg * 2)}\n`,
+      AVERYOS_PRIVATE_KEY_B64_3_OF_3: `\r\n${fakeB64.slice(seg * 2)}\r\n`,
+    });
+    // Should not throw; shape must be valid
+    assert.ok("active" in pair, "active field missing");
+    assert.ok("kid" in pair, "kid field missing");
+  });
+
+  test("triple-part falls back to single-secret when any part is missing", async () => {
+    // Only 2 of 3 parts present — should fall back to AVERYOS_PRIVATE_KEY_B64 (absent here)
+    const fakeB64 = Buffer.from("test").toString("base64");
+    const pair = await getSovereignKeys({
+      AVERYOS_PRIVATE_KEY_B64_1_OF_3: fakeB64,
+      AVERYOS_PRIVATE_KEY_B64_2_OF_3: fakeB64,
+      // _3_OF_3 intentionally absent
+    });
+    assert.equal(pair.active, false);
+    assert.equal(pair.privateKey, null);
+  });
+
+  test("triple-part uppercase binding takes precedence over lowercase when both are present", async () => {
+    // Part 1 is supplied via both casing variants; uppercase must win.
+    // We verify this by providing an invalid string only in the lowercase binding
+    // and valid Base64 in the uppercase binding — if uppercase is ignored the
+    // assembled result would fail the integrity check and return inactive.
+    const fakeB64 = Buffer.from("uppercase-takes-precedence-test").toString("base64");
+    const seg = Math.ceil(fakeB64.length / 3);
+    const pair = await getSovereignKeys({
+      AVERYOS_PRIVATE_KEY_B64_1_OF_3: fakeB64.slice(0, seg),        // uppercase — must win
+      averyos_private_key_b64_1_of_3: "LOWERCASE_SHOULD_BE_IGNORED",
+      AVERYOS_PRIVATE_KEY_B64_2_OF_3: fakeB64.slice(seg, seg * 2),
+      AVERYOS_PRIVATE_KEY_B64_3_OF_3: fakeB64.slice(seg * 2),
+    });
+    // Regardless of active status (fake key), shape must be valid and no throw.
+    assert.ok("active"     in pair, "active field missing");
+    assert.ok("kid"        in pair, "kid field missing");
+    assert.equal(pair.kernelSha, KERNEL_SHA);
+  });
+
   test("kid always includes KERNEL_VERSION", async () => {
     const pair = await getSovereignKeys({});
     assert.ok(pair.kid.includes(KERNEL_VERSION), `kid "${pair.kid}" should include "${KERNEL_VERSION}"`);

@@ -2,14 +2,23 @@
  * lib/security/keys.ts
  *
  * Sovereign Key Loader — AveryOS™ Phase 109.3 / GATE 109.3.1 / Phase 110.2 GATE 110.2.1
+ *                         Phase 111.4 GATE 111.4.1 (Triple-Part Key Protocol)
  *
- * Provides two key-loading paths:
+ * Provides three key-loading paths:
  *
  * 1. `getSovereignKeys()` — loads from `AVERYOS_PRIVATE_KEY_B64` / `AVERYOS_PUBLIC_KEY_B64`
  *    (Base64-encoded PKCS#8 private key + SPKI public key, from .NET ExportPkcs8PrivateKey /
  *    ExportSubjectPublicKeyInfo).
  *
- * 2. `getSovereignKeysFromXml()` — loads from a single `AVERYOS_PRIVATE_KEY_B64` that holds
+ * 2. **Triple-Part Protocol** (GATE 111.4.1):
+ *    When the full key exceeds the Cloudflare 1 KB secret size limit it is split into
+ *    three segments stored as `AVERYOS_PRIVATE_KEY_B64_1_OF_3`, `_2_OF_3`, `_3_OF_3`.
+ *    `getSovereignKeys()` auto-detects the three parts, strips any accidental
+ *    whitespace / CRLF from each segment, concatenates them, and then follows the
+ *    normal import path.  Cloudflare stores secrets with the exact name supplied,
+ *    so both uppercase and lowercase variants of the binding names are accepted.
+ *
+ * 3. `getSovereignKeysFromXml()` — loads from a single `AVERYOS_PRIVATE_KEY_B64` that holds
  *    a Base64-encoded XML string produced by .NET `RSA.ToXmlString(true)`.  This is the
  *    legacy-compatible path for environments where ExportPkcs8PrivateKey is unavailable.
  *    Converts the .NET XML RSAKeyValue into JWK form, then imports via Web Crypto API.
@@ -42,6 +51,23 @@ interface SovereignEnv {
   AVERYOS_PRIVATE_KEY_B64?: string;
   /** Base64-encoded RSA public key (SPKI or PKCS#1 DER). */
   AVERYOS_PUBLIC_KEY_B64?:  string;
+  // ── Triple-Part Protocol (GATE 111.4.1) ──────────────────────────────────
+  // When the full key exceeds the Cloudflare 1 KB secret limit, it is split
+  // across three secrets.  Both UPPERCASE and lowercase binding names are
+  // accepted because Cloudflare stores secrets with the exact name supplied
+  // in the dashboard (the creator used lowercase).
+  /** Triple-Part Protocol — part 1 of 3 (uppercase binding name). */
+  AVERYOS_PRIVATE_KEY_B64_1_OF_3?: string;
+  /** Triple-Part Protocol — part 2 of 3 (uppercase binding name). */
+  AVERYOS_PRIVATE_KEY_B64_2_OF_3?: string;
+  /** Triple-Part Protocol — part 3 of 3 (uppercase binding name). */
+  AVERYOS_PRIVATE_KEY_B64_3_OF_3?: string;
+  /** Triple-Part Protocol — part 1 of 3 (lowercase binding name as stored in Cloudflare). */
+  averyos_private_key_b64_1_of_3?: string;
+  /** Triple-Part Protocol — part 2 of 3 (lowercase binding name as stored in Cloudflare). */
+  averyos_private_key_b64_2_of_3?: string;
+  /** Triple-Part Protocol — part 3 of 3 (lowercase binding name as stored in Cloudflare). */
+  averyos_private_key_b64_3_of_3?: string;
 }
 
 // ── Key import helpers ────────────────────────────────────────────────────────
@@ -225,6 +251,46 @@ function isBase64EncodedXmlKey(b64: string): boolean {
 }
 
 /**
+ * GATE 111.4.1 — Triple-Part Protocol
+ *
+ * Resolves the full private key Base64 string from the environment.
+ * When all three parts (`*_1_OF_3`, `*_2_OF_3`, `*_3_OF_3`) are present,
+ * each segment is trimmed to remove any accidental whitespace or CRLF jitter
+ * introduced during copy-paste or secret creation, then they are concatenated
+ * in order to reconstruct the original Base64 string.
+ *
+ * After reconstruction the assembled string is validated to contain only
+ * standard Base64 characters (`A-Z a-z 0-9 + / =`).  An invalid character
+ * indicates silent truncation or corruption of one of the stored segments; in
+ * that case the function returns `undefined` so the caller treats the key pair
+ * as inactive rather than attempting a cryptographic import with corrupt data.
+ *
+ * Falls back to the single-secret `AVERYOS_PRIVATE_KEY_B64` when the
+ * triple-part secrets are absent or incomplete.
+ *
+ * Supports both uppercase (`AVERYOS_PRIVATE_KEY_B64_1_OF_3`) and lowercase
+ * (`averyos_private_key_b64_1_of_3`) binding names so the same code works
+ * regardless of how the secret was named in the Cloudflare dashboard.
+ * When both casing variants are present for the same part, the uppercase
+ * binding takes precedence (left operand of `??`).
+ */
+function resolvePrivateKeyB64(env: SovereignEnv): string | undefined {
+  const part1 = (env.AVERYOS_PRIVATE_KEY_B64_1_OF_3 ?? env.averyos_private_key_b64_1_of_3 ?? "").trim();
+  const part2 = (env.AVERYOS_PRIVATE_KEY_B64_2_OF_3 ?? env.averyos_private_key_b64_2_of_3 ?? "").trim();
+  const part3 = (env.AVERYOS_PRIVATE_KEY_B64_3_OF_3 ?? env.averyos_private_key_b64_3_of_3 ?? "").trim();
+  if (part1 && part2 && part3) {
+    const assembled = part1 + part2 + part3;
+    // Integrity check: assembled string must be valid Base64.
+    // An invalid character means at least one segment was truncated or corrupted.
+    if (!/^[A-Za-z0-9+/]+=*$/.test(assembled)) {
+      return undefined;
+    }
+    return assembled;
+  }
+  return env.AVERYOS_PRIVATE_KEY_B64;
+}
+
+/**
  * Load the AveryOS™ sovereign RSA key pair from Cloudflare secrets.
  *
  * Reads `AVERYOS_PRIVATE_KEY_B64` and `AVERYOS_PUBLIC_KEY_B64` from the
@@ -250,14 +316,19 @@ function isBase64EncodedXmlKey(b64: string): boolean {
 export async function getSovereignKeys(env: SovereignEnv): Promise<SovereignKeyPair> {
   const kid = `averyos-sovereign-key-${KERNEL_VERSION}`;
 
+  // GATE 111.4.1 — Resolve private key: triple-part reconstruction takes priority
+  // over the single-secret path so that deployments using the split-key protocol
+  // activate automatically without any additional configuration.
+  const privateKeyB64 = resolvePrivateKeyB64(env);
+
   // Auto-detect XML-B64 bundle (GATE 111.3 — .NET ToXmlString(true) path)
-  if (env.AVERYOS_PRIVATE_KEY_B64 && isBase64EncodedXmlKey(env.AVERYOS_PRIVATE_KEY_B64)) {
-    return getSovereignKeysFromXml(env);
+  if (privateKeyB64 && isBase64EncodedXmlKey(privateKeyB64)) {
+    return getSovereignKeysFromXml({ ...env, AVERYOS_PRIVATE_KEY_B64: privateKeyB64 });
   }
 
   const [privateKey, publicKey] = await Promise.all([
-    env.AVERYOS_PRIVATE_KEY_B64
-      ? importPrivateKey(env.AVERYOS_PRIVATE_KEY_B64)
+    privateKeyB64
+      ? importPrivateKey(privateKeyB64)
       : Promise.resolve(null),
     env.AVERYOS_PUBLIC_KEY_B64
       ? importPublicKey(env.AVERYOS_PUBLIC_KEY_B64)

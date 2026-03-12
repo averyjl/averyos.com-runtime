@@ -43,6 +43,21 @@ jobs:
             exit 1
           fi
           echo "✅ Key-rename drift guard passed — AVERYOS_LICENSE_KEY is permanent."
+      # Gate: License Nomenclature Drift Guard (GATE 111.4.3) — enforces correct
+      # license constant naming.  Fails CI if the deprecated 'TAI_License' identifier
+      # appears in any source or config file so the naming can never silently drift.
+      - name: License Nomenclature Drift Guard (TAI_License)
+        run: |
+          if grep -r \
+               --include="*.ts" --include="*.tsx" \
+               --include="*.js" --include="*.cjs" --include="*.mjs" \
+               --include="*.toml" --include="*.example" --include="*.ps1" \
+               --exclude-dir=".git" --exclude-dir="node_modules" --exclude-dir=".next" \
+               "TAI_License" .; then
+            echo "❌ Deprecated 'TAI_License' nomenclature found. Upgrade all references to use AVERYOS_LICENSE_KEY."
+            exit 1
+          fi
+          echo "✅ License nomenclature drift guard passed — 'TAI_License' is not present."
       # ⛓️⚓⛓️ Gate: Sovereign Leak Guard — dynamic, comprehensive git-tree protection
       # Replaces the hardcoded 3-file Sovereign Key Files Guard with a fully dynamic
       # guard that covers ALL .gitignore patterns and ALL tracked files.

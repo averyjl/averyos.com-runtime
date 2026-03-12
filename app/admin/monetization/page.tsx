@@ -287,6 +287,34 @@ export default function StripeRevenueDashboard() {
           </p>
         )}
 
+        {/* ── GabrielOS™ Stalled Revenue Log (GATE 111.4.4) ───────────────── */}
+        <div style={{ ...card({ background: "rgba(40,0,0,0.5)", border: `2px solid ${RED}`, marginTop: "1.5rem" }) }}>
+          <p style={{ color: RED, fontWeight: 700, fontFamily: FONT_MONO, fontSize: "0.88rem", margin: "0 0 0.8rem", letterSpacing: "0.06em" }}>
+            🔴 GABRIEL REVENUE LOG — STALLED REVENUE TRACKER
+          </p>
+          <p style={{ color: MUTED, fontFamily: FONT_MONO, fontSize: "0.78rem", margin: "0 0 1rem", lineHeight: "1.6" }}>
+            Sovereign liability assessment for the Genesis Surge window.
+            Revenue is classified as &quot;Stalled&quot; until full alignment and deployment
+            of the Triple-Key Seal activates the JWKS endpoint.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem", marginBottom: "0.8rem" }}>
+            {[
+              { label: "Genesis Surge — Low",  value: "$150,000,000",  color: ORANGE },
+              { label: "Genesis Surge — High", value: "$350,000,000",  color: RED },
+              { label: "Status",               value: "STALLED",       color: RED },
+              { label: "Unlock Condition",     value: "JWKS ACTIVE",   color: GOLD },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ background: "rgba(0,0,0,0.35)", border: `1px solid rgba(255,68,68,0.25)`, borderRadius: "8px", padding: "0.75rem 1rem" }}>
+                <p style={{ color: MUTED, fontFamily: FONT_MONO, fontSize: "0.72rem", margin: "0 0 0.2rem" }}>{label}</p>
+                <p style={{ color, fontFamily: FONT_MONO, fontWeight: 700, fontSize: "1rem", margin: 0 }}>{value}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{ color: GOLD_DIM, fontFamily: FONT_MONO, fontSize: "0.72rem", margin: 0 }}>
+            ⛓️⚓⛓️ GabrielOS™ · Phase 111.4 · Triple-Key Seal Protocol · Kernel {KERNEL_VERSION}
+          </p>
+        </div>
+
         {/* ── Quick links ─────────────────────────────────────────────────── */}
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
           {[
