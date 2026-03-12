@@ -10,6 +10,8 @@
 
 ### `getSovereignKeysFromXml` *(function)*
 
+### `getReconstructedSovereignKeys` *(function)*
+
 ### `SovereignKeyPair` *(interface)*
 
 ---
