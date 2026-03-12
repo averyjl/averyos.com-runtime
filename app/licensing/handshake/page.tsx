@@ -20,10 +20,10 @@ import FooterBadge  from "../../../components/FooterBadge";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG          = "#030008";
-const GOLD        = "#ffd700";
-const GOLD_DIM    = "rgba(255,215,0,0.6)";
-const GOLD_BORDER = "rgba(255,215,0,0.3)";
-const GOLD_GLOW   = "rgba(255,215,0,0.06)";
+const GOLD        = "#D4AF37";
+const GOLD_DIM    = "rgba(212,175,55,0.6)";
+const GOLD_BORDER = "rgba(212,175,55,0.3)";
+const GOLD_GLOW   = "rgba(212,175,55,0.06)";
 const GREEN       = "#4ade80";
 const RED         = "#ff4444";
 const BLUE        = "#60a5fa";
@@ -316,7 +316,7 @@ export default function HandshakePage() {
 // ── Shared styles ──────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.55rem 0.75rem",
-  background: "#0a0018", border: "1px solid rgba(255,215,0,0.3)",
+  background: "#0a0018", border: "1px solid rgba(212,175,55,0.3)",
   borderRadius: "6px", color: "#fff", fontSize: "0.85rem",
   boxSizing: "border-box", fontFamily: "JetBrains Mono, monospace",
 };
@@ -326,7 +326,7 @@ function Field({ label, required = false, hint, children }: {
 }) {
   return (
     <div style={{ marginBottom: "1.1rem" }}>
-      <label style={{ color: "rgba(255,215,0,0.8)", fontSize: "0.82rem", display: "block", marginBottom: "0.35rem" }}>
+      <label style={{ color: "rgba(212,175,55,0.8)", fontSize: "0.82rem", display: "block", marginBottom: "0.35rem" }}>
         {label}{required && <span style={{ color: "#ff4444", marginLeft: "4px" }}>*</span>}
       </label>
       {hint && <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem", marginBottom: "0.35rem" }}>{hint}</p>}
@@ -340,7 +340,7 @@ function InfoRow({ label, value, mono = false, highlight = false }: {
 }) {
   return (
     <div style={{ display: "flex", gap: "0.75rem" }}>
-      <span style={{ color: "rgba(255,215,0,0.6)", fontSize: "0.75rem", minWidth: "120px", flexShrink: 0 }}>
+      <span style={{ color: "rgba(212,175,55,0.6)", fontSize: "0.75rem", minWidth: "120px", flexShrink: 0 }}>
         {label}
       </span>
       <span style={{
