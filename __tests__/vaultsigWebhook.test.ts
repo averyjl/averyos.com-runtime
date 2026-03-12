@@ -148,11 +148,10 @@ describe("Capsule content protection invariants", () => {
         "Public capsule listing SELECT must not expose file_key",
       );
     }
-    // If there's no ACTIVE-filtered query, just ensure file_key is not selected
-    // alongside the public fields (this is a belt-and-suspenders check)
+    // Belt-and-suspenders: the route must never use SELECT * (which would expose file_key)
     assert.ok(
-      !content.includes("SELECT *") || content.includes("file_key"),
-      "Public route must not use SELECT * (which would expose file_key)",
+      !content.includes("SELECT *"),
+      "Public capsule route must not use SELECT * — use explicit field list to prevent file_key exposure",
     );
   });
 });

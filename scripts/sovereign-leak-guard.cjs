@@ -44,6 +44,7 @@ const fs   = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { CODE_EXTENSIONS, PROTECTED_DIRS, KEY_CONTENT_PATTERNS } = require('./sovereignGuardConfig.cjs');
 
 // ── CLI flags ─────────────────────────────────────────────────────────────────
 const args    = process.argv.slice(2);
@@ -334,40 +335,7 @@ function scanFileContent(relPath) {
 }
 
 // ── Layer 3: Key/Token filename auto-guard ────────────────────────────────────
-
-/**
- * Extensions considered "code files" — these are NEVER auto-added to .gitignore
- * even if their filename contains "key" or "token", because they are required
- * to run AveryOS™.
- */
-const CODE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.cjs', '.mjs', '.jsx',
-  '.json', '.yaml', '.yml', '.toml', '.md',
-  '.html', '.css', '.scss',
-]);
-
-/**
- * Directory prefixes whose files are NEVER auto-added to .gitignore regardless
- * of filename.  These directories contain source code required to run AveryOS™.
- */
-const PROTECTED_DIRS = [
-  'lib/', 'app/', 'pages/', 'components/', 'scripts/',
-  'capsules/', 'public/', '__tests__/', '.github/',
-  'styles/', 'workers/', 'migrations/', 'content/', 'VaultBridge/',
-];
-
-/**
- * Patterns that must appear in the FILE CONTENT for it to be considered a
- * real key/token file.  These match actual cryptographic material, not just
- * references to key concepts in code.
- */
-const KEY_CONTENT_PATTERNS = [
-  /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----[\r\n]+[A-Za-z0-9+/]{10}/,
-  /[A-Za-z0-9+/]{512,}={0,2}/,   // Long Base64 — likely encoded key material
-  /\bsk_live_[0-9a-zA-Z]{24,}\b/, // Stripe live key
-  /\bghp_[0-9a-zA-Z]{36,}\b/,    // GitHub PAT
-  /"private_key"\s*:\s*"-----BEGIN/,
-];
+// Uses shared configuration from sovereignGuardConfig.cjs
 
 /**
  * Check whether a file path looks like a code file that is needed to run AveryOS™.
@@ -404,8 +372,8 @@ function contentLooksLikeKey(absPath) {
   } catch {
     return false;
   }
-  for (const pattern of KEY_CONTENT_PATTERNS) {
-    if (new RegExp(pattern.source, pattern.flags).test(content)) return true;
+  for (const { regex } of KEY_CONTENT_PATTERNS) {
+    if (new RegExp(regex.source, regex.flags).test(content)) return true;
   }
   return false;
 }
