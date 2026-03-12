@@ -68,7 +68,7 @@ export async function GET(request: Request): Promise<Response> {
           // AveryOS™ sovereign extensions
           "x-averyos-status":         "ACTIVE",
           // Display-only abbreviated SHA (first 32 hex chars); not for verification
-          "x-averyos-kernel-sha":     KERNEL_SHA.slice(0, 32) + "…",
+          "x-averyos-kernel-sha":     KERNEL_SHA,
           "x-averyos-kernel-version": KERNEL_VERSION,
           "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
           "x-averyos-anchor":         "⛓️⚓⛓️",
@@ -115,7 +115,7 @@ function buildPendingJwks(
         kid: `averyos-sovereign-key-${KERNEL_VERSION}`,
         // Indicate that the key is pending deployment
         "x-averyos-status":         "PENDING_KEY_DEPLOYMENT",
-        "x-averyos-kernel-sha":     KERNEL_SHA.slice(0, 32) + "…",
+        "x-averyos-kernel-sha":     KERNEL_SHA,
         "x-averyos-kernel-version": KERNEL_VERSION,
         "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
         "x-averyos-anchor":         "⛓️⚓⛓️",

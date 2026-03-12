@@ -297,6 +297,8 @@ interface GatekeeperEnv {
   RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   /** Handshake-specific rate limiter — 10 requests per 60 seconds per IP (Roadmap Gate 1.7). */
   RATE_LIMITER_HANDSHAKE?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Gate 113.2 — API rate limiter for unauthenticated /api/v1/ requests (1,017 req/60s per IP). */
+  RATE_LIMITER_API?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
   KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
@@ -909,6 +911,43 @@ export async function middleware(request: NextRequest) {
               license_url:     "https://averyos.com/licensing",
             },
             { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "HANDSHAKE_RATE_LIMITED" } },
+          );
+        }
+      }
+    } catch {
+      // Binding unavailable — allow through
+    }
+  }
+
+  // ── Gate 113.2 — Unauthenticated /api/v1/ Rate Limiting ──────────────────
+  // Applies RATE_LIMITER_API (1,017 req/60s per IP) specifically to requests
+  // targeting /api/v1/ paths that carry no authentication credentials.
+  // Authenticated requests (Authorization header or aos-vault-auth cookie) are
+  // exempt so licensed integrators are never throttled.
+  const isApiPath = pathname.startsWith("/api/v1/");
+  const hasAuth   = !!(
+    request.headers.get("authorization") ||
+    request.headers.get("x-vault-auth")  ||
+    request.cookies?.get("aos-vault-auth")?.value
+  );
+  if (isApiPath && !hasAuth) {
+    try {
+      const { env: _apiEnv } = await getCloudflareContext({ async: true });
+      const apiEnv = _apiEnv as unknown as GatekeeperEnv;
+      if (apiEnv.RATE_LIMITER_API) {
+        const ip = request.headers.get("cf-connecting-ip") ??
+                   request.headers.get("x-forwarded-for") ?? "unknown";
+        const { success } = await apiEnv.RATE_LIMITER_API.limit({ key: `api:${ip}` });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status:        "429 Too Many Requests",
+              error:         "1,017-Notch API Rate Limit Exceeded",
+              directive:     "Obtain a VaultChain™ license for elevated unauthenticated access.",
+              kernel_anchor: KERNEL_ANCHOR_DISPLAY,
+              license_url:   "https://averyos.com/licensing",
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "API_RATE_LIMITED" } },
           );
         }
       }

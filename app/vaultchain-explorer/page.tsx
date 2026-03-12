@@ -34,7 +34,7 @@ function getKaasBadge(asn: string | undefined): { tier: number; fee: string; nam
   return KAAS_TIER_MAP[norm] ?? null;
 }
 
-type Tab = "hash" | "rayid";
+type Tab = "hash" | "rayid" | "jwks";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface VerifyResult {
@@ -350,6 +350,26 @@ export default function VaultChainExplorerPage() {
   const batchPageCount = Math.ceil(sortedBatchResults.length / BATCH_PAGE_SIZE);
   const batchPageResults = sortedBatchResults.slice(batchPage * BATCH_PAGE_SIZE, (batchPage + 1) * BATCH_PAGE_SIZE);
 
+  // ── JWKS Live Sync state (Gate 113.3) ─────────────────────────────────────
+  const [jwksData,    setJwksData]    = useState<Record<string, unknown> | null>(null);
+  const [jwksLoading, setJwksLoading] = useState(false);
+  const [jwksError,   setJwksError]   = useState<string | null>(null);
+
+  async function fetchJwks() {
+    setJwksLoading(true);
+    setJwksData(null);
+    setJwksError(null);
+    try {
+      const res  = await fetch("/.well-known/jwks.json");
+      const data = await res.json() as Record<string, unknown>;
+      setJwksData(data);
+    } catch {
+      setJwksError("Network error — unable to reach the JWKS endpoint.");
+    } finally {
+      setJwksLoading(false);
+    }
+  }
+
   const hashResonanceColor =
     hashResult?.resonance === "HIGH_FIDELITY_SUCCESS" ? GREEN :
     hashResult?.resonance === "DRIFT_ALERT"            ? RED   : GOLD;
@@ -391,6 +411,9 @@ export default function VaultChainExplorerPage() {
           </button>
           <button style={tabStyle("rayid")} onClick={() => setActiveTab("rayid")}>
             🔍 RayID Evidence
+          </button>
+          <button style={tabStyle("jwks")} onClick={() => { setActiveTab("jwks"); fetchJwks(); }}>
+            🔑 JWKS Live Sync
           </button>
         </div>
       </section>
@@ -953,6 +976,124 @@ export default function VaultChainExplorerPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB 3 — JWKS Live Sync (Gate 113.3 — Full SHA-512, no truncation)
+        ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "jwks" && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.25rem" }}>
+              <button
+                onClick={fetchJwks}
+                disabled={jwksLoading}
+                style={{
+                  background:   jwksLoading ? "rgba(255,215,0,0.15)" : GOLD,
+                  border:       "none",
+                  borderRadius: "6px",
+                  color:        jwksLoading ? MUTED : "#000",
+                  cursor:       jwksLoading ? "not-allowed" : "pointer",
+                  fontSize:     "0.9rem",
+                  fontWeight:   700,
+                  padding:      "0.6rem 1.8rem",
+                }}
+              >
+                {jwksLoading ? "Fetching…" : "🔄 Refresh JWKS"}
+              </button>
+              <span style={{ color: MUTED, fontSize: "0.82rem" }}>
+                Live fetch from <code style={{ color: GOLD }}>/.well-known/jwks.json</code>
+              </span>
+            </div>
+
+            {jwksError && (
+              <div style={{ marginTop: "0.5rem", background: "rgba(255,68,68,0.08)",
+                            border: "1px solid rgba(255,68,68,0.3)", borderRadius: "8px",
+                            padding: "1rem 1.25rem", color: "#ff6b6b", fontSize: "0.88rem" }}>
+                ❌ {jwksError}
+              </div>
+            )}
+
+            {jwksData && (() => {
+              const keys = Array.isArray((jwksData as { keys?: unknown[] }).keys)
+                ? (jwksData as { keys: Record<string, unknown>[] }).keys
+                : [];
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                  {keys.map((key, idx) => {
+                    const status = String(key["x-averyos-status"] ?? "UNKNOWN");
+                    const statusColor = status === "ACTIVE" ? GREEN : status.startsWith("PENDING") ? "#f0c040" : MUTED;
+                    const kernelSha   = String(key["x-averyos-kernel-sha"] ?? "");
+                    return (
+                      <div key={idx} style={{ background: "rgba(255,215,0,0.03)",
+                                              border: `1px solid ${GOLD_BORDER}`,
+                                              borderRadius: "10px", padding: "1.25rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between",
+                                      alignItems: "center", marginBottom: "0.75rem" }}>
+                          <span style={{ color: GOLD, fontWeight: 700, fontSize: "0.95rem" }}>
+                            Key #{idx + 1} — {String(key.kid ?? "unknown")}
+                          </span>
+                          <span style={{ color: statusColor, fontWeight: 700, fontSize: "0.82rem",
+                                         background: "rgba(0,0,0,0.3)", padding: "0.2rem 0.6rem",
+                                         borderRadius: "4px" }}>
+                            {status}
+                          </span>
+                        </div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                          <tbody>
+                            {[
+                              ["Algorithm",      String(key.alg ?? "—")],
+                              ["Key Type",       String(key.kty ?? "—")],
+                              ["Use",            String(key.use ?? "—")],
+                              ["Kernel Version", String(key["x-averyos-kernel-version"] ?? "—")],
+                              ["Creator",        String(key["x-averyos-creator"] ?? "—")],
+                              ["Anchor",         String(key["x-averyos-anchor"] ?? "—")],
+                            ].map(([label, value]) => (
+                              <tr key={label}>
+                                <td style={{ color: MUTED, paddingRight: "1rem", paddingBottom: "0.3rem",
+                                             whiteSpace: "nowrap", verticalAlign: "top" }}>{label}</td>
+                                <td style={{ color: "#fff", paddingBottom: "0.3rem", wordBreak: "break-all" }}>{value}</td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td style={{ color: MUTED, paddingRight: "1rem", paddingBottom: "0.3rem",
+                                           whiteSpace: "nowrap", verticalAlign: "top" }}>Kernel SHA-512</td>
+                              <td style={{ color: GOLD, paddingBottom: "0.3rem", wordBreak: "break-all",
+                                           fontFamily: "monospace", fontSize: "0.75rem" }}>
+                                {kernelSha || "—"}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                  {keys.length === 0 && (
+                    <p style={{ color: MUTED, textAlign: "center", padding: "2rem 0" }}>
+                      No keys returned from JWKS endpoint.
+                    </p>
+                  )}
+                  <div style={{ background: "rgba(255,215,0,0.03)", border: `1px solid ${GOLD_BORDER}`,
+                                borderRadius: "8px", padding: "1rem 1.25rem" }}>
+                    <p style={{ color: MUTED, fontSize: "0.78rem", margin: 0, lineHeight: 1.6 }}>
+                      <strong style={{ color: GOLD_DIM }}>Raw JWKS payload</strong>{" "}(untruncated):
+                    </p>
+                    <pre style={{ color: "#ccc", fontSize: "0.72rem", overflowX: "auto",
+                                  margin: "0.5rem 0 0", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                      {JSON.stringify(jwksData, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {!jwksData && !jwksLoading && !jwksError && (
+              <p style={{ color: MUTED, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>
+                Click <strong style={{ color: GOLD_DIM }}>Refresh JWKS</strong> to fetch the live
+                sovereign key set from <code style={{ color: GOLD }}>/.well-known/jwks.json</code>.
+                The kernel SHA-512 is broadcast in full — no truncation.
+              </p>
+            )}
+          </>
         )}
       </section>
 
