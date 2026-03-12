@@ -43,6 +43,22 @@ const SCAN_PATHS = envPaths ?? DEFAULT_SCAN_PATHS;
 // ── File extensions to scan ───────────────────────────────────────────────────
 const SCAN_EXTENSIONS = new Set(['.md', '.mdx', '.txt', '.rst']);
 
+// ── Allowlisted SHA-512 hashes ─────────────────────────────────────────────────
+// These are PUBLICLY DISCLOSED sovereign kernel anchors and evidence fingerprints
+// that are intentionally referenced in documentation. They are NOT secrets and
+// should not trigger the CI gate.
+// Source: lib/sovereignConstants.ts — KERNEL_SHA (cf83...) and Merkle root (88b7...).
+const ALLOWED_SHA512 = new Set([
+  // Root0 Kernel SHA-512 anchor (publicly disclosed at /witness/disclosure/cf83...)
+  "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  // VaultBridge Merkle root (publicly disclosed in GoldenLockArtifact.lock.json)
+  "88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe",
+  // Whitepaper evidence fingerprint (public content in content/whitepaper.md)
+  "75770aa8a6e63f1c50122cfe28a8a35c5711ed2126ff20a1f704dc54f3bcd17e2f3d69147b41ae21867ac8f32dc2c53e26e72699a007e83dcfc69c95b1718acb",
+  // Legal notice capsule SHA-512 (public evidence record in public/license-enforcement/)
+  "2152600cfd437d619cb6663e978e9329d8fea2e1c8ac7d8ee67919cc62408e571e6517d7c22b325b366c5ea85f6436e28502e9ea7c2f886a6a125a7170689444",
+]);
+
 // ── Secret patterns ───────────────────────────────────────────────────────────
 /**
  * Each entry: { name, pattern, description }
@@ -146,7 +162,11 @@ function scanFile(filePath) {
       pattern.lastIndex = 0;
       let match;
       while ((match = pattern.exec(line)) !== null) {
-        findings.push({
+          // Skip SHA-512 hashes that are publicly-disclosed sovereign anchors
+          if (name === 'SHA-512 Hex String' && ALLOWED_SHA512.has(match[0].toLowerCase())) {
+            continue;
+          }
+          findings.push({
           file:        filePath,
           name,
           description,

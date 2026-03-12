@@ -18,6 +18,7 @@ import {
   INGESTION_TIER10_ASNS,
 } from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
+import { enforceDriftShield } from './lib/security/driftShield';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -992,6 +993,26 @@ export async function middleware(request: NextRequest) {
         },
       }
     );
+  }
+
+  // ── DriftShield v4.1 — /api/v1/ Zero-Noise & Jitter Gate (Phase 109.4) ────
+  // Enforces MACDADDY_DriftShield_v4.1 on all /api/v1/ routes.
+  // Blocks requests carrying x-averyos-jitter=1 (probabilistic jitter) and
+  // rejects requests that exceed the configured WAF score threshold.
+  if (url.pathname.startsWith('/api/v1/')) {
+    const driftResult = enforceDriftShield(request);
+    if (!driftResult.pass) {
+      return NextResponse.json(
+        {
+          error:          driftResult.reason,
+          code:           driftResult.code,
+          kernel_sha:     driftResult.kernelSha,
+          kernel_version: driftResult.kernelVersion,
+          directive:      "DriftShield v4.1: Request rejected. Obtain an AveryOS™ license at https://averyos.com/licensing",
+        },
+        { status: driftResult.code, headers: { 'X-GabrielOS-Block': 'DRIFT_SHIELD', 'Cache-Control': 'no-store' } }
+      );
+    }
   }
 
   // ── Phase 97.3.1 — Sovereign Audit Gate: /api/v1/ WAF 95-Threshold ────────

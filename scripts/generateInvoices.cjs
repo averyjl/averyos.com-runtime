@@ -497,15 +497,14 @@ async function runAsnInvoicingPipeline(stripe) {
   // before generating individual invoices. This gives a global liability summary.
   const retroDebt = computeTariRetroactiveDebt(rows);
   console.log(`💰  TARI™ Retroactive Debt Summary (v1.5):`);
-  console.log(`    Total events processed : ${retroDebt.eventCount.toLocaleString()}`);
-  console.log(`    Total TARI™ liability  : $${retroDebt.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`);
-  if (Object.keys(retroDebt.breakdown).length > 0) {
-    const nonZero = Object.entries(retroDebt.breakdown).filter(([, v]) => v.totalCents > 0);
-    if (nonZero.length > 0) {
-      console.log(`    Breakdown by event type:`);
-      for (const [eventType, data] of nonZero) {
-        console.log(`      ${eventType.padEnd(25)} ${data.count.toString().padStart(6)} events  $${data.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`);
-      }
+  console.log(`    Total entities assessed: ${retroDebt.breakdown.length.toLocaleString()}`);
+  console.log(`    Total TARI™ liability  : $${(retroDebt.totalDebtCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`);
+  if (retroDebt.breakdown.length > 0) {
+    const topEntries = retroDebt.breakdown.slice(0, 5);
+    console.log(`    Top entities by liability:`);
+    for (const entry of topEntries) {
+      const debtUsd = (entry.debtCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      console.log(`      ASN ${entry.asn.padEnd(10)} ${entry.requestCount.toLocaleString().padStart(8)} reqs  $${debtUsd} USD  [${entry.tier}]`);
     }
   }
   console.log('');

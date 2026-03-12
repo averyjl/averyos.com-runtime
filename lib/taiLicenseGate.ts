@@ -79,7 +79,7 @@ export const TAI_LICENSE_HEADER = "x-tai-license-key";
 export function evaluateTaiAccess(
   headers: Headers,
   vaultPassphrase: string,
-  taiLicenseKey: string
+  averyosLicenseKey: string
 ): TaiGateResult {
   // ── Tier 1: Internal sovereign passphrase ─────────────────────────────────
   const authHeader = headers.get("authorization") ?? "";
@@ -105,7 +105,7 @@ export function evaluateTaiAccess(
   //  license registry, but a single env secret is the minimal-change approach.)
   const submittedKey = headers.get(TAI_LICENSE_HEADER)?.trim() ?? "";
 
-  if (taiLicenseKey && safeEqual(submittedKey, taiLicenseKey)) {
+  if (averyosLicenseKey && safeEqual(submittedKey, averyosLicenseKey)) {
     return {
       tier: "TAI_LICENSED",
       fullAccess: true,
