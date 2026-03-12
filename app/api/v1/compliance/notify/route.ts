@@ -190,12 +190,12 @@ export async function POST(request: Request): Promise<Response> {
         console.warn("[notify] D1 clock persist failed:", err instanceof Error ? err.message : String(err));
       });
 
-    // Audit log
+    // Audit log — includes SHA-512 pulse_hash receipt for VaultChain™ permanence
     cfEnv.DB.prepare(
       `INSERT OR IGNORE INTO sovereign_audit_logs
          (event_type, ip_address, user_agent, target_path, timestamp_ns, threat_level,
-          kernel_sha, asn, client_country, ingestion_intent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          kernel_sha, asn, client_country, ingestion_intent, pulse_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         "COMPLIANCE_NOTICE_ISSUED",
@@ -208,6 +208,7 @@ export async function POST(request: Request): Promise<Response> {
         asn || null,
         ccStr,
         "COMPLIANCE_NOTICE",
+        novToken,
       )
       .run()
       .catch((err: unknown) => {

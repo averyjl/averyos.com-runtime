@@ -164,7 +164,7 @@ export default function AgenticSettlementPortal() {
           <p style={{ color: MUTED, maxWidth: "520px", margin: "0 auto", lineHeight: 1.65, fontSize: "0.92rem" }}>
             Dedicated frictionless settlement path for <strong style={{ color: GOLD }}>autonomous agents</strong>,
             LLM inference nodes, and AI infrastructure operators. Clear forensic debt and obtain a
-            valid <strong style={{ color: GOLD }}>TAI_LICENSE_KEY</strong> for your ASN.
+            valid <strong style={{ color: GOLD }}>AveryOS Sovereign License Key</strong> for your ASN.
           </p>
         </div>
 

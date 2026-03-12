@@ -23,5 +23,9 @@ jobs:
       # Scans all deps including devDependencies; this is intentional so that
       # compromised build tools (e.g. a malicious ESLint plugin) are also caught.
       - run: npm audit --audit-level=high
+      # Gate 110.2: Docs Secret-Scanner — fails if any IP, SHA, or secret is found
+      # in public-facing documentation files under content/, public/, docs/.
+      - name: Docs Secret-Scanner (Gate 110.2)
+        run: node scripts/scan-docs.cjs
       - run: npm run build --if-present
       - run: npm test
