@@ -88,7 +88,7 @@ $REQUIRED_SECRETS = @(
     @{ Name = "STRIPE_SECRET_KEY";         Desc = "Stripe secret key (sk_live_... or sk_test_...)";                   Required = $true  },
     @{ Name = "STRIPE_WEBHOOK_SECRET";     Desc = "Stripe webhook signing secret (whsec_...)";                        Required = $true  },
     @{ Name = "SOVEREIGN_ANCHOR_SALT";     Desc = "Anchor salt (.anchor-salt value from npm run setup)";              Required = $true  },
-    @{ Name = "TAI_LICENSE_KEY";           Desc = "TAI™ license gate key for /api/v1/resonance";                     Required = $true  },
+    @{ Name = "AVERYOS_LICENSE_KEY";        Desc = "AveryOS™ license gate key for /api/v1/resonance";                Required = $true  },
     @{ Name = "BLOCKCHAIN_API_KEY";        Desc = "BlockCypher API key for BTC block anchor salt";                    Required = $false },
     @{ Name = "GABRIEL_SENTINEL_WEBHOOK";  Desc = "GabrielOS™ Sentinel webhook URL";                                 Required = $false },
     @{ Name = "PUSHOVER_APP_TOKEN";        Desc = "Pushover app token for Tier-9 mobile alerts";                     Required = $false },
