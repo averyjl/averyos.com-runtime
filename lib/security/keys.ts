@@ -111,11 +111,39 @@ async function importPublicKey(b64: string): Promise<CryptoKey | null> {
 // ── Core Export ───────────────────────────────────────────────────────────────
 
 /**
+ * Detect whether a Base64 string decodes to a .NET RSAKeyValue XML bundle.
+ * Returns true if the decoded value starts with an XML RSAKeyValue element.
+ * Returns false on any decode failure without surfacing internal errors.
+ */
+function isBase64EncodedXmlKey(b64: string): boolean {
+  // Quick sanity: valid Base64 consists only of [A-Za-z0-9+/=]
+  if (!/^[A-Za-z0-9+/]+=*$/.test(b64)) return false;
+  try {
+    const decoded = atob(b64).trimStart();
+    return decoded.startsWith("<RSAKeyValue>") || decoded.startsWith("<RSAKeyValue ");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Load the AveryOS™ sovereign RSA key pair from Cloudflare secrets.
  *
  * Reads `AVERYOS_PRIVATE_KEY_B64` and `AVERYOS_PUBLIC_KEY_B64` from the
- * provided environment object and imports them using `crypto.subtle.importKey`
- * (`pkcs8` for the private key, `spki` for the public key).
+ * provided environment object.  Supports two key formats automatically:
+ *
+ * 1. **Standard DER path** (PKCS#8 private + SPKI public):
+ *    Both secrets hold Base64-encoded DER binary key material produced by
+ *    .NET `ExportPkcs8PrivateKey()` / `ExportSubjectPublicKeyInfo()` or
+ *    by `openssl pkcs8 / openssl pkey`.
+ *
+ * 2. **XML-B64 auto-detect path** (GATE 111.3):
+ *    If `AVERYOS_PRIVATE_KEY_B64` decodes to a .NET `RSAKeyValue` XML string
+ *    (i.e. it was produced by `RSA.ToXmlString(true)` and then Base64-encoded),
+ *    the function automatically delegates to `getSovereignKeysFromXml()` to
+ *    extract both the private and public keys from the single XML bundle.
+ *    This activates the JWKS `ACTIVE` status without requiring a separate
+ *    `AVERYOS_PUBLIC_KEY_B64` secret in XML-bundle deployments.
  *
  * @param env  Cloudflare Worker environment bindings (or any object with the
  *             `AVERYOS_PRIVATE_KEY_B64` / `AVERYOS_PUBLIC_KEY_B64` fields).
@@ -123,6 +151,11 @@ async function importPublicKey(b64: string): Promise<CryptoKey | null> {
  */
 export async function getSovereignKeys(env: SovereignEnv): Promise<SovereignKeyPair> {
   const kid = `averyos-sovereign-key-${KERNEL_VERSION}`;
+
+  // Auto-detect XML-B64 bundle (GATE 111.3 — .NET ToXmlString(true) path)
+  if (env.AVERYOS_PRIVATE_KEY_B64 && isBase64EncodedXmlKey(env.AVERYOS_PRIVATE_KEY_B64)) {
+    return getSovereignKeysFromXml(env);
+  }
 
   const [privateKey, publicKey] = await Promise.all([
     env.AVERYOS_PRIVATE_KEY_B64

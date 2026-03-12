@@ -19,6 +19,8 @@ import {
 } from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
 import { enforceDriftShield } from './lib/security/driftShield';
+import { KERNEL_SHA } from './lib/sovereignConstants';
+import { applyWafGate } from './lib/security/wafLogic';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -69,9 +71,6 @@ const ENTROPY_WEBGL_FP          = 10; // WebGL entropy signal present (Biometric
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
-import { KERNEL_SHA } from './lib/sovereignConstants';
-import { applyWafGate } from './lib/security/wafLogic';
-import { enforceDriftShield } from './lib/security/driftShield';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
 
