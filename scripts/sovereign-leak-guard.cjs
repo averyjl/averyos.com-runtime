@@ -44,6 +44,7 @@ const fs   = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { CODE_EXTENSIONS, PROTECTED_DIRS, KEY_CONTENT_PATTERNS } = require('./sovereignGuardConfig.cjs');
 
 // ── CLI flags ─────────────────────────────────────────────────────────────────
 const args    = process.argv.slice(2);
@@ -333,6 +334,134 @@ function scanFileContent(relPath) {
   return findings;
 }
 
+// ── Layer 3: Key/Token filename auto-guard ────────────────────────────────────
+// Uses shared configuration from sovereignGuardConfig.cjs
+
+/**
+ * Check whether a file path looks like a code file that is needed to run AveryOS™.
+ * Returns true when the file should be EXEMPT from auto-gitignore.
+ */
+function isProtectedCodeFile(relPath) {
+  const ext  = path.extname(relPath).toLowerCase();
+  const norm = relPath.replace(/\\/g, '/');
+
+  if (CODE_EXTENSIONS.has(ext)) return true;
+  for (const dir of PROTECTED_DIRS) {
+    if (norm.startsWith(dir)) return true;
+  }
+  return false;
+}
+
+/**
+ * Check whether a filename contains "key" or "token" (case-insensitive).
+ */
+function filenameContainsKeyOrToken(relPath) {
+  const base = path.basename(relPath).toLowerCase();
+  return base.includes('key') || base.includes('token');
+}
+
+/**
+ * Check whether a file's content looks like it contains actual key material.
+ */
+function contentLooksLikeKey(absPath) {
+  let content;
+  try {
+    const stat = fs.statSync(absPath);
+    if (stat.size > MAX_CONTENT_SCAN_BYTES) return false;
+    content = fs.readFileSync(absPath, 'utf8');
+  } catch {
+    return false;
+  }
+  for (const { regex } of KEY_CONTENT_PATTERNS) {
+    if (new RegExp(regex.source, regex.flags).test(content)) return true;
+  }
+  return false;
+}
+
+/**
+ * Check whether a pattern (or one that covers it) is already present in .gitignore.
+ */
+function isAlreadyGitignored(gitignorePath, pattern) {
+  try {
+    const content = fs.readFileSync(gitignorePath, 'utf8');
+    return content.split('\n').some(line => {
+      const l = line.trim();
+      if (!l || l.startsWith('#')) return false;
+      // Check exact match or whether existing pattern covers the new pattern
+      return l === pattern || pattern.startsWith(l.replace(/\*/g, ''));
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * GATE 111.5.3 — Layer 3: Key/Token Filename Auto-Guard
+ *
+ * Scans ALL files in the repo directory (tracked + untracked) for filenames
+ * that contain "key" or "token".  For each candidate:
+ *   1. Skips protected code files (source code required to run AveryOS™).
+ *   2. Checks the file content for actual cryptographic material.
+ *   3. If key material is found AND the file is not already .gitignored,
+ *      auto-appends the filename to .gitignore.
+ *
+ * Returns a list of files that were auto-added to .gitignore.
+ *
+ * @param {string} gitignorePath  Absolute path to .gitignore.
+ * @param {boolean} dryRun        When true, log actions but do not write.
+ * @returns {{ file: string, action: 'added' | 'already_ignored' | 'protected' | 'no_key_content' }[]}
+ */
+function runKeyTokenAutoGuard(gitignorePath, dryRun) {
+  const results = [];
+
+  // Collect all files under REPO_ROOT recursively (respects nothing — we scan everything)
+  function walk(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const abs  = path.join(dir, entry.name);
+      const rel  = path.relative(REPO_ROOT, abs).replace(/\\/g, '/');
+      // Skip .git directory and node_modules
+      if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === '.next' || entry.name === '.open-next') continue;
+      if (entry.isDirectory()) {
+        walk(abs);
+      } else if (filenameContainsKeyOrToken(rel)) {
+        // Determine disposition
+        if (isProtectedCodeFile(rel)) {
+          results.push({ file: rel, action: 'protected' });
+          continue;
+        }
+        if (!contentLooksLikeKey(abs)) {
+          results.push({ file: rel, action: 'no_key_content' });
+          continue;
+        }
+        // Check if already covered by .gitignore
+        const basename = path.basename(rel);
+        if (isAlreadyGitignored(gitignorePath, basename) || isAlreadyGitignored(gitignorePath, rel)) {
+          results.push({ file: rel, action: 'already_ignored' });
+          continue;
+        }
+        // Auto-append to .gitignore
+        if (!dryRun) {
+          fs.appendFileSync(
+            gitignorePath,
+            `\n# Auto-detected key/token file — added by sovereign-leak-guard\n${basename}\n`,
+            'utf8',
+          );
+          logAosHeal(
+            AOS_ERROR.INTERNAL_ERROR,
+            `sovereign-leak-guard [Layer 3]: Auto-added '${basename}' to .gitignore — contains key material.`,
+          );
+        }
+        results.push({ file: rel, action: 'added' });
+      }
+    }
+  }
+
+  walk(REPO_ROOT);
+  return results;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 function main() {
@@ -359,7 +488,8 @@ function main() {
     process.exit(0);
   }
   console.log(`[Layer 1] Checking ${trackedFiles.length} tracked file(s) against .gitignore rules`);
-  console.log(`[Layer 2] Scanning tracked files for embedded secret patterns\n`);
+  console.log(`[Layer 2] Scanning tracked files for embedded secret patterns`);
+  console.log(`[Layer 3] Scanning all files for key/token filenames with key material\n`);
 
   // ── Layer 1: Pattern violations ──────────────────────────────────────────
   const patternViolations = checkTreeAgainstRules(trackedFiles, rules);
@@ -369,6 +499,28 @@ function main() {
   for (const file of trackedFiles) {
     const findings = scanFileContent(file);
     contentViolations.push(...findings);
+  }
+
+  // ── Layer 3: Key/Token filename auto-guard ───────────────────────────────
+  const layer3Results = runKeyTokenAutoGuard(gitignorePath, DRY_RUN);
+  const autoAdded     = layer3Results.filter(r => r.action === 'added');
+  const alreadyIgnored = layer3Results.filter(r => r.action === 'already_ignored');
+  const protectedFiles  = layer3Results.filter(r => r.action === 'protected');
+
+  if (autoAdded.length > 0) {
+    console.log(`✅ [Layer 3] Auto-added ${autoAdded.length} key/token file(s) to .gitignore:`);
+    for (const { file } of autoAdded) {
+      console.log(`   + ${file}`);
+    }
+  }
+  if (alreadyIgnored.length > 0) {
+    console.log(`ℹ️  [Layer 3] ${alreadyIgnored.length} key/token file(s) already covered by .gitignore.`);
+  }
+  if (protectedFiles.length > 0) {
+    console.log(`ℹ️  [Layer 3] ${protectedFiles.length} key/token filename(s) skipped — protected source code files.`);
+  }
+  if (autoAdded.length === 0 && alreadyIgnored.length === 0) {
+    console.log(`✅ [Layer 3] No unprotected key/token files found.`);
   }
 
   const totalViolations = patternViolations.length + contentViolations.length;
@@ -403,8 +555,9 @@ function main() {
   if (totalViolations === 0) {
     console.log('✅ [Layer 1] Git-tree pattern guard passed — no .gitignore-d files are tracked.');
     console.log(`✅ [Layer 2] Content guard passed — no secret patterns found in ${trackedFiles.length} tracked files.`);
+    console.log(`✅ [Layer 3] Key/token auto-guard passed — ${autoAdded.length} file(s) auto-added to .gitignore.`);
     logAosHeal(AOS_ERROR.INTERNAL_ERROR,
-      `sovereign-leak-guard: clean — ${trackedFiles.length} files checked, 0 violations.`);
+      `sovereign-leak-guard: clean — ${trackedFiles.length} files checked, 0 violations, ${autoAdded.length} auto-added to .gitignore.`);
     process.exit(0);
   }
 

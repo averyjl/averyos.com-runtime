@@ -34,6 +34,7 @@
 const fs   = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { CODE_EXTENSIONS: GUARD_CODE_EXTS, PROTECTED_DIRS: GUARD_PROTECTED_DIRS, KEY_CONTENT_PATTERNS: GUARD_KEY_PATTERNS } = require("./sovereignGuardConfig.cjs");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -335,6 +336,92 @@ function main() {
 
   if (!DRY_RUN && report.uncovered.length > 0) {
     process.exit(0); // Exit 0 — gaps are warnings, not hard failures until CI enforces them
+  }
+
+  // ── GATE 111.5.3 — Key/Token Auto-Guard (inline) ─────────────────────────
+  // After generating test coverage, scan for unprotected key/token files.
+  // This ensures the QA run is coupled with sovereign secret protection.
+  runKeyTokenGuard();
+}
+
+// ── Key/Token Auto-Guard (GATE 111.5.3 integration) ─────────────────────────
+
+/**
+ * Scan all files in the repository for filenames containing "key" or "token".
+ * For non-code files with actual key material, auto-append to .gitignore.
+ * This guard runs automatically at the end of `qa:generate` so that secret
+ * protection stays coupled to the QA pipeline.
+ */
+function runKeyTokenGuard() {
+  const GITIGNORE_PATH = path.join(ROOT, ".gitignore");
+  const YELLOW_CODE = "\x1b[33m";
+  const GREEN_CODE  = "\x1b[32m";
+  const RESET_CODE  = "\x1b[0m";
+
+  const MAX_BYTES = 2 * 1024 * 1024;
+
+  function isCodeFile(rel) {
+    const ext  = path.extname(rel).toLowerCase();
+    const norm = rel.replace(/\\/g, "/");
+    if (GUARD_CODE_EXTS.has(ext)) return true;
+    for (const d of GUARD_PROTECTED_DIRS) { if (norm.startsWith(d)) return true; }
+    return false;
+  }
+
+  function hasKeyContent(absPath) {
+    let content;
+    try {
+      const st = fs.statSync(absPath);
+      if (st.size > MAX_BYTES) return false;
+      content = fs.readFileSync(absPath, "utf8");
+    } catch { return false; }
+    for (const { regex } of GUARD_KEY_PATTERNS) {
+      if (new RegExp(regex.source, regex.flags).test(content)) return true;
+    }
+    return false;
+  }
+
+  function alreadyIgnored(basename) {
+    try {
+      return fs.readFileSync(GITIGNORE_PATH, "utf8")
+        .split("\n")
+        .some(line => { const l = line.trim(); return l === basename || l === `*${path.extname(basename)}`; });
+    } catch { return false; }
+  }
+
+  let autoAddedCount = 0;
+
+  function walk(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const abs  = path.join(dir, entry.name);
+      const rel  = path.relative(ROOT, abs).replace(/\\/g, "/");
+      if ([".git", "node_modules", ".next", ".open-next"].includes(entry.name)) continue;
+      if (entry.isDirectory()) { walk(abs); continue; }
+      const base = entry.name.toLowerCase();
+      if (!base.includes("key") && !base.includes("token")) continue;
+      if (isCodeFile(rel)) continue;
+      if (!hasKeyContent(abs)) continue;
+      const bn = path.basename(rel);
+      if (alreadyIgnored(bn)) continue;
+      if (!DRY_RUN) {
+        fs.appendFileSync(GITIGNORE_PATH,
+          `\n# Auto-detected by qa:generate — key/token file with key material\n${bn}\n`, "utf8");
+        autoAddedCount++;
+        console.log(`${GREEN_CODE}[QA-GUARD]${RESET_CODE} Auto-added to .gitignore: ${bn}`);
+      } else {
+        console.log(`${YELLOW_CODE}[QA-GUARD]${RESET_CODE} [dry-run] Would add to .gitignore: ${bn}`);
+      }
+    }
+  }
+
+  walk(ROOT);
+
+  if (autoAddedCount > 0) {
+    console.log(`\n${GREEN_CODE}[QA-GUARD]${RESET_CODE} ${autoAddedCount} key/token file(s) auto-added to .gitignore.`);
+  } else {
+    console.log(`\n${GREEN_CODE}[QA-GUARD]${RESET_CODE} ✅ No unprotected key/token files found.`);
   }
 }
 
