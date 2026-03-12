@@ -49,24 +49,22 @@ interface DocsManifest {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SovereignDocsPage() {
-  const [token,           setToken]           = useState("");
+  const [password,        setPassword]        = useState("");
+  const [authError,       setAuthError]       = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [manifest,        setManifest]        = useState<DocsManifest | null>(null);
   const [search,          setSearch]          = useState("");
   const [error,           setError]           = useState<AosUiError | null>(null);
   const [loading,         setLoading]         = useState(false);
 
-  // ── Auth check from sessionStorage ────────────────────────────────────────
+  // ── Auth check — probe a protected API to detect an existing HttpOnly cookie ─
+  // SECURITY: The raw passphrase is NEVER stored in sessionStorage or any
+  // browser-accessible storage. /api/v1/vault/auth sets an HttpOnly Secure
+  // cookie on successful login; credentials: "same-origin" sends it here.
   useEffect(() => {
-    const stored = typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem("aos_vault_token")
-      : null;
-    if (stored) {
-      setToken(stored);
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
+    fetch("/api/v1/qa/results?limit=1", { credentials: "same-origin" })
+      .then(r => { setIsAuthenticated(r.ok); })
+      .catch(() => setIsAuthenticated(false));
   }, []);
 
   // ── Load docs manifest once authenticated ────────────────────────────────
@@ -92,11 +90,30 @@ export default function SovereignDocsPage() {
   }, [isAuthenticated]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  function handleAuth(e: React.FormEvent) {
+  // POST the raw passphrase to /api/v1/vault/auth over HTTPS. The server
+  // validates and responds with Set-Cookie: aos-vault-auth=…; HttpOnly; Secure.
+  // The passphrase is NEVER written to sessionStorage or any browser storage.
+  async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
-    if (!token.trim()) return;
-    sessionStorage.setItem("aos_vault_token", token.trim());
-    setIsAuthenticated(true);
+    const trimmed = password.trim();
+    if (!trimmed) return;
+    setAuthError("");
+    try {
+      const res = await fetch("/api/v1/vault/auth", {
+        method:      "POST",
+        credentials: "same-origin",
+        headers:     { "Content-Type": "application/json" },
+        body:        JSON.stringify({ token: trimmed }),
+      });
+      if (res.ok) {
+        setIsAuthenticated(true);
+        setPassword("");
+      } else {
+        setAuthError("⛔ Invalid passphrase. Access denied.");
+      }
+    } catch {
+      setAuthError("⛔ Auth check failed. Please retry.");
+    }
   }
 
   // ── Filter ────────────────────────────────────────────────────────────────
@@ -140,12 +157,15 @@ export default function SovereignDocsPage() {
           <p style={{ color: WHITE, opacity: 0.7, marginBottom: "1.5rem", fontSize: "0.9rem" }}>
             Enter your VAULTAUTH_TOKEN to access the AveryOS™ Sovereign API Documentation.
           </p>
+          {authError && (
+            <p style={{ color: "#ff4444", fontSize: "0.85rem", marginBottom: "1rem" }}>{authError}</p>
+          )}
           <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             <input
               type="password"
               placeholder="VAULTAUTH_TOKEN"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               style={{
                 background:  "rgba(255,255,255,0.07)",
                 border:      `1px solid ${GOLD_BORDER}`,

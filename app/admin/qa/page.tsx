@@ -171,27 +171,22 @@ function AuthGate({
 }
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
-
-// Derive a non-reversible token from the passphrase before storing/using it.
-async function hashPassphrase(passphrase: string): Promise<string> {
-  const enc = new TextEncoder();
-  const data = enc.encode(passphrase);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  const bytes = new Uint8Array(digest);
-  // Convert to base64 for safe header/storage usage.
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
+//
+// SECURITY NOTE (RCA — CodeQL alert #26, CWE-312/315/359):
+// The raw passphrase must NEVER be stored in sessionStorage, localStorage, or
+// any browser-accessible storage. On login we POST to /api/v1/vault/auth which
+// validates the passphrase server-side and responds with an HttpOnly Secure
+// SameSite=Strict cookie (`aos-vault-auth`). All subsequent API calls use
+// `credentials: "same-origin"` so the browser sends the cookie automatically.
+// The raw passphrase is never persisted in any browser-accessible storage.
+//
+// ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
 export default function QaDashboard() {
   const [checking,  setChecking]  = useState(true);
   const [authed,    setAuthed]    = useState(false);
   const [password,  setPassword]  = useState("");
   const [authError, setAuthError] = useState("");
-  const [token,     setToken]     = useState("");
 
   const [running,    setRunning]    = useState(false);
   const [runResult,  setRunResult]  = useState<QaRunResult | null>(null);
@@ -201,44 +196,52 @@ export default function QaDashboard() {
   const [expandSuite, setExpandSuite] = useState<Record<string, boolean>>({});
 
   // ── Auth check on mount ────────────────────────────────────────────────────
+  // Probe the QA results API with credentials: "same-origin" — if the browser
+  // already holds a valid `aos-vault-auth` HttpOnly cookie (from a prior login)
+  // the request succeeds and we skip the password gate. The passphrase is NEVER
+  // read from or written to sessionStorage.
   useEffect(() => {
-    const stored = sessionStorage.getItem("VAULTAUTH_TOKEN");
-    if (!stored) { setChecking(false); return; }
-    setToken(stored);
-    fetch("/api/gatekeeper/handshake-check", { headers: { "x-vault-auth": stored } })
-      .then(r => r.json())
-      .then((d: { status?: string }) => {
-        const ok = d?.status === "LOCKED" || d?.status === "AUTHENTICATED";
-        setAuthed(ok);
+    fetch("/api/v1/qa/results?limit=1", { credentials: "same-origin" })
+      .then(r => {
+        if (r.ok) setAuthed(true);
         setChecking(false);
       })
       .catch(() => setChecking(false));
   }, []);
 
   // ── Submit auth ────────────────────────────────────────────────────────────
+  // POST the raw passphrase to /api/v1/vault/auth over HTTPS. The server
+  // validates it and responds with Set-Cookie: aos-vault-auth=…; HttpOnly;
+  // Secure; SameSite=Strict. The passphrase is never written to any storage.
   const handleAuth = useCallback(async () => {
     const trimmed = password.trim();
     if (!trimmed) { setAuthError("Passphrase required."); return; }
+    setAuthError("");
     try {
-      const derivedToken = await hashPassphrase(trimmed);
-      sessionStorage.setItem("VAULTAUTH_TOKEN", derivedToken);
-      setToken(derivedToken);
-      setAuthed(true);
-      setPassword("");
-      setAuthError("");
+      const res = await fetch("/api/v1/vault/auth", {
+        method:      "POST",
+        credentials: "same-origin",
+        headers:     { "Content-Type": "application/json" },
+        body:        JSON.stringify({ token: trimmed }),
+      });
+      if (res.ok) {
+        setAuthed(true);
+        setPassword("");
+      } else {
+        setAuthError("⛔ Invalid passphrase. Access denied.");
+      }
     } catch {
-      setAuthError("Unable to process passphrase. Please retry.");
+      setAuthError("⛔ Auth check failed. Please retry.");
     }
   }, [password]);
 
   // ── Load history ───────────────────────────────────────────────────────────
   const loadHistory = useCallback(async () => {
-    if (!token) return;
     setLoadingHist(true);
     setUiError(null);
     try {
       const res = await fetch("/api/v1/qa/results?limit=20", {
-        headers: { "x-vault-auth": token },
+        credentials: "same-origin",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as { results?: QaResultRow[] };
@@ -248,7 +251,7 @@ export default function QaDashboard() {
     } finally {
       setLoadingHist(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (authed) loadHistory();
@@ -256,15 +259,16 @@ export default function QaDashboard() {
 
   // ── Trigger run ────────────────────────────────────────────────────────────
   const triggerRun = useCallback(async () => {
-    if (!token || running) return;
+    if (running) return;
     setRunning(true);
     setRunResult(null);
     setUiError(null);
     try {
       const res = await fetch("/api/v1/qa/run", {
-        method:  "POST",
-        headers: { "x-vault-auth": token, "Content-Type": "application/json" },
-        body:    JSON.stringify({ trigger: "manual" }),
+        method:      "POST",
+        credentials: "same-origin",
+        headers:     { "Content-Type": "application/json" },
+        body:        JSON.stringify({ trigger: "manual" }),
       });
       if (!res.ok) {
         const err = await res.json() as { detail?: string };
@@ -278,7 +282,7 @@ export default function QaDashboard() {
     } finally {
       setRunning(false);
     }
-  }, [token, running, loadHistory]);
+  }, [running, loadHistory]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (checking || !authed) {
