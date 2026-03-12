@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { classifyDerRequest } from './lib/sovereignMetadata';
+import { classifyDerRequest, BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
 import { syncD1RowToFirebase } from './lib/firebaseClient';
 import {
   isGeminiCreditExhausted,
@@ -200,12 +200,18 @@ const WEB3_WALLET_HEADERS = [
 ];
 const WEB3_UA_PATTERNS = /aenta|web3\s*bot|wagmi|metamask.*bot|ethers.*scraper/i;
 
-// Paths that trigger TARI™ Truth-Packet billing when accessed by a bot/scraper
+// Paths that trigger TARI™ Truth-Packet billing when accessed by a bot/scraper.
+// Gate 113.6.1 — Traffic Resonance Upgrade: expanded to include all BOT_MAGNET_PATHS
+// so AI bots that reach any magnet path are billed rather than 402-blocked.
+// Trailing-slash variants are included to handle both /path and /path/ forms.
 const TARI_BILLED_PATHS = new Set([
   "/latent-anchor",
   "/latent-anchor/",
   "/truth-anchor",
   "/truth-anchor/",
+  // BOT_MAGNET_PATHS — every sovereign-licensed magnet page is a billable TARI™ hit
+  ...BOT_MAGNET_PATHS,
+  ...BOT_MAGNET_PATHS.map((p) => (p.endsWith("/") ? p : `${p}/`)),
 ]);
 
 // Paths intercepted by the GabrielOS Legal Tripwire for D1 audit logging
