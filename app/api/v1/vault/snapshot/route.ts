@@ -58,16 +58,20 @@ interface CloudflareEnv {
 
 // ── SHA-512 helper ────────────────────────────────────────────────────────────
 
-/** Constant-time string comparison to mitigate timing attacks. */
+/** Constant-time string comparison to mitigate timing-side-channel attacks. */
 function safeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  const len = Math.max(aBytes.length, bBytes.length);
-  let diff = aBytes.length !== bBytes.length ? 1 : 0;
-  for (let i = 0; i < len; i++) {
-    void ((aBytes[i] ?? 0) ^ (bBytes[i] ?? 0));
-    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  if (!a || !b) return false;
+  const enc    = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  if (aBytes.length !== bBytes.length) {
+    // Always traverse to maintain constant-time behaviour
+    const maxLen = Math.max(aBytes.length, bBytes.length);
+    for (let i = 0; i < maxLen; i++) void (aBytes[i] ?? 0);
+    return false;
   }
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
   return diff === 0;
 }
 
@@ -129,7 +133,7 @@ export async function POST(request: Request): Promise<Response> {
     const snapshot = {
       schema:          "VaultChain-Snapshot-v1",
       manifest_id:     manifestId,
-      vaultchain_uri:  `Vaultchain://JasonLeeAvery/${manifestId}.aoscap`,
+      vaultchain_uri:  `VaultChain://JasonLeeAvery/${manifestId}.aoscap`,
       kernel_sha:      KERNEL_SHA,
       kernel_version:  KERNEL_VERSION,
       locked_at:       lockedAt,
