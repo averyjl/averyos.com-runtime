@@ -7,7 +7,7 @@
  *
  * PURPOSE
  * -------
- * A server-side CI gate that provides TWO layers of protection beyond .gitignore:
+ * A server-side CI gate that provides FOUR layers of protection beyond .gitignore:
  *
  *   Layer 1 — Git-Tree Pattern Guard:
  *     Reads ALL patterns from .gitignore at runtime (dynamic — stays current as
@@ -23,6 +23,15 @@
  *     Scans ALL tracked files for embedded private key material:
  *     PEM blocks with actual key content, Stripe live keys, GitHub PATs.
  *     Catches secrets that sneak into tracked source/test/doc files.
+ *
+ *   Layer 3 — Key/Token Filename Auto-Guard (Gate 111.5.3):
+ *     Scans ALL files (tracked + untracked) for filenames containing "key" or
+ *     "token". Checks content for actual key material and auto-adds to .gitignore.
+ *
+ *   Layer 4 — HAR File Key-Pattern Auto-Detection (Gate 113.5):
+ *     Scans ALL tracked .har files for Authorization headers, Bearer tokens,
+ *     API keys, and private key material embedded in request/response entries.
+ *     HAR files capture full HTTP traffic and commonly expose credentials.
  *
  * RULE: Do NOT remove, weaken, or bypass this gate.
  *       Added by Jason Lee Avery (ROOT0). Requires ROOT0 consent to modify.
@@ -117,6 +126,9 @@ const SKIP_CONTENT_EXTENSIONS = new Set([
 
 // Maximum file size for content scanning (2 MB — larger files are likely generated).
 const MAX_CONTENT_SCAN_BYTES = 2 * 1024 * 1024;
+
+// Maximum file size for HAR scanning (20 MB — HAR captures can be large).
+const MAX_HAR_SCAN_BYTES = 20 * 1024 * 1024;
 
 // ── Gitignore parser ──────────────────────────────────────────────────────────
 
@@ -462,6 +474,101 @@ function runKeyTokenAutoGuard(gitignorePath, dryRun) {
   return results;
 }
 
+// ── Layer 4: HAR file key-pattern auto-detection (Gate 113.5) ─────────────────
+// Scans all tracked .har files for Authorization headers, Bearer tokens, API
+// keys, and private key material embedded in request/response entries.
+// HAR (HTTP Archive) files capture full request/response cycles and can expose
+// sensitive credentials if committed accidentally.
+//
+// Detection targets (inside HAR entry headers and postData):
+//   - Authorization: Bearer <token>
+//   - Authorization: Basic <base64>
+//   - x-api-key / x-vault-auth / x-auth-token headers with non-empty values
+//   - Stripe live keys (sk_live_...)
+//   - GitHub PATs (ghp_...)
+//   - Private key PEM blocks
+//   - Long base64 blobs (≥ 256 chars) in postData (potential key material)
+
+const HAR_KEY_PATTERNS = [
+  {
+    name:  'Authorization Bearer Token',
+    regex: /"authorization"\s*:\s*"bearer\s+[a-z0-9\-._~+/]{8,}"/i,
+    description: 'Bearer token in HAR Authorization header — may expose API or vault credentials.',
+  },
+  {
+    name:  'Authorization Basic Credentials',
+    regex: /"authorization"\s*:\s*"basic\s+[a-z0-9+/]{8,}={0,2}"/i,
+    description: 'Basic auth credentials in HAR Authorization header — may expose username:password.',
+  },
+  {
+    name:  'x-api-key / x-vault-auth / x-auth-token header',
+    regex: /"(x-api-key|x-vault-auth|x-auth-token)"\s*:\s*"[^"]{8,}"/i,
+    description: 'API key or vault auth token present in HAR headers — rotate if sensitive.',
+  },
+  {
+    name:  'Stripe Live Secret Key in HAR',
+    regex: /sk_live_[0-9a-zA-Z]{24,}/,
+    description: 'Stripe LIVE secret key found in HAR — revoke immediately at https://dashboard.stripe.com/apikeys',
+  },
+  {
+    name:  'GitHub PAT in HAR',
+    regex: /ghp_[0-9a-zA-Z]{36,}/,
+    description: 'GitHub Personal Access Token found in HAR — revoke at https://github.com/settings/tokens',
+  },
+  {
+    name:  'PEM Private Key Block in HAR',
+    regex: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+    description: 'Private key PEM block embedded in HAR traffic — rotate the key immediately.',
+  },
+  {
+    name:  'Long base64 blob in HAR postData (≥256 chars)',
+    regex: /[A-Za-z0-9+/]{256,}={0,2}/,
+    description: 'Large base64-encoded blob in HAR postData — may contain encoded key material.',
+  },
+];
+
+/**
+ * GATE 113.5 — Layer 4: HAR File Key-Pattern Auto-Detection
+ *
+ * Scans all tracked .har files for credential and key material patterns.
+ * HAR files are JSON archives of HTTP traffic that commonly expose API keys,
+ * Authorization headers, and other secrets when uploaded or committed.
+ *
+ * @param {string[]} trackedFiles  List of tracked files (relative paths, from git ls-files).
+ * @returns {{ file: string, pattern: string, description: string }[]}
+ */
+function scanHarFiles(trackedFiles) {
+  /** @type {{ file: string, pattern: string, description: string }[]} */
+  const findings = [];
+
+  const harFiles = trackedFiles.filter(f => f.toLowerCase().endsWith('.har'));
+  if (harFiles.length === 0) return findings;
+
+  for (const relPath of harFiles) {
+    const absPath = path.join(REPO_ROOT, relPath);
+    let content;
+    try {
+      const stat = fs.statSync(absPath);
+      // Skip files larger than MAX_HAR_SCAN_BYTES to avoid OOM on massive capture files
+      if (stat.size > MAX_HAR_SCAN_BYTES) {
+        console.warn(`[Layer 4] Skipping large HAR file (${(stat.size / 1024 / 1024).toFixed(1)} MB): ${relPath}`);
+        continue;
+      }
+      content = fs.readFileSync(absPath, 'utf8');
+    } catch {
+      continue;
+    }
+
+    for (const { name, regex, description } of HAR_KEY_PATTERNS) {
+      if (new RegExp(regex.source, regex.flags).test(content)) {
+        findings.push({ file: relPath, pattern: name, description });
+      }
+    }
+  }
+
+  return findings;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 function main() {
@@ -489,7 +596,8 @@ function main() {
   }
   console.log(`[Layer 1] Checking ${trackedFiles.length} tracked file(s) against .gitignore rules`);
   console.log(`[Layer 2] Scanning tracked files for embedded secret patterns`);
-  console.log(`[Layer 3] Scanning all files for key/token filenames with key material\n`);
+  console.log(`[Layer 3] Scanning all files for key/token filenames with key material`);
+  console.log(`[Layer 4] Scanning tracked .har files for embedded key/credential patterns\n`);
 
   // ── Layer 1: Pattern violations ──────────────────────────────────────────
   const patternViolations = checkTreeAgainstRules(trackedFiles, rules);
@@ -523,7 +631,15 @@ function main() {
     console.log(`✅ [Layer 3] No unprotected key/token files found.`);
   }
 
-  const totalViolations = patternViolations.length + contentViolations.length;
+  // ── Layer 4: HAR file key-pattern scan (Gate 113.5) ──────────────────────
+  const harViolations = scanHarFiles(trackedFiles);
+  if (harViolations.length > 0) {
+    console.log(`⚠️  [Layer 4] ${harViolations.length} .har file(s) contain key/credential patterns.`);
+  } else {
+    console.log(`✅ [Layer 4] HAR file scan passed — no key patterns detected in tracked .har files.`);
+  }
+
+  const totalViolations = patternViolations.length + contentViolations.length + harViolations.length;
 
   // ── Report ────────────────────────────────────────────────────────────────
   if (patternViolations.length > 0) {
@@ -552,10 +668,24 @@ function main() {
     console.error('    # CRITICAL: Rotate ALL leaked credentials immediately.\n');
   }
 
+  if (harViolations.length > 0) {
+    console.error(`\n❌ [Layer 4] ${harViolations.length} .har file(s) contain key/credential patterns:\n`);
+    for (const { file, pattern, description } of harViolations) {
+      console.error(`  ⛔  ${file}`);
+      console.error(`       Pattern: ${pattern}`);
+      console.error(`       Note:    ${description}`);
+    }
+    console.error('\n  Remediation:');
+    console.error('    Remove the .har file from git tracking and rotate any exposed credentials:');
+    console.error('    git rm --cached <file>.har && git commit -m "Remove HAR file with credentials"');
+    console.error('    # CRITICAL: Rotate ALL credentials found in the HAR file immediately.\n');
+  }
+
   if (totalViolations === 0) {
     console.log('✅ [Layer 1] Git-tree pattern guard passed — no .gitignore-d files are tracked.');
     console.log(`✅ [Layer 2] Content guard passed — no secret patterns found in ${trackedFiles.length} tracked files.`);
     console.log(`✅ [Layer 3] Key/token auto-guard passed — ${autoAdded.length} file(s) auto-added to .gitignore.`);
+    console.log(`✅ [Layer 4] HAR key-pattern guard passed — no credentials found in tracked .har files.`);
     logAosHeal(AOS_ERROR.INTERNAL_ERROR,
       `sovereign-leak-guard: clean — ${trackedFiles.length} files checked, 0 violations, ${autoAdded.length} auto-added to .gitignore.`);
     process.exit(0);
@@ -564,7 +694,7 @@ function main() {
   // ── Failure ───────────────────────────────────────────────────────────────
   logAosError(AOS_ERROR.INVALID_FIELD,
     `sovereign-leak-guard: ${totalViolations} violation(s) — ` +
-    `${patternViolations.length} tree pattern(s), ${contentViolations.length} content secret(s).`);
+    `${patternViolations.length} tree pattern(s), ${contentViolations.length} content secret(s), ${harViolations.length} HAR credential(s).`);
 
   console.error(`\n⛓️⚓⛓️  Sovereign Leak Guard FAILED — ${totalViolations} violation(s) detected.`);
 

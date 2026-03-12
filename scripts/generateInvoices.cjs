@@ -104,6 +104,9 @@ const INDIVIDUAL_LICENSE_CENTS   = 10_170;   // $101.70
 // Enterprise Good Faith Deposit: $10,000,000
 const ENTERPRISE_DEPOSIT_CENTS   = 1_000_000_000; // $10,000,000
 
+// Gate 113.4 — Minimum invoice amount (cents) to trigger GabrielOS™ Mobile Push v5
+const HIGH_VALUE_INVOICE_THRESHOLD_CENTS = 10_000 * 100; // $10,000 USD
+
 // Forensic event types used for AI-Gateway-mode ASN entity detection in audit-stream.
 const FORENSIC_EVENT_TYPES = new Set(['DER_HIGH_VALUE', 'DER_SETTLEMENT', 'HN_WATCHER']);
 
@@ -319,11 +322,12 @@ async function createAsnDraftInvoice(stripe, asnEntry, tier) {
     days_until_due:    30,
     description:       `AveryOS TARI™ — ${tier.label} — ASN ${asnEntry.asn} (${asnEntry.hit_count.toLocaleString()} hits)`,
     metadata: {
-      CapsuleID:  CAPSULE_ID_META,
-      asn:        asnEntry.asn,
-      hit_count:  String(asnEntry.hit_count),
-      tier:       tier.tier,
-      milestone:  '962 Entities Documented | 156.2k Pulse Locked',
+      CapsuleID:          CAPSULE_ID_META,
+      asn:                asnEntry.asn,
+      hit_count:          String(asnEntry.hit_count),
+      tier:               tier.tier,
+      milestone:          '962 Entities Documented | 156.2k Pulse Locked',
+      settlement_status:  'Settlement Requested',
     },
   });
 
@@ -392,6 +396,73 @@ async function triggerAsnCheckoutSession(asnEntry, amountCents) {
     });
     req.on('error', (err) => {
       logAosHeal(AOS_ERROR.NETWORK_ERROR, `create-checkout request failed for ASN ${asnEntry.asn}: ${err.message}`);
+      resolve(null);
+    });
+    req.write(bodyData);
+    req.end();
+  });
+}
+
+// ── Gate 113.4 — GabrielOS™ Mobile Push v5 ───────────────────────────────────
+// Fires a POST to /api/v1/audit-alert for every invoice > $10,000 USD so the
+// existing FCM v1 pipeline delivers a push notification to the Creator's phone.
+// Uses the same HTTP/HTTPS request pattern as triggerCheckoutSession().
+
+/**
+ * Send a GabrielOS™ Mobile Push v5 alert for a high-value invoice.
+ * Fires when the invoice amount exceeds $10,000 USD ($1,000,000 cents).
+ *
+ * @param {{ asn?: string; org_id?: string }} entity  Invoice entity identifier.
+ * @param {number} amountCents  Invoice amount in cents.
+ * @param {string} invoiceUrl   Stripe hosted invoice URL.
+ */
+async function sendHighValueInvoiceAlert(entity, amountCents, invoiceUrl) {
+  if (amountCents < HIGH_VALUE_INVOICE_THRESHOLD_CENTS) return;
+  if (!VAULT_PASSPHRASE) {
+    logAosHeal(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE not set — skipping GabrielOS™ Mobile Push v5 alert.');
+    return;
+  }
+
+  const entityId = entity.asn ? `ASN_${entity.asn}` : String(entity.org_id ?? 'UNKNOWN');
+  const amountUsd = (amountCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  const bodyData = JSON.stringify({
+    event_type:       'SOVEREIGN_SETTLEMENT',
+    target_ip:        entityId,
+    path:             '/api/v1/invoice/high-value',
+    tari_liability:   amountCents,
+    invoice_url:      invoiceUrl ?? '',
+    settlement_status: 'Settlement Requested',
+    gabriel_push:     true,
+    note:             `Gate 113.4 — GabrielOS™ Mobile Push v5: High-value invoice ${amountUsd} for ${entityId}`,
+  });
+
+  return new Promise((resolve) => {
+    const isSecure = SITE_URL.startsWith('https');
+    let url;
+    try { url = new URL(`${SITE_URL}/api/v1/audit-alert`); }
+    catch { resolve(null); return; }
+    const opts = {
+      hostname: url.hostname,
+      port:     url.port || (isSecure ? 443 : 80),
+      path:     url.pathname,
+      method:   'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(bodyData),
+        Authorization:    `Bearer ${VAULT_PASSPHRASE}`,
+      },
+    };
+    const req = (isSecure ? https : http).request(opts, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        console.log(`   📱 GabrielOS™ Mobile Push v5 fired for ${entityId} (${amountUsd}) — status ${res.statusCode}`);
+        resolve(data);
+      });
+    });
+    req.on('error', (err) => {
+      logAosHeal(AOS_ERROR.NETWORK_ERROR, `GabrielOS™ Mobile Push v5 failed for ${entityId}: ${err.message}`);
       resolve(null);
     });
     req.write(bodyData);
@@ -549,6 +620,8 @@ async function runAsnInvoicingPipeline(stripe) {
         try {
           invoiceUrl = await createAsnDraftInvoice(stripe, asnEntry, tier);
           console.log(`   ↳ Draft invoice: ${invoiceUrl}`);
+          // Gate 113.4 — GabrielOS™ Mobile Push v5: alert on invoices > $10,000 USD
+          await sendHighValueInvoiceAlert({ asn: asnEntry.asn }, tier.amountCents, invoiceUrl);
         } catch (err) {
           logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create draft invoice for ASN ${asnEntry.asn}: ${err.message}`, err);
         }
@@ -639,11 +712,12 @@ async function createDraftInvoice(stripe, org) {
     days_until_due: 30,
     description: `AveryOS TARI — Usage-based license fee for ${org.org_id}`,
     metadata: {
-      CapsuleID:     CAPSULE_ID_META,
-      org_id:        org.org_id,
-      request_count: String(org.request_count),
-      base_bsu_usd:  '10000.00',
-      per_req_usd:   '0.01',
+      CapsuleID:          CAPSULE_ID_META,
+      org_id:             org.org_id,
+      request_count:      String(org.request_count),
+      base_bsu_usd:       '10000.00',
+      per_req_usd:        '0.01',
+      settlement_status:  'Settlement Requested',
     },
   });
 
@@ -1050,6 +1124,8 @@ async function main() {
     } else {
       try {
         invoiceUrl = await createDraftInvoice(stripe, org);
+        // Gate 113.4 — GabrielOS™ Mobile Push v5: alert on invoices > $10,000 USD
+        await sendHighValueInvoiceAlert({ org_id: org.org_id }, debtCents, invoiceUrl);
       } catch (err) {
         logAosError(AOS_ERROR.STRIPE_ERROR, `Failed to create invoice for ${org.org_id}: ${err.message}`, err);
       }

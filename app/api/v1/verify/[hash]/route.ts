@@ -132,7 +132,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         aligned_at:     alignRow.aligned_at,
         status:         alignRow.status,
         verified_at:    new Date().toISOString(),
-        kernel_sha:     KERNEL_SHA.slice(0, 16) + '…',
+        kernel_sha:     KERNEL_SHA,
         kernel_version: KERNEL_VERSION,
       });
     }
@@ -157,7 +157,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         event_type:     capsuleRow.event_type,
         ray_id:         capsuleRow.ray_id,
         anchored_at:    capsuleRow.anchored_at,
-        kernel_sha:     capsuleRow.kernel_sha ?? KERNEL_SHA.slice(0, 16) + '…',
+        kernel_sha:     capsuleRow.kernel_sha ?? KERNEL_SHA,
         kernel_version: KERNEL_VERSION,
         ip_address:     capsuleRow.ip_address,
         path:           capsuleRow.path,
@@ -193,7 +193,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         timestamp:              txRow.timestamp,
         created_at:             txRow.created_at,
         kernel_version:         KERNEL_VERSION,
-        kernel_sha:             KERNEL_SHA.slice(0, 16) + '…',
+        kernel_sha:             KERNEL_SHA,
         verified_at:            new Date().toISOString(),
         detail:                 'VaultChain™ transaction verified. This capsule SHA-512 is sealed on the sovereign Public Witness Ledger.',
       });
@@ -221,7 +221,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         hash:         hash,
         detail:       'No sovereign alignment found for this hash. Certificate unknown or not yet anchored on VaultChain™.',
         vaultchain_url: 'https://averyos.com/vaultchain-explorer',
-        kernel_sha:   KERNEL_SHA.slice(0, 16) + '…',
+        kernel_sha:   KERNEL_SHA,
       },
       { status: 404 },
     );

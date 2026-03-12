@@ -235,3 +235,19 @@ dead_letter_queue    = "sovereign-log-ingress-dlq"
 #   rate_limit:JP:<ip>   → 1,017 req / 60 s
 #   rate_limit:ANY:<ip>  → 1,017 req / 60 s  (default fallback)
 
+# ── Gate 113.2: Unauthenticated /api/v1/ Rate Limiting ───────────────────────
+# The RATE_LIMITER_API binding below activates programmatic rate limiting for
+# unauthenticated /api/v1/ requests — enforced inside middleware.ts via
+# apiEnv.RATE_LIMITER_API.limit({ key: 'api:<ip>' }).
+# Limit: 1,017 requests per 60-second window per IP (1,017-Notch Sovereign Standard).
+# Authenticated requests (Authorization / x-vault-auth / aos-vault-auth) are exempt.
+#
+# Note: For Cloudflare-native WAF-level enforcement (before Worker execution),
+# additional rate limiting rules can be added via the Cloudflare dashboard
+# (Security → WAF → Rate Limiting Rules) — these are complementary.
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER_API"
+namespace_id = "1019"
+simple = { limit = 1017, period = 60 }
+
