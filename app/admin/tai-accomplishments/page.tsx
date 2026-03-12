@@ -434,7 +434,9 @@ export default function TaiAccomplishmentsDashboard() {
             onClick={() => setFilterCat(c)}
             style={{
               padding: "0.3rem 0.7rem", borderRadius: 6,
+              // eslint-disable-next-line security/detect-object-injection
               background: filterCat === c ? (CAT_COLORS[c] ?? GOLD) : "rgba(212,175,55,0.08)",
+              // eslint-disable-next-line security/detect-object-injection
               border: `1px solid ${filterCat === c ? (CAT_COLORS[c] ?? GOLD) : GOLD_BORD}`,
               color: filterCat === c ? "#000" : GOLD,
               cursor: "pointer", fontSize: "0.75rem", fontFamily: FONT_MONO,

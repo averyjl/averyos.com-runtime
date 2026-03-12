@@ -26,6 +26,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "next lint",
+    "test:unit": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts && node --test __tests__/generateInvoices.test.cjs",
+    "test:unit:ts": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts",
+    "test:unit:cjs": "node --test __tests__/generateInvoices.test.cjs",
     "capsule:build": "node scripts/capsulePageAutoCompiler.cjs",
     "capsule:index": "node scripts/capsuleRegistry.cjs",
     "capsule:sitemap": "node scripts/capsuleSitemap.cjs",
@@ -69,6 +72,6 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.12",
     "eslint-plugin-security": "^4.0.0",
-    "typescript": "5.7.3"
+    "typescript": "^5.7.3"
   }
 }

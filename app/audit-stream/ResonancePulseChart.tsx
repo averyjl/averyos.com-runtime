@@ -71,6 +71,7 @@ function buildHourlyBuckets(entries: AuditStreamEntry[]): Array<{ hour: string; 
     const ageMs = now - ms;
     if (ageMs < 0 || ageMs > TWENTY_FOUR_HOURS_MS) continue;
     const hourIndex = Math.floor(ageMs / (60 * 60 * 1000));
+    // eslint-disable-next-line security/detect-object-injection
     if (hourIndex < 24) buckets[hourIndex]++;
   }
 

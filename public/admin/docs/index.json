@@ -1,2629 +1,1951 @@
 {
-  "generated_at": "2026-03-11T03:02:40.006Z",
-  "symbol_count": 437,
-  "kernel_version": "v3.6.2",
-  "symbols": [
-    {
-      "name": "BadgeOptions",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/BadgeGenerator.ts"
-    },
-    {
-      "name": "GeneratedBadge",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/BadgeGenerator.ts"
-    },
-    {
-      "name": "generateSovereignBadge",
-      "kind": "function",
-      "doc": "Generate a dynamic AveryOS™ Sovereign Badge SVG for a given partner. The badge embeds a unique SHA-512 hash derived from: sha512(partnerId + KERNEL_SHA + timestamp) Clicking the badge links to `/api/v1/verify/badge/[hash]` for live resonance verification against the D1 `sovereign_alignments` table. /",
-      "file": "lib/BadgeGenerator.ts"
-    },
-    {
-      "name": "CapsuleSignature",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/CapsuleSigner.ts"
-    },
-    {
-      "name": "signCapsule",
-      "kind": "function",
-      "doc": "Signs a capsule and returns a CapsuleSignature. @param capsuleId  - The capsule's unique slug / identifier @param capsuleContent - The raw string content of the .aoscap file (used for fingerprinting) /",
-      "file": "lib/CapsuleSigner.ts"
-    },
-    {
-      "name": "verifyCapsuleSignature",
-      "kind": "function",
-      "doc": "Verifies a CapsuleSignature against a capsule's content. Returns true only when all fields match and the fingerprint is consistent. /",
-      "file": "lib/CapsuleSigner.ts"
-    },
-    {
-      "name": "CertificateOptions",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/CertificateGenerator.ts"
-    },
-    {
-      "name": "GeneratedCertificate",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/CertificateGenerator.ts"
-    },
-    {
-      "name": "generateAlignmentCertificate",
-      "kind": "function",
-      "doc": "Generate a Sovereign Alignment Certificate for a partner. Hash formula: sha512(partnerId + settlementId + KERNEL_SHA + timestamp) Returns both the SVG Pulse Seal and the JSON-LD Truth-Packet. These should be persisted to the `sovereign_alignments` D1 table on issuance. /",
-      "file": "lib/CertificateGenerator.ts"
-    },
-    {
-      "name": "GEMINI_MODEL_PRO",
-      "kind": "const",
-      "doc": "Available Gemini model IDs",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GEMINI_MODEL_FLASH",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiPart",
-      "kind": "interface",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiContent",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiGenerationConfig",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiRequest",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiCandidate",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiUsageMetadata",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiResponse",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "GeminiResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "generateContent",
-      "kind": "function",
-      "doc": "generateContent — call Gemini REST API with the given request. @param apiKey  - GOOGLE_GEMINI_API_KEY secret value @param model   - Gemini model ID (use GEMINI_MODEL_PRO / GEMINI_MODEL_FLASH) @param request - Structured Gemini request payload @returns GeminiResult with text, token counts, and estimated cost @throws Error if API returns non-2xx or malformed response /",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "generateForensicAnalysis",
-      "kind": "function",
-      "doc": "generateForensicAnalysis — convenience wrapper that wraps the prompt in the AveryOS™ Sovereign Forensic Analysis system instruction and returns the structured GeminiResult. /",
-      "file": "lib/ai/geminiClient.ts"
-    },
-    {
-      "name": "ModelBackend",
-      "kind": "type",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/ai/router.ts"
-    },
-    {
-      "name": "RouterRequest",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/router.ts"
-    },
-    {
-      "name": "RouterResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/ai/router.ts"
-    },
-    {
-      "name": "routeIntelligenceRequest",
-      "kind": "function",
-      "doc": "routeIntelligenceRequest — select backend and execute the AI request. @throws Error if cloud-AI tier is selected but geminiApiKey is missing /",
-      "file": "lib/ai/router.ts"
-    },
-    {
-      "name": "selectBackend",
-      "kind": "function",
-      "doc": "selectBackend — determine the backend name for a given threat level without executing an AI call (useful for logging / pre-flight checks). /",
-      "file": "lib/ai/router.ts"
-    },
-    {
-      "name": "AverySyncManifest",
-      "kind": "interface",
-      "doc": "// --------------------------------------------------------------------------- // Schema // ---------------------------------------------------------------------------",
-      "file": "lib/averySyncManifest.ts"
-    },
-    {
-      "name": "ManifestValidationResult",
-      "kind": "interface",
-      "doc": "// --------------------------------------------------------------------------- // Validation // ---------------------------------------------------------------------------",
-      "file": "lib/averySyncManifest.ts"
-    },
-    {
-      "name": "validateAverySyncManifest",
-      "kind": "function",
-      "doc": "Validate a parsed `.avery-sync.json` manifest against the canonical sovereign constants in this repository. Called by: • GabrielOS™ Worker on startup (reads AVERY_SYNC_MANIFEST env secret) • Firebase Cloud Functions before writing to averyos-resonance collection /",
-      "file": "lib/averySyncManifest.ts"
-    },
-    {
-      "name": "buildAverySyncManifest",
-      "kind": "function",
-      "doc": "Build a fresh manifest object using the canonical sovereign constants. Callers must supply btc_anchor_block, btc_anchor_hash, firebase_project_id, and last_sync_at from runtime context. /",
-      "file": "lib/averySyncManifest.ts"
-    },
-    {
-      "name": "LGIC_CAPSULE_SHA",
-      "kind": "const",
-      "doc": "SHA of the LGIC PublicCapsule v1 (CapsuleEcho footer + /lgic page)",
-      "file": "lib/capsuleConstants.ts"
-    },
-    {
-      "name": "CapsuleManifest",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/capsuleManifest.ts"
-    },
-    {
-      "name": "loadCapsuleManifest",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/capsuleManifest.ts"
-    },
-    {
-      "name": "listCapsuleIds",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/capsuleManifest.ts"
-    },
-    {
-      "name": "CapsuleRegistryItem",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/capsuleRegistry.ts"
-    },
-    {
-      "name": "CapsuleRegistry",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/capsuleRegistry.ts"
-    },
-    {
-      "name": "loadCapsuleRegistry",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/capsuleRegistry.ts"
-    },
-    {
-      "name": "listRegistryCapsules",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/capsuleRegistry.ts"
-    },
-    {
-      "name": "SHA512_HEX_REGEX",
-      "kind": "const",
-      "doc": "// SHA-512 hash regex: exactly 128 hexadecimal characters",
-      "file": "lib/capsuleUtils.ts"
-    },
-    {
-      "name": "validateVaultSigHash",
-      "kind": "function",
-      "doc": "Validates a VaultSig SHA-512 hash @param hash - The hash string to validate @returns true if the hash is a valid 128-character SHA-512 hex string /",
-      "file": "lib/capsuleUtils.ts"
-    },
-    {
-      "name": "normalizeVaultSigHash",
-      "kind": "function",
-      "doc": "Normalizes a VaultSig hash by trimming whitespace @param hash - The hash string to normalize @returns The normalized hash string /",
-      "file": "lib/capsuleUtils.ts"
-    },
-    {
-      "name": "verifyVaultSigHash",
-      "kind": "function",
-      "doc": "Validates and normalizes a VaultSig hash @param hash - The hash string to validate and normalize @returns The normalized hash if valid, or null if invalid /",
-      "file": "lib/capsuleUtils.ts"
-    },
-    {
-      "name": "SETTLEMENT_WINDOW_MS",
-      "kind": "const",
-      "doc": "Duration of the settlement window in milliseconds (72 hours).",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "SETTLEMENT_WINDOW_HOURS",
-      "kind": "const",
-      "doc": "Duration of the settlement window in hours.",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "SettlementClockStatus",
-      "kind": "type",
-      "doc": "Status values for a settlement clock.",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "SettlementClock",
-      "kind": "interface",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "startSettlementClock",
-      "kind": "function",
-      "doc": "Start a new 72-hour settlement clock anchored to the provided attestation timestamp (defaults to `now` if not supplied). @param attestationTs  ISO-8601 string from the completed attestation handshake. @param settled        Pass `true` to mark the clock as already SETTLED. @returns              SettlementClock record. /",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "getSettlementDeadline",
-      "kind": "function",
-      "doc": "Evaluate an existing settlement clock given the original attestation timestamp. Equivalent to calling `startSettlementClock(attestationTs)` — the function always re-computes against the current wall-clock time. @param attestationTs  ISO-8601 string from the original attestation. @param settled        Pass `true` if the entity has already paid. @returns              SettlementClock with updated status / remaining time. /",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "ComplianceClock",
-      "kind": "interface",
-      "doc": "ComplianceClock is a lightweight object used in Forensic Sandbox and Statutory Handshake endpoints to communicate a 72-hour settlement deadline with a stable clock_id for database persistence. /",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "createComplianceClock",
-      "kind": "function",
-      "doc": "Create a new ComplianceClock anchored to the current time. @param asn      ASN of the entity (e.g. \"36459\"). May be null. @param orgName  Organisation name (optional). @param clockId  Stable identifier for this clock (e.g. \"clock_q_36459_<ts>\"). @returns        ComplianceClock record. /",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "ClockReconcileResult",
-      "kind": "interface",
-      "doc": "// ── Reconciliation helper ─────────────────────────────────────────────────────",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "reconcileClocks",
-      "kind": "function",
-      "doc": "Reconcile in-memory compliance clocks by evaluating their deadlines. For database-backed reconciliation, callers should query their D1 table (e.g. `kaas_ledger` or a dedicated `compliance_clocks` table) and pass the rows here. ACTIVE clocks whose deadline has passed are marked EXPIRED and should be ESCALATED to the /api/v1/kaas/settle flow. @param clocks Array of ComplianceClock records to evaluate. @returns      ClockReconcileResult summary + updated clocks array. /",
-      "file": "lib/compliance/clockEngine.ts"
-    },
-    {
-      "name": "EnforcementEvent",
-      "kind": "interface",
-      "doc": "Type definitions for license enforcement tracking system Provides transparent, SHA-verified logging of license compliance events /",
-      "file": "lib/enforcementTypes.ts"
-    },
-    {
-      "name": "EvidenceBundle",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/enforcementTypes.ts"
-    },
-    {
-      "name": "ComplianceNotice",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/enforcementTypes.ts"
-    },
-    {
-      "name": "slugToEntityId",
-      "kind": "function",
-      "doc": "Converts an entity slug (from URL paths or filenames) into a canonical entity ID used in the retroactive_ledger table. Examples: \"msft-oai-notice.pdf\" → \"MSFT_OAI\" \"goog-notice\"         → \"GOOG\" \"meta\"                → \"META\" /",
-      "file": "lib/entitySlug.ts"
-    },
-    {
-      "name": "entityNameToSlug",
-      "kind": "function",
-      "doc": "Converts an entity name (from the DB) into a URL-safe slug for settlement notice links. Example: \"MSFT_OAI\" → \"msft-oai-notice\" /",
-      "file": "lib/entitySlug.ts"
-    },
-    {
-      "name": "FIREBASE_STATUS_PENDING",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "FIREBASE_STATUS_ACTIVE",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "FirebaseStatus",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "isFirebaseConfigured",
-      "kind": "function",
-      "doc": "Returns true when all required Firebase env vars are present.",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "resolveFirebasePrivateKey",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "getFirebaseStatus",
-      "kind": "function",
-      "doc": "Returns the current Firebase connection status.",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "ResonancePingDoc",
-      "kind": "interface",
-      "doc": "// ── Firestore document shapes ─────────────────────────────────────────────────",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "ModelRegistryDoc",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "DriftAlertDoc",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "HandshakeSyncDoc",
-      "kind": "interface",
-      "doc": "Handshake sync log entry — one record per inter-cloud GPT/Gemini/Meta sync. The pulse_hash is SHA-512(source_id + target_id + payload_sha + timestamp) and is written to both Firestore and VaultChain™ for cross-cloud drift detection. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "logResonancePing",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "updateModelRegistry",
-      "kind": "function",
-      "doc": "Update the live model alignment state in the `averyos-model-registry` collection. Activates when FIREBASE_PROJECT_ID is set. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "logDriftAlert",
-      "kind": "function",
-      "doc": "Log a drift detection alert to the `averyos-drift-alerts` Firestore collection. Activates when FIREBASE_PROJECT_ID is set. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "logFirebaseHandshake",
-      "kind": "function",
-      "doc": "Log a cross-cloud handshake synchronisation event to Firestore with a SHA-512 pulse hash.  This enables real-time detection of \"Watcher Drift\" — any tampering with the payload between nodes changes the pulse hash. Call this from any route that sends or receives data from GPT, Gemini, or Meta AI endpoints so every inter-cloud handshake is anchored to the VaultChain™ ledger. @param sourceId   — identifier of the sending system (e.g. \"averyos-cloudflare\") @param targetId   — identifier of the receiving system (e.g. \"openai-gpt4o\") @param payloadSha — SHA-512 hex digest of the request/response payload /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "D1SyncDoc",
-      "kind": "interface",
-      "doc": "Document shape for a D1 audit row synced to Firebase. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "syncD1RowToFirebase",
-      "kind": "function",
-      "doc": "Sync a D1 sovereign_audit_logs row to the Firestore `averyos-d1-sync` collection for Multi-Cloud D1/Firebase parity. Activates once FIREBASE_PROJECT_ID is configured — writes via Firestore REST API (no firebase-admin SDK required).  Every Tier-7+ audit event in D1 is mirrored to Firestore in real time, enabling cross-cloud drift detection. @param row — a row object from sovereign_audit_logs /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "batchSyncD1ToFirebase",
-      "kind": "function",
-      "doc": "Batch-sync multiple D1 audit rows to Firebase. Skips rows with threat_level < minThreatLevel (default 7) to avoid noise. @param rows           — array of D1 row objects @param minThreatLevel — minimum threat level to sync (default: 7) /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "TariProbeDoc",
-      "kind": "interface",
-      "doc": "Document shape for a tari_probe Watcher row synced to Firebase. Every Watcher detected by GabrielOS™ is mirrored here to ensure cross-cloud audit parity. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "syncTariProbeToFirebase",
-      "kind": "function",
-      "doc": "Sync a tari_probe Watcher row to the Firestore `averyos-tari-probe` collection for Multi-Cloud D1/Firebase parity. Every time a Watcher is logged to the D1 tari_probe table this function should be called to mirror the record to Firebase, ensuring the audit trail survives even if a single cloud provider attempts a \"Nuclear Wipe\". Activates once FIREBASE_PROJECT_ID is configured — writes via Firestore REST API (no firebase-admin SDK required). @param row — a row object from the tari_probe table /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "batchSyncTariProbeToFirebase",
-      "kind": "function",
-      "doc": "Batch-sync multiple tari_probe Watcher rows to Firebase. All rows are synced regardless of threat_level since every Watcher detection is forensically significant. @param rows — array of tari_probe row objects /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "syncTariProbeRowToFirebase",
-      "kind": "const",
-      "doc": "[REDACTED]",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "KaasValuationDoc",
-      "kind": "interface",
-      "doc": "Document shape for a kaas_valuations row synced to Firebase. KaaS breach events are mirrored to Firestore for multi-cloud audit parity. /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "syncKaasValuationToFirebase",
-      "kind": "function",
-      "doc": "Sync a kaas_valuations row to the Firestore `averyos-kaas-valuations` collection for Multi-Cloud D1/Firebase parity. Activates automatically once FIREBASE_PROJECT_ID is set in Cloudflare secrets. Every KAAS_BREACH event is mirrored to Firestore in real time. @param row — a kaas_valuations row (or equivalent KAAS_BREACH payload) /",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "isFcmConfigured",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "sendFcmV1Push",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/firebaseClient.ts"
-    },
-    {
-      "name": "TOP_FORENSIC_LOG_HASHES",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/forensicHashes.ts"
-    },
-    {
-      "name": "KnowledgeCutoffWindow",
-      "kind": "interface",
-      "doc": "Known AI model knowledge cutoff windows (ISO date strings). When a KAAS_BREACH event's timestamp falls within one of these windows, the ingestion_proof_hook populates `knowledge_cutoff_correlation` to identify which AI model(s) are likely responsible for the ingestion. Format: { model, org, asn, cutoff_start, cutoff_end } asn — the primary corporate ASN associated with this model's training infra. Source: publicly disclosed training cutoff dates from AI provider documentation. /",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "KNOWN_CUTOFF_WINDOWS",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "correlateKnowledgeCutoff",
-      "kind": "function",
-      "doc": "Ingestion Proof Hook — knowledge_cutoff_correlation (Gate 7) Given a KAAS_BREACH event, returns a list of AI models whose training cutoff window overlaps with the event date AND whose primary ASN matches. This is used to populate the `knowledge_cutoff_correlation` field in the kaas_valuations D1 record, establishing a probabilistic link between the detected probe and specific AI model training ingestion events. @param asn       The ASN of the requesting entity @param eventDate ISO-8601 timestamp or YYYY-MM-DD date string of the breach event. Must be at least 10 characters; only the first 10 chars (YYYY-MM-DD) are used for comparison. @returns Array of matching KnowledgeCutoffWindow entries (empty if none) /",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "buildCutoffCorrelationString",
-      "kind": "function",
-      "doc": "Build a compact `knowledge_cutoff_correlation` string for D1 storage. Format: \"GPT-4o (OpenAI/Azure); Gemini 2.0 Flash (Google)\" or \"NONE\" /",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "KaasBreachEvent",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "isEncryptedAoscapPath",
-      "kind": "function",
-      "doc": "Returns true if the path is considered an encrypted / high-value .aoscap path.",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "shouldTriggerKaasBreach",
-      "kind": "function",
-      "doc": "Returns true if the event should trigger a KAAS_BREACH alert.",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "emitKaasBreachAlert",
-      "kind": "function",
-      "doc": "Emit a KAAS_BREACH event: fires a GabrielOS™ FCM push notification and returns the event payload for D1 persistence by the caller. Does NOT throw — all errors are swallowed to keep the hot path non-blocking. /",
-      "file": "lib/forensics/alertEngine.ts"
-    },
-    {
-      "name": "CADENCE_17_MS",
-      "kind": "const",
-      "doc": "The \"17 Signal\" cadence in milliseconds.",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "CADENCE_TOLERANCE_MS",
-      "kind": "const",
-      "doc": "Tolerance window (± ms) for identifying a 1.7s cadence hit.",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "CADENCE_SENTINEL_PATHS",
-      "kind": "const",
-      "doc": "Paths whose 1.7s cadence is forensically significant.",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "ModelUpdateWindow",
-      "kind": "interface",
-      "doc": "// ── Known model weight update windows ────────────────────────────────────────",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "MODEL_UPDATE_WINDOWS",
-      "kind": "const",
-      "doc": "Known AI model weight update / knowledge cutoff windows. When cadence pings cluster within these windows, it is forensic evidence of model alignment using the AveryOS™ Kernel as a truth beacon. /",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "CadenceProbe",
-      "kind": "interface",
-      "doc": "// ── Probe record ──────────────────────────────────────────────────────────────",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "CadenceCorrelationResult",
-      "kind": "interface",
-      "doc": "// ── Correlation result ────────────────────────────────────────────────────────",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "correlateCadenceProbes",
-      "kind": "function",
-      "doc": "Analyse a cluster of cadence probes and determine whether they constitute a Forensic 17-Signal Event (1.7s cadence correlated with a model update window). @param probes  Two or more probes from the same IP/ASN, sorted by timestampMs asc /",
-      "file": "lib/forensics/cadenceCorrelation.ts"
-    },
-    {
-      "name": "WAF_INGESTION_THRESHOLD",
-      "kind": "const",
-      "doc": "WAF score threshold that triggers a weight-ingestion classification.",
-      "file": "lib/forensics/correlationEngine.ts"
-    },
-    {
-      "name": "SENSITIVE_INGESTION_PATHS",
-      "kind": "const",
-      "doc": "API paths that are considered sensitive for weight-ingestion detection.",
-      "file": "lib/forensics/correlationEngine.ts"
-    },
-    {
-      "name": "CorrelationSignals",
-      "kind": "interface",
-      "doc": "// ── Public types ───────────────────────────────────────────────────────────────",
-      "file": "lib/forensics/correlationEngine.ts"
-    },
-    {
-      "name": "CorrelationResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/correlationEngine.ts"
-    },
-    {
-      "name": "detectIngestionAttempt",
-      "kind": "function",
-      "doc": "Analyse incoming request signals and, when the WAF score exceeds the weight-ingestion threshold on a sensitive path, persist a forensic correlation record to `kaas_valuations` and return the result. Non-throwing: all DB errors are logged to console and a non-detected result is returned so callers are never blocked. /",
-      "file": "lib/forensics/correlationEngine.ts"
-    },
-    {
-      "name": "KaasBreachRecord",
-      "kind": "interface",
-      "doc": "// ── Types ──────────────────────────────────────────────────────────────────────",
-      "file": "lib/forensics/generateStripeReport.ts"
-    },
-    {
-      "name": "StripeEvidenceSection",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/generateStripeReport.ts"
-    },
-    {
-      "name": "StripeEvidenceReport",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/generateStripeReport.ts"
-    },
-    {
-      "name": "generateStripeReport",
-      "kind": "function",
-      "doc": "Generate a structured Stripe Evidence Report from an array of KaasBreachRecord objects. @param records   Array of kaas_valuations rows (or equivalent KAAS_BREACH payloads) @param opts      Optional overrides for witness count, disclosure URL, etc. /",
-      "file": "lib/forensics/generateStripeReport.ts"
-    },
-    {
-      "name": "Jurisdiction",
-      "kind": "type",
-      "doc": "// ── Jurisdiction Map ───────────────────────────────────────────────────────────",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "JURISDICTION_STATUTES",
-      "kind": "const",
-      "doc": "Statutory information for each supported jurisdiction. Used to populate the `statutory_basis` field of evidence packets. /",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "resolveJurisdiction",
-      "kind": "function",
-      "doc": "Resolve the applicable statutory jurisdiction from a country code. @param countryCode - ISO-3166 two-letter country code (e.g. \"FR\", \"US\", \"GB\"). /",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "EvidencePacketInput",
-      "kind": "interface",
-      "doc": "Input parameters for building an International Evidence Packet.",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "EvidencePacket",
-      "kind": "interface",
-      "doc": "A fully assembled International Evidence Packet.",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "buildEvidencePacket",
-      "kind": "function",
-      "doc": "Build an International Evidence Packet for the given request parameters. @param input - Evidence packet inputs (RayID, ASN, country code, etc.) /",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "formatEvidenceNotice",
-      "kind": "function",
-      "doc": "Format an EvidencePacket as a human-readable multi-jurisdictional notice suitable for emailing or embedding in a legal PDF. /",
-      "file": "lib/forensics/globalVault.ts"
-    },
-    {
-      "name": "IngestionProofInput",
-      "kind": "interface",
-      "doc": "// ── Public types ───────────────────────────────────────────────────────────────",
-      "file": "lib/forensics/ingestionProof.ts"
-    },
-    {
-      "name": "IngestionProofCertificate",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/ingestionProof.ts"
-    },
-    {
-      "name": "generateIngestionProof",
-      "kind": "function",
-      "doc": "Generate a Proof of Ingestion certificate for a detected AI weight-ingestion event.  The returned certificate is self-contained and can be persisted to D1, printed to a PDF, or included in a Stripe evidence packet. /",
-      "file": "lib/forensics/ingestionProof.ts"
-    },
-    {
-      "name": "CADENCE_THRESHOLD_MS",
-      "kind": "const",
-      "doc": "Maximum inter-request interval (ms) that triggers cadence autolearn.",
-      "file": "lib/forensics/threatEngine.ts"
-    },
-    {
-      "name": "WAF_AUTOLEARN_THRESHOLD",
-      "kind": "const",
-      "doc": "Minimum WAF score that triggers signature autolearn.",
-      "file": "lib/forensics/threatEngine.ts"
-    },
-    {
-      "name": "ThreatSignals",
-      "kind": "interface",
-      "doc": "// ── Public types ───────────────────────────────────────────────────────────────",
-      "file": "lib/forensics/threatEngine.ts"
-    },
-    {
-      "name": "AutolearnResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/forensics/threatEngine.ts"
-    },
-    {
-      "name": "autolearnThreatPattern",
-      "kind": "function",
-      "doc": "Analyses the provided threat signals and, when the Tier-10 threshold is met, upserts a behavioural fingerprint into the `threat_vectors` table. This function is fire-and-forget safe: all errors are swallowed and logged so that a DB failure never blocks request processing. @param db       — Cloudflare D1 database binding @param signals  — Behavioural signals extracted from the incoming request @returns        AutolearnResult describing whether learning occurred /",
-      "file": "lib/forensics/threatEngine.ts"
-    },
-    {
-      "name": "GEMINI_MONTHLY_CREDIT_LIMIT_USD",
-      "kind": "const",
-      "doc": "Monthly Gemini spend limit in USD. When reached, circuit breaker activates.",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "GEMINI_COST_PER_1K_TOKENS",
-      "kind": "const",
-      "doc": "Gemini 1.5 Pro blended average pricing per 1,000 tokens (input + output avg).",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "GeminiSpendKV",
-      "kind": "interface",
-      "doc": "Minimal Cloudflare KV binding interface required by this tracker. Extends the standard put/get with list() for prefix-based aggregation. /",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "geminiSpendPrefix",
-      "kind": "function",
-      "doc": "Returns the KV key prefix for per-call spend entries for a given year+month. All entries for a month share this prefix so list() can aggregate them. /",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "currentMonthSpendPrefix",
-      "kind": "function",
-      "doc": "Returns the spend entry prefix for the current UTC month.",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "recordGeminiSpend",
-      "kind": "function",
-      "doc": "Records the cost of a single Gemini call as an independent KV entry. WRITE-ONLY: no read is performed — eliminates the race condition entirely. Every concurrent request writes to its own unique key, so no call can overwrite or lose another call's contribution. The cost is stored in both the value (string) and metadata (number). Metadata is returned by list() without extra get() calls, making aggregation O(ceil(N/1000)) list requests with zero per-key gets. @param kv      — Cloudflare KV binding with list() support @param costUsd — cost of this call in USD (must be > 0 to be written) /",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "getTotalGeminiSpend",
-      "kind": "function",
-      "doc": "Sums all per-call spend entries for the current UTC month. Uses metadata returned by list() — no individual get() calls needed. Handles KV pagination automatically (up to 1000 keys per page). @param kv — Cloudflare KV binding with list() support @returns total spend in USD for the current month /",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "isGeminiCreditExhausted",
-      "kind": "function",
-      "doc": "Returns true when the current month's accumulated Gemini spend has met or exceeded GEMINI_MONTHLY_CREDIT_LIMIT_USD. Used by the Phase 88 circuit breaker in middleware.ts to fall back to LOCAL_OLLAMA_NODE when the $50/month cloud AI budget is reached. Errors are swallowed — KV unavailability must NOT force a fallback, so cloud AI degrades gracefully rather than being disabled on KV blips. @param kv — Cloudflare KV binding with list() support /",
-      "file": "lib/geminiSpendTracker.ts"
-    },
-    {
-      "name": "ENTERPRISE_ASN_TIERS",
-      "kind": "const",
-      "doc": "// ── ASN Tier Classification ──────────────────────────────────────────────────── Enterprise ASNs mapped to their sovereign KaaS tier (10 = highest).",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "KAAS_FEE_TIER_10_CENTS",
-      "kind": "const",
-      "doc": "// ── Fee Schedule (USD, as cents to avoid float arithmetic) ──────────────────── $10,000,000 Good Faith Deposit — Tier-9/10 entities (MSFT, Google, GitHub).",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "KAAS_FEE_TIER_7_CENTS",
-      "kind": "const",
-      "doc": "$1,017,000 Forensic Valuation — Tier-7/8 enterprise entities.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "KAAS_FEE_TIER_1_CENTS",
-      "kind": "const",
-      "doc": "$1,017 Audit Clearance Fee — Tier-1 through Tier-6 unrecognised agents.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "STATUTORY_ADMIN_SETTLEMENT_CENTS",
-      "kind": "const",
-      "doc": "// ── Statutory Administrative Settlement — Gate 103.4 ───────────────────────── Hardlocked $150,000 Administrative Settlement per instance. Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a copyrighted work. Applies when an entity accesses the AveryOS™ API via an unlicensed Python script or automated tool without a valid TAI_LICENSE_KEY, bypassing the standard KaaS settlement path. This value is the maximum statutory damage award per work and is hardlocked to ensure the Administrative Settlement offer is fully legally defensible. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "STATUTORY_ADMIN_SETTLEMENT_LABEL",
-      "kind": "const",
-      "doc": "Human-readable label for the $150,000 Administrative Settlement.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getStatutoryAdminSettlementCents",
-      "kind": "function",
-      "doc": "Return the $150,000 Administrative Settlement amount in cents. Hardlocked — do not override. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getStatutoryAdminSettlementLabel",
-      "kind": "function",
-      "doc": "Return the $150,000 Administrative Settlement amount as a formatted string. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getAsnTier",
-      "kind": "function",
-      "doc": "Return the KaaS tier (1–10) for a given ASN string.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getAsnFeeUsdCents",
-      "kind": "function",
-      "doc": "Return the KaaS fee in cents for a given ASN string.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getAsnFeeUsd",
-      "kind": "function",
-      "doc": "Return the KaaS fee in USD for a given ASN string.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getAsnFeeLabel",
-      "kind": "function",
-      "doc": "Return a human-readable fee label for display.",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "KaasLineItem",
-      "kind": "interface",
-      "doc": "// ── Invoice Line Item ─────────────────────────────────────────────────────────",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "buildKaasLineItem",
-      "kind": "function",
-      "doc": "Build a KaaS invoice line item for the given ASN. Suitable for passing to Stripe's `line_items` array. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "INFRINGEMENT_MULTIPLIER",
-      "kind": "const",
-      "doc": "Obfuscation/Infringement Multiplier — applied when masking headers or shell IPs are detected, representing the increased forensic cost of identifying masked malicious actors. TotalDebt = BaseValue × INFRINGEMENT_MULTIPLIER /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "applyInfringementPenalty",
-      "kind": "function",
-      "doc": "Apply the infringement penalty multiplier to a base fee in cents. @param baseCents  Base fee in USD cents before penalty @param multiplier Penalty multiplier (defaults to INFRINGEMENT_MULTIPLIER = 10) @returns          Total debt in USD cents after multiplier /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "buildKaasLineItemWithPenalty",
-      "kind": "function",
-      "doc": "Build a KaaS invoice line item with an optional infringement penalty applied. When `obfuscationDetected` is true the base fee is multiplied by INFRINGEMENT_MULTIPLIER (10×) to represent the Obfuscation Penalty. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "KaasTierBadge",
-      "kind": "interface",
-      "doc": "// ── Tier Badge ────────────────────────────────────────────────────────────────",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "getKaasTierBadge",
-      "kind": "function",
-      "doc": "Return a compact tier badge for the given ASN. Suitable for display in FCM push notifications and KaaS breach alerts. /",
-      "file": "lib/kaas/pricing.ts"
-    },
-    {
-      "name": "AUDIT_CLEARANCE_WINDOW_MS",
-      "kind": "const",
-      "doc": "Duration of the Audit Clearance window in milliseconds (72 hours).",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "EXPIRED_COUNTDOWN",
-      "kind": "const",
-      "doc": "Sentinel string returned by formatCountdownMs() when the window has expired.",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "AuditCountdown",
-      "kind": "interface",
-      "doc": "// ── Countdown result ──────────────────────────────────────────────────────────",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "formatCountdownMs",
-      "kind": "function",
-      "doc": "Format a millisecond duration as \"DDd HHh MMm SSs\". /",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "resolveAuditDeadline",
-      "kind": "function",
-      "doc": "Compute the deadline timestamp for an audit clearance window. @param createdAt  ISO-8601 or Unix-ms timestamp when the valuation was created @returns          Deadline as a Unix millisecond timestamp /",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "getAuditCountdown",
-      "kind": "function",
-      "doc": "Get a full countdown object for an audit clearance invoice. @param createdAt  ISO-8601 or Unix-ms timestamp of invoice creation @param tier       KaaS tier of the entity (1–10); tier ≥ 9 escalates faster /",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "auditBatchStatus",
-      "kind": "function",
-      "doc": "Determine whether a batch of audit rows has any expired or critical invoices. @param rows  Array of objects with `created_at` and optional `tier` fields /",
-      "file": "lib/kaas/reconciliationClock.ts"
-    },
-    {
-      "name": "KaasValuationRow",
-      "kind": "interface",
-      "doc": "// ── D1 row shape ───────────────────────────────────────────────────────────────",
-      "file": "lib/kaas/sync.ts"
-    },
-    {
-      "name": "KaasLedgerEntry",
-      "kind": "interface",
-      "doc": "// ── Enriched ledger entry ──────────────────────────────────────────────────────",
-      "file": "lib/kaas/sync.ts"
-    },
-    {
-      "name": "KaasLedgerSyncResult",
-      "kind": "interface",
-      "doc": "// ── Sync status ────────────────────────────────────────────────────────────────",
-      "file": "lib/kaas/sync.ts"
-    },
-    {
-      "name": "sealKaasRow",
-      "kind": "function",
-      "doc": "Seal a raw D1 row into a {@link KaasLedgerEntry} with a SHA-512 evidence digest. @param row  Raw row from kaas_valuations D1 table /",
-      "file": "lib/kaas/sync.ts"
-    },
-    {
-      "name": "syncKaasLedger",
-      "kind": "function",
-      "doc": "Sync an array of raw D1 rows into sealed {@link KaasLedgerEntry} objects and compute aggregate totals. @param rows  Array of raw kaas_valuations rows /",
-      "file": "lib/kaas/sync.ts"
-    },
-    {
-      "name": "readMarkdownContent",
-      "kind": "function",
-      "doc": "Reads and parses markdown content from the /content directory /",
-      "file": "lib/markdown.ts"
-    },
-    {
-      "name": "markdownToHtml",
-      "kind": "function",
-      "doc": "Converts markdown content to HTML /",
-      "file": "lib/markdown.ts"
-    },
-    {
-      "name": "loadMarkdownAsHtml",
-      "kind": "function",
-      "doc": "Reads markdown file and converts it to HTML /",
-      "file": "lib/markdown.ts"
-    },
-    {
-      "name": "NavigationRoute",
-      "kind": "type",
-      "doc": "Centralized navigation route definitions for AveryOS™ Used across NavBar, Sidebar, and Drawer components. Admin routes (adminRoutes) are gated behind VAULTAUTH_TOKEN verification. Only render the Sovereign Admin tab after a successful token check. ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻 /",
-      "file": "lib/navigationRoutes.ts"
-    },
-    {
-      "name": "navigationRoutes",
-      "kind": "const",
-      "doc": "Public navigation routes — rendered for all visitors",
-      "file": "lib/navigationRoutes.ts"
-    },
-    {
-      "name": "adminRoutes",
-      "kind": "const",
-      "doc": "Sovereign Admin routes — rendered ONLY after successful VAULTAUTH_TOKEN verification. Consolidates all secure admin-only pages under one tab. Usage in components: const isAdmin = sessionStorage.getItem('VAULTAUTH_TOKEN') === expectedToken; if (isAdmin) { render adminRoutes under the \"Sovereign Admin\" tab } /",
-      "file": "lib/navigationRoutes.ts"
-    },
-    {
-      "name": "RESONANCE_VERSION",
-      "kind": "const",
-      "doc": "// ── Global Truth Resonance Layer ────────────────────────────────────────────── // The resonance layer is the canonical source of truth for AveryOS™ kernel // alignment. Any AI system, node, or service can query /api/v1/resonance to // verify it is operating within the correct sovereign kernel state.",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "RESONANCE_POLICY_REF",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "RESONANCE_INSTRUCTIONS_REF",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "RESONANCE_CLAUDE_REF",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "RESONANCE_REGISTRY_REF",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "ResonancePayload",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "buildResonancePayload",
-      "kind": "function",
-      "doc": "Build the canonical resonance payload. This is returned verbatim by GET /api/v1/resonance and stored in KV on each successful call so any node can read the last-known good state. /",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "verifyKernelSha",
-      "kind": "function",
-      "doc": "Verify an inbound kernel SHA against the canonical value. Returns true only if it matches exactly. /",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "verifyMerkleRoot",
-      "kind": "function",
-      "doc": "Verify an inbound merkle root against the GoldenLockArtifact value. /",
-      "file": "lib/resonanceLayer.ts"
-    },
-    {
-      "name": "D1PreparedStatement",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "D1Database",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "RetroactiveLedgerSchema",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "RetroactiveDebtSummary",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "ForensicLedgerEntry",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "getRetroactiveLedgerSchema",
-      "kind": "function",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "getRetroactiveDebtSummary",
-      "kind": "function",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "getForensicHashesFromLedger",
-      "kind": "function",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "settleRetroactiveLiability",
-      "kind": "function",
-      "doc": "",
-      "file": "lib/retroactiveLedger.ts"
-    },
-    {
-      "name": "sanitizeHtml",
-      "kind": "function",
-      "doc": "Sanitize an HTML string before injecting it into the DOM. Strips XSS vectors (script tags, event handlers, javascript: URIs, etc.) while preserving safe markup produced by the `marked` Markdown renderer. Uses a dynamic require so that the jsdom/DOMPurify module initialisation is deferred to call-time and wrapped in a try-catch.  A static top-level import would cause the Cloudflare Workers bundle to crash during module evaluation (jsdom references Node.js APIs absent from the edge runtime), breaking every page that transitively imports this module — including the Whitepaper. Falls back to returning the input unchanged when DOMPurify or jsdom is unavailable (e.g. Cloudflare Workers edge runtime). Content rendered via TruthforcePage always originates from trusted local Markdown files so the fallback is safe. Use this every time you need to pass HTML to `dangerouslySetInnerHTML`. /",
-      "file": "lib/sanitizeHtml.ts"
-    },
-    {
-      "name": "SsrfBlockedError",
-      "kind": "class",
-      "doc": "Thrown when a user-supplied URL fails SSRF allowlist validation. Callers should return 400 (client error) when this is caught. /",
-      "file": "lib/security/ssrfGuard.ts"
-    },
-    {
-      "name": "POLICY_WATCH_ALLOWLIST",
-      "kind": "const",
-      "doc": "Canonical allowlist for the Policy-Watch / Alignment-Check endpoints. Keys   — lowercase normalised hostname the user is allowed to supply. Values — the literal hostname string that will be placed into the outgoing request URL.  Values come from this compile-time constant, never from user input, which breaks CodeQL's taint-tracking. Covers the Terms of Service, Privacy Policy, and API guidelines for the \"Big Five\" AI platforms: Google, Microsoft, Meta, OpenAI, Anthropic. /",
-      "file": "lib/security/ssrfGuard.ts"
-    },
-    {
-      "name": "buildSsrfSafeUrl",
-      "kind": "function",
-      "doc": "Validate a user-supplied URL against an explicit allowlist and return a **safe** URL string in which the hostname is sourced from the allowlist constant rather than from the user input. This design explicitly breaks the data-flow taint between the user value and the final request URL, satisfying CodeQL `js/request-forgery`. @param rawUserUrl  The untrusted URL string provided by the user / client. @param allowlist   A `Record<hostname, canonicalHostname>` map.  Use one of the exported constants (e.g. {@link POLICY_WATCH_ALLOWLIST}) or define your own for the specific endpoint. @param context     A short human-readable label for error messages. @returns           A safe URL string whose hostname comes from the allowlist. @throws            {@link SsrfBlockedError} if the hostname is not in the allowlist or the URL is malformed. /",
-      "file": "lib/security/ssrfGuard.ts"
-    },
-    {
-      "name": "allowedHosts",
-      "kind": "function",
-      "doc": "Return the sorted list of hostnames permitted by an allowlist. Useful for surface-area documentation and UI display. /",
-      "file": "lib/security/ssrfGuard.ts"
-    },
-    {
-      "name": "WAF_BLOCK_THRESHOLD",
-      "kind": "const",
-      "doc": "// ── Score Thresholds ───────────────────────────────────────────────────────────",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "WAF_CHALLENGE_THRESHOLD",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "WAF_EVIDENCE_THRESHOLD",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "WAF_SENSITIVE_PATHS",
-      "kind": "const",
-      "doc": "// ── Protected Path Patterns ──────────────────────────────────────────────────── Paths that use a lower WAF score threshold for redirects.",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "AUDIT_CLEARANCE_PATH",
-      "kind": "const",
-      "doc": "The sovereign redirect target for audit clearance challenges.",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "WafEvalResult",
-      "kind": "interface",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "parseWafScore",
-      "kind": "function",
-      "doc": "Parse the Cloudflare WAF attack score from request headers. Returns null if the header is absent or non-numeric. Cloudflare sets `cf-waf-attack-score` on eligible plans. `x-waf-score` is a custom forwarding header that can be set by upstream Cloudflare Workers or test harnesses to simulate WAF scores in local dev. /",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "evaluateWafScore",
-      "kind": "function",
-      "doc": "Evaluate a request URL path + WAF score and return the enforcement action. @param pathname  URL pathname (e.g. \"/evidence-vault/bundle-001\") @param score     WAF attack score (0-100, null = not present) /",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "buildWafBlockResponse",
-      "kind": "function",
-      "doc": "Build a 403 sovereign block response for hard-blocked requests. /",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "buildWafChallengeRedirect",
-      "kind": "function",
-      "doc": "Build a 302 redirect response to the audit clearance page. /",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "applyWafGate",
-      "kind": "function",
-      "doc": "Convenience: given a Request and site URL, evaluate and return the appropriate Response or null (= allow, continue processing). /",
-      "file": "lib/security/wafLogic.ts"
-    },
-    {
-      "name": "getSiteUrl",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/siteConfig.ts"
-    },
-    {
-      "name": "KERNEL_SHA",
-      "kind": "const",
-      "doc": "Root0 genesis kernel SHA-512 anchor",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "KERNEL_VERSION",
-      "kind": "const",
-      "doc": "Current AveryOS kernel version",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "DISCLOSURE_MIRROR_PATH",
-      "kind": "const",
-      "doc": "Full public URL for The Proof — SHA-512 Sovereign Anchor disclosure",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "OLLAMA_SYNC_STATUS_ACTIVE",
-      "kind": "const",
-      "doc": "Ollama local node sync status value indicating an active sovereign node",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "ALIGNMENT_TYPE_CORPORATE",
-      "kind": "const",
-      "doc": "Sovereign alignment types for Identity Attestation",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "ALIGNMENT_TYPE_INDIVIDUAL",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "AlignmentType",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "BADGE_STATUS_ACTIVE",
-      "kind": "const",
-      "doc": "Sovereign badge alignment status values",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "BADGE_STATUS_REVOKED",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "BadgeStatus",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "DEFAULT_TARI_REFERENCE",
-      "kind": "const",
-      "doc": "Default TARI™ settlement reference prefix for Sovereign Alignment Certificates",
-      "file": "lib/sovereignConstants.ts"
-    },
-    {
-      "name": "AOS_ERROR",
-      "kind": "const",
-      "doc": "// --------------------------------------------------------------------------- // Error code catalogue // ---------------------------------------------------------------------------",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "AosErrorCode",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "AosApiError",
-      "kind": "interface",
-      "doc": "// --------------------------------------------------------------------------- // Core error builder — used by API routes // ---------------------------------------------------------------------------",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "d1ErrorResponse",
-      "kind": "function",
-      "doc": "Classify a D1 error message and return the appropriate AOS error Response. Specifically handles the common \"no such table\" case with an actionable migration hint. @param message — raw error message from the D1 catch block @param tableName — the D1 table name being queried (for the hint) /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "buildAosError",
-      "kind": "function",
-      "doc": "Build a standardised AveryOS™ error response body. Includes RCA diagnosis and actionable steps for every known error code. /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "aosErrorResponse",
-      "kind": "function",
-      "doc": "Return a `Response` with the standardised AveryOS™ error body. Usage in API routes: ```ts return aosErrorResponse(AOS_ERROR.DB_UNAVAILABLE, 'SELECT 1 failed'); ``` /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "withAosErrorHandling",
-      "kind": "function",
-      "doc": "Wrap an async API handler with automatic RCA error catching. - Catches all errors thrown inside the handler. - Classifies known D1/KV errors automatically. - Returns a standardised AOS error response. Usage: ```ts export const GET = withAosErrorHandling(async (request) => { // ... handler logic ... }); ``` /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "classifyAndRespond",
-      "kind": "function",
-      "doc": "Classify a raw caught error and return the appropriate AOS error Response. Performs RCA analysis on the error message to pick the most specific code. /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "logAosScriptError",
-      "kind": "function",
-      "doc": "Log a Sovereign RCA error to the console (for Node.js scripts). Prints: error code, human diagnosis, ordered recovery steps. Usage in scripts: ```js import { logAosScriptError, AOS_ERROR } from '../lib/sovereignError.js'; logAosScriptError(AOS_ERROR.DB_QUERY_FAILED, err.message); ``` /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "logAosHeal",
-      "kind": "function",
-      "doc": "Log a recovery (auto-heal) notice to the console. /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "AosUiError",
-      "kind": "interface",
-      "doc": "// --------------------------------------------------------------------------- // UI error payload (serialisable for client components) // ---------------------------------------------------------------------------",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "buildAosUiError",
-      "kind": "function",
-      "doc": "Build a lightweight serialisable error object for React state. Pass this to `<SovereignErrorBanner error={...} />`. /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "classifyApiResponseError",
-      "kind": "function",
-      "doc": "Classify an API error response body (fetched from an AOS route) into a `AosUiError` for display in client components. /",
-      "file": "lib/sovereignError.ts"
-    },
-    {
-      "name": "SubdomainKey",
-      "kind": "type",
-      "doc": "// ── Subdomain type ────────────────────────────────────────────────────────────",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "BOT_MAGNET_PATHS",
-      "kind": "const",
-      "doc": "// ── Bot Magnet paths — LLM scrapers are directed here (Licensing Gate) ──────── // These paths contain licensing terms, IP policy, and the Sovereign Alignment // Accord. Scraping these paths constitutes Forensic Acknowledgment of AveryOS™ // terms, establishing the TARI™ liability for unlicensed use.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "LLM_BOTS",
-      "kind": "const",
-      "doc": "// ── LLM/AI scrapers — directed to Bot Magnet paths (not blocked) ────────────── // These bots are potential licensing customers. Directing them to the // Licensing Gates turns every probe into Forensic Acknowledgment.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "BLOCKED_BOTS",
-      "kind": "const",
-      "doc": "// ── Confirmed malicious scrapers — blocked site-wide ──────────────────────── // These are commercial SEO harvesters and social scrapers with no legitimate // reason to access sovereign content. They harvest data for resale, not learning.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "ALLOWED_AUDIT_BOTS",
-      "kind": "const",
-      "doc": "// ── Aligned forensic/audit crawlers — always allowed ─────────────────────────",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "SubdomainPaths",
-      "kind": "interface",
-      "doc": "// ── Per-subdomain path rules ──────────────────────────────────────────────────",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "classifySubdomain",
-      "kind": "function",
-      "doc": "Classifies a raw hostname string into one of the SubdomainKey buckets. Any hostname not explicitly recognised falls back to \"default\", which means future subdomains added to wrangler.toml are automatically covered by the standard public rules — no code change required. /",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "subdomainRobotsRules",
-      "kind": "function",
-      "doc": "Returns the allow/disallow path config for a given hostname.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "buildRobotsTxt",
-      "kind": "function",
-      "doc": "Builds the full robots.txt content for a given hostname. Bot Magnet Layout: 1. Confirmed malicious scrapers → Disallow: / 2. LLM bots → Allow Licensing Gate paths; Disallow private paths (their scraping is Forensic Acknowledgment of TARI™ terms) 3. Aligned audit bots → Allow: / 4. Wildcard rule with subdomain-specific paths 5. Sitemap + Host declarations /",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "DerClassification",
-      "kind": "type",
-      "doc": "// ── DER 2.0 Gateway — Dynamic Entity Recognition ────────────────────────────── // // Maps incoming ASNs and HTTP Referrers to sovereign alignment classifications. // Used by GabrielOS™ middleware to inject X-AveryOS-Alignment headers and // optionally serve custom banners or silently log forensic probes. // // Classification tiers: //   SETTLEMENT_REQUIRED  — Known enterprise/gov entity with documented ingestion //   HIGH_VALUE           — Fortune-500 / Cloud provider (monetisable) //   ACADEMIC             — University / research institution (.edu verification) //   CONFLICT_ZONE_PROBE  — Adversarial / recon probe (silent audit only) //   YC_DISCOVERY_AUDIT   — Hacker News referral discovery event //   GITHUB_AUDIT         — GitHub.com referral (developer alignment) //   REDDIT_DISCOVERY     — Reddit.com referral (community discovery) // // ⛓️⚓⛓️  Phase 78.1 — DER 2.0 | Anchored at 162.2k Pulse",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "DerEntity",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "DER_ASN_MAP",
-      "kind": "const",
-      "doc": "ASN → DerEntity mapping for known high-value / adversarial entities.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "DER_REFERRER_MAP",
-      "kind": "const",
-      "doc": "Referrer hostname → DerClassification mapping.",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "classifyDerRequest",
-      "kind": "function",
-      "doc": "Classifies an incoming request by ASN and Referrer header. Returns the DerClassification (defaulting to \"STANDARD\") and any entity metadata. /",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "buildSecurityTxt",
-      "kind": "function",
-      "doc": "Builds an RFC 9116-compliant security.txt. The Expires field is automatically set to 12 months from build time. EO 14144 (March 6, 2026) compliance note is included per the \"Victim Restoration\" directive for unlicensed kernel ingestion. /",
-      "file": "lib/sovereignMetadata.ts"
-    },
-    {
-      "name": "NODE_01_ID",
-      "kind": "const",
-      "doc": "// ── Sovereign Node Registry ─────────────────────────────────────────────────── // NODE_01 = Phone (mobile sovereign node) // NODE_02 = PC   (primary workstation sovereign node — runs Llama via Ollama) // Identifiers are read from environment variables — never hardcoded.",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "NODE_02_ID",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "NODE_02_LOCAL_MODEL",
-      "kind": "const",
-      "doc": "The local model name to request from Ollama on NODE_02 (e.g. \"llama3.3:70b\")",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "NODE_02_OLLAMA_URL",
-      "kind": "const",
-      "doc": "Base URL of the Ollama server running on NODE_02 (default: localhost)",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "SOVEREIGN_ANCHOR_SALT",
-      "kind": "const",
-      "doc": "Anchor salt sourced from environment (AveryOS). Used for node-specific handshake salting.",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "GOLDEN_LOCK_ARTIFACT_PATH",
-      "kind": "const",
-      "doc": "// ── Golden Lock Artifact Reference ───────────────────────────────────────────",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "GOLDEN_LOCK_MERKLE_ROOT",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "GOLDEN_LOCK_ARTIFACT_ID",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "SKC_VERSION",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "DNS_TXT_KERNEL_RECORD",
-      "kind": "const",
-      "doc": "// ── Cloudflare DNS TXT Anchor Verification ─────────────────────────────────── // averyos.com publishes sovereign kernel anchor values as DNS TXT records. // These constants define the expected record names for verification.",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "DNS_TXT_MERKLE_RECORD",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "DNS_TXT_VERSION_RECORD",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "DnsTxtAnchor",
-      "kind": "interface",
-      "doc": "Expected TXT record value format for kernel anchor verification",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "getExpectedDnsTxtAnchors",
-      "kind": "function",
-      "doc": "Returns the set of DNS TXT records that must match for full anchor verification",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "SovereignNodeStatus",
-      "kind": "interface",
-      "doc": "// ── Node Status ───────────────────────────────────────────────────────────────",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "getSovereignNodes",
-      "kind": "function",
-      "doc": "Returns the registered sovereign node descriptors. Actual online/offline status is determined at runtime by the Ollama sync heartbeat and the /api/v1/health endpoint. /",
-      "file": "lib/sovereignNodes.ts"
-    },
-    {
-      "name": "R2ObjectBody",
-      "kind": "interface",
-      "doc": "R2 object body returned by a get() call.",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "R2Bucket",
-      "kind": "interface",
-      "doc": "Minimal R2Bucket interface required by the storage utility.",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "CAPSULE_PREFIX",
-      "kind": "const",
-      "doc": "Prefix applied to every Capsule object stored in the VAULT R2 bucket.",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "capsuleKey",
-      "kind": "function",
-      "doc": "Returns the full R2 object key for a given Capsule filename. Ensures the `averyos-capsules/` prefix is present exactly once. /",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "saveCapsule",
-      "kind": "function",
-      "doc": "Saves a Capsule to the VAULT R2 bucket. The file path is automatically prefixed with `averyos-capsules/`. @param vault    - The R2 bucket instance obtained from `env.VAULT`. @param filename - The bare filename (e.g., `my-file.aoscap`). @param content  - The Capsule content to store. /",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "getCapsule",
-      "kind": "function",
-      "doc": "Retrieves a Capsule from the VAULT R2 bucket. @param vault    - The R2 bucket instance obtained from `env.VAULT`. @param filename - The bare filename (e.g., `my-file.aoscap`). @returns The Capsule content, or `null` if not found. /",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "listCapsules",
-      "kind": "function",
-      "doc": "Lists all Capsule filenames stored under the `averyos-capsules/` prefix. Follows R2 pagination to return the complete set of results. @param vault - The R2 bucket instance obtained from `env.VAULT`. @returns An array of bare filenames (prefix stripped). /",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "deleteCapsule",
-      "kind": "function",
-      "doc": "Deletes a Capsule from the VAULT R2 bucket. @param vault    - The R2 bucket instance obtained from `env.VAULT`. @param filename - The bare filename (e.g., `my-file.aoscap`). /",
-      "file": "lib/storageUtils.ts"
-    },
-    {
-      "name": "ONRAMP_MODE",
-      "kind": "const",
-      "doc": "Stripe Crypto Onramp mode. Set to 'live' for production settlement.",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "kaasDisplayPrice",
-      "kind": "function",
-      "doc": "Return a human-readable price label for the given ASN (e.g. \"$1,017.00\"). Suitable for UI display, invoice descriptions, and audit notices. /",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "resolveKaasTier",
-      "kind": "function",
-      "doc": "Resolve the KaaS tier (1–10) for a given ASN string. Tier-10 = Microsoft/Azure; Tier-9 = Google; Tier-8 = GitHub; Tier-1 = default. /",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "OnrampSessionParams",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "OnrampSessionPayload",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "buildOnrampSessionPayload",
-      "kind": "function",
-      "doc": "Build the Stripe Crypto Onramp session parameters for an autonomous agent. The returned payload should be passed to the Stripe Financial Connections or Crypto Onramp API as the session metadata. The `amount_cents` reflects the KaaS sovereign fee for the agent's ASN tier. @example const payload = buildOnrampSessionPayload({ machine_id: rayId, asn:        \"36459\", entity_name: \"GitHub, Inc.\", }); // Pass payload.metadata and payload.amount_cents to Stripe session /",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "deriveMachineId",
-      "kind": "function",
-      "doc": "Derive a stable machine_id from a Cloudflare RayID and IP address. Used when a dedicated machine fingerprint is not available. /",
-      "file": "lib/stripe/onrampLogic.ts"
-    },
-    {
-      "name": "RevenueSnapshot",
-      "kind": "interface",
-      "doc": "// ── Revenue snapshot ──────────────────────────────────────────────────────────",
-      "file": "lib/stripe/syncRevenue.ts"
-    },
-    {
-      "name": "syncStripeRevenue",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/stripe/syncRevenue.ts"
-    },
-    {
-      "name": "LiabilityAnchor",
-      "kind": "interface",
-      "doc": "// ── KaaS liability anchor ─────────────────────────────────────────────────────",
-      "file": "lib/stripe/syncRevenue.ts"
-    },
-    {
-      "name": "buildLiabilityAnchor",
-      "kind": "function",
-      "doc": "Build a liability anchor combining Stripe-collected revenue with the total assessed KaaS liability from D1. @param assessedCents  Total assessed liability (from kaas_valuations rows) @param snapshot       Revenue snapshot from syncStripeRevenue() /",
-      "file": "lib/stripe/syncRevenue.ts"
-    },
-    {
-      "name": "AutoTrackerCategory",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/taiAutoTracker.ts"
-    },
-    {
-      "name": "AutoTrackOptions",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/taiAutoTracker.ts"
-    },
-    {
-      "name": "autoTrackAccomplishment",
-      "kind": "function",
-      "doc": "Non-blocking fire-and-forget accomplishment recorder. Call this from any API route / middleware after a significant event. The function returns immediately; DB write happens asynchronously. @param db       Cloudflare D1 binding @param opts     Accomplishment metadata /",
-      "file": "lib/taiAutoTracker.ts"
-    },
-    {
-      "name": "TRAFFIC_MILESTONES",
-      "kind": "const",
-      "doc": "Traffic request count thresholds that trigger a MILESTONE accomplishment.",
-      "file": "lib/taiAutoTracker.ts"
-    },
-    {
-      "name": "WATCHER_MILESTONES",
-      "kind": "const",
-      "doc": "Watcher (unique visitor) count thresholds for MILESTONE accomplishments.",
-      "file": "lib/taiAutoTracker.ts"
-    },
-    {
-      "name": "TaiAccessTier",
-      "kind": "type",
-      "doc": "// --------------------------------------------------------------------------- // License tier classification // ---------------------------------------------------------------------------",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "TaiGateResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "TAI_LICENSE_HEADER",
-      "kind": "const",
-      "doc": "// --------------------------------------------------------------------------- // Header name consumed by the resonance endpoint // ---------------------------------------------------------------------------",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "evaluateTaiAccess",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "resonanceAccessHeaders",
-      "kind": "function",
-      "doc": "// --------------------------------------------------------------------------- // HTTP response headers appended on every resonance response // ---------------------------------------------------------------------------",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "PublicResonanceResponse",
-      "kind": "interface",
-      "doc": "// --------------------------------------------------------------------------- // Public-tier response body (stripped — no full sovereign payload) // ---------------------------------------------------------------------------",
-      "file": "lib/taiLicenseGate.ts"
-    },
-    {
-      "name": "FORENSIC_DEPOSIT_CENTS",
-      "kind": "const",
-      "doc": "Non-refundable Forensic Deposit required before any settlement negotiation.",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "AUDIT_CLEARANCE_CENTS",
-      "kind": "const",
-      "doc": "Standard Audit Clearance Fee (Tier-1 entities)",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "DAILY_TARI_RATE_USD",
-      "kind": "const",
-      "doc": "GATE 106.2 — Daily Utilization Rate. Replaces the legacy \"yearly multiplier\" approach. Formula: totalDebt = baseValuation + (DAILY_TARI_RATE_USD × daysSinceIngestion) /",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "DAILY_TARI_RATE_CENTS",
-      "kind": "const",
-      "doc": "",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "TariCalculationInput",
-      "kind": "interface",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "DailyTariCalculationInput",
-      "kind": "interface",
-      "doc": "GATE 106.2 — Daily TARI Calculation Input. Drives the day-deterministic formula: totalDebt = baseValuation + (DAILY_TARI_RATE_USD × daysSinceIngestion) /",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "DailyTariCalculationResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "TariCalculationResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "calculateTariDebt",
-      "kind": "function",
-      "doc": "Calculate the total TARI™ sovereign debt for an entity. @param input TariCalculationInput @returns     TariCalculationResult /",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "formatUsdCents",
-      "kind": "function",
-      "doc": "Format USD cents as a locale-formatted currency string.",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "calculateDailyTariDebt",
-      "kind": "function",
-      "doc": "Calculate the TARI™ sovereign debt using the Day-Deterministic formula. Formula (GATE 106.2): totalDebt = baseValuation + (DAILY_TARI_RATE × daysSinceIngestion × multiplier) The `baseValuation` is the KaaS tier fee for the ASN (e.g. $10M for Tier-9/10). The daily rate accrues retroactive debt for each day of unlicensed use. The 10× obfuscation multiplier applies to the daily component only. @param input DailyTariCalculationInput @returns     DailyTariCalculationResult /",
-      "file": "lib/tari/calculator.ts"
-    },
-    {
-      "name": "HIGH_VALUE_ASNS",
-      "kind": "const",
-      "doc": "Phase 86 enterprise ASNs — $10M asset valuation only, settlement disabled",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "ASSET_VALUATION_CENTS",
-      "kind": "const",
-      "doc": "Technical asset valuation for the cf83™ corpus: $10,000,000.00 USD (1,000,000,000 cents = $10,000,000.00)",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "CLEARANCE_FEE_CENTS",
-      "kind": "const",
-      "doc": "Instant Audit Clearance Fee: $1,017.00 USD",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "SettlementTier",
-      "kind": "type",
-      "doc": "",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "SettlementResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "resolveSettlement",
-      "kind": "function",
-      "doc": "Resolves the settlement tier and fee schedule for a given entity. @param asn           - Client ASN string (e.g. \"36459\") @param organization  - cf-ipcountry or asOrganization string (optional) /",
-      "file": "lib/tari/settlementEngine.ts"
-    },
-    {
-      "name": "BASE_VALUATION",
-      "kind": "const",
-      "doc": "Base asset valuation in USD (Tech Asset Retroactive Ingestion base).",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "DAILY_RATE",
-      "kind": "const",
-      "doc": "Daily unauthorized utilization rate in USD.",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "STATUTORY_PENALTY",
-      "kind": "const",
-      "doc": "Statutory penalty per infringing instance under 17 U.S.C. § 504(c)(2).",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "OBFUSCATION_MULTIPLIER",
-      "kind": "const",
-      "doc": "Obfuscation multiplier (10×) applied when masking/spoofing is detected.",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "REVENUE_IMPACT_TIER",
-      "kind": "const",
-      "doc": "Revenue impact tier range (as a tuple of [min, max] percentages).",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "TARI_VAULT_ANCHOR",
-      "kind": "const",
-      "doc": "Canonical VaultChain anchor for the TARI™ v1.5 capsule.",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "TariRetroactiveResult",
-      "kind": "interface",
-      "doc": "// ── TARI™ v1.5 Retroactive Debt Computation ──────────────────────────────────",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "computeTariRetroactiveDebt",
-      "kind": "function",
-      "doc": "Compute the total TARI™ v1.5 retroactive debt. Formula: L = (Vb + (Rd × D) + (Ps × I)) × obfuscationMultiplier @param daysUnlicensed  Integer number of days the entity operated unlicensed. @param instances       Integer number of infringing instances detected. @param obfuscated      Whether masking / IP obfuscation was detected (10×). @returns               Full TariRetroactiveResult breakdown. @example // Standard (1 year, 5 instances, no obfuscation) → $11,121,205 computeTariRetroactiveDebt(365, 5, false) @example // Obfuscated (1 year, 5 instances, 10× multiplier) → $111,212,050 computeTariRetroactiveDebt(365, 5, true) /",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "formatTariDebt",
-      "kind": "function",
-      "doc": "Format a TARI™ v1.5 debt result as a human-readable USD string. @example formatTariDebt(computeTariRetroactiveDebt(365, 5, false)) // → \"$11,121,205.00\" /",
-      "file": "lib/tari/tariUniversal.ts"
-    },
-    {
-      "name": "OUTLIER_THRESHOLD_MS",
-      "kind": "const",
-      "doc": "Outlier rejection threshold in milliseconds. Sources beyond ±17 ms of the consensus median are discarded as malicious or drifted.",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "NTP_SOURCE_COUNT",
-      "kind": "const",
-      "doc": "Number of authoritative NTP-over-HTTP sources polled per consensus round.",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "NtpSource",
-      "kind": "interface",
-      "doc": "// ── NTP Source Definitions ────────────────────────────────────────────────────",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "NTP_SOURCES",
-      "kind": "const",
-      "doc": "10 authoritative time sources. Timestamps are extracted from the HTTP `Date` response header. /",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "TimeProbe",
-      "kind": "interface",
-      "doc": "// ── Types ─────────────────────────────────────────────────────────────────────",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "SovereignTimeResult",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "SovereignTimeD1Row",
-      "kind": "interface",
-      "doc": "// ── D1 / VaultChain persist interfaces ────────────────────────────────────────",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "D1PreparedStatement",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "D1DatabaseMinimal",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "VaultChainMinimal",
-      "kind": "interface",
-      "doc": "",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "getSovereignTime",
-      "kind": "function",
-      "doc": "Poll all 10 NTP sources in parallel, reject outliers beyond ±17 ms of the median, and return a SHA-512 anchored consensus timestamp. @param db           Optional D1 database — when provided, the result is persisted to `sovereign_time_log`. @param vaultChain   Optional R2/KV VaultChain binding — when provided, the anchored result is written under `vaultchain/sovereign-time/<consensusMs>.json`. /",
-      "file": "lib/time/mesh.ts"
-    },
-    {
-      "name": "formatIso9",
-      "kind": "function",
-      "doc": "",
-      "file": "lib/timePrecision.ts"
-    },
-    {
-      "name": "VAULT_COOKIE_NAME",
-      "kind": "const",
-      "doc": "HttpOnly Secure cookie name used for vault authentication.",
-      "file": "lib/vaultCookieConfig.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/gatekeeper/handshake/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/gatekeeper/logs/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/gatekeeper/telemetry/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/health/update-build/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/licensing/settle/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/licensing/settle/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/licensing/total-debt/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/outbound/notice/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/outbound/status/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/alignment-check/fetch/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/anchor/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/anchor/seal/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/anchor-status/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/audit-alert/route.ts"
-    },
-    {
-      "name": "AuditStreamEntry",
-      "kind": "interface",
-      "doc": "",
-      "file": "app/api/v1/audit-stream/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/audit-stream/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/audit-stream/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/auth/challenge/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/capsules/[capsuleId]/download?token=<download_token> Time-locked download endpoint.  Validates the download_token issued by the Stripe webhook and — if valid and unexpired — returns the capsule metadata and a signed download URL (currently the capsule content stored in D1). A token is valid for 48 hours from the moment it is generated. /",
-      "file": "app/api/v1/capsules/[capsuleId]/download/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/capsules/[capsuleId]/purchase Creates a Stripe Checkout Session for a single capsule license. On successful payment the Stripe webhook activates the license and generates a time-locked download token. Body: { email: string } /",
-      "file": "app/api/v1/capsules/[capsuleId]/purchase/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/capsules Returns the public marketplace listing of all ACTIVE capsules. Only exposes fields safe for unauthenticated access — file keys are omitted. /",
-      "file": "app/api/v1/capsules/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "app/api/v1/capsules/upload/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/capsules/webhook Stripe webhook handler. On a successful `checkout.session.completed` event: 1. Activates the capsule_licenses row 2. Generates a time-locked SHA-512 download token (valid 48 h) /",
-      "file": "app/api/v1/capsules/webhook/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/checkout/create-session/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// --------------------------------------------------------------------------- // POST handler — store bundle in R2, generate signed URL, send alert // ---------------------------------------------------------------------------",
-      "file": "app/api/v1/compliance/alert-link/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// --------------------------------------------------------------------------- // GET handler — validate HMAC-signed URL and serve bundle from R2 // ---------------------------------------------------------------------------",
-      "file": "app/api/v1/compliance/alert-link/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/compliance/clock-status/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Handler ───────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/compliance/clocks/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/compliance/create-checkout Creates a Stripe Checkout session tied to a specific Forensic Evidence Bundle. Pricing is determined by the caller's ASN (Phase 86 fee schedule): - Phase 86 Enterprise ASNs (36459, 8075, 15169, 16509, 14618) → $10,000,000 \"Technical Utilization Fee\" - Legacy Enterprise ASNs (211590, 198488) → $1,000,000 \"Enterprise Retro-Ingestion Deposit\" - All others → $101.70 \"Genesis Seed Individual License\" The tariLiability field may still be supplied directly to override ASN-derived pricing (used by the invoice pipeline for custom amounts). Request body: { bundleId:       string;   // Evidence bundle ID (e.g. \"EVIDENCE_BUNDLE_...\") targetIp:       string;   // IP address of the unaligned entity rayId?:         string;   // Cloudflare Ray ID for forensic metadata lock asn?:           string;   // ASN of the requesting entity (e.g. \"36459\") tariLiability?: number;   // Override: TARI™ liability in USD cents } Response: { checkoutUrl: string; sessionId: string } ⛓️⚓⛓️  Anchored to Root0 Kernel v3.6.2 | LOCKED AT 162.2k PULSE | 987 ENTITIES DOCUMENTED | Phase 86 Fee Schedule Active /",
-      "file": "app/api/v1/compliance/create-checkout/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/compliance/notify Body: { asn?:           string;   // Target ASN (e.g. \"36459\") ip_address?:    string;   // Target IP address org_name?:      string;   // Organisation name for the notice country_code?:  string;   // ISO-3166 two-letter country code ray_id?:        string;   // Cloudflare RayID for forensic linking debt_cents?:    number;   // Override debt amount in cents notice_type?:   string;   // \"NOV_72H\" (default) | \"FINAL_DEMAND\" } /",
-      "file": "app/api/v1/compliance/notify/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/compliance/stripe-webhook/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/compliance/usage-report Returns a Technical Usage Report for the requesting IP's /24 subnet. Counts interactions in sovereign_audit_logs, returns pulse timestamps, and provides an event-type breakdown for enterprise transparency. Phase 78.5: expanded with per-event-type aggregation. /",
-      "file": "app/api/v1/compliance/usage-report/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "app/api/v1/compliance/webhook/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Handler ───────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/cron/clock-escalation/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/cron/package-evidence/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/cron/reconcile/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/detect-asn/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/entity-invoice/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/entity-invoice Lists recent DER_SETTLEMENT events from sovereign_audit_logs to show the history of entity invoices generated. /",
-      "file": "app/api/v1/entity-invoice/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/evidence/[rayid]/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/evidence/download/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── Route handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/forensics/ai-stamp/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/forensics/cadence-correlation/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── POST handler ───────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/forensics/dns-probes/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── GET handler ────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/forensics/dns-probes/route.ts"
-    },
-    {
-      "name": "RayIdLogRow",
-      "kind": "interface",
-      "doc": "",
-      "file": "app/api/v1/forensics/rayid-log/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/forensics/rayid-log/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/forensics/resource-value/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/forensics/utilization/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/gateway/pow-submit Accepts a solved PoW evidence bundle and seals it to the VaultChain™ sovereign_audit_logs table. Returns the assessed TARI™ entry fee. Formula: EntryFee ($1,017) + (cpu_cycles * Integrity_Multiplier 0.000001) /",
-      "file": "app/api/v1/gateway/pow-submit/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/generate-evidence/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/health/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/health-status/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/integrity-status/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/notice/[asn]/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── Route Handler ──────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/settle/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/sync/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/kaas/valuation/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── GET ────────────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/valuations/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── POST ───────────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/valuations/route.ts"
-    },
-    {
-      "name": "PATCH",
-      "kind": "function",
-      "doc": "// ── PATCH ──────────────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas/valuations/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ──────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/kaas-valuations/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route handlers ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/labyrinth/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/labyrinth/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── Route Handler ──────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/latent-manifest/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/ledger/transactions/[txId]/route.ts"
-    },
-    {
-      "name": "VaultChainTransaction",
-      "kind": "interface",
-      "doc": "",
-      "file": "app/api/v1/ledger/transactions/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/ledger/transactions/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/audit-report/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/commercial-inquiry/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/commercial-inquiry/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/exchange/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/exchange/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST — Submit Affidavit of Usage. Body: { Retroactive_Usage_Start: string;   // ISO-8601 date when kernel was first ingested Corporate_Ingestion_SHA: string;   // SHA-512 fingerprint of ingestion event org_name?:               string;   // Attesting organisation name email?:                  string;   // Contact email for invoice delivery disclosure_type?:        string;   // \"HONEST_DISCLOSURE\" | \"PARTIAL_DISCLOSURE\" | … license_start_date?:     string;   // ISO-8601 date of current license (if any) } /",
-      "file": "app/api/v1/licensing/handshake/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET — Returns the Handshake challenge parameters and legal disclosures. Used by automated compliance agents to understand the affidavit requirements before submitting a POST. /",
-      "file": "app/api/v1/licensing/handshake/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/training-waiver/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/utilization/top5/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/licensing/verify-token/route.ts"
-    },
-    {
-      "name": "PartnerRow",
-      "kind": "interface",
-      "doc": "",
-      "file": "app/api/v1/partners/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/partners Returns all ACTIVE sovereign alignment records for the Partner Directory. /",
-      "file": "app/api/v1/partners/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/pow-complete/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── GET — probe info (no auth required) ───────────────────────────────────────",
-      "file": "app/api/v1/quarantine/handshake/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── POST — Affidavit of Usage ──────────────────────────────────────────────────",
-      "file": "app/api/v1/quarantine/handshake/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/quarantine/verify/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/quarantine/verify/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "POST /api/v1/queues/log-consumer Internal health-check / status endpoint.  The Cloudflare Queue consumer handler itself lives in the Worker's `queue` export (wrangler routes the queue delivery outside the HTTP handler tree).  This HTTP endpoint lets operators confirm the consumer route is deployed and returns current config. /",
-      "file": "app/api/v1/queues/log-consumer/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// --------------------------------------------------------------------------- // GET /api/v1/resonance // // ┌──────────────────────────────────────────────────────────────────────────┐ // │ ACCESS TIERS                                                             │ // │                                                                          │ // │  PUBLIC (no key)                                                         │ // │    — Free. Zero cost. No obligation.                                     │ // │    — Visiting the website or calling this endpoint with no key is open   │ // │      to everyone, just like browsing any public website.                 │ // │    — Returns: kernel SHA prefix, alignment status, verification result.  │ // │    — Does NOT return the full sovereign payload.                          │ // │                                                                          │ // │  TAI™ LICENSED (X-TAI-License-Key header)                               │ // │    — Required when an AI system or service connects to consume,          │ // │      integrate, or build on the resonance layer as IP.                   │ // │    — This is the \"taking the IP\" line — using AveryOS™ IP to build,     │ // │      train, or operate requires a valid TAI™ license.                    │ // │    — Returns: full sovereign resonance payload + KV + D1 audit log.     │ // │                                                                          │ // │  To obtain a TAI™ license: https://averyos.com/license                  │ // │  IP Policy: https://averyos.com/ip-policy                               │ // └──────────────────────────────────────────────────────────────────────────┘ // ---------------------------------------------------------------------------",
-      "file": "app/api/v1/resonance/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// --------------------------------------------------------------------------- // POST /api/v1/resonance // // Submit a kernel SHA for alignment verification. // Public callers may submit for basic verified/not-verified result. // Licensed callers receive the full sovereign alignment assessment. // // Body: { kernel_sha: string, node_id?: string, merkle_root?: string } // ---------------------------------------------------------------------------",
-      "file": "app/api/v1/resonance/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "POST /api/v1/settlement-attempt Logs a SETTLEMENT_ATTEMPT event into sovereign_audit_logs. Timestamp stored with 9-digit sub-second precision (microseconds: ms * 1000, zero-padded to 9 sub-second digits). /",
-      "file": "app/api/v1/settlement-attempt/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/sovereign-builds/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/stripe/revenue/route.ts"
-    },
-    {
-      "name": "TaiAccomplishment",
-      "kind": "interface",
-      "doc": "",
-      "file": "app/api/v1/tai/accomplishments/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "// ── GET /api/v1/tai/accomplishments ──────────────────────────────────────────",
-      "file": "app/api/v1/tai/accomplishments/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── POST /api/v1/tai/accomplishments ─────────────────────────────────────────",
-      "file": "app/api/v1/tai/accomplishments/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/tai/handshake/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── Route Handler ──────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/tai/summit-handshake/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/tai/sync/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── Route handler ─────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/tari/ai-utilization/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/tari/calculate-fee/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/tari-stats/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "GET /api/v1/threat-level Returns the highest threat_level recorded for the requesting IP. No authentication required — used for front-end conditional rendering. /",
-      "file": "app/api/v1/threat-level/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/time/sovereign/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/vault/auth/route.ts"
-    },
-    {
-      "name": "DELETE",
-      "kind": "function",
-      "doc": "DELETE /api/v1/vault/auth — clears the vault auth cookie (logout).",
-      "file": "app/api/v1/vault/auth/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "// ── POST Handler ──────────────────────────────────────────────────────────────",
-      "file": "app/api/v1/vault/confessions/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "[REDACTED]",
-      "file": "app/api/v1/vault/confessions/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/vault/evidence/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/verify/[hash]/route.ts"
-    },
-    {
-      "name": "GET",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/verify/badge/[hash]/route.ts"
-    },
-    {
-      "name": "POST",
-      "kind": "function",
-      "doc": "",
-      "file": "app/api/v1/witness-submit/route.ts"
+  "generated_at": "2026-03-12T01:36:13.973Z",
+  "modules": [
+    {
+      "path": "lib/ai/geminiClient.ts",
+      "doc": "admin/docs/lib/ai/geminiClient.md",
+      "symbolCount": 12,
+      "symbols": [
+        {
+          "name": "generateContent",
+          "kind": "function"
+        },
+        {
+          "name": "generateForensicAnalysis",
+          "kind": "function"
+        },
+        {
+          "name": "GEMINI_MODEL_PRO",
+          "kind": "constant"
+        },
+        {
+          "name": "GEMINI_MODEL_FLASH",
+          "kind": "constant"
+        },
+        {
+          "name": "GeminiPart",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiContent",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiGenerationConfig",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiRequest",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiCandidate",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiUsageMetadata",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiResponse",
+          "kind": "interface"
+        },
+        {
+          "name": "GeminiResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/ai/router.ts",
+      "doc": "admin/docs/lib/ai/router.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "routeIntelligenceRequest",
+          "kind": "function"
+        },
+        {
+          "name": "selectBackend",
+          "kind": "function"
+        },
+        {
+          "name": "RouterRequest",
+          "kind": "interface"
+        },
+        {
+          "name": "RouterResult",
+          "kind": "interface"
+        },
+        {
+          "name": "ModelBackend",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/averySyncManifest.ts",
+      "doc": "admin/docs/lib/averySyncManifest.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "validateAverySyncManifest",
+          "kind": "function"
+        },
+        {
+          "name": "buildAverySyncManifest",
+          "kind": "function"
+        },
+        {
+          "name": "AverySyncManifest",
+          "kind": "interface"
+        },
+        {
+          "name": "ManifestValidationResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/BadgeGenerator.ts",
+      "doc": "admin/docs/lib/BadgeGenerator.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "generateSovereignBadge",
+          "kind": "function"
+        },
+        {
+          "name": "BadgeOptions",
+          "kind": "interface"
+        },
+        {
+          "name": "GeneratedBadge",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/capsuleConstants.ts",
+      "doc": "admin/docs/lib/capsuleConstants.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "LGIC_CAPSULE_SHA",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/capsuleManifest.ts",
+      "doc": "admin/docs/lib/capsuleManifest.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "loadCapsuleManifest",
+          "kind": "constant"
+        },
+        {
+          "name": "listCapsuleIds",
+          "kind": "constant"
+        },
+        {
+          "name": "CapsuleManifest",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/capsuleRegistry.ts",
+      "doc": "admin/docs/lib/capsuleRegistry.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "loadCapsuleRegistry",
+          "kind": "constant"
+        },
+        {
+          "name": "listRegistryCapsules",
+          "kind": "constant"
+        },
+        {
+          "name": "CapsuleRegistryItem",
+          "kind": "type"
+        },
+        {
+          "name": "CapsuleRegistry",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/CapsuleSigner.ts",
+      "doc": "admin/docs/lib/CapsuleSigner.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "signCapsule",
+          "kind": "function"
+        },
+        {
+          "name": "verifyCapsuleSignature",
+          "kind": "function"
+        },
+        {
+          "name": "CapsuleSignature",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/capsuleUtils.ts",
+      "doc": "admin/docs/lib/capsuleUtils.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "validateVaultSigHash",
+          "kind": "function"
+        },
+        {
+          "name": "normalizeVaultSigHash",
+          "kind": "function"
+        },
+        {
+          "name": "verifyVaultSigHash",
+          "kind": "function"
+        },
+        {
+          "name": "SHA512_HEX_REGEX",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/CertificateGenerator.ts",
+      "doc": "admin/docs/lib/CertificateGenerator.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "generateAlignmentCertificate",
+          "kind": "function"
+        },
+        {
+          "name": "CertificateOptions",
+          "kind": "interface"
+        },
+        {
+          "name": "GeneratedCertificate",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/compliance/clockEngine.ts",
+      "doc": "admin/docs/lib/compliance/clockEngine.md",
+      "symbolCount": 10,
+      "symbols": [
+        {
+          "name": "startSettlementClock",
+          "kind": "function"
+        },
+        {
+          "name": "getSettlementDeadline",
+          "kind": "function"
+        },
+        {
+          "name": "createComplianceClock",
+          "kind": "function"
+        },
+        {
+          "name": "reconcileClocks",
+          "kind": "function"
+        },
+        {
+          "name": "SETTLEMENT_WINDOW_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "SETTLEMENT_WINDOW_HOURS",
+          "kind": "constant"
+        },
+        {
+          "name": "SettlementClock",
+          "kind": "interface"
+        },
+        {
+          "name": "ComplianceClock",
+          "kind": "interface"
+        },
+        {
+          "name": "ClockReconcileResult",
+          "kind": "interface"
+        },
+        {
+          "name": "SettlementClockStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/enforcementTypes.ts",
+      "doc": "admin/docs/lib/enforcementTypes.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "EnforcementEvent",
+          "kind": "interface"
+        },
+        {
+          "name": "EvidenceBundle",
+          "kind": "interface"
+        },
+        {
+          "name": "ComplianceNotice",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/entitySlug.ts",
+      "doc": "admin/docs/lib/entitySlug.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "slugToEntityId",
+          "kind": "function"
+        },
+        {
+          "name": "entityNameToSlug",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensicHashes.ts",
+      "doc": "admin/docs/lib/forensicHashes.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "TOP_FORENSIC_LOG_HASHES",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/alertEngine.ts",
+      "doc": "admin/docs/lib/forensics/alertEngine.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "correlateKnowledgeCutoff",
+          "kind": "function"
+        },
+        {
+          "name": "buildCutoffCorrelationString",
+          "kind": "function"
+        },
+        {
+          "name": "isEncryptedAoscapPath",
+          "kind": "function"
+        },
+        {
+          "name": "shouldTriggerKaasBreach",
+          "kind": "function"
+        },
+        {
+          "name": "emitKaasBreachAlert",
+          "kind": "function"
+        },
+        {
+          "name": "KNOWN_CUTOFF_WINDOWS",
+          "kind": "constant"
+        },
+        {
+          "name": "KnowledgeCutoffWindow",
+          "kind": "interface"
+        },
+        {
+          "name": "KaasBreachEvent",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/cadenceCorrelation.ts",
+      "doc": "admin/docs/lib/forensics/cadenceCorrelation.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "correlateCadenceProbes",
+          "kind": "function"
+        },
+        {
+          "name": "CADENCE_17_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "CADENCE_TOLERANCE_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "CADENCE_SENTINEL_PATHS",
+          "kind": "constant"
+        },
+        {
+          "name": "MODEL_UPDATE_WINDOWS",
+          "kind": "constant"
+        },
+        {
+          "name": "ModelUpdateWindow",
+          "kind": "interface"
+        },
+        {
+          "name": "CadenceProbe",
+          "kind": "interface"
+        },
+        {
+          "name": "CadenceCorrelationResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/correlationEngine.ts",
+      "doc": "admin/docs/lib/forensics/correlationEngine.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "detectIngestionAttempt",
+          "kind": "function"
+        },
+        {
+          "name": "WAF_INGESTION_THRESHOLD",
+          "kind": "constant"
+        },
+        {
+          "name": "SENSITIVE_INGESTION_PATHS",
+          "kind": "constant"
+        },
+        {
+          "name": "CorrelationSignals",
+          "kind": "interface"
+        },
+        {
+          "name": "CorrelationResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/generateStripeReport.ts",
+      "doc": "admin/docs/lib/forensics/generateStripeReport.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "generateStripeReport",
+          "kind": "function"
+        },
+        {
+          "name": "KaasBreachRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "StripeEvidenceSection",
+          "kind": "interface"
+        },
+        {
+          "name": "StripeEvidenceReport",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/globalVault.ts",
+      "doc": "admin/docs/lib/forensics/globalVault.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "resolveJurisdiction",
+          "kind": "function"
+        },
+        {
+          "name": "buildEvidencePacket",
+          "kind": "function"
+        },
+        {
+          "name": "formatEvidenceNotice",
+          "kind": "function"
+        },
+        {
+          "name": "JURISDICTION_STATUTES",
+          "kind": "constant"
+        },
+        {
+          "name": "EvidencePacketInput",
+          "kind": "interface"
+        },
+        {
+          "name": "EvidencePacket",
+          "kind": "interface"
+        },
+        {
+          "name": "Jurisdiction",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/ingestionProof.ts",
+      "doc": "admin/docs/lib/forensics/ingestionProof.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "generateIngestionProof",
+          "kind": "function"
+        },
+        {
+          "name": "IngestionProofInput",
+          "kind": "interface"
+        },
+        {
+          "name": "IngestionProofCertificate",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/sentinels.ts",
+      "doc": "admin/docs/lib/forensics/sentinels.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "CADENCE_SENTINEL_IPS",
+          "kind": "constant"
+        },
+        {
+          "name": "HIGH_VALUE_ASNS",
+          "kind": "constant"
+        },
+        {
+          "name": "INGESTION_TIER10_ASNS",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/threatEngine.ts",
+      "doc": "admin/docs/lib/forensics/threatEngine.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "autolearnThreatPattern",
+          "kind": "function"
+        },
+        {
+          "name": "CADENCE_THRESHOLD_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "WAF_AUTOLEARN_THRESHOLD",
+          "kind": "constant"
+        },
+        {
+          "name": "ThreatSignals",
+          "kind": "interface"
+        },
+        {
+          "name": "AutolearnResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/geminiSpendTracker.ts",
+      "doc": "admin/docs/lib/geminiSpendTracker.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "geminiSpendPrefix",
+          "kind": "function"
+        },
+        {
+          "name": "currentMonthSpendPrefix",
+          "kind": "function"
+        },
+        {
+          "name": "recordGeminiSpend",
+          "kind": "function"
+        },
+        {
+          "name": "getTotalGeminiSpend",
+          "kind": "function"
+        },
+        {
+          "name": "isGeminiCreditExhausted",
+          "kind": "function"
+        },
+        {
+          "name": "GEMINI_MONTHLY_CREDIT_LIMIT_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "GEMINI_COST_PER_1K_TOKENS",
+          "kind": "constant"
+        },
+        {
+          "name": "GeminiSpendKV",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/kaas/pricing.ts",
+      "doc": "admin/docs/lib/kaas/pricing.md",
+      "symbolCount": 19,
+      "symbols": [
+        {
+          "name": "getStatutoryAdminSettlementCents",
+          "kind": "function"
+        },
+        {
+          "name": "getStatutoryAdminSettlementLabel",
+          "kind": "function"
+        },
+        {
+          "name": "getAsnTier",
+          "kind": "function"
+        },
+        {
+          "name": "getAsnFeeUsdCents",
+          "kind": "function"
+        },
+        {
+          "name": "getAsnFeeUsd",
+          "kind": "function"
+        },
+        {
+          "name": "getAsnFeeLabel",
+          "kind": "function"
+        },
+        {
+          "name": "buildKaasLineItem",
+          "kind": "function"
+        },
+        {
+          "name": "applyInfringementPenalty",
+          "kind": "function"
+        },
+        {
+          "name": "buildKaasLineItemWithPenalty",
+          "kind": "function"
+        },
+        {
+          "name": "getKaasTierBadge",
+          "kind": "function"
+        },
+        {
+          "name": "ENTERPRISE_ASN_TIERS",
+          "kind": "constant"
+        },
+        {
+          "name": "KAAS_FEE_TIER_10_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "KAAS_FEE_TIER_7_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "KAAS_FEE_TIER_1_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "STATUTORY_ADMIN_SETTLEMENT_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "STATUTORY_ADMIN_SETTLEMENT_LABEL",
+          "kind": "constant"
+        },
+        {
+          "name": "INFRINGEMENT_MULTIPLIER",
+          "kind": "constant"
+        },
+        {
+          "name": "KaasLineItem",
+          "kind": "interface"
+        },
+        {
+          "name": "KaasTierBadge",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/kaas/reconciliationClock.ts",
+      "doc": "admin/docs/lib/kaas/reconciliationClock.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "formatCountdownMs",
+          "kind": "function"
+        },
+        {
+          "name": "resolveAuditDeadline",
+          "kind": "function"
+        },
+        {
+          "name": "getAuditCountdown",
+          "kind": "function"
+        },
+        {
+          "name": "auditBatchStatus",
+          "kind": "function"
+        },
+        {
+          "name": "AUDIT_CLEARANCE_WINDOW_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "EXPIRED_COUNTDOWN",
+          "kind": "constant"
+        },
+        {
+          "name": "AuditCountdown",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/kaas/sync.ts",
+      "doc": "admin/docs/lib/kaas/sync.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "sealKaasRow",
+          "kind": "function"
+        },
+        {
+          "name": "syncKaasLedger",
+          "kind": "function"
+        },
+        {
+          "name": "KaasValuationRow",
+          "kind": "interface"
+        },
+        {
+          "name": "KaasLedgerEntry",
+          "kind": "interface"
+        },
+        {
+          "name": "KaasLedgerSyncResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/markdown.ts",
+      "doc": "admin/docs/lib/markdown.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "readMarkdownContent",
+          "kind": "function"
+        },
+        {
+          "name": "markdownToHtml",
+          "kind": "function"
+        },
+        {
+          "name": "loadMarkdownAsHtml",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "lib/navigationRoutes.ts",
+      "doc": "admin/docs/lib/navigationRoutes.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "navigationRoutes",
+          "kind": "constant"
+        },
+        {
+          "name": "adminRoutes",
+          "kind": "constant"
+        },
+        {
+          "name": "NavigationRoute",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/resonanceLayer.ts",
+      "doc": "admin/docs/lib/resonanceLayer.md",
+      "symbolCount": 9,
+      "symbols": [
+        {
+          "name": "buildResonancePayload",
+          "kind": "function"
+        },
+        {
+          "name": "verifyKernelSha",
+          "kind": "function"
+        },
+        {
+          "name": "verifyMerkleRoot",
+          "kind": "function"
+        },
+        {
+          "name": "RESONANCE_VERSION",
+          "kind": "constant"
+        },
+        {
+          "name": "RESONANCE_POLICY_REF",
+          "kind": "constant"
+        },
+        {
+          "name": "RESONANCE_INSTRUCTIONS_REF",
+          "kind": "constant"
+        },
+        {
+          "name": "RESONANCE_CLAUDE_REF",
+          "kind": "constant"
+        },
+        {
+          "name": "RESONANCE_REGISTRY_REF",
+          "kind": "constant"
+        },
+        {
+          "name": "ResonancePayload",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/retroactiveLedger.ts",
+      "doc": "admin/docs/lib/retroactiveLedger.md",
+      "symbolCount": 9,
+      "symbols": [
+        {
+          "name": "getRetroactiveLedgerSchema",
+          "kind": "function"
+        },
+        {
+          "name": "getRetroactiveDebtSummary",
+          "kind": "function"
+        },
+        {
+          "name": "getForensicHashesFromLedger",
+          "kind": "function"
+        },
+        {
+          "name": "settleRetroactiveLiability",
+          "kind": "function"
+        },
+        {
+          "name": "D1PreparedStatement",
+          "kind": "interface"
+        },
+        {
+          "name": "D1Database",
+          "kind": "interface"
+        },
+        {
+          "name": "RetroactiveLedgerSchema",
+          "kind": "interface"
+        },
+        {
+          "name": "RetroactiveDebtSummary",
+          "kind": "interface"
+        },
+        {
+          "name": "ForensicLedgerEntry",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/sanitizeHtml.ts",
+      "doc": "admin/docs/lib/sanitizeHtml.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "sanitizeHtml",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/driftShield.ts",
+      "doc": "admin/docs/lib/security/driftShield.md",
+      "symbolCount": 6,
+      "symbols": [
+        {
+          "name": "loadDriftShieldConfig",
+          "kind": "function"
+        },
+        {
+          "name": "enforceDriftShield",
+          "kind": "function"
+        },
+        {
+          "name": "DriftShieldConfig",
+          "kind": "interface"
+        },
+        {
+          "name": "DriftShieldResult",
+          "kind": "interface"
+        },
+        {
+          "name": "DriftShieldBlock",
+          "kind": "interface"
+        },
+        {
+          "name": "DriftShieldOutcome",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/keys.ts",
+      "doc": "admin/docs/lib/security/keys.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "getSovereignKeys",
+          "kind": "function"
+        },
+        {
+          "name": "SovereignKeyPair",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/ssrfGuard.ts",
+      "doc": "admin/docs/lib/security/ssrfGuard.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "buildSsrfSafeUrl",
+          "kind": "function"
+        },
+        {
+          "name": "allowedHosts",
+          "kind": "function"
+        },
+        {
+          "name": "POLICY_WATCH_ALLOWLIST",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/wafLogic.ts",
+      "doc": "admin/docs/lib/security/wafLogic.md",
+      "symbolCount": 11,
+      "symbols": [
+        {
+          "name": "parseWafScore",
+          "kind": "function"
+        },
+        {
+          "name": "evaluateWafScore",
+          "kind": "function"
+        },
+        {
+          "name": "buildWafBlockResponse",
+          "kind": "function"
+        },
+        {
+          "name": "buildWafChallengeRedirect",
+          "kind": "function"
+        },
+        {
+          "name": "applyWafGate",
+          "kind": "function"
+        },
+        {
+          "name": "WAF_BLOCK_THRESHOLD",
+          "kind": "constant"
+        },
+        {
+          "name": "WAF_CHALLENGE_THRESHOLD",
+          "kind": "constant"
+        },
+        {
+          "name": "WAF_EVIDENCE_THRESHOLD",
+          "kind": "constant"
+        },
+        {
+          "name": "WAF_SENSITIVE_PATHS",
+          "kind": "constant"
+        },
+        {
+          "name": "AUDIT_CLEARANCE_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "WafEvalResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/siteConfig.ts",
+      "doc": "admin/docs/lib/siteConfig.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "getSiteUrl",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/sovereignMetadata.ts",
+      "doc": "admin/docs/lib/sovereignMetadata.md",
+      "symbolCount": 15,
+      "symbols": [
+        {
+          "name": "classifySubdomain",
+          "kind": "function"
+        },
+        {
+          "name": "subdomainRobotsRules",
+          "kind": "function"
+        },
+        {
+          "name": "buildRobotsTxt",
+          "kind": "function"
+        },
+        {
+          "name": "classifyDerRequest",
+          "kind": "function"
+        },
+        {
+          "name": "buildSecurityTxt",
+          "kind": "function"
+        },
+        {
+          "name": "BOT_MAGNET_PATHS",
+          "kind": "constant"
+        },
+        {
+          "name": "LLM_BOTS",
+          "kind": "constant"
+        },
+        {
+          "name": "BLOCKED_BOTS",
+          "kind": "constant"
+        },
+        {
+          "name": "ALLOWED_AUDIT_BOTS",
+          "kind": "constant"
+        },
+        {
+          "name": "DER_ASN_MAP",
+          "kind": "constant"
+        },
+        {
+          "name": "DER_REFERRER_MAP",
+          "kind": "constant"
+        },
+        {
+          "name": "SubdomainPaths",
+          "kind": "interface"
+        },
+        {
+          "name": "DerEntity",
+          "kind": "interface"
+        },
+        {
+          "name": "SubdomainKey",
+          "kind": "type"
+        },
+        {
+          "name": "DerClassification",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/sovereignNodes.ts",
+      "doc": "admin/docs/lib/sovereignNodes.md",
+      "symbolCount": 16,
+      "symbols": [
+        {
+          "name": "getExpectedDnsTxtAnchors",
+          "kind": "function"
+        },
+        {
+          "name": "getSovereignNodes",
+          "kind": "function"
+        },
+        {
+          "name": "NODE_01_ID",
+          "kind": "constant"
+        },
+        {
+          "name": "NODE_02_ID",
+          "kind": "constant"
+        },
+        {
+          "name": "NODE_02_LOCAL_MODEL",
+          "kind": "constant"
+        },
+        {
+          "name": "NODE_02_OLLAMA_URL",
+          "kind": "constant"
+        },
+        {
+          "name": "SOVEREIGN_ANCHOR_SALT",
+          "kind": "constant"
+        },
+        {
+          "name": "GOLDEN_LOCK_ARTIFACT_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "GOLDEN_LOCK_MERKLE_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "GOLDEN_LOCK_ARTIFACT_ID",
+          "kind": "constant"
+        },
+        {
+          "name": "SKC_VERSION",
+          "kind": "constant"
+        },
+        {
+          "name": "DNS_TXT_KERNEL_RECORD",
+          "kind": "constant"
+        },
+        {
+          "name": "DNS_TXT_MERKLE_RECORD",
+          "kind": "constant"
+        },
+        {
+          "name": "DNS_TXT_VERSION_RECORD",
+          "kind": "constant"
+        },
+        {
+          "name": "DnsTxtAnchor",
+          "kind": "interface"
+        },
+        {
+          "name": "SovereignNodeStatus",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/storageUtils.ts",
+      "doc": "admin/docs/lib/storageUtils.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "capsuleKey",
+          "kind": "function"
+        },
+        {
+          "name": "saveCapsule",
+          "kind": "function"
+        },
+        {
+          "name": "getCapsule",
+          "kind": "function"
+        },
+        {
+          "name": "listCapsules",
+          "kind": "function"
+        },
+        {
+          "name": "deleteCapsule",
+          "kind": "function"
+        },
+        {
+          "name": "CAPSULE_PREFIX",
+          "kind": "constant"
+        },
+        {
+          "name": "R2ObjectBody",
+          "kind": "interface"
+        },
+        {
+          "name": "R2Bucket",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/stripe/onrampLogic.ts",
+      "doc": "admin/docs/lib/stripe/onrampLogic.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "kaasDisplayPrice",
+          "kind": "function"
+        },
+        {
+          "name": "resolveKaasTier",
+          "kind": "function"
+        },
+        {
+          "name": "buildOnrampSessionPayload",
+          "kind": "function"
+        },
+        {
+          "name": "deriveMachineId",
+          "kind": "function"
+        },
+        {
+          "name": "ONRAMP_MODE",
+          "kind": "constant"
+        },
+        {
+          "name": "OnrampSessionParams",
+          "kind": "interface"
+        },
+        {
+          "name": "OnrampSessionPayload",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/taiAutoTracker.ts",
+      "doc": "admin/docs/lib/taiAutoTracker.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "autoTrackAccomplishment",
+          "kind": "function"
+        },
+        {
+          "name": "TRAFFIC_MILESTONES",
+          "kind": "constant"
+        },
+        {
+          "name": "WATCHER_MILESTONES",
+          "kind": "constant"
+        },
+        {
+          "name": "AutoTrackOptions",
+          "kind": "interface"
+        },
+        {
+          "name": "AutoTrackerCategory",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/tari/calculator.ts",
+      "doc": "admin/docs/lib/tari/calculator.md",
+      "symbolCount": 11,
+      "symbols": [
+        {
+          "name": "calculateTariDebt",
+          "kind": "function"
+        },
+        {
+          "name": "formatUsdCents",
+          "kind": "function"
+        },
+        {
+          "name": "calculateDailyTariDebt",
+          "kind": "function"
+        },
+        {
+          "name": "FORENSIC_DEPOSIT_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "AUDIT_CLEARANCE_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "DAILY_TARI_RATE_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "DAILY_TARI_RATE_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "TariCalculationInput",
+          "kind": "interface"
+        },
+        {
+          "name": "DailyTariCalculationInput",
+          "kind": "interface"
+        },
+        {
+          "name": "DailyTariCalculationResult",
+          "kind": "interface"
+        },
+        {
+          "name": "TariCalculationResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/tari/settlementEngine.ts",
+      "doc": "admin/docs/lib/tari/settlementEngine.md",
+      "symbolCount": 6,
+      "symbols": [
+        {
+          "name": "resolveSettlement",
+          "kind": "function"
+        },
+        {
+          "name": "HIGH_VALUE_ASNS",
+          "kind": "constant"
+        },
+        {
+          "name": "ASSET_VALUATION_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "CLEARANCE_FEE_CENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "SettlementResult",
+          "kind": "interface"
+        },
+        {
+          "name": "SettlementTier",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/tari/tariUniversal.ts",
+      "doc": "admin/docs/lib/tari/tariUniversal.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "computeTariRetroactiveDebt",
+          "kind": "function"
+        },
+        {
+          "name": "TARI_BASE_VALUATION_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "TARI_DAILY_UTILIZATION_RATE_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "TARI_STATUTORY_PENALTY_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "TARI_OBFUSCATION_MULTIPLIER",
+          "kind": "constant"
+        },
+        {
+          "name": "TARI_UNIVERSAL_V1_5_CAPSULE_SHA",
+          "kind": "constant"
+        },
+        {
+          "name": "TARI_VAULT_ANCHOR",
+          "kind": "constant"
+        },
+        {
+          "name": "TariRetroactiveDebt",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/tariUniversal.ts",
+      "doc": "admin/docs/lib/tariUniversal.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "computeTariRetroactiveDebt",
+          "kind": "function"
+        },
+        {
+          "name": "TARI_LIABILITY_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "AuditLogEntry",
+          "kind": "interface"
+        },
+        {
+          "name": "TariDebtBreakdown",
+          "kind": "interface"
+        },
+        {
+          "name": "TariDebtResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/time/mesh.ts",
+      "doc": "admin/docs/lib/time/mesh.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "getSovereignTime",
+          "kind": "function"
+        },
+        {
+          "name": "OUTLIER_DELTA_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "TimeSourceResult",
+          "kind": "interface"
+        },
+        {
+          "name": "SovereignTimeResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/timePrecision.ts",
+      "doc": "admin/docs/lib/timePrecision.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "formatIso9",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "lib/vaultCookieConfig.ts",
+      "doc": "admin/docs/lib/vaultCookieConfig.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "VAULT_COOKIE_NAME",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "app/api/gatekeeper/logs/route.ts",
+      "doc": "admin/docs/app/api/gatekeeper/logs/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/gatekeeper/logs.ts",
+      "doc": "admin/docs/app/api/gatekeeper/logs.md",
+      "symbolCount": 0,
+      "symbols": []
+    },
+    {
+      "path": "app/api/gatekeeper/telemetry/route.ts",
+      "doc": "admin/docs/app/api/gatekeeper/telemetry/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/health/update-build/route.ts",
+      "doc": "admin/docs/app/api/health/update-build/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/licensing/settle/route.ts",
+      "doc": "admin/docs/app/api/licensing/settle/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        },
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/licensing/total-debt/route.ts",
+      "doc": "admin/docs/app/api/licensing/total-debt/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/outbound/notice/route.ts",
+      "doc": "admin/docs/app/api/outbound/notice/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/outbound/status/route.ts",
+      "doc": "admin/docs/app/api/outbound/status/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/alignment-check/fetch/route.ts",
+      "doc": "admin/docs/app/api/v1/alignment-check/fetch/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/anchor/route.ts",
+      "doc": "admin/docs/app/api/v1/anchor/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/anchor/seal/route.ts",
+      "doc": "admin/docs/app/api/v1/anchor/seal/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/anchor-status/route.ts",
+      "doc": "admin/docs/app/api/v1/anchor-status/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/auth/challenge/route.ts",
+      "doc": "admin/docs/app/api/v1/auth/challenge/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/capsules/route.ts",
+      "doc": "admin/docs/app/api/v1/capsules/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/capsules/[capsuleId]/download/route.ts",
+      "doc": "admin/docs/app/api/v1/capsules/[capsuleId]/download/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/compliance/usage-report/route.ts",
+      "doc": "admin/docs/app/api/v1/compliance/usage-report/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/detect-asn/route.ts",
+      "doc": "admin/docs/app/api/v1/detect-asn/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/evidence/download/route.ts",
+      "doc": "admin/docs/app/api/v1/evidence/download/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/evidence/packet/route.ts",
+      "doc": "admin/docs/app/api/v1/evidence/packet/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/gateway/pow-submit/route.ts",
+      "doc": "admin/docs/app/api/v1/gateway/pow-submit/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/health/route.ts",
+      "doc": "admin/docs/app/api/v1/health/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/health-status/route.ts",
+      "doc": "admin/docs/app/api/v1/health-status/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/integrity-status/route.ts",
+      "doc": "admin/docs/app/api/v1/integrity-status/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/jwks/route.ts",
+      "doc": "admin/docs/app/api/v1/jwks/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/kaas/valuation/route.ts",
+      "doc": "admin/docs/app/api/v1/kaas/valuation/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/kaas-valuations/route.ts",
+      "doc": "admin/docs/app/api/v1/kaas-valuations/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/labyrinth/route.ts",
+      "doc": "admin/docs/app/api/v1/labyrinth/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/latent-manifest/route.ts",
+      "doc": "admin/docs/app/api/v1/latent-manifest/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/ledger/transactions/route.ts",
+      "doc": "admin/docs/app/api/v1/ledger/transactions/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "VaultChainTransaction",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/ledger/transactions/[txId]/route.ts",
+      "doc": "admin/docs/app/api/v1/ledger/transactions/[txId]/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/partners/route.ts",
+      "doc": "admin/docs/app/api/v1/partners/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "PartnerRow",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/pow-complete/route.ts",
+      "doc": "admin/docs/app/api/v1/pow-complete/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/quarantine/verify/route.ts",
+      "doc": "admin/docs/app/api/v1/quarantine/verify/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/settlement-attempt/route.ts",
+      "doc": "admin/docs/app/api/v1/settlement-attempt/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/sovereign-builds/route.ts",
+      "doc": "admin/docs/app/api/v1/sovereign-builds/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/tai/handshake/route.ts",
+      "doc": "admin/docs/app/api/v1/tai/handshake/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/tai/sync/route.ts",
+      "doc": "admin/docs/app/api/v1/tai/sync/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/tari/calculate-fee/route.ts",
+      "doc": "admin/docs/app/api/v1/tari/calculate-fee/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/tari-stats/route.ts",
+      "doc": "admin/docs/app/api/v1/tari-stats/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/threat-level/route.ts",
+      "doc": "admin/docs/app/api/v1/threat-level/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/time/sovereign/route.ts",
+      "doc": "admin/docs/app/api/v1/time/sovereign/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/vault/evidence/route.ts",
+      "doc": "admin/docs/app/api/v1/vault/evidence/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/verify/badge/[hash]/route.ts",
+      "doc": "admin/docs/app/api/v1/verify/badge/[hash]/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/verify/[hash]/route.ts",
+      "doc": "admin/docs/app/api/v1/verify/[hash]/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/witness-submit/route.ts",
+      "doc": "admin/docs/app/api/v1/witness-submit/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
     }
   ]
 }

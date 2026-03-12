@@ -23,6 +23,7 @@ import { formatIso9 }                  from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { syncKaasValuationToFirebase, isFirebaseConfigured }
   from "../../../../../lib/firebaseClient";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -53,15 +54,6 @@ interface LedgerRow {
 }
 
 /** Constant-time comparison to prevent timing-based token enumeration. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** SHA-512 hex digest for evidence fingerprinting. */
 async function sha512hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));

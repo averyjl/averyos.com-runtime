@@ -3,6 +3,7 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstant
 import { aosErrorResponse, d1ErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 /**
  * GET /api/v1/licensing/training-waiver
@@ -100,15 +101,6 @@ const KNOWN_LLM_AGENTS = [
 ];
 
 /** Constant-time string comparison to prevent timing attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 interface EntityRow {
   ip_address: string;
   event_type: string;

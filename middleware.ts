@@ -18,6 +18,9 @@ import {
   INGESTION_TIER10_ASNS,
 } from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
+import { enforceDriftShield } from './lib/security/driftShield';
+import { KERNEL_SHA } from './lib/sovereignConstants';
+import { applyWafGate } from './lib/security/wafLogic';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -68,10 +71,31 @@ const ENTROPY_WEBGL_FP          = 10; // WebGL entropy signal present (Biometric
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
-import { KERNEL_SHA } from './lib/sovereignConstants';
-import { applyWafGate } from './lib/security/wafLogic';
 // Truncated for display purposes - see LICENSE.md for full hash
 const KERNEL_ANCHOR_DISPLAY = "cf83e135...927da3e";
+
+// ── Cloudflare cf-object helpers ──────────────────────────────────────────────
+
+/**
+ * Extract the Cloudflare `cf` object from a request, typed as a plain record.
+ *
+ * The `cf` property is a Cloudflare Workers-only extension of the standard
+ * `Request` object. It carries geo-IP metadata (country, city, asn, colo, etc.)
+ * populated by the Cloudflare edge at request time. It is NOT present in the
+ * Next.js `NextRequest` type definition because Next.js targets Node.js, not
+ * the Workers runtime.
+ *
+ * In production (Cloudflare Worker via @opennextjs/cloudflare), `request.cf`
+ * is always a populated object. In local Next.js dev mode, `request.cf` is
+ * `undefined` — the `?? {}` fallback ensures safe access in both environments.
+ *
+ * The double cast through `unknown` is required to satisfy TypeScript's type
+ * checker without importing `@cloudflare/workers-types` (which would pollute
+ * the global type namespace for the Node.js build target).
+ */
+function getCfObject(request: NextRequest): Record<string, unknown> {
+  return (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+}
 
 // ── Sovereign Alignment Header — applied to all 301 redirect responses ────────
 // Allows "Watchers" to observe the alignment directive on every canonical redirect.
@@ -118,6 +142,14 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // GATE 110.2.2 — Allow sovereign AveryOS™ headers in CORS preflight responses
+  // so that Cloudflare Insights and other cross-origin requests are not blocked
+  // when they include custom AveryOS™ authentication or kernel-anchor headers.
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-TAI-License-Key, X-AveryOS-Canvas-FP, " +
+    "X-AveryOS-WebGL-FP, signature-agent, x-averyos-kernel-sha",
+  );
   return response;
 }
 
@@ -296,9 +328,12 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
     const ua            = request.headers.get('user-agent') ?? 'UNKNOWN';
     const rayId         = request.headers.get('cf-ray') ?? 'UNKNOWN';
     const colo          = rayId.split('-')[1] ?? 'UNKNOWN';
-    const clientAsn     = request.headers.get('cf-asn') ?? '';
-    const city          = request.headers.get('cf-ipcity') ?? '';
-    const country       = request.headers.get('cf-ipcountry') ?? '';
+    // Prefer request.cf fields (Cloudflare Worker env) over headers; fall back to headers for local dev.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cfObj         = getCfObject(request);
+    const clientAsn     = String(cfObj['asn'] ?? request.headers.get('cf-asn') ?? '');
+    const city          = String(cfObj['city'] ?? cfObj['clientCity'] ?? request.headers.get('cf-ipcity') ?? '');
+    const country       = String(cfObj['country'] ?? request.headers.get('cf-ipcountry') ?? '');
     const wafTotalRaw   = request.headers.get('cf-waf-score-total') ?? '0';
     const wafSqliRaw    = request.headers.get('cf-waf-score-sqli') ?? '0';
     const wafTotal      = parseInt(wafTotalRaw, 10) || 0;
@@ -413,16 +448,19 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
     const url     = new URL(request.url);
     const rayId   = request.headers.get('cf-ray') ?? 'UNKNOWN';
     const ip      = request.headers.get('cf-connecting-ip') ?? 'UNKNOWN';
-    const asn     = request.headers.get('cf-ipcountry') ?? 'UNKNOWN';
     const now     = edgeStart.toISOString();
     const method  = request.method ?? 'GET';
 
     // ── Cloudflare cf object forensic fields ─────────────────────────────────
     // request.cf is available in Cloudflare Worker environments only.
-    // Cast via unknown to avoid TypeScript complaints in non-Worker builds.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cf = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
-    const clientCity      = (cf['clientCity']           as string  | undefined) ?? null;
+    const cf = getCfObject(request);
+
+    // Prefer request.cf for asn/city/country (populated in Worker env);
+    // fall back to cf-* headers for local development compatibility.
+    const asn         = String(cf['asn'] ?? request.headers.get('cf-asn') ?? 'UNKNOWN');
+    const cfCountry   = cf['country'] != null ? String(cf['country']) : (request.headers.get('cf-ipcountry') ?? null);
+    const clientCity      = (cf['clientCity'] as string | undefined)
+      ?? (cf['city'] ? String(cf['city']) : null);
     const clientLat       = (cf['clientLatitude']       as string  | undefined) ?? null;
     const clientLon       = (cf['clientLongitude']      as string  | undefined) ?? null;
     const requestProtocol = (cf['httpProtocol']         as string  | undefined) ?? null;
@@ -497,6 +535,7 @@ async function logRayIdAudit(request: NextRequest): Promise<void> {
         ray_id:         rayId,
         ip_address:     ip,
         asn,
+        country:        cfCountry,
         path:           url.pathname,
         request_uri:    requestUri,
         request_method: method,
@@ -723,7 +762,7 @@ async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
     if (!INGESTION_TIER10_ASNS.has(clientAsn)) return;
 
     const url = new URL(request.url);
-    const cf  = (request as unknown as { cf?: Record<string, unknown> }).cf ?? {};
+    const cf  = getCfObject(request);
     const wafScore = typeof cf['wafAttackScore'] === 'number' ? cf['wafAttackScore'] : 0;
 
     const isSensitivePath  = INGESTION_LOGIC_PATHS.some(p => url.pathname.startsWith(p));
@@ -955,6 +994,26 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // ── DriftShield v4.1 — /api/v1/ Zero-Noise & Jitter Gate (Phase 109.4) ────
+  // Enforces MACDADDY_DriftShield_v4.1 on all /api/v1/ routes.
+  // Blocks requests carrying x-averyos-jitter=1 (probabilistic jitter) and
+  // rejects requests that exceed the configured WAF score threshold.
+  if (url.pathname.startsWith('/api/v1/')) {
+    const driftResult = enforceDriftShield(request);
+    if (!driftResult.pass) {
+      return NextResponse.json(
+        {
+          error:          driftResult.reason,
+          code:           driftResult.code,
+          kernel_sha:     driftResult.kernelSha,
+          kernel_version: driftResult.kernelVersion,
+          directive:      "DriftShield v4.1: Request rejected. Obtain an AveryOS™ license at https://averyos.com/licensing",
+        },
+        { status: driftResult.code, headers: { 'X-GabrielOS-Block': 'DRIFT_SHIELD', 'Cache-Control': 'no-store' } }
+      );
+    }
+  }
+
   // ── Phase 97.3.1 — Sovereign Audit Gate: /api/v1/ WAF 95-Threshold ────────
   // If a request targets /api/v1/ and carries a WAF attack score > 95, redirect
   // to the Audit Clearance Portal with the RayID appended (do NOT hard-block —
@@ -979,6 +1038,42 @@ export async function middleware(request: NextRequest) {
           },
         }
       );
+    }
+  }
+
+  // ── Phase 110.1.3 — DriftShield Enforcement: /api/v1/ OIDC Bot Block ────
+  // Runs MACDADDY DriftShield v4.1 on all /api/v1/ requests to block
+  // probabilistic-jitter bots attempting to bypass the OIDC handshake.
+  if (url.pathname.startsWith('/api/v1/')) {
+    // Extract only the DriftShield-relevant env fields to satisfy the
+    // DriftShieldEnv interface, avoiding an opaque double type assertion.
+    interface DsEnvShape {
+      DRIFT_SHIELD_THRESHOLD?:   string;
+      DRIFT_SHIELD_ENTROPY_MIN?: string;
+      DRIFT_SHIELD_ZERO_NOISE?:  string;
+    }
+    let dsEnv: DsEnvShape | undefined;
+    try {
+      const { env: cfEnvDs } = await getCloudflareContext({ async: true });
+      const raw = cfEnvDs as unknown as Record<string, unknown>;
+      dsEnv = {
+        DRIFT_SHIELD_THRESHOLD:   typeof raw["DRIFT_SHIELD_THRESHOLD"]   === "string" ? raw["DRIFT_SHIELD_THRESHOLD"]   : undefined,
+        DRIFT_SHIELD_ENTROPY_MIN: typeof raw["DRIFT_SHIELD_ENTROPY_MIN"] === "string" ? raw["DRIFT_SHIELD_ENTROPY_MIN"] : undefined,
+        DRIFT_SHIELD_ZERO_NOISE:  typeof raw["DRIFT_SHIELD_ZERO_NOISE"]  === "string" ? raw["DRIFT_SHIELD_ZERO_NOISE"]  : undefined,
+      };
+    } catch {
+      dsEnv = undefined;
+    }
+    const dsOutcome = enforceDriftShield(request, dsEnv);
+    if (!dsOutcome.pass) {
+      return new NextResponse(dsOutcome.reason, {
+        status: dsOutcome.code,
+        headers: {
+          'X-GabrielOS-Directive': 'DRIFTSHIELD_BLOCK',
+          'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
+          'Cache-Control':         'no-store',
+        },
+      });
     }
   }
 

@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { safeEqual } from '../../../../../lib/taiLicenseGate';
 
 /**
  * POST /api/v1/compliance/alert-link
@@ -70,15 +71,6 @@ const SIGNED_URL_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 // ---------------------------------------------------------------------------
 
 /** Constant-time string comparison to prevent timing attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 /** Derive an HMAC-SHA-256 signing key from the VAULT_PASSPHRASE + KERNEL_SHA. */
 async function deriveSigningKey(secret: string): Promise<CryptoKey> {
   const keyMaterial = await crypto.subtle.importKey(

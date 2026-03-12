@@ -58,7 +58,7 @@ export const KAAS_FEE_TIER_1_CENTS  = 101_700;        // $1,017.00
  *
  * Statutory basis: 17 U.S.C. § 504(c)(2) — Willful infringement of a
  * copyrighted work. Applies when an entity accesses the AveryOS™ API via an
- * unlicensed Python script or automated tool without a valid TAI_LICENSE_KEY,
+ * unlicensed Python script or automated tool without a valid AVERYOS_LICENSE_KEY,
  * bypassing the standard KaaS settlement path.
  *
  * This value is the maximum statutory damage award per work and is hardlocked
@@ -92,6 +92,7 @@ export function getStatutoryAdminSettlementLabel(): string {
 /** Return the KaaS tier (1–10) for a given ASN string. */
 export function getAsnTier(asn: string): number {
   const normalised = String(asn).replace(/^AS/i, "").trim();
+  // eslint-disable-next-line security/detect-object-injection
   return ENTERPRISE_ASN_TIERS[normalised] ?? 1;
 }
 

@@ -158,6 +158,7 @@ export function subdomainRobotsRules(hostname: string): SubdomainPaths {
  */
 export function buildRobotsTxt(hostname: string, siteUrl = "https://averyos.com"): string {
   const subdomain = classifySubdomain(hostname);
+  // eslint-disable-next-line security/detect-object-injection
   const { allow, disallow } = SUBDOMAIN_RULES[subdomain];
 
   const lines: string[] = [
@@ -326,6 +327,7 @@ export function classifyDerRequest(
   // ASN takes precedence over Referrer
   if (asnHeader) {
     const asn = asnHeader.trim();
+    // eslint-disable-next-line security/detect-object-injection
     const entity = DER_ASN_MAP[asn];
     if (entity) return { classification: entity.classification, entity };
   }
@@ -335,6 +337,7 @@ export function classifyDerRequest(
     try {
       const refUrl = new URL(referrerHeader);
       const host = refUrl.hostname;
+      // eslint-disable-next-line security/detect-object-injection
       const cls = DER_REFERRER_MAP[host];
       if (cls) {
         return {

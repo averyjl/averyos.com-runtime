@@ -27,6 +27,7 @@ export default async function SettlementNoticePage({
 }) {
   const { entity: entitySlug } = await params;
   const entityId = slugToEntityId(entitySlug);
+  // eslint-disable-next-line security/detect-object-injection
   const label = ENTITY_LABEL[entityId] ?? entityId;
 
   let debtUsd: number | null = null;

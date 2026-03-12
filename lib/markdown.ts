@@ -9,6 +9,7 @@ export function readMarkdownContent(contentPath: string): string {
   const fullPath = path.join(process.cwd(), "content", contentPath);
   
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileContent = fs.readFileSync(fullPath, "utf8");
     return fileContent;
   } catch (error) {

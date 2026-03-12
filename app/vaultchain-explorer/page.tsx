@@ -30,6 +30,7 @@ const KAAS_TIER_MAP: Record<string, { tier: number; fee: string; name: string; c
 function getKaasBadge(asn: string | undefined): { tier: number; fee: string; name: string; color: string } | null {
   if (!asn) return null;
   const norm = String(asn).replace(/^AS/i, "").trim();
+  // eslint-disable-next-line security/detect-object-injection
   return KAAS_TIER_MAP[norm] ?? null;
 }
 

@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { signCapsule } from "../../../../../lib/CapsuleSigner";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { safeEqual } from "../../../../../lib/taiLicenseGate";
 
 interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     if (!expected) {
       return aosErrorResponse(AOS_ERROR.VAULT_NOT_CONFIGURED, 'VAULT_PASSPHRASE secret is not set.');
     }
-    if (token !== expected) {
+    if (!safeEqual(token, expected)) {
       return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Invalid or missing passphrase.');
     }
 
