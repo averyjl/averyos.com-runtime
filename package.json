@@ -21,7 +21,7 @@
     "logs:bouncer": "wrangler tail gabriel-gatekeeper",
     "logs:app": "wrangler tail averyoscom-runtime",
     "build:worker": "npx @opennextjs/cloudflare build",
-    "build:cloudflare": "node scripts/patchOpenNextStripe.cjs && node scripts/generate-gates.cjs && npm run capsule:build && npm run capsule:sitemap && node scripts/generate-docs.cjs && npx @opennextjs/cloudflare build",
+    "build:cloudflare": "node scripts/patchOpenNextStripe.cjs && node scripts/generate-gates.cjs && npm run capsule:build && npm run capsule:sitemap && node scripts/generate-docs.cjs && npx @opennextjs/cloudflare build && node scripts/patchWorkerQueue.cjs",
     "preview": "npx @opennextjs/cloudflare preview",
     "start": "next start",
     "lint": "next lint",
