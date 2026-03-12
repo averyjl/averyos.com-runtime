@@ -18,6 +18,7 @@ import {
   INGESTION_TIER10_ASNS,
 } from './lib/forensics/sentinels';
 import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
+import { enforceDriftShield } from './lib/security/driftShield';
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -1004,6 +1005,30 @@ export async function middleware(request: NextRequest) {
           headers: {
             'Location':              target97,
             'X-GabrielOS-Directive': 'WAF_95_CLEARANCE',
+            'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
+            'Cache-Control':         'no-store',
+          },
+        }
+      );
+    }
+  }
+
+  // ── Phase 111 — DriftShield v4.1: /api/v1/ Integrity Gate ───────────────
+  // Evaluates every /api/v1/ request against the MACDADDY_DriftShield_v4.1
+  // policy (WAF threshold 60, zero-noise filter, optional entropy check).
+  // Requests that fail are hard-blocked with 403 — this is a tighter gate
+  // than the 95-threshold redirect above and fires first for clear drift.
+  if (url.pathname.startsWith('/api/v1/')) {
+    const driftShieldEnv = (await getCloudflareContext({ async: true }).catch(() => null))?.env as Record<string, string | undefined> | undefined;
+    const dsOutcome = enforceDriftShield(request, driftShieldEnv);
+    if (!dsOutcome.pass) {
+      return new NextResponse(
+        JSON.stringify({ error: dsOutcome.reason, kernelSha: dsOutcome.kernelSha }),
+        {
+          status: dsOutcome.code,
+          headers: {
+            'Content-Type':          'application/json',
+            'X-GabrielOS-Directive': 'DRIFT_SHIELD_BLOCK',
             'X-AveryOS-Kernel':      KERNEL_ANCHOR_DISPLAY,
             'Cache-Control':         'no-store',
           },

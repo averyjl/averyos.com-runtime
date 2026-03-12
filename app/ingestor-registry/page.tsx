@@ -15,6 +15,7 @@
 
 import React, { useEffect, useState } from "react";
 import AnchorBanner    from "../../components/AnchorBanner";
+import FooterBadge     from "../../components/FooterBadge";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
