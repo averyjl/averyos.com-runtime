@@ -76,8 +76,13 @@ interface D1DatabaseLike {
   prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
-// ── Core: sovereignFetch ───────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
+// 2xx = confirmed success; 3xx = redirect, treated as success per the AveryOS™
+// sovereign infrastructure standard.  The Cloudflare Worker at averyos.com
+// returns HTTP 301 (apex→www redirect) for some routes — a redirect is proof
+// that the sovereign infrastructure is live and reachable.
+// Reference: Sovereign Admin Log Phase 112.7 — "Accept 2xx + 3xx".
 const DEFAULT_SUCCESS_STATUSES = [200, 201, 202, 203, 204, 206, 207, 208,
                                    300, 301, 302, 303, 304, 307, 308];
 

@@ -15,7 +15,7 @@
 CREATE TABLE IF NOT EXISTS chat_archives (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id      TEXT    NOT NULL,
-  exchange_index  INTEGER NOT NULL,          -- 0-based position within session
+  exchange_index  INTEGER NOT NULL CHECK (exchange_index >= 0),  -- 0-based, non-negative
   phase           TEXT    NOT NULL,          -- e.g. "114.3.1"
   prompt_text     TEXT    NOT NULL,          -- exact full prompt (all bytes)
   reply_text      TEXT    NOT NULL,          -- exact full reply (all bytes)

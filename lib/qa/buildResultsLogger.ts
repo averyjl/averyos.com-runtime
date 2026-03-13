@@ -46,13 +46,16 @@ export interface BuildResultPayload {
 }
 
 // Minimal binding types
-interface D1Statement { run(): Promise<void>; }
+interface D1Statement { run(): Promise<unknown>; }
 interface D1DatabaseLike {
   prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 interface R2BucketLike {
   put(key: string, body: string, opts?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
 }
+
+/** Maximum byte length of the inline JSON stored in D1 (Cloudflare D1 row limit). */
+const MAX_INLINE_JSON_SIZE = 65_536; // 64 KB
 
 // ── R2 key builder ─────────────────────────────────────────────────────────────
 
@@ -87,9 +90,9 @@ export async function logBuildResult(
     r2Key,
   });
 
-  // Truncate inline JSON to 64 KB for D1 storage limits
-  const inlineJson = resultJson.length > 65_536
-    ? resultJson.slice(0, 65_533) + "..."
+  // Truncate inline JSON to MAX_INLINE_JSON_SIZE for D1 storage limits
+  const inlineJson = resultJson.length > MAX_INLINE_JSON_SIZE
+    ? resultJson.slice(0, MAX_INLINE_JSON_SIZE - 3) + "..."
     : resultJson;
 
   // ── D1 write ─────────────────────────────────────────────────────────────────

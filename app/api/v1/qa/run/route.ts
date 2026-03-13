@@ -26,6 +26,7 @@ import {
   runTest,
   type QaSuiteResult,
 } from "../../../../../lib/qa/engine";
+import { logBuildResult } from "../../../../../lib/qa/buildResultsLogger";
 import {
   XSS_PAYLOADS,
   SQL_INJECTION_PAYLOADS,
@@ -62,8 +63,13 @@ interface D1Database {
   prepare(query: string): D1PreparedStatement;
 }
 
+interface R2Bucket {
+  put(key: string, body: string, opts?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
+}
+
 interface CloudflareEnv {
-  DB: D1Database;
+  DB:           D1Database;
+  VAULT_R2?:    R2Bucket;
   VAULT_PASSPHRASE?: string;
 }
 
@@ -301,7 +307,7 @@ export async function POST(request: Request): Promise<Response> {
         await cfEnv.DB.prepare(
           `INSERT OR IGNORE INTO qa_audit_log
              (run_id, trigger, status, total_tests, passed_tests, failed_tests,
-              sha512, kernel_sha, kernel_version, run_details, created_at)
+               sha512, kernel_sha, kernel_version, run_details, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           record.runId,
@@ -319,6 +325,21 @@ export async function POST(request: Request): Promise<Response> {
       } catch (_dbErr) {
         // Non-fatal — return results even if D1 write fails
       }
+
+      // ── Also persist to qa_build_results (D1 + R2) ──────────────────────────
+      await logBuildResult(
+        {
+          buildId:      record.runId,
+          engine:       "QA",
+          status:       record.status === "pass" ? "pass" : record.status === "partial" ? "partial" : "fail",
+          totalChecks:  record.totalTests,
+          passedChecks: record.passedTests,
+          failedChecks: record.failedTests,
+          resultData:   record,
+        },
+        cfEnv.DB,
+        cfEnv.VAULT_R2 ?? null,
+      );
     }
 
     return Response.json({

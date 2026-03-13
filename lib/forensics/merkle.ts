@@ -131,6 +131,10 @@ export async function generateChatMerkleRoot(
   for (let i = 0; i < exchanges.length; i++) {
     const ex = exchanges[i];
     // Hash: full exact content of both prompt and reply, preserving every byte.
+    // The NUL byte (\x00) separator prevents length-extension / collision attacks
+    // where concatenating differently-split strings ('AB'+'C' vs 'A'+'BC') could
+    // produce the same hash input. NUL cannot appear in valid UTF-8 text content,
+    // making it an unambiguous boundary marker.
     const leafHash = await sha256Hex(ex.prompt + "\x00" + ex.reply);
     leafHashes.push(leafHash);
 
