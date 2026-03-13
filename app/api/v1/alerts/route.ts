@@ -109,6 +109,9 @@ const SOVEREIGN_HEADERS = {
   "X-Sovereign-Anchor": "⛓️⚓⛓️",
 };
 
+/** Maximum byte-length for the event_type field before sanitization. */
+const MAX_EVENT_TYPE_LENGTH = 128;
+
 // ── GET handler ───────────────────────────────────────────────────────────────
 
 /**
@@ -240,7 +243,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const alertType = body.alert_type ?? "PUBLIC";
     // Enforce length before sanitization to prevent DoS via excessive string processing
-    const rawEventType = typeof body.event_type === "string" ? body.event_type.slice(0, 128) : "";
+    const rawEventType = typeof body.event_type === "string" ? body.event_type.slice(0, MAX_EVENT_TYPE_LENGTH) : "";
     if (!rawEventType.trim()) {
       return Response.json(
         { error: "BAD_REQUEST", message: "event_type must be a non-empty string." },

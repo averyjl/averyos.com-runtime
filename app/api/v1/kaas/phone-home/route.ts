@@ -60,15 +60,16 @@ function normaliseSha(raw: string): string | null {
 
 /**
  * Constant-time hex comparison to prevent timing side-channels.
- * Both strings are padded to the same length using the same fill character
- * so that every comparison processes exactly `maxLen` characters, regardless
- * of the actual string lengths.
+ * Both strings are padded to the same length with '0' (a valid non-null
+ * hex digit) so that charCodeAt never returns NaN on out-of-bounds indices
+ * and the padding cannot match unexpected content via null-byte tricks.
  */
 function safeHexEqual(a: string, b: string): boolean {
   const maxLen = Math.max(a.length, b.length);
-  // Pad both to identical length so charCodeAt never returns NaN
-  const paddedA = a.padEnd(maxLen, "\x00");
-  const paddedB = b.padEnd(maxLen, "\x00");
+  // Pad with '0' (not '\x00') — a valid hex char that cannot be crafted to
+  // match arbitrary content embedded in the other string.
+  const paddedA = a.padEnd(maxLen, "0");
+  const paddedB = b.padEnd(maxLen, "0");
   let diff = 0;
   for (let i = 0; i < maxLen; i++) {
     diff |= paddedA.charCodeAt(i) ^ paddedB.charCodeAt(i);
