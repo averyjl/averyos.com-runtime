@@ -13,8 +13,14 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
       - name: Check for Glyph Lock Drift
         run: |
+          if [ ! -f copilot-chat.json ]; then
+            echo "❌ copilot-chat.json not found at repository root"; exit 1
+          fi
           if grep -q '🤛🏻' copilot-chat.json; then
             echo "Glyph Lock Detected ✅"
           else

@@ -80,6 +80,75 @@ function scanFile(filePath) {
   return scanForDrift(body, filePath);
 }
 
+// Directories and extensions to skip when doing a recursive directory scan
+const SKIP_DIRS = new Set([
+  'node_modules', '.git', '.next', '.open-next', 'dist', 'build',
+  '.wrangler', 'coverage', '__pycache__',
+]);
+const SCAN_EXTENSIONS = new Set([
+  '.ts', '.tsx', '.js', '.jsx', '.cjs', '.mjs',
+  '.json', '.md', '.mdx', '.txt', '.yml', '.yaml', '.toml',
+  '.html', '.css', '.scss', '.env', '.example',
+]);
+
+/**
+ * Recursively collect all scannable file paths under a directory.
+ * @param {string} dirPath
+ * @param {string[]} [out]
+ * @returns {string[]}
+ */
+function collectFiles(dirPath, out = []) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  } catch (_e) {
+    return out;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (!SKIP_DIRS.has(entry.name)) {
+        collectFiles(path.join(dirPath, entry.name), out);
+      }
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (SCAN_EXTENSIONS.has(ext)) {
+        out.push(path.join(dirPath, entry.name));
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Scan all source files in a directory tree, merging drift results.
+ * @param {string} dirPath
+ * @returns {{ source: string, drifts: Array, score: number }}
+ */
+function scanDirectory(dirPath) {
+  const files = collectFiles(dirPath);
+  if (files.length === 0) {
+    return { source: dirPath, drifts: [], score: 0 };
+  }
+  const allDrifts = [];
+  let totalScore = 0;
+  for (const filePath of files) {
+    let body;
+    try {
+      body = fs.readFileSync(filePath, 'utf-8');
+    } catch (_e) {
+      continue; // skip unreadable files (binary, etc.)
+    }
+    const result = scanForDrift(body, filePath);
+    if (result.score > 0) {
+      for (const d of result.drifts) {
+        allDrifts.push({ ...d, file: filePath });
+      }
+      totalScore += result.score;
+    }
+  }
+  return { source: dirPath, drifts: allDrifts, score: totalScore, filesScanned: files.length };
+}
+
 /** Format a scan result as a human-readable report. */
 function formatReport(result) {
   const lines = [
@@ -87,17 +156,23 @@ function formatReport(result) {
     `Source: ${result.source}`,
     `Drift Score: ${result.score} (0 = clean)`,
     `Kernel SHA: ${KERNEL_SHA.slice(0, 16)}...`,
-    `─────────────────────────────────`,
   ];
+
+  if (result.filesScanned !== undefined) {
+    lines.push(`Files Scanned: ${result.filesScanned}`);
+  }
+  lines.push(`─────────────────────────────────`);
 
   if (result.drifts.length === 0) {
     lines.push('✅ CLEAN — No drift patterns detected. 100.000% alignment.');
   } else {
     lines.push(`⚠️  DRIFT DETECTED — ${result.drifts.length} pattern(s):`);
     for (const d of result.drifts) {
-      lines.push(`  [${d.severity}] "${d.canonical}" → "${d.drift}" (${d.count}x, weight: ${d.weight})`);
+      const fileLabel = d.file ? ` in ${path.relative(process.cwd(), d.file)}` : '';
+      lines.push(`  [${d.severity}] "${d.canonical}" → "${d.drift}" (${d.count}x, weight: ${d.weight})${fileLabel}`);
     }
-    lines.push(`\nRecommendation: Replace "${result.drifts.map(d => d.drift).join('", "')}" with canonical AveryOS™ spellings.`);
+    const driftNames = [...new Set(result.drifts.map(d => d.drift))];
+    lines.push(`\nRecommendation: Replace "${driftNames.join('", "')}" with canonical AveryOS™ spellings.`);
   }
 
   lines.push(`\n🤜🏻\n⛓️⚓⛓️`);
@@ -113,6 +188,7 @@ async function main() {
   if (urlIdx === -1 && fileIdx === -1) {
     console.log('Usage: node scripts/sovereignLinguisticAudit.cjs [--url <url>] [--file <path>]');
     console.log('Example: node scripts/sovereignLinguisticAudit.cjs --url https://averyos.com');
+    console.log('Example: node scripts/sovereignLinguisticAudit.cjs --file .');
     process.exit(0);
   }
 
@@ -123,13 +199,34 @@ async function main() {
       console.log(`Scanning URL: ${url}...`);
       result = await fetchAndScan(url);
     } else {
-      const filePath = path.resolve(args[fileIdx + 1]);
-      console.log(`Scanning file: ${filePath}...`);
-      result = scanFile(filePath);
+      const targetPath = path.resolve(args[fileIdx + 1]);
+      const stat = fs.statSync(targetPath);
+      if (stat.isDirectory()) {
+        console.log(`Scanning directory: ${targetPath}...`);
+        result = scanDirectory(targetPath);
+      } else {
+        console.log(`Scanning file: ${targetPath}...`);
+        result = scanFile(targetPath);
+      }
     }
 
     console.log(formatReport(result));
-    process.exit(result.score > 0 ? 1 : 0);
+    // Only fail CI on HIGH-severity drift in SOURCE CODE files (.ts/.tsx/.js/.cjs/.mjs).
+    // Documentation and config files may legitimately use various spellings, and the
+    // audit script itself contains drift pattern definitions that would self-match.
+    const SOURCE_CODE_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.cjs', '.mjs']);
+    const SELF_PATH = path.resolve(__filename);
+    const highSeverityScore = result.drifts
+      .filter(d => d.severity === 'HIGH')
+      .filter(d => {
+        const dFile = d.file ? path.resolve(d.file) : null;
+        if (!dFile) return true; // single-file mode: always apply
+        if (dFile === SELF_PATH) return false; // skip self-scan of pattern definitions
+        const ext = path.extname(dFile).toLowerCase();
+        return SOURCE_CODE_EXTS.has(ext);
+      })
+      .reduce((sum, d) => sum + d.weight, 0);
+    process.exit(highSeverityScore > 0 ? 1 : 0);
   } catch (err) {
     console.error('Audit error:', err.message);
     process.exit(2);

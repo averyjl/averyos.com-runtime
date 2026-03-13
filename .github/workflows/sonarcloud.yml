@@ -42,7 +42,7 @@ jobs:
   Analysis:
     runs-on: ubuntu-latest
     # Skip gracefully when SONAR_TOKEN is not configured
-    if: ${{ secrets.SONAR_TOKEN != '' }}
+    if: secrets.SONAR_TOKEN != ''
 
     steps:
       - name: Checkout Repository

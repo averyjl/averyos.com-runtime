@@ -33,8 +33,9 @@
  */
 "use strict";
 
-const fs   = require("fs");
+const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 const WORKER_JS = path.join(__dirname, "../.open-next/worker.js");
 
@@ -43,10 +44,12 @@ if (!fs.existsSync(WORKER_JS)) {
   process.exit(0);
 }
 
+// Keep a copy of the original so we can revert if the post-patch syntax check fails.
+const originalContent = fs.readFileSync(WORKER_JS, "utf8");
+let content = originalContent;
+
 // Sentinel to detect if patch was already applied
 const PATCH_SENTINEL = "/* SOVEREIGN_QUEUE_CONSUMER_v112 */";
-
-let content = fs.readFileSync(WORKER_JS, "utf8");
 
 if (content.includes(PATCH_SENTINEL)) {
   console.log("✅ patchWorkerQueue: .open-next/worker.js already patched (queue consumer)");
@@ -152,7 +155,39 @@ if (!CLOSE_EXPORT) {
 }
 
 const closeIndex = content.lastIndexOf(CLOSE_EXPORT[0]);
-content = content.slice(0, closeIndex) + ",\n  queue: _sovereignQueueHandler,\n};\n";
+const beforeClose = content.slice(0, closeIndex);
+
+// The OpenNext worker template adds a trailing comma after the last property
+// (e.g. `  },` before the closing `};`).  Prepending ANOTHER `,` would create
+// a double-comma syntax error that wrangler rejects with "Expected identifier".
+// Only add the comma separator when the content before `};` does NOT already
+// end with one.
+const alreadyHasTrailingComma = /,\s*$/.test(beforeClose);
+const separator = alreadyHasTrailingComma ? "" : ",";
+content = beforeClose + separator + "\n  queue: _sovereignQueueHandler,\n};\n";
+
+// ── Post-patch syntax validation ──────────────────────────────────────────────
+// Validate the patched JS with `node --check` before writing so that any future
+// OpenNext template changes are caught HERE (with a clear error + auto-revert)
+// rather than as a cryptic wrangler build failure downstream.
+try {
+  // Write to a temp file first so we can check without overwriting the original.
+  const tmpFile = WORKER_JS + ".patch-check.tmp";
+  fs.writeFileSync(tmpFile, content, "utf8");
+  try {
+    execSync(`node --check "${tmpFile}"`, { stdio: "pipe" });
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+} catch (syntaxErr) {
+  const msg = syntaxErr.stderr ? syntaxErr.stderr.toString().trim() : String(syntaxErr);
+  console.error("⚠️  patchWorkerQueue: post-patch syntax check FAILED — reverting to original.");
+  console.error("   This means the OpenNext worker.js format has changed.");
+  console.error("   Error:", msg.split("\n")[0]);
+  console.error("   worker.js left untouched. Investigate patchWorkerQueue.cjs before redeploying.");
+  // Leave the original file unchanged.
+  process.exit(1);
+}
 
 fs.writeFileSync(WORKER_JS, content, "utf8");
 console.log("✅ patchWorkerQueue: injected sovereign queue consumer into .open-next/worker.js (Phase 112 GATE 112.1)");
