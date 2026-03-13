@@ -36,7 +36,7 @@ let mainWindow = null;
 
 // ── Kernel constants ─────────────────────────────────────────────────────────
 const KERNEL_VERSION = "v3.6.2";
-const KERNEL_ANCHOR_DISPLAY = "cf83...da3e";
+const KERNEL_ANCHOR_DISPLAY = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 const SITE_URL = "https://www.averyos.com";
 
 function createWindow() {
