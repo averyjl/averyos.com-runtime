@@ -866,28 +866,37 @@ export async function middleware(request: NextRequest) {
   // ── 1,017-Notch Rate Limiting ─────────────────────────────────────────────
   // Enforces a per-IP limit of 1,017 requests per minute to protect the
   // sovereign kernel from DDoS and probabilistic noise attacks.
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    const cfEnv = env as unknown as GatekeeperEnv;
-    if (cfEnv.RATE_LIMITER) {
-      const ip = request.headers.get('cf-connecting-ip') ??
-                 request.headers.get('x-forwarded-for') ?? 'unknown';
-      const { success } = await cfEnv.RATE_LIMITER.limit({ key: ip });
-      if (!success) {
-        return NextResponse.json(
-          {
-            status: "429 Too Many Requests",
-            error: "1,017-Notch Sovereign Rate Limit Exceeded",
-            directive: "Reduce request frequency and obtain a VaultChain™ license for elevated access.",
-            kernel_anchor: KERNEL_ANCHOR_DISPLAY,
-            license_url: "https://averyos.com/licensing",
-          },
-          { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "RATE_LIMITED" } }
-        );
+  //
+  // CRITICAL EXCLUSION: TARI_BILLED_PATHS (bot magnet pages) are always exempt
+  // from rate limiting.  Bot traffic on magnet paths MUST reach the TARI billing
+  // logic below (line ~1349) — blocking it with a 429 would deny monetization.
+  // The AveryOS Sovereign Principle: allow magnet traffic through 100% of the time.
+  const rlPathname = new URL(request.url).pathname;
+  const isMagnetPath = TARI_BILLED_PATHS.has(rlPathname);
+  if (!isMagnetPath) {
+    try {
+      const { env } = await getCloudflareContext({ async: true });
+      const cfEnv = env as unknown as GatekeeperEnv;
+      if (cfEnv.RATE_LIMITER) {
+        const ip = request.headers.get('cf-connecting-ip') ??
+                   request.headers.get('x-forwarded-for') ?? 'unknown';
+        const { success } = await cfEnv.RATE_LIMITER.limit({ key: ip });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status: "429 Too Many Requests",
+              error: "1,017-Notch Sovereign Rate Limit Exceeded",
+              directive: "Reduce request frequency and obtain a VaultChain™ license for elevated access.",
+              kernel_anchor: KERNEL_ANCHOR_DISPLAY,
+              license_url: "https://averyos.com/licensing",
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "RATE_LIMITED" } }
+          );
+        }
       }
+    } catch {
+      // Rate limiter binding not available (local dev) — allow through
     }
-  } catch {
-    // Rate limiter binding not available (local dev) — allow through
   }
 
   // ── Roadmap Gate 1.7 — Handshake-specific rate limit (10 req/60s per IP) ──

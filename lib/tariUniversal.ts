@@ -85,22 +85,31 @@ export interface TariDebtResult {
  * ```
  */
 export function computeTariRetroactiveDebt(entries: AuditLogEntry[]): TariDebtResult {
-  const breakdown: Record<string, TariDebtBreakdown> = {};
+  // Use Map to accumulate per-event-type breakdown — avoids prototype-pollution
+  // risk from variable-key object access (security/detect-object-injection).
+  const breakdownMap = new Map<string, TariDebtBreakdown>();
+  // Convert the liability schedule to a Map for safe lookup.
+  const liabilityMap = new Map(Object.entries(TARI_LIABILITY_USD));
   let totalCents = 0;
 
   for (const entry of entries) {
     const eventType      = String(entry.event_type ?? "PEER_ACCESS");
-    const liabilityUsd   = TARI_LIABILITY_USD[eventType] ?? 0;
+    const liabilityUsd   = liabilityMap.get(eventType) ?? 0;
     const liabilityCents = Math.round(liabilityUsd * 100);
 
-    if (!breakdown[eventType]) {
-      breakdown[eventType] = { count: 0, totalCents: 0, totalUsd: 0 };
+    let row = breakdownMap.get(eventType);
+    if (!row) {
+      row = { count: 0, totalCents: 0, totalUsd: 0 };
+      breakdownMap.set(eventType, row);
     }
-    breakdown[eventType].count      += 1;
-    breakdown[eventType].totalCents += liabilityCents;
-    breakdown[eventType].totalUsd    = breakdown[eventType].totalCents / 100;
+    row.count      += 1;
+    row.totalCents += liabilityCents;
+    row.totalUsd    = row.totalCents / 100;
     totalCents += liabilityCents;
   }
+
+  // Convert Map back to Record for the public API return type.
+  const breakdown: Record<string, TariDebtBreakdown> = Object.fromEntries(breakdownMap);
 
   return {
     totalCents,
