@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-12T21:25:27.864Z",
+  "generated_at": "2026-03-13T21:26:12.449Z",
   "modules": [
     {
       "path": "lib/ai/geminiClient.ts",
@@ -549,6 +549,33 @@
       ]
     },
     {
+      "path": "lib/forensics/merkle.ts",
+      "doc": "admin/docs/lib/forensics/merkle.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "generateChatMerkleRoot",
+          "kind": "function"
+        },
+        {
+          "name": "ChatExchange",
+          "kind": "interface"
+        },
+        {
+          "name": "MerkleResult",
+          "kind": "interface"
+        },
+        {
+          "name": "MerkleD1Statement",
+          "kind": "interface"
+        },
+        {
+          "name": "MerkleD1Database",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/sentinels.ts",
       "doc": "admin/docs/lib/forensics/sentinels.md",
       "symbolCount": 3,
@@ -595,6 +622,25 @@
       ]
     },
     {
+      "path": "lib/forensics/vitality.ts",
+      "doc": "admin/docs/lib/forensics/vitality.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "logVitalityMetric",
+          "kind": "function"
+        },
+        {
+          "name": "VitalityMetric",
+          "kind": "interface"
+        },
+        {
+          "name": "VitalityStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/geminiSpendTracker.ts",
       "doc": "admin/docs/lib/geminiSpendTracker.md",
       "symbolCount": 8,
@@ -629,6 +675,25 @@
         },
         {
           "name": "GeminiSpendKV",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/handshake.ts",
+      "doc": "admin/docs/lib/handshake.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "sovereignFetch",
+          "kind": "function"
+        },
+        {
+          "name": "HandshakeOpts",
+          "kind": "interface"
+        },
+        {
+          "name": "HandshakeResult",
           "kind": "interface"
         }
       ]
@@ -832,6 +897,33 @@
       ]
     },
     {
+      "path": "lib/qa/buildResultsLogger.ts",
+      "doc": "admin/docs/lib/qa/buildResultsLogger.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "buildResultR2Key",
+          "kind": "function"
+        },
+        {
+          "name": "logBuildResult",
+          "kind": "function"
+        },
+        {
+          "name": "BuildResultPayload",
+          "kind": "interface"
+        },
+        {
+          "name": "BuildEngine",
+          "kind": "type"
+        },
+        {
+          "name": "BuildStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/qa/engine.ts",
       "doc": "admin/docs/lib/qa/engine.md",
       "symbolCount": 11,
@@ -953,6 +1045,17 @@
         {
           "name": "SecurityHeaderReport",
           "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/queue/logConsumerHandler.ts",
+      "doc": "admin/docs/lib/queue/logConsumerHandler.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "sovereignQueueHandler",
+          "kind": "function"
         }
       ]
     },
@@ -1901,6 +2004,21 @@
       "symbols": [
         {
           "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/kaas/phone-home/route.ts",
+      "doc": "admin/docs/app/api/v1/kaas/phone-home/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
           "kind": "function"
         }
       ]

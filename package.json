@@ -74,6 +74,7 @@
     "@types/node": "22.13.5",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
+    "electron": "^41.0.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.12",
     "eslint-plugin-security": "^4.0.0",
