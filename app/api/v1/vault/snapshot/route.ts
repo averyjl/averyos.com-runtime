@@ -34,6 +34,7 @@ import { getCloudflareContext }       from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { formatIso9 }                 from "../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { safeEqual }                  from "../../../../../lib/taiLicenseGate";
 
 // ── Local type interfaces (no @cloudflare/workers-types import) ───────────────
 
@@ -57,23 +58,6 @@ interface CloudflareEnv {
 }
 
 // ── SHA-512 helper ────────────────────────────────────────────────────────────
-
-/** Constant-time string comparison to mitigate timing-side-channel attacks. */
-function safeEqual(a: string, b: string): boolean {
-  if (!a || !b) return false;
-  const enc    = new TextEncoder();
-  const aBytes = enc.encode(a);
-  const bBytes = enc.encode(b);
-  if (aBytes.length !== bBytes.length) {
-    // Always traverse to maintain constant-time behaviour
-    const maxLen = Math.max(aBytes.length, bBytes.length);
-    for (let i = 0; i < maxLen; i++) void (aBytes[i] ?? 0);
-    return false;
-  }
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
 
 async function sha512hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest(

@@ -172,7 +172,11 @@ content = beforeClose + separator + "\n  queue: _sovereignQueueHandler,\n};\n";
 // rather than as a cryptic wrangler build failure downstream.
 try {
   // Write to a temp file first so we can check without overwriting the original.
-  const tmpFile = WORKER_JS + ".patch-check.tmp";
+  // Use the .mjs extension so Node.js treats the file as an ES module, which
+  // matches the ESM format of the OpenNext worker.js bundle (it uses
+  // `export default`).  Without .mjs, node --check interprets the file as
+  // CommonJS and rejects ESM syntax with ERR_REQUIRE_ESM / get_format errors.
+  const tmpFile = WORKER_JS + ".patch-check.tmp.mjs";
   fs.writeFileSync(tmpFile, content, "utf8");
   try {
     execSync(`node --check "${tmpFile}"`, { stdio: "pipe" });

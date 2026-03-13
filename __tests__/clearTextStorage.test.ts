@@ -140,6 +140,7 @@ describe("B — useVaultAuth hook: all admin pages use the permanent auth patter
     path.join(ADMIN_DIR, "settlements",        "page.tsx"),
     path.join(ADMIN_DIR, "monetization",       "page.tsx"),
     path.join(ADMIN_DIR, "tai-accomplishments","page.tsx"),
+    path.join(ADMIN_DIR, "health-status",      "page.tsx"),
   ];
 
   for (const pagePath of ADMIN_PAGES) {

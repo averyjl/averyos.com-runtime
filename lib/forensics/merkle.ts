@@ -59,13 +59,18 @@ export interface MerkleResult {
 }
 
 // ── Minimal D1 binding types ───────────────────────────────────────────────────
-interface D1Statement {
+/** Minimal D1 statement shape compatible with the Merkle archive writer. */
+export interface MerkleD1Statement {
   run(): Promise<void>;
 }
-interface D1Database {
-  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
-  batch(stmts: D1Statement[]): Promise<unknown[]>;
+/** Minimal D1 database binding shape used by `generateChatMerkleRoot`. */
+export interface MerkleD1Database {
+  prepare(sql: string): { bind(...args: unknown[]): MerkleD1Statement };
+  batch(stmts: MerkleD1Statement[]): Promise<unknown[]>;
 }
+// Internal aliases kept for backward compatibility within this module.
+type D1Statement = MerkleD1Statement;
+type D1Database  = MerkleD1Database;
 
 // ── SHA-512 helper (Web Crypto / Node crypto) ──────────────────────────────────
 // SHA-512 is the AveryOS™ sovereign cryptographic standard, matching the
