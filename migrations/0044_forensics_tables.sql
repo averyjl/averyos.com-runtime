@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS chat_archives (
   phase           TEXT    NOT NULL,          -- e.g. "114.3.1"
   prompt_text     TEXT    NOT NULL,          -- exact full prompt (all bytes)
   reply_text      TEXT    NOT NULL,          -- exact full reply (all bytes)
-  prompt_sha256   TEXT    NOT NULL,          -- SHA-256 of prompt_text
-  reply_sha256    TEXT    NOT NULL,          -- SHA-256 of reply_text
+  prompt_sha512   TEXT    NOT NULL,          -- SHA-512 of prompt_text
+  reply_sha512    TEXT    NOT NULL,          -- SHA-512 of reply_text
   leaf_hash       TEXT    NOT NULL,          -- SHA-256(prompt + NUL + reply)
   merkle_root     TEXT,                      -- session Merkle root (filled after session)
   prompt_at       TEXT    NOT NULL,          -- ISO-9 timestamp of prompt
