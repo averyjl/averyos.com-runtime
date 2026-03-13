@@ -36,6 +36,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/evidence-vault", label: "Evidence Vault", icon: "🗄️" },
   // ── Capsules & tools ────────────────────────────────────────────────────────
   { path: "/capsules", label: "Capsule Market", icon: "💊" },
+  { path: "/capsule-store", label: "Capsule Store", icon: "🏪" },
   { path: "/discover", label: "Discover", icon: "🔍" },
   { path: "/verify", label: "Verify", icon: "✅" },
   { path: "/certificate", label: "Certificate", icon: "📄" },

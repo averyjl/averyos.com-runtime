@@ -1,7 +1,7 @@
 /**
  * lib/forensics/inventionTracker.ts
  *
- * GabrielOS™ Invention Pulse — Phase 113.6.2
+ * GabrielOS™ Invention Pulse — Phase 114.1.2
  *
  * Indexes unique logic blocks (micro-inventions) as sovereign .aoscap invention
  * capsules anchored to the AveryOS™ Root0 Kernel.  Each capsule records:
@@ -13,12 +13,134 @@
  * The resulting capsules form an Immutable Patent Record suitable for
  * submission to any auditing party, VaultChain verification, or legal filing.
  *
+ * GATE 114.1.2 — Sovereign MIME Type Registry:
+ *   All AveryOS™ proprietary file extensions are registered here as the
+ *   canonical source of truth.  New types can be added to SOVEREIGN_MIME_TYPES
+ *   without modifying any other file — all consumers import from here.
+ *
  * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../sovereignConstants";
 import { formatIso9 } from "../timePrecision";
+
+// ── Sovereign MIME Type Registry (GATE 114.1.2) ───────────────────────────────
+
+/**
+ * Canonical registry of all AveryOS™ sovereign file extensions.
+ *
+ * Adding a new type here is sufficient — all consumers (LeakGuard, QA engine,
+ * capsule store, invention tracker) import from this single source of truth.
+ * The registry is intentionally open for future extension (new entries can be
+ * pushed to `extensions` without touching any other field).
+ */
+export interface SovereignMimeType {
+  /** File extension including leading dot */
+  extension: string;
+  /** Human-readable label */
+  label: string;
+  /** Brief description of the type's purpose */
+  description: string;
+  /** Whether this type is gitignored (private by default) */
+  private: boolean;
+}
+
+/** All registered AveryOS™ sovereign MIME / file extension types. */
+export const SOVEREIGN_MIME_TYPES: SovereignMimeType[] = [
+  {
+    extension:   ".aoscap",
+    label:       "AOS Capsule",
+    description: "Sovereign capsule payload — functional logic block anchored to the kernel.",
+    private:     false, // source capsules in capsules/ are tracked; bundles are ignored
+  },
+  {
+    extension:   ".aosinv",
+    label:       "AOS Invention",
+    description: "Patent-ready invention record: phrasing, biometric claim, SHA-512 fingerprint.",
+    private:     true,
+  },
+  {
+    extension:   ".aoslaw",
+    label:       "AOS Law / Constitutional Amendment",
+    description: "AveryOS Constitution amendment or sovereign law document.",
+    private:     true,
+  },
+  {
+    extension:   ".vccaps",
+    label:       "VaultChain Capsule",
+    description: "Permanent VaultChain™ capsule — immutable ledger entry.",
+    private:     true,
+  },
+  {
+    extension:   ".aosmem",
+    label:       "AOS Memory",
+    description: "High-precision sovereign memory log.",
+    private:     true,
+  },
+  {
+    extension:   ".aoscsp",
+    label:       "AOS Capsule Schema / Spec",
+    description: "Capsule schema definition or specification file.",
+    private:     true,
+  },
+  {
+    extension:   ".aosvault",
+    label:       "AOS Vault",
+    description: "Encrypted sovereign vault file.",
+    private:     true,
+  },
+  {
+    extension:   ".aoskey",
+    label:       "AOS Key",
+    description: "Sovereign cryptographic key material.",
+    private:     true,
+  },
+  {
+    extension:   ".avery",
+    label:       "Avery Sovereign File",
+    description: "General sovereign file format authored by Jason Lee Avery (ROOT0).",
+    private:     true,
+  },
+];
+
+/**
+ * Return the sovereign MIME type entry for the given file extension.
+ * Returns `undefined` if the extension is not registered.
+ */
+export function getSovereignMimeType(extension: string): SovereignMimeType | undefined {
+  const normalized = extension.startsWith(".") ? extension : `.${extension}`;
+  return SOVEREIGN_MIME_TYPES.find((t) => t.extension === normalized);
+}
+
+/**
+ * Returns the list of all private (gitignored) sovereign extensions.
+ * Used by LeakGuard and .gitignore generation.
+ */
+export function getPrivateSovereignExtensions(): string[] {
+  return SOVEREIGN_MIME_TYPES.filter((t) => t.private).map((t) => t.extension);
+}
+
+/**
+ * Register a new sovereign MIME type at runtime (dynamic extension support).
+ *
+ * Intended to be called once at module initialization time only, not during
+ * concurrent request handling.  Cloudflare Workers run single-threaded within
+ * each isolate, so there is no in-flight concurrency risk during a single
+ * request; however, this function should not be called from within hot
+ * request paths to avoid non-deterministic ordering across isolate restarts.
+ *
+ * Throws if the extension is already registered.
+ */
+export function registerSovereignMimeType(entry: SovereignMimeType): void {
+  const existing = getSovereignMimeType(entry.extension);
+  if (existing) {
+    throw new Error(
+      `Sovereign MIME type '${entry.extension}' is already registered as '${existing.label}'.`,
+    );
+  }
+  SOVEREIGN_MIME_TYPES.push(entry);
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

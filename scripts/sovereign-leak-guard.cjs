@@ -7,7 +7,7 @@
  *
  * PURPOSE
  * -------
- * A server-side CI gate that provides FOUR layers of protection beyond .gitignore:
+ * A server-side CI gate that provides FIVE layers of protection beyond .gitignore:
  *
  *   Layer 1 — Git-Tree Pattern Guard:
  *     Reads ALL patterns from .gitignore at runtime (dynamic — stays current as
@@ -32,6 +32,13 @@
  *     Scans ALL tracked .har files for Authorization headers, Bearer tokens,
  *     API keys, and private key material embedded in request/response entries.
  *     HAR files capture full HTTP traffic and commonly expose credentials.
+ *
+ *   Layer 5 — Sovereign MIME Type Guard (Gate 114.1.4):
+ *     Scans ALL tracked files for any private AveryOS™ sovereign extensions
+ *     (.aosinv, .aoslaw, .vccaps, .aosmem, .aoscsp, .aosvault, .aoskey, .avery).
+ *     These file types are ALWAYS private and must never be committed.
+ *     Dynamic: the extension list is maintained here as the canonical source
+ *     until lib/forensics/inventionTracker.ts can be imported at build time.
  *
  * RULE: Do NOT remove, weaken, or bypass this gate.
  *       Added by Jason Lee Avery (ROOT0). Requires ROOT0 consent to modify.
@@ -569,6 +576,48 @@ function scanHarFiles(trackedFiles) {
   return findings;
 }
 
+// ── Layer 5: Sovereign MIME type guard (Gate 114.1.4) ────────────────────────
+
+/**
+ * All private AveryOS™ sovereign MIME extensions.
+ *
+ * This list mirrors lib/forensics/inventionTracker.ts → SOVEREIGN_MIME_TYPES
+ * (private: true entries).  Kept in sync manually as CJS cannot import ESM TS.
+ *
+ * RULE: When adding a new sovereign extension, update BOTH this list AND
+ *       SOVEREIGN_MIME_TYPES in lib/forensics/inventionTracker.ts.
+ */
+const PRIVATE_SOVEREIGN_EXTENSIONS = new Set([
+  '.aosinv',  // Invention patent record
+  '.aoslaw',  // Constitutional amendment / sovereign law
+  '.vccaps',  // VaultChain permanent capsule
+  '.aosmem',  // Sovereign memory log
+  '.aoscsp',  // Capsule schema / spec
+  '.aosvault', // Encrypted sovereign vault
+  '.aoskey',  // Cryptographic key material
+  '.avery',   // General Avery sovereign file
+]);
+
+/**
+ * GATE 114.1.4 — Layer 5: Sovereign MIME Type Guard
+ *
+ * Scans the tracked file list for any file whose extension matches a private
+ * sovereign MIME type.  These files MUST never appear in git history.
+ *
+ * @param {string[]} trackedFiles  Output of getTrackedFiles().
+ * @returns {{ file: string, ext: string }[]}  List of violations.
+ */
+function checkSovereignMimeTypes(trackedFiles) {
+  const violations = [];
+  for (const relPath of trackedFiles) {
+    const ext = path.extname(relPath).toLowerCase();
+    if (PRIVATE_SOVEREIGN_EXTENSIONS.has(ext)) {
+      violations.push({ file: relPath, ext });
+    }
+  }
+  return violations;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 function main() {
@@ -597,7 +646,8 @@ function main() {
   console.log(`[Layer 1] Checking ${trackedFiles.length} tracked file(s) against .gitignore rules`);
   console.log(`[Layer 2] Scanning tracked files for embedded secret patterns`);
   console.log(`[Layer 3] Scanning all files for key/token filenames with key material`);
-  console.log(`[Layer 4] Scanning tracked .har files for embedded key/credential patterns\n`);
+  console.log(`[Layer 4] Scanning tracked .har files for embedded key/credential patterns`);
+  console.log(`[Layer 5] Scanning tracked files for private sovereign MIME extensions\n`);
 
   // ── Layer 1: Pattern violations ──────────────────────────────────────────
   const patternViolations = checkTreeAgainstRules(trackedFiles, rules);
@@ -639,7 +689,15 @@ function main() {
     console.log(`✅ [Layer 4] HAR file scan passed — no key patterns detected in tracked .har files.`);
   }
 
-  const totalViolations = patternViolations.length + contentViolations.length + harViolations.length;
+  // ── Layer 5: Sovereign MIME type guard (Gate 114.1.4) ────────────────────
+  const mimeViolations = checkSovereignMimeTypes(trackedFiles);
+  if (mimeViolations.length > 0) {
+    console.log(`⚠️  [Layer 5] ${mimeViolations.length} private sovereign MIME file(s) are tracked in git.`);
+  } else {
+    console.log(`✅ [Layer 5] Sovereign MIME type guard passed — no private AOS extension files tracked.`);
+  }
+
+  const totalViolations = patternViolations.length + contentViolations.length + harViolations.length + mimeViolations.length;
 
   // ── Report ────────────────────────────────────────────────────────────────
   if (patternViolations.length > 0) {
@@ -681,11 +739,23 @@ function main() {
     console.error('    # CRITICAL: Rotate ALL credentials found in the HAR file immediately.\n');
   }
 
+  if (mimeViolations.length > 0) {
+    console.error(`\n❌ [Layer 5] ${mimeViolations.length} private sovereign MIME file(s) are tracked in git:\n`);
+    for (const { file, ext } of mimeViolations) {
+      console.error(`  ⛔  ${file}  (${ext})`);
+    }
+    console.error('\n  Remediation:');
+    console.error('    These sovereign file types are always private and must never be committed.');
+    console.error('    git rm --cached <file> && git commit -m "Remove private sovereign MIME file"');
+    console.error('    # Review content for IP leakage — do not push to any public remote.\n');
+  }
+
   if (totalViolations === 0) {
     console.log('✅ [Layer 1] Git-tree pattern guard passed — no .gitignore-d files are tracked.');
     console.log(`✅ [Layer 2] Content guard passed — no secret patterns found in ${trackedFiles.length} tracked files.`);
     console.log(`✅ [Layer 3] Key/token auto-guard passed — ${autoAdded.length} file(s) auto-added to .gitignore.`);
     console.log(`✅ [Layer 4] HAR key-pattern guard passed — no credentials found in tracked .har files.`);
+    console.log(`✅ [Layer 5] Sovereign MIME type guard passed — no private AOS extension files tracked.`);
     logAosHeal(AOS_ERROR.INTERNAL_ERROR,
       `sovereign-leak-guard: clean — ${trackedFiles.length} files checked, 0 violations, ${autoAdded.length} auto-added to .gitignore.`);
     process.exit(0);
@@ -694,7 +764,7 @@ function main() {
   // ── Failure ───────────────────────────────────────────────────────────────
   logAosError(AOS_ERROR.INVALID_FIELD,
     `sovereign-leak-guard: ${totalViolations} violation(s) — ` +
-    `${patternViolations.length} tree pattern(s), ${contentViolations.length} content secret(s), ${harViolations.length} HAR credential(s).`);
+    `${patternViolations.length} tree pattern(s), ${contentViolations.length} content secret(s), ${harViolations.length} HAR credential(s), ${mimeViolations.length} sovereign MIME file(s).`);
 
   console.error(`\n⛓️⚓⛓️  Sovereign Leak Guard FAILED — ${totalViolations} violation(s) detected.`);
 

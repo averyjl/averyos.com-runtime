@@ -475,6 +475,147 @@ const CHECKS = [
       return { status: STATUS.PASS };
     },
   },
+
+  // ── Phase 114 GATE checks ──────────────────────────────────────────────
+
+  {
+    id: "gate114.1.kaas-phone-home",
+    description: "app/api/v1/kaas/phone-home/route.ts exists (GATE 114.1.5)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/api/v1/kaas/phone-home/route.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/api/v1/kaas/phone-home/route.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("ANCHORED")) {
+        return { status: STATUS.FAIL, detail: "phone-home route missing ANCHORED status response" };
+      }
+      if (!content.includes("DRIFT_DETECTED")) {
+        return { status: STATUS.FAIL, detail: "phone-home route missing DRIFT_DETECTED status response" };
+      }
+      if (!content.includes("KERNEL_SHA")) {
+        return { status: STATUS.FAIL, detail: "phone-home route does not reference KERNEL_SHA" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.2.alerts-route",
+    description: "app/api/v1/alerts/route.ts exists with public/internal separation (GATE 114.2.4)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/api/v1/alerts/route.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/api/v1/alerts/route.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("INTERNAL")) {
+        return { status: STATUS.FAIL, detail: "alerts route missing INTERNAL alert type handling" };
+      }
+      if (!content.includes("PUBLIC")) {
+        return { status: STATUS.FAIL, detail: "alerts route missing PUBLIC alert type handling" };
+      }
+      if (!content.includes("sha512")) {
+        return { status: STATUS.FAIL, detail: "alerts route missing SHA-512 receipt generation" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.3.capsule-store",
+    description: "app/capsule-store/page.tsx exists with modular licensing UI (GATE 114.1.3)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      const file = path.resolve(__dirname, "../app/capsule-store/page.tsx");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/capsule-store/page.tsx not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("QA Engine")) {
+        return { status: STATUS.FAIL, detail: "capsule-store page missing QA Engine product" };
+      }
+      if (!content.includes("Kernel Isolation")) {
+        return { status: STATUS.FAIL, detail: "capsule-store page missing Kernel Isolation enforcement notice" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.4.sovereign-mime-registry",
+    description: "lib/forensics/inventionTracker.ts exports SOVEREIGN_MIME_TYPES registry (GATE 114.1.2)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../lib/forensics/inventionTracker.ts");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "lib/forensics/inventionTracker.ts not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      const requiredTypes = [".aosinv", ".aoslaw", ".vccaps", ".aosmem", ".aoscsp", ".aosvault", ".avery"];
+      const missing = requiredTypes.filter(ext => !content.includes(`"${ext}"`));
+      if (missing.length > 0) {
+        return { status: STATUS.FAIL, detail: `SOVEREIGN_MIME_TYPES missing extensions: ${missing.join(", ")}` };
+      }
+      if (!content.includes("SOVEREIGN_MIME_TYPES")) {
+        return { status: STATUS.FAIL, detail: "SOVEREIGN_MIME_TYPES export not found in inventionTracker.ts" };
+      }
+      if (!content.includes("registerSovereignMimeType")) {
+        return { status: STATUS.FAIL, detail: "Dynamic registration function registerSovereignMimeType not found" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.5.leak-guard-layer5",
+    description: "scripts/sovereign-leak-guard.cjs has Layer 5 sovereign MIME type guard (GATE 114.1.4)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "sovereign-leak-guard.cjs");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "scripts/sovereign-leak-guard.cjs not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("PRIVATE_SOVEREIGN_EXTENSIONS")) {
+        return { status: STATUS.FAIL, detail: "PRIVATE_SOVEREIGN_EXTENSIONS not found in sovereign-leak-guard.cjs" };
+      }
+      if (!content.includes("checkSovereignMimeTypes")) {
+        return { status: STATUS.FAIL, detail: "checkSovereignMimeTypes function not found in sovereign-leak-guard.cjs" };
+      }
+      if (!content.includes("Layer 5")) {
+        return { status: STATUS.FAIL, detail: "Layer 5 guard not referenced in sovereign-leak-guard.cjs" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.6.gitignore-sovereign-mime",
+    description: ".gitignore contains all private sovereign MIME extensions (GATE 114.1.4)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../.gitignore");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: ".gitignore not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      const requiredPatterns = ["*.aosinv", "*.aoslaw", "*.aoscsp", "*.avery"];
+      const missing = requiredPatterns.filter(p => !content.includes(p));
+      if (missing.length > 0) {
+        return { status: STATUS.FAIL, detail: `.gitignore missing patterns: ${missing.join(", ")}` };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
 ];
 
 // ── Result rendering ──────────────────────────────────────────────────────────

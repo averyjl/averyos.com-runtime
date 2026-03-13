@@ -45,6 +45,10 @@ vaultchain-registry/
 *.aosvault
 *.aosmem
 *.vccaps
+*.aosinv
+*.aoslaw
+*.aoscsp
+*.avery
 !*.example
 # Intentionally-tracked source capsule files (the capsules/ dir is the SOURCE
 # repository for .aoscap payloads — these are NOT generated bundles and must
@@ -81,6 +85,10 @@ clock_gate*.json
 *.aosvault
 *.aosmem
 *.vccaps
+*.aosinv
+*.aoslaw
+*.aoscsp
+*.avery
 # Local sovereign node config (PC / phone / anchor salt)
 .sovereign-nodes.json
 .anchor-salt
