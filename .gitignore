@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+.env.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -88,10 +89,14 @@ clock_gate*.json
 *.aosinv
 *.aoslaw
 *.aoscsp
+*.aossalt
 *.avery
 # Local sovereign node config (PC / phone / anchor salt)
 .sovereign-nodes.json
 .anchor-salt
+.averyos-anchor-*
+.averyos-
+.averyos_private*
 sovereign-nodes.local.*
 
 # ── Runtime-generated logs — never commit individual log files ────────────────
