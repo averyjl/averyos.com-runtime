@@ -1,7 +1,7 @@
 /**
  * lib/forensics/inventionTracker.ts
  *
- * GabrielOS™ Invention Pulse — Phase 114.1.2
+ * GabrielOS™ Invention Pulse — Phase 114.8.2
  *
  * Indexes unique logic blocks (micro-inventions) as sovereign .aoscap invention
  * capsules anchored to the AveryOS™ Root0 Kernel.  Each capsule records:
@@ -182,6 +182,20 @@ export interface InventionCapsule {
   disclosure_url: string;
   /** Settlement status for IP tracking */
   settlement_status: "OPEN" | "LICENSED" | "ARCHIVED";
+  /**
+   * GATE 114.8.2 — BTC Merkle Root Anchor.
+   * SHA-512 of the Bitcoin block header at registration time.
+   * Provides an immutable timestamp proof-of-existence anchored to the BTC chain.
+   * null until the capsule is registered on-chain.
+   */
+  btc_anchor_sha:    string | null;
+  /**
+   * GATE 114.8.2 — IPFS Content Identifier.
+   * CIDv1 (base32) of the capsule payload stored on IPFS.
+   * Ensures capsule logic survives any single-provider outage.
+   * null until the capsule is pinned to IPFS.
+   */
+  ipfs_cid:          string | null;
 }
 
 /** Options for building an invention capsule */
@@ -196,6 +210,17 @@ export interface InventionInput {
   source_path:  string;
   /** Optional extra metadata included in the SHA-512 payload */
   metadata?:    Record<string, unknown>;
+  /**
+   * GATE 114.8.2 — Optional BTC anchor SHA-512 to embed at creation time.
+   * If omitted, the field is set to null and can be populated later via
+   * an on-chain registration step.
+   */
+  btc_anchor_sha?: string | null;
+  /**
+   * GATE 114.8.2 — Optional IPFS CIDv1 to embed at creation time.
+   * If omitted, the field is set to null and can be populated after IPFS pinning.
+   */
+  ipfs_cid?: string | null;
 }
 
 /** Archive of multiple invention capsules */
@@ -408,6 +433,8 @@ export async function trackInvention(
     kernel_version:    KERNEL_VERSION,
     disclosure_url:    DISCLOSURE_MIRROR_PATH,
     settlement_status: "OPEN",
+    btc_anchor_sha:    input.btc_anchor_sha ?? null,
+    ipfs_cid:          input.ipfs_cid       ?? null,
   };
 }
 
