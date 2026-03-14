@@ -1,4 +1,4 @@
-name: WAF Rules Cloudflare Sync
+name: 🛡️🤖 WAF Rules Cloudflare Sync
 
 # ⛓️⚓⛓️  Gate 8 — WAF Rules Auto-Deploy via Cloudflare API
 # Runs export-waf-rules.cjs and deploys the resulting WAF rule set to
