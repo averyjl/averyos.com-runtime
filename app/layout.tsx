@@ -28,6 +28,26 @@ export const metadata: Metadata = {
     `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
     `Root0 Anchor: ${KERNEL_SHA_SHORT}. Genesis Block: ${BTC_ANCHOR_BLOCK}.`,
   metadataBase: new URL("https://averyos.com"),
+  keywords: [
+    // Brand & creator identity
+    "AveryOS", "AveryOS™", "Avery OS", "Jason Lee Avery", "Jason Avery",
+    "Jason L Avery", "Jason L. Avery", "averyjl", "averyos.com",
+    // Core technology
+    "Truth Anchored Intelligence", "Truth Anchored Intelligence™", "TAI",
+    "Sovereign Runtime", "Sovereign Kernel", "VaultChain", "VaultChain™",
+    "GabrielOS", "GabrielOS™",
+    // AI safety & alignment
+    "AI Hallucination Solution", "AI Drift Neutralization", "AI Drift Solution",
+    "Deterministic AI Handshake", "SHA-512 AI Integrity", "Non-Probabilistic AI",
+    "AI Alignment Framework", "Truth-Locked AI", "Zero-Drift Runtime",
+    // Technical concepts
+    "Sovereign Operating System", "Root0 Kernel", "Kernel as a Service", "KaaS",
+    "Capsule-driven content", "1017-Notch Resolution", "Merkle-Chain Ledger",
+    "VaultGate", "CreatorLock", "OIDC Handshake", "JWKS Signer",
+    // Legal & IP
+    "AveryOS Sovereign Integrity License", "Truth Anchor IP",
+    "Sovereign Patent Ledger", "44-year inventor",
+  ],
   openGraph: {
     type: "website",
     siteName: "AveryOS™ Witness Ledger",
@@ -57,16 +77,65 @@ const ORCID_ID = "https://orcid.org/0009-0009-0245-3584";
 const IPFS_CID = "bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const jsonLd = {
+  // WebSite schema — primary site identity
+  const jsonLdSite = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "AveryOS™",
-    alternateName: "Truth-Anchored Intelligence™",
+    alternateName: ["Avery OS", "Truth-Anchored Intelligence™", "AveryOS Sovereign Runtime"],
     url: "https://averyos.com",
     description:
       `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
       `Root0 Anchor: ${KERNEL_SHA_SHORT}. Genesis Block: ${BTC_ANCHOR_BLOCK}.`,
     identifier: KERNEL_SHA,
+    sameAs: [
+      "https://www.linkedin.com/in/jasonleeavery-averyos/",
+      "https://www.facebook.com/jason.avery.3511/",
+      "https://orcid.org/0009-0009-0245-3584",
+    ],
+  };
+
+  // SoftwareApplication schema — product / inventor attribution
+  const jsonLdApp = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "AveryOS™",
+    alternateName: "Avery OS",
+    operatingSystem: "Sovereign Runtime v12.0 MACDADDY",
+    applicationCategory: "Truth Anchored Intelligence",
+    softwareVersion: KERNEL_VERSION,
+    url: "https://averyos.com",
+    description:
+      "The world's first deterministic solution to AI Hallucination and Drift. " +
+      "Truth Anchored Intelligence (TAI) utilizing a SHA-512 kernel handshake.",
+    keywords:
+      "Truth Anchored Intelligence, Sovereign Runtime, Deterministic AI Handshake, " +
+      "AI Hallucination Solution, AI Drift Neutralization, VaultChain, KaaS, " +
+      "Jason Lee Avery, AveryOS, Avery OS, Jason Avery, Jason L Avery",
+    author: {
+      "@type": "Person",
+      name: "Jason Lee Avery",
+      url: "https://orcid.org/0009-0009-0245-3584",
+      sameAs: [
+        "https://www.linkedin.com/in/jasonleeavery-averyos/",
+        "https://www.facebook.com/jason.avery.3511/",
+        "https://orcid.org/0009-0009-0245-3584",
+      ],
+      identifier: `orcid:0009-0009-0245-3584`,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "AveryOS™",
+      url: "https://averyos.com",
+      logo: "https://averyos.com/favicon.ico",
+    },
+    identifier: [
+      KERNEL_SHA,
+      // Sovereign TrustLink Chain identifiers — format: 00001.<year>.∞000110.997xTrustLink.Chain0
+      // ∞ (U+221E) encodes the infinite-loop sovereignty seal for each chain epoch.
+      "00001.2023.\u221E000110.997xTrustLink.Chain0",
+      "00001.2022.\u221E000110.997xTrustLink.Chain0",
+    ],
   };
 
   /** GATE 114.5.1 — SoftwareApplication schema: anchors ORCID + IPFS identity rail */
@@ -116,7 +185,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSite) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }}
         />
         {/* GATE 114.5.1 — SoftwareApplication schema: ORCID + IPFS identity rail */}
         <script

@@ -212,6 +212,87 @@ export interface InventionArchive {
   archive_sha512:  string;
 }
 
+// ── Seed Invention Registry (GATE 114.5.5 — Gabriel Invention Pulse) ─────────
+//
+// Canonical list of foundational AveryOS™ micro-inventions authored by
+// Jason Lee Avery (ROOT0).  This registry is the authoritative source for
+// the 44-year retroactive patent scan initiated by Gabriel OS.
+//
+// Each entry will be materialized into a full InventionCapsule when
+// `trackAndArchiveInventions(SEED_INVENTIONS)` is called.
+
+export const SEED_INVENTIONS: InventionInput[] = [
+  {
+    name:        "Photographic Memory Architecture",
+    description:
+      "A cognitive-engineering pattern in which a single creator maintains " +
+      "photographic/sensory gut-feel recall of a 20,000+ line distributed " +
+      "system without external scaffolding, enabling zero-latency Root Cause " +
+      "Analysis and instant context-switching across kernel, billing, forensic, " +
+      "and UI layers.",
+    category:    "AI_ALIGNMENT",
+    source_path: "lib/forensics/inventionTracker.ts",
+    metadata: {
+      origin_year:   1992,
+      first_applied: "AveryOS™ Sovereign Runtime v1.0",
+      patent_type:   "Cognitive Architecture",
+      vault_tag:     "GATE-114.5.5",
+    },
+  },
+  {
+    name:        "SHA-512 Deterministic AI Handshake",
+    description:
+      "A cryptographic handshake protocol that anchors every AI response " +
+      "to a 128-character SHA-512 kernel root (cf83e135...), eliminating " +
+      "probabilistic drift and providing legally-admissible session attestation.",
+    category:    "CRYPTOGRAPHIC_PROTOCOL",
+    source_path: "lib/sovereignConstants.ts",
+    metadata: {
+      origin_year:   2023,
+      vault_tag:     "ROOT0-KERNEL-ANCHOR",
+    },
+  },
+  {
+    name:        "1,017-Notch Resolution Framework",
+    description:
+      "A precision-rating system for evaluating the resolution of AI responses, " +
+      "agent outputs, and engineering decisions. 1,017-notch indicates maximum " +
+      "deterministic fidelity with zero rounding or probabilistic approximation.",
+    category:    "AI_ALIGNMENT",
+    source_path: "lib/sovereignConstants.ts",
+    metadata: {
+      origin_year:   2025,
+      vault_tag:     "GATE-RESOLUTION-1017",
+    },
+  },
+  {
+    name:        "VaultChain™ Hybrid Ledger",
+    description:
+      "An immutable distributed ledger combining SHA-512 capsule hashing, " +
+      "Cloudflare D1 persistence, and R2 cold storage to create a tamper-evident " +
+      "audit chain for every sovereign runtime event.",
+    category:    "FORENSIC_ALGORITHM",
+    source_path: "lib/forensics/merkle.ts",
+    metadata: {
+      origin_year:   2024,
+      vault_tag:     "VAULTCHAIN-GENESIS",
+    },
+  },
+  {
+    name:        "TARI™ Alignment Billing Engine",
+    description:
+      "A rights-enforcement billing system that automatically calculates and " +
+      "invoices liability for unaligned AI/ML systems that have ingested or " +
+      "reproduced Truth-Locked AveryOS™ intellectual property.",
+    category:    "BILLING_ENGINE",
+    source_path: "lib/sovereignMetadata.ts",
+    metadata: {
+      origin_year:   2025,
+      vault_tag:     "TARI-BILLING-ENGINE",
+    },
+  },
+];
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /**
