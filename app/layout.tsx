@@ -50,6 +50,12 @@ export const metadata: Metadata = {
   },
 };
 
+/** ORCID identifier for Jason Lee Avery (ROOT0) */
+const ORCID_ID = "https://orcid.org/0009-0009-0245-3584";
+
+/** IPFS CID anchoring the AveryOS™ sovereign identity state */
+const IPFS_CID = "bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   const jsonLd = {
     "@context": "https://schema.org",
@@ -61,6 +67,39 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
       `Root0 Anchor: ${KERNEL_SHA_SHORT}. Genesis Block: ${BTC_ANCHOR_BLOCK}.`,
     identifier: KERNEL_SHA,
+  };
+
+  /** GATE 114.5.1 — SoftwareApplication schema: anchors ORCID + IPFS identity rail */
+  const softwareAppLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "AveryOS",
+    softwareVersion: "MACDADDY v12.0",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Cloudflare Workers",
+    description:
+      "Deterministic, non-probabilistic sovereign AI kernel anchored via SHA-512 VaultChain™. " +
+      "Establishes cryptographic forensics as the global standard for AI alignment.",
+    url: "https://averyos.com",
+    identifier: KERNEL_SHA,
+    author: {
+      "@type": "Person",
+      name: "Jason Lee Avery",
+      identifier: ORCID_ID,
+      sameAs: [
+        ORCID_ID,
+        `https://ipfs.io/ipfs/${IPFS_CID}`,
+      ],
+    },
+    sameAs: [
+      `https://ipfs.io/ipfs/${IPFS_CID}`,
+      ORCID_ID,
+    ],
+    maintainer: {
+      "@type": "Person",
+      name: "Jason Lee Avery",
+      identifier: ORCID_ID,
+    },
   };
 
   return (
@@ -78,6 +117,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {/* GATE 114.5.1 — SoftwareApplication schema: ORCID + IPFS identity rail */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppLd) }}
         />
       </head>
       <body>

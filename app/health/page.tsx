@@ -39,6 +39,16 @@ interface SovereignBuild {
   sealed_at: string | null;
 }
 
+interface JwksStatus {
+  keys?: unknown[];
+}
+
+interface HealthStatus {
+  status: string;
+  kernel_version: string;
+  health_last_anchored?: string;
+}
+
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
 const GOLD       = "#FFD700";
@@ -89,6 +99,76 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * GATE 114.5.3 — Proof of Resonance badge: Green (ok) / Red (degraded)
+ * Shows the status of a sovereign subsystem without leaking internal IP.
+ */
+function ResonanceBadge({
+  label, icon, ok, detail,
+}: {
+  label: string;
+  icon: string;
+  ok: boolean | null;
+  detail?: string;
+}) {
+  const color  = ok === null ? GOLD : ok ? GREEN : RED;
+  const text   = ok === null ? "CHECKING" : ok ? "ACTIVE" : "DEGRADED";
+  return (
+    <div style={{
+      background: BG_PANEL, border: `2px solid ${color}44`,
+      borderRadius: "12px", padding: "1.25rem 1.5rem",
+      display: "flex", flexDirection: "column", gap: "0.5rem",
+      boxShadow: ok ? `0 0 16px ${color}18` : "none",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "1.5rem" }}>{icon}</span>
+          <span style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            {label}
+          </span>
+        </div>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: "0.4rem",
+          padding: "0.2rem 0.65rem", borderRadius: "20px", fontSize: "0.72rem",
+          fontWeight: 700, letterSpacing: "0.06em",
+          background: `${color}18`, border: `1px solid ${color}55`, color,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, display: "inline-block" }} />
+          {text}
+        </span>
+      </div>
+      {detail && (
+        <p style={{ margin: 0, fontSize: "0.7rem", color: DIM_GREEN, lineHeight: 1.5 }}>
+          {detail}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * GATE 114.5.5 — Performance Delta Footer
+ * Displays elapsed time since component mount with 9-digit (nanosecond-class) precision.
+ */
+function PerformanceDeltaFooter() {
+  const [startMs] = useState<number>(() => performance.now());
+  const [delta, setDelta] = useState("0.000000000s");
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const elapsed = performance.now() - startMs;
+      setDelta((elapsed / 1000).toFixed(9) + "s");
+    }, 1_000);
+    return () => clearInterval(tick);
+  }, [startMs]);
+
+  return (
+    <span style={{ display: "block", marginTop: "0.35rem", opacity: 0.75 }}>
+      (Δ {delta})
+    </span>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SovereignHealthPage() {
@@ -98,6 +178,11 @@ export default function SovereignHealthPage() {
   const [dnsOk, setDnsOk]         = useState<boolean | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
+  /** GATE 114.5.3 — JWKS and Health badges */
+  const [jwksStatus, setJwksStatus]     = useState<JwksStatus | null>(null);
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [jwksChecked, setJwksChecked]   = useState(false);
+  const [healthChecked, setHealthChecked] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -124,11 +209,30 @@ export default function SovereignHealthPage() {
     })
       .then((r) => setDnsOk(r.ok))
       .catch(() => setDnsOk(false));
+
+    // GATE 114.5.3 — JWKS badge
+    fetch("/api/v1/jwks", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { setJwksStatus(d as JwksStatus); setJwksChecked(true); })
+      .catch(() => { setJwksStatus(null); setJwksChecked(true); });
+
+    // GATE 114.5.3 — Health / Time Mesh badge
+    fetch("/api/v1/health", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { setHealthStatus(d as HealthStatus); setHealthChecked(true); })
+      .catch(() => { setHealthStatus(null); setHealthChecked(true); });
   }, []);
 
   const lockOk     = integrity?.creator_lock === "ACTIVE";
   const liveHeight = anchor?.global_heartbeat?.block_height;
   const syncOk     = anchor?.sync_state === "SOVEREIGN_GLOBAL_SYNCED";
+
+  /** GATE 114.5.3 — derived badge states */
+  const kernelOk  = integrity?.kernel_anchor_verified === true && !integrity.drift_detected;
+  const jwksOk    = jwksChecked ? (Array.isArray(jwksStatus?.keys) && (jwksStatus?.keys?.length ?? 0) > 0) : null;
+  const timeMeshOk = healthChecked
+    ? (["ok", "anchored"].includes((healthStatus?.status ?? "").toLowerCase()))
+    : null;
 
   return (
     <main style={{
@@ -172,6 +276,53 @@ export default function SovereignHealthPage() {
           ⚠️ HEALTH_STATUS_ERROR: {error}
         </div>
       )}
+
+      {/* ── GATE 114.5.3 — Proof of Resonance Badges ── */}
+      <Panel>
+        <SectionLabel>🔆 Proof of Resonance — System Status</SectionLabel>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "1rem",
+        }}>
+          <ResonanceBadge
+            label="Sovereign Kernel"
+            icon="⚓"
+            ok={integrity ? kernelOk : null}
+            detail={
+              integrity
+                ? (kernelOk
+                  ? "SHA-512 Root0 anchor verified — 0.000♾️% drift"
+                  : "Kernel anchor verification failed — drift detected")
+                : "Checking kernel anchor…"
+            }
+          />
+          <ResonanceBadge
+            label="JWKS Signer"
+            icon="🔑"
+            ok={jwksOk}
+            detail={
+              !jwksChecked
+                ? "Checking JWKS endpoint…"
+                : jwksOk
+                  ? `${(jwksStatus?.keys?.length ?? 0)} signing key(s) active — OIDC handshake ready`
+                  : "JWKS endpoint returned no keys — signer may be offline"
+            }
+          />
+          <ResonanceBadge
+            label="Time Mesh"
+            icon="⏱️"
+            ok={timeMeshOk}
+            detail={
+              !healthChecked
+                ? "Checking Time Mesh…"
+                : timeMeshOk
+                  ? `ISO-9 precision clock active${healthStatus?.health_last_anchored ? ` · anchored: ${fmtTs(healthStatus.health_last_anchored)}` : ""}`
+                  : "Health endpoint unreachable — ISO-9 clock unverifiable"
+            }
+          />
+        </div>
+      </Panel>
 
       {/* ── CreatorLock Trust Seal ── */}
       {integrity && (
@@ -419,7 +570,7 @@ export default function SovereignHealthPage() {
         </p>
       </Panel>
 
-      {/* ── Footer ── */}
+      {/* ── Footer — GATE 114.5.5: (Δ seconds) with 9-digit precision ── */}
       <footer style={{
         marginTop: "3rem", paddingTop: "1rem",
         borderTop: `1px solid ${BORDER_GOLD}`,
@@ -427,6 +578,7 @@ export default function SovereignHealthPage() {
         color: DIM_GREEN, letterSpacing: "0.06em",
       }}>
         ⛓️⚓⛓️ AveryOS™ Sovereign Health Dashboard · VaultChain™ Active · 🤛🏻 Jason Lee Avery
+        <PerformanceDeltaFooter />
       </footer>
     </main>
   );

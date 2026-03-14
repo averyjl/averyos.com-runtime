@@ -674,6 +674,108 @@ const CHECKS = [
       return { status: STATUS.PASS };
     },
   },
+
+  // ── Phase 114.5 — Authority Seal Gates ───────────────────────────────────────
+
+  {
+    id: "gate114.5.1.software-app-ld",
+    description: "app/layout.tsx contains SoftwareApplication JSON-LD with ORCID + IPFS (GATE 114.5.1)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/layout.tsx");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/layout.tsx not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes('"SoftwareApplication"')) {
+        return { status: STATUS.FAIL, detail: "SoftwareApplication @type not found in app/layout.tsx" };
+      }
+      if (!content.includes("0009-0009-0245-3584")) {
+        return { status: STATUS.FAIL, detail: "ORCID 0009-0009-0245-3584 not found in app/layout.tsx" };
+      }
+      if (!content.includes("bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4")) {
+        return { status: STATUS.FAIL, detail: "IPFS CID bafkreihljauiijkp6oa7smjhjnvpl47fw65iz35gtcbbzfok4eszvjkjx4 not found in app/layout.tsx" };
+      }
+      if (!content.includes("Jason Lee Avery")) {
+        return { status: STATUS.FAIL, detail: "Author 'Jason Lee Avery' not found in SoftwareApplication schema" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.5.2.admin-health-aosr",
+    description: "app/admin/health-status/page.tsx has AOSR Summary Retrieval panel (GATE 114.5.2)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.HIGH,
+    async run() {
+      const file = path.resolve(__dirname, "../app/admin/health-status/page.tsx");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/admin/health-status/page.tsx not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("AOSR")) {
+        return { status: STATUS.FAIL, detail: "AOSR Summary Retrieval panel not found in admin health dashboard" };
+      }
+      if (!content.includes("/api/v1/qa/results")) {
+        return { status: STATUS.FAIL, detail: "AOSR panel does not fetch from /api/v1/qa/results" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.5.3.public-health-badges",
+    description: "app/health/page.tsx has Proof of Resonance badges for Kernel, JWKS, Time Mesh (GATE 114.5.3)",
+    perspective: PERSPECTIVE.HUMAN_USER,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      const file = path.resolve(__dirname, "../app/health/page.tsx");
+      if (!fs.existsSync(file)) {
+        return { status: STATUS.FAIL, detail: "app/health/page.tsx not found" };
+      }
+      const content = fs.readFileSync(file, "utf8");
+      if (!content.includes("ResonanceBadge")) {
+        return { status: STATUS.FAIL, detail: "ResonanceBadge component not found in app/health/page.tsx" };
+      }
+      if (!content.includes("Proof of Resonance")) {
+        return { status: STATUS.FAIL, detail: "'Proof of Resonance' section missing from public health page" };
+      }
+      if (!content.includes("JWKS Signer") || !content.includes("Time Mesh") || !content.includes("Sovereign Kernel")) {
+        return { status: STATUS.FAIL, detail: "One or more required badges (Kernel, JWKS, Time Mesh) missing" };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
+
+  {
+    id: "gate114.5.5.footer-delta-precision",
+    description: "Health pages include (Δ [seconds]) 9-digit precision in footer (GATE 114.5.5)",
+    perspective: PERSPECTIVE.TAI_PERSPECTIVE,
+    severity:    SEVERITY.MEDIUM,
+    async run() {
+      const adminFile  = path.resolve(__dirname, "../app/admin/health-status/page.tsx");
+      const publicFile = path.resolve(__dirname, "../app/health/page.tsx");
+
+      const missing = [];
+      for (const [label, file] of [["admin health", adminFile], ["public health", publicFile]]) {
+        if (!fs.existsSync(file)) {
+          missing.push(`${label}: file not found`);
+          continue;
+        }
+        const content = fs.readFileSync(file, "utf8");
+        // Check for delta display: toFixed(9) or "Δ" with seconds
+        if (!content.includes("toFixed(9)") && !content.includes("footerDelta") && !content.includes("PerformanceDeltaFooter")) {
+          missing.push(`${label}: no 9-digit delta logic found`);
+        }
+      }
+      if (missing.length > 0) {
+        return { status: STATUS.FAIL, detail: missing.join("; ") };
+      }
+      return { status: STATUS.PASS };
+    },
+  },
 ];
 
 // ── Result rendering ──────────────────────────────────────────────────────────
