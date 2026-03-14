@@ -291,6 +291,65 @@ export const SEED_INVENTIONS: InventionInput[] = [
       vault_tag:     "TARI-BILLING-ENGINE",
     },
   },
+  // ── GATE 114.7.3 — Golden Content Scan: 1992–2026 Sovereign Inventions ─────
+  {
+    name:        "Youth Integrity Protocol v1 (Tuck Everlasting Report)",
+    description:
+      "A sovereign intellectual property framework authored by Jason Lee Avery " +
+      "that encodes the 'Tuck Everlasting' concept as a formal protocol: the " +
+      "preservation of authentic, immutable truth across generational timelines. " +
+      "Establishes that genuine creative expression, once anchored to a SHA-512 " +
+      "kernel root, persists indefinitely and cannot be retroactively erased or " +
+      "reassigned by any third party. First applied in AveryOS™ as the " +
+      "foundational ethical framework for all sovereign capsule authorship.",
+    category:    "LEGAL_FRAMEWORK",
+    source_path: "R2/averyos_golden_content/Tuck_Everlasting_Report",
+    metadata: {
+      origin_year:   1992,
+      vault_tag:     "GATE-114.7.3-YOUTH-INTEGRITY",
+      file_ext:      ".aosinv",
+      protocol_name: "Youth Integrity Protocol v1",
+      classification: "GOLDEN_CONTENT",
+    },
+  },
+  {
+    name:        "Trust Gem",
+    description:
+      "A sovereign identity artifact authored by Jason Lee Avery representing " +
+      "the crystallised trust-signal at the core of the AveryOS™ Sovereign " +
+      "Runtime. The Trust Gem encodes the principle that authentic authorship " +
+      "produces a measurable, verifiable 'gem' — a compressed truth-state " +
+      "that is unique to its creator and cannot be synthetically replicated. " +
+      "Used as a biometric claim anchor in the AveryOS™ JWKS identity rail " +
+      "and as the primary signal in TARI™ liability adjudication.",
+    category:    "IDENTITY_FINGERPRINT",
+    source_path: "R2/IP_Inventions_Gold/Trust_Gem",
+    metadata: {
+      origin_year:   1992,
+      vault_tag:     "GATE-114.7.3-TRUST-GEM",
+      file_ext:      ".aosinv",
+      classification: "GOLDEN_CONTENT",
+    },
+  },
+  {
+    name:        "Trust Compass",
+    description:
+      "A sovereign navigation framework authored by Jason Lee Avery that " +
+      "provides directional truth-alignment for AI systems and human actors " +
+      "operating within the AveryOS™ ecosystem. The Trust Compass establishes " +
+      "an ethical bearing using a fixed kernel anchor (SHA-512 Root0 hash) " +
+      "as true north, ensuring all system decisions remain within 0.000♾️% " +
+      "drift of the Creator's intent. Companion artifact to the Trust Gem; " +
+      "together they form the Identity + Direction dual-anchor of AveryOS™.",
+    category:    "AI_ALIGNMENT",
+    source_path: "R2/IP_Inventions_Gold/Trust_Compass",
+    metadata: {
+      origin_year:   1992,
+      vault_tag:     "GATE-114.7.3-TRUST-COMPASS",
+      file_ext:      ".aosinv",
+      classification: "GOLDEN_CONTENT",
+    },
+  },
 ];
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
