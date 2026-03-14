@@ -110,6 +110,14 @@ function formatDeltaS(startMs: number): string {
   return seconds.toFixed(9) + "s";
 }
 
+// ── Helper: format an ISO string to "YYYY-MM-DD HH:mm:ss UTC" ────────────────
+
+function fmtUtc(ts: string | null | undefined): string {
+  if (!ts) return "—";
+  try { return new Date(ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"; }
+  catch { return ts; }
+}
+
 // ── Helper: map response to badge status ─────────────────────────────────────
 
 function toBadge(ok: boolean): BadgeStatus { return ok ? "ACTIVE" : "DEGRADED"; }
@@ -454,9 +462,7 @@ export default function AdminHealthStatusPage() {
               <tbody>
                 {aosrRecords.map(r => {
                   const statusColor = r.status === "pass" ? GREEN : r.status === "partial" ? GOLD : RED;
-                  const ts = r.created_at
-                    ? new Date(r.created_at).toISOString().replace("T", " ").slice(0, 19) + " UTC"
-                    : "—";
+                  const ts = fmtUtc(r.created_at);
                   return (
                     <tr key={r.run_id} style={{ borderBottom: "1px solid rgba(255,215,0,0.06)" }}>
                       <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontFamily: "monospace", fontSize: "0.68rem" }}
@@ -548,9 +554,7 @@ export default function AdminHealthStatusPage() {
               </thead>
               <tbody>
                 {vaultSigEntries.map(e => {
-                  const ts = e.logged_at
-                    ? new Date(e.logged_at).toISOString().replace("T", " ").slice(0, 19) + " UTC"
-                    : "—";
+                  const ts = fmtUtc(e.logged_at);
                   return (
                     <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,215,0,0.06)" }}>
                       <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontSize: "0.68rem" }}>{e.id}</td>

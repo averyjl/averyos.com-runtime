@@ -122,4 +122,3 @@ export async function GET(request: Request): Promise<Response> {
     return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, message);
   }
 }
-
