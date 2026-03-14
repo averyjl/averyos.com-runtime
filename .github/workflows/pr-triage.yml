@@ -1,4 +1,4 @@
-name: AveryOS Sovereign PR Triage
+name: 🔨🐛 AveryOS Sovereign PR Triage
 permissions:
   contents: read
 on:
