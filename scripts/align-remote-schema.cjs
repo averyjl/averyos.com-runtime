@@ -2,7 +2,7 @@
 /**
  * scripts/align-remote-schema.cjs
  *
- * AveryOS™ D1 Schema Alignment — GATE 114.6.5
+ * AveryOS™ D1 Schema Alignment — GATE 114.6.5 / GATE 114.8.5
  *
  * Safely aligns the remote Cloudflare D1 database (`averyos_kernel_db`) with
  * the local migration history.  Specifically recovers from the

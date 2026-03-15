@@ -105,6 +105,8 @@ logs/pulse/*.json
 logs/persistence/*.json
 logs/persistence/*.txt
 logs/persistence/*.log
+# GATE 114.8.4 — Agent Summary private vault (covered by *.aosvault above, explicit for clarity)
+logs/agent_summary.aosvault
 
 # Root-level SHA snapshot log (generated at runtime; VaultBridge/sha_snapshot.log
 # is the intentional sovereign public log — that one is tracked intentionally)
