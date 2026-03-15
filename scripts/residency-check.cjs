@@ -46,7 +46,7 @@ const AOS_SALT_BLOCK_FILE = "AOS_SALT.bin";
  * Primary named salt file: allows a specifically labelled USB drive to be
  * the sovereign anchor without requiring a hidden marker file.
  */
-const AOS_SALT_NAMED_FILE = "AveryOS-anchor-salt.aossalt";
+const AOS_SALT_PRIMARY_FILE = "AveryOS-anchor-salt.aossalt";
 /** Runtime cache for last residency check result. */
 const RESIDENCY_CACHE_FILE = path.join(os.tmpdir(), ".aos_residency_cache.json");
 
@@ -108,7 +108,7 @@ const USB_MOUNT_CANDIDATES = (() => {
 function detectAosSaltUsb() {
   for (const mount of USB_MOUNT_CANDIDATES) {
     try {
-      const namedPath  = path.join(mount, AOS_SALT_NAMED_FILE);
+      const namedPath  = path.join(mount, AOS_SALT_PRIMARY_FILE);
       const markerPath = path.join(mount, AOS_SALT_MARKER);
       const blockPath  = path.join(mount, AOS_SALT_BLOCK_FILE);
 
@@ -203,7 +203,7 @@ function main() {
 
   if (detection.found) {
     const preview = readSaltPreview(detection.saltPath);
-    const isNamedSalt = detection.saltPath ? path.basename(detection.saltPath) === AOS_SALT_NAMED_FILE : false;
+    const isNamedSalt = detection.saltPath ? path.basename(detection.saltPath) === AOS_SALT_PRIMARY_FILE : false;
     const state   = {
       status:     "NODE-02_PHYSICAL",
       mount_path: detection.mountPath,

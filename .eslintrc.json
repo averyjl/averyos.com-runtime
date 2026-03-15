@@ -10,7 +10,8 @@
   "ignorePatterns": [
     "VaultBridge/",
     ".open-next/",
-    "node_modules/"
+    "node_modules/",
+    "next-env.d.ts"
   ],
   "rules": {
     "security/detect-object-injection": "warn",
@@ -28,7 +29,7 @@
   },
   "overrides": [
     {
-      "files": ["electron/**/*.js", "electron/**/*.cjs", "**/*.cjs", "scripts/**/*.js"],
+      "files": ["electron/**/*.js", "electron/**/*.cjs", "scripts/**/*.js", "scripts/**/*.cjs"],
       "rules": {
         "@typescript-eslint/no-require-imports": "off"
       }
