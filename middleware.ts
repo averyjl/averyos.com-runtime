@@ -325,6 +325,12 @@ interface GatekeeperEnv {
   RATE_LIMITER_HANDSHAKE?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   /** Gate 113.2 — API rate limiter for unauthenticated /api/v1/ requests (1,017 req/60s per IP). */
   RATE_LIMITER_API?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Gate 6 — Global sovereign rate limiter (1,017 req/60s per IP, all paths). */
+  RATE_LIMITER_GLOBAL?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Gate 6 — Gateway PoW path rate limiter (50 req/60s per IP). */
+  RATE_LIMITER_POW?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
+  /** Gate 6 — Licensing/TARI™ settlement rate limiter (200 req/60s per IP). */
+  RATE_LIMITER_LICENSING?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
   VAULT_R2?: R2Bucket;
   KV_LOGS?: GeminiSpendKV;
   PUSHOVER_APP_TOKEN?: string;
@@ -990,6 +996,69 @@ export async function middleware(request: NextRequest) {
               license_url:   "https://averyos.com/licensing",
             },
             { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "API_RATE_LIMITED" } },
+          );
+        }
+      }
+    } catch {
+      // Binding unavailable — allow through
+    }
+  }
+
+  // ── Gate 6 — PoW Gateway Rate Limiting (50 req/60s per IP) ───────────────
+  // Protects the Sovereign PoW Gateway (/gateway/pow, /whitepaper/pow) from
+  // abuse while allowing legitimate proof-of-work submissions.
+  const isPowPath = pathname.startsWith("/gateway/pow") ||
+                    pathname.startsWith("/whitepaper/pow") ||
+                    pathname.startsWith("/api/v1/gateway/pow");
+  if (isPowPath) {
+    try {
+      const { env: _powEnv } = await getCloudflareContext({ async: true });
+      const powEnv = _powEnv as unknown as GatekeeperEnv;
+      if (powEnv.RATE_LIMITER_POW) {
+        const ip = request.headers.get("cf-connecting-ip") ??
+                   request.headers.get("x-forwarded-for") ?? "unknown";
+        const { success } = await powEnv.RATE_LIMITER_POW.limit({ key: `pow:${ip}` });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status:        "429 Too Many Requests",
+              error:         "PoW Gateway Rate Limit Exceeded",
+              directive:     "Maximum 50 PoW submissions per 60 seconds. Complete current proof before resubmitting.",
+              kernel_anchor: KERNEL_ANCHOR_DISPLAY,
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "POW_RATE_LIMITED" } },
+          );
+        }
+      }
+    } catch {
+      // Binding unavailable — allow through
+    }
+  }
+
+  // ── Gate 6 — Licensing / TARI™ Settlement Rate Limiting (200 req/60s per IP) ─
+  // Protects the licensing and TARI™ settlement endpoints from automated flooding
+  // while allowing legitimate licensing flows.
+  const isLicensingPath = pathname.startsWith("/api/v1/licensing") ||
+                          pathname.startsWith("/api/v1/compliance") ||
+                          pathname.startsWith("/api/v1/tari");
+  if (isLicensingPath && !hasAuth) {
+    try {
+      const { env: _licEnv } = await getCloudflareContext({ async: true });
+      const licEnv = _licEnv as unknown as GatekeeperEnv;
+      if (licEnv.RATE_LIMITER_LICENSING) {
+        const ip = request.headers.get("cf-connecting-ip") ??
+                   request.headers.get("x-forwarded-for") ?? "unknown";
+        const { success } = await licEnv.RATE_LIMITER_LICENSING.limit({ key: `licensing:${ip}` });
+        if (!success) {
+          return NextResponse.json(
+            {
+              status:        "429 Too Many Requests",
+              error:         "Licensing Rate Limit Exceeded",
+              directive:     "Maximum 200 licensing requests per 60 seconds. Obtain a VaultChain™ license for elevated access.",
+              kernel_anchor: KERNEL_ANCHOR_DISPLAY,
+              license_url:   "https://averyos.com/licensing",
+            },
+            { status: 429, headers: { "Retry-After": "60", "X-GabrielOS-Block": "LICENSING_RATE_LIMITED" } },
           );
         }
       }
