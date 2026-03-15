@@ -9,6 +9,8 @@
  *   • SHA-512 fingerprint of the invention payload
  *   • ROOT0 authorship seal (Jason Lee Avery)
  *   • KERNEL_SHA Sovereign Kernel link
+ *   • BTC Anchor SHA — Bitcoin Merkle root for temporal immutability (GATE 114.8.2)
+ *   • IPFS CID — decentralized storage Content Identifier (GATE 114.8.2)
  *
  * The resulting capsules form an Immutable Patent Record suitable for
  * submission to any auditing party, VaultChain verification, or legal filing.
@@ -17,6 +19,11 @@
  *   All AveryOS™ proprietary file extensions are registered here as the
  *   canonical source of truth.  New types can be added to SOVEREIGN_MIME_TYPES
  *   without modifying any other file — all consumers import from here.
+ *
+ * GATE 114.8.2 — Multi-Anchor Layer-3 Redundancy:
+ *   Each capsule now supports btc_anchor_sha (Bitcoin temporal anchor) and
+ *   ipfs_cid (IPFS decentralized storage CID) for triple-layer resilience:
+ *   Cloudflare → IPFS → Bitcoin.
  *
  * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
