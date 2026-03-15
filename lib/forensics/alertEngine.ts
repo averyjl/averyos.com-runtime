@@ -13,8 +13,8 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { sendFcmV1Push } from "../firebaseClient";
-import { getKaasTierBadge } from "../kaas/pricing";
+import { sendFcmV1Push, syncKaasValuationToFirebase } from "../firebaseClient";
+import { getKaasTierBadge, getAsnFeeUsd } from "../kaas/pricing";
 
 
 // ASNs that always trigger KAAS_BREACH regardless of WAF score
@@ -164,6 +164,27 @@ export async function emitKaasBreachAlert(
       kernel_sha:               KERNEL_SHA.slice(0, 16),
       timestamp:                event.timestamp,
       knowledge_cutoff_correlation: cutoffCorrelation,
+    });
+
+    // ── Multi-Cloud D1 → Firebase Sync (Gate 3): KaaS™ Valuation mirror ────
+    // Non-blocking: mirror every KAAS_BREACH event to Firestore
+    // averyos-kaas-valuations/ collection for cross-cloud parity.
+    // Activates automatically once FIREBASE_PROJECT_ID is configured.
+    syncKaasValuationToFirebase({
+      asn:            event.asn,
+      ip_address:     event.ip_address,
+      tier:           badge.tier,
+      valuation_usd:  getAsnFeeUsd(event.asn),
+      status:         "KAAS_BREACH",
+      ray_id:         event.ray_id.slice(0, 64),
+      pulse_hash:     `waf:${event.waf_score}|path:${event.path.slice(0, 60)}`,
+      kernel_version: KERNEL_VERSION,
+      created_at:     event.timestamp,
+    }).catch((err: unknown) => {
+      console.warn(
+        "[KAAS_BREACH] Firebase KaaS sync failed:",
+        err instanceof Error ? err.message : String(err),
+      );
     });
   } catch (err: unknown) {
     // Fire-and-forget: never let FCM errors disrupt the edge pipeline
