@@ -3,7 +3,7 @@
  *
  * TAI™ Network Sync Gateway — Phase 93.4 / Phase 97.3.2
  *
- * Accepts forensic judgments from authorised remote AI Studio Gems (sentinels).
+ * Accepts forensic judgments from authorized remote AI Studio Gems (sentinels).
  * The caller must provide a valid TAI_SENTINEL_TOKEN **or** the Phase 97
  * hardlocked UUID sentinel token in the `Authorization: Bearer <token>` header.
  *

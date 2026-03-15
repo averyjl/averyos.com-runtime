@@ -210,7 +210,7 @@ export default function AdminHealthStatusPage() {
     setLoading(true);
     try {
       // Run all checks in parallel — including VaultSig webhook status (GATE 114.8.1)
-      const [healthRes, anchorRes, jwksRes, vaultSigRes] = await Promise.allSettled([
+      const [healthRes, anchorRes, jwksRes, vaultSigRes, resonanceRes] = await Promise.allSettled([
         fetch("/api/v1/health",          { cache: "no-store" }).then(r => r.json() as Promise<HealthPayload>),
         fetch("/api/v1/anchor-status",   { cache: "no-store" }).then(r => r.json() as Promise<AnchorPayload>),
         fetch("/api/v1/jwks",            { cache: "no-store" }).then(r => r.json() as Promise<JwksPayload>),
@@ -218,18 +218,24 @@ export default function AdminHealthStatusPage() {
         fetch("/api/v1/hooks/vaultsig/status", { cache: "no-store" })
           .then(r => r.ok ? r.json() as Promise<VaultSigPayload> : null)
           .catch(() => null),
+        // GATE 117.8.2 — AOS Trust-List heartbeat via resonance endpoint
+        fetch("/api/v1/resonance", { cache: "no-store" })
+          .then(r => r.ok ? r.json() as Promise<{ status?: string; sha_verified?: boolean }> : null)
+          .catch(() => null),
       ]);
 
-      const health   = healthRes.status   === "fulfilled" ? healthRes.value   : null;
-      const anchor   = anchorRes.status   === "fulfilled" ? anchorRes.value   : null;
-      const jwks     = jwksRes.status     === "fulfilled" ? jwksRes.value     : null;
-      const vSig     = vaultSigRes.status === "fulfilled" ? vaultSigRes.value : null;
+      const health   = healthRes.status    === "fulfilled" ? healthRes.value    : null;
+      const anchor   = anchorRes.status    === "fulfilled" ? anchorRes.value    : null;
+      const jwks     = jwksRes.status      === "fulfilled" ? jwksRes.value      : null;
+      const vSig     = vaultSigRes.status  === "fulfilled" ? vaultSigRes.value  : null;
+      const resonance = resonanceRes.status === "fulfilled" ? resonanceRes.value : null;
 
       const d1Ok   = health?.d1?.includes("CONNECTED") ?? false;
       const kvOk   = health?.kv?.includes("CONNECTED") ?? false;
       const syncOk = anchor?.sync_state === "SOVEREIGN_GLOBAL_SYNCED";
       const jwksOk = Array.isArray(jwks?.keys) && (jwks?.keys?.length ?? 0) > 0;
-      const vaultSigOk = vSig !== null && !("error" in (vSig ?? {}));
+      const vaultSigOk  = vSig !== null && !("error" in (vSig ?? {}));
+      const trustListOk = resonance !== null && resonance.sha_verified === true;
 
       // Kernel SHA parity check — compare displayed prefix against KERNEL_SHA
       const kernelOk = (health?.kernel_version ?? "") === KERNEL_VERSION;
@@ -308,6 +314,18 @@ export default function AdminHealthStatusPage() {
             ? `${(vSig as VaultSigPayload)?.total_events ?? 0} events recorded — last: ${(vSig as VaultSigPayload)?.last_event_at ?? "—"}`
             : "VaultSig webhook status endpoint unreachable — monitor operating in passive mode.",
           alignment: "VaultSig webhook ingestion active — sovereign events received and logged.",
+        },
+        // GATE 117.8.2 — AOS Trust-List Heartbeat
+        {
+          label:     "AOS Trust-List Heartbeat",
+          icon:      "🛡️",
+          status:    resonance === null ? ("DEGRADED" as BadgeStatus) : (trustListOk ? "ACTIVE" : "CHECKING"),
+          detail:    trustListOk
+            ? "Resonance layer responding — SHA-512 kernel parity verified — trust-scoring active."
+            : (resonance !== null)
+              ? "Resonance layer reachable but SHA parity unconfirmed — trust-list warming up."
+              : "Resonance endpoint unreachable — AOS Trust-List in passive mode.",
+          alignment: "Trust-List active — authorized AI agent registry operating at 100.000% alignment.",
         },
       ];
 

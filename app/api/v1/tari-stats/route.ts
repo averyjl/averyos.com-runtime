@@ -13,6 +13,7 @@ interface D1Database {
 
 interface CloudflareEnv {
   DB: D1Database;
+  FIREBASE_PROJECT_ID?: string;
 }
 
 interface TariLedgerRow {
@@ -46,6 +47,8 @@ interface TariStatsResponse {
   liability_accrued_usd: number;
   // Phase 78.5 — Firebase sync status
   firebase_sync_status: string;
+  // Phase 117 — Firebase tari_metrics stream URL (Firestore collection: averyos-tari-probe)
+  firebase_tari_metrics_url: string;
   timestamp: string;
 }
 
@@ -134,6 +137,15 @@ export async function GET() {
     const liabilityAccruedUsd   = watcherLiabilityAccrued;
     const firebaseSyncStatus    = getFirebaseStatus();
 
+    // Phase 117 — Build the Firebase tari_metrics live stream URL
+    // Collection: averyos-tari-probe mirrors D1 tari_probe watcher rows for cross-cloud parity.
+    const firebaseProjectId   = cfEnv.FIREBASE_PROJECT_ID;
+    const firebaseTariMetricsUrl = firebaseProjectId
+      ? `https://firestore.googleapis.com/v1/projects/${firebaseProjectId}` +
+        `/databases/(default)/documents/averyos-tari-probe` +
+        `?orderBy=timestamp%20desc&pageSize=20`
+      : null;
+
     const response: TariStatsResponse = {
       trust_premium_index_pct:    trustPremiumIndexPct,
       recent_entries:             recent,
@@ -149,6 +161,7 @@ export async function GET() {
       watcher_liability_accrued:  watcherLiabilityAccrued,
       liability_accrued_usd:      liabilityAccruedUsd,
       firebase_sync_status:       firebaseSyncStatus,
+      firebase_tari_metrics_url:  firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
       timestamp:                  new Date().toISOString(),
     };
 
