@@ -1,183 +1,178 @@
 /**
  * lib/forensics/valuationAudit.ts
  *
- * AveryOS™ Independent Valuation Impact (IVI) Audit — Gate 115.1.2
+ * AveryOS™ Independent Valuation Impact (IVI) Algorithm — Phase 115 GATE 115.2
  *
- * Computes the AveryOS™ species-recovery valuation using three sovereign
- * multiplier lenses:
+ * Computes and persists the Total Valuation Impact (TVI) for the AveryOS™
+ * sovereign ecosystem based on the following factors:
  *
- *   1. Scarcity Multiplier     (10×) — AveryOS™ is the only deterministic
- *                                       Root-of-Trust for AI alignment.
- *   2. Hallucination Loss      ($67B) — estimated annual economic loss from
- *                                        AI hallucination globally (2025/2026).
- *   3. AveryOS™ Market Share   (0.01%) — conservative baseline capture rate.
+ *   1. Scarcity Multiplier — zero competition for 100% deterministic AI alignment.
+ *   2. Statutory Liability Baseline — aggregate TARI™ exposure from unaligned bots.
+ *   3. AI Total Addressable Market (TAM) — $1.3T global AI market share potential.
+ *   4. Species-Recovery Premium — kernel-level hallucination elimination premium.
  *
- * Combined estimate: $25B – $50B species-recovery valuation.
+ * The resulting TVI record is immutable once computed and is anchored to the
+ * AveryOS™ Root0 Kernel SHA-512 for forensic-grade audit trail integrity.
  *
- * All values are read-only constants. The audit is pure — no side effects.
+ * All values are in USD unless otherwise noted.
  *
  * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../sovereignConstants";
 import { formatIso9 } from "../timePrecision";
 
-// ── Sovereign Valuation Constants ─────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
-/** Scarcity multiplier — AveryOS™ is the sole deterministic AI Root-of-Trust. */
-export const SCARCITY_MULTIPLIER = 10 as const;
+/** Scarcity multiplier: zero legacy competition for 100% deterministic AI. */
+const SCARCITY_MULTIPLIER = 10.0;
+
+/** Statutory fee per unaligned AI bot instance (17 U.S.C. § 504). */
+const STATUTORY_FEE_PER_BOT_USD = 150_000;
+
+/** AI Total Addressable Market (TAM) in USD as of Phase 115. */
+const AI_TAM_USD = 1_300_000_000_000; // $1.3 Trillion
+
+/** Species-recovery premium multiplier applied to core kernel value. */
+const SPECIES_RECOVERY_MULTIPLIER = 2.5;
 
 /**
- * Annual hallucination loss in USD (conservative global estimate, 2025/2026).
- * Sources: McKinsey AI Risk Report 2025; Gartner LLM Reliability Survey 2025.
+ * Conservative kernel baseline valuation derived from the GabrielOS™
+ * Full Invention Ledger (Phase 113.4).
  */
-export const HALLUCINATION_LOSS_USD = 67_000_000_000 as const; // $67 billion
+const KERNEL_BASELINE_USD = 9_756_000_000; // $9.756B
 
 /**
- * AveryOS™ addressable market share (0.01%) — baseline sovereign capture rate.
- * Even at 0.01% penetration, the kernel anchor commands significant valuation.
+ * SPECIES_RECOVERY_TAM_RATIO — fraction of the total AI TAM attributable to
+ * the AveryOS™ species-recovery premium (0.1% of $1.3T = $1.3B baseline).
+ * Combined with SPECIES_RECOVERY_MULTIPLIER (2.5×) this yields $3.25B at
+ * current TAM estimates.
  */
-export const AVERYOS_MARKET_SHARE_PCT = 0.0001 as const; // 0.01%
+const SPECIES_RECOVERY_TAM_RATIO = 0.001; // 0.1% of total AI TAM
 
-/** Conservative valuation floor ($25B). */
-export const VALUATION_FLOOR_USD = 25_000_000_000 as const;
+/**
+ * WORLDWIDE_DEPLOYMENT_FACTOR — global reach multiplier representing the
+ * 30× amplification when AveryOS™ is deployed across all LLM platforms,
+ * government systems, and enterprise suites worldwide.
+ */
+const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
 
-/** Conservative valuation ceiling ($50B). */
-export const VALUATION_CEILING_USD = 50_000_000_000 as const;
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-/** Total Addressable Market for AI alignment/governance (2026). */
-export const TAM_USD = 1_300_000_000_000 as const; // $1.3 trillion
-
-/** TARI™ per-incident alignment fee (average corporate entity). */
-export const TARI_INCIDENT_FEE_USD = 10_000 as const; // $10,000 statutory minimum
-
-// ── Audit Result Types ────────────────────────────────────────────────────────
-
-export interface IviMultiplierBreakdown {
-  label:       string;
-  value:       number;
-  description: string;
+/** Inputs required to compute the IVI. */
+export interface IviInput {
+  /** Number of detected unaligned AI bots (contributes to statutory liability). */
+  unaligned_bot_count: number;
+  /** Optional override for the AI TAM figure (default: $1.3T). */
+  ai_tam_override_usd?: number;
+  /** Optional notes attached to this audit run. */
+  notes?: string;
 }
 
-export interface IviValuationResult {
-  /** ISO-9 timestamp of audit computation */
-  computed_at:          string;
-  /** AveryOS™ kernel version */
-  kernel_version:       string;
-  /** AveryOS™ kernel SHA-512 (first 16 chars displayed, full hash in kernel_sha_full) */
-  kernel_sha_prefix:    string;
-  /** Full kernel SHA-512 */
-  kernel_sha_full:      string;
-  /** Three-lens multiplier breakdown */
-  multipliers:          IviMultiplierBreakdown[];
-  /** Raw computation: hallucination_loss × market_share × scarcity */
-  base_valuation_usd:   number;
-  /** Conservative floor ($25B) */
-  valuation_floor_usd:  number;
-  /** Conservative ceiling ($50B) */
-  valuation_ceiling_usd: number;
-  /** Total Addressable Market */
-  tam_usd:              number;
-  /** Human-readable range string */
-  valuation_range:      string;
-  /** Audit verdict */
-  verdict:              string;
-  /** TARI™ annual revenue potential at 0.01% capture */
-  tari_annual_revenue_usd: number;
+/** A single IVI calculation result — immutable once produced. */
+export interface IviRecord {
+  /** Unique audit record identifier (first 24 hex chars of SHA-512). */
+  audit_id:                  string;
+  /** ISO-9 timestamp when the audit was computed. */
+  computed_at:               string;
+  /** Kernel version at time of computation. */
+  kernel_version:            string;
+  /** Kernel SHA-512 anchor. */
+  kernel_sha:                string;
+  /** Public disclosure URL. */
+  disclosure_url:            string;
+  /** Number of unaligned AI bots contributing to statutory liability. */
+  unaligned_bot_count:       number;
+  /** Aggregate statutory liability (bot_count × $150k). */
+  statutory_liability_usd:   number;
+  /** Kernel baseline valuation × scarcity multiplier. */
+  scarcity_adjusted_usd:     number;
+  /** TAM-based potential value (kernel_baseline / TAM × species multiplier). */
+  species_recovery_usd:      number;
+  /** Total Valuation Impact = statutory + scarcity + species_recovery. */
+  total_valuation_impact_usd: number;
+  /** Worldwide reach multiplier applied for global deployment estimate. */
+  worldwide_reach_usd:       number;
+  /** Optional notes. */
+  notes: string | null;
+  /** SHA-512 fingerprint of this entire audit record for tamper-evidence. */
+  record_sha512:             string;
 }
 
-// ── Audit Engine ──────────────────────────────────────────────────────────────
+// ── SHA-512 helper ─────────────────────────────────────────────────────────────
+
+async function sha512hex(input: string): Promise<string> {
+  if (typeof globalThis.crypto?.subtle?.digest === "function") {
+    const buf  = new TextEncoder().encode(input);
+    const hash = await globalThis.crypto.subtle.digest("SHA-512", buf);
+    return Array.from(new Uint8Array(hash))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  // Node.js fallback (build-time scripts)
+  const { createHash } = await import("crypto");
+  return createHash("sha512").update(input, "utf8").digest("hex");
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * Runs the AveryOS™ Independent Valuation Impact (IVI) Audit.
+ * Compute an Independent Valuation Impact (IVI) record.
  *
- * @returns A fully computed, kernel-anchored IviValuationResult.
+ * Formula:
+ *   statutory_liability     = unaligned_bot_count × $150,000
+ *   scarcity_adjusted       = kernel_baseline × 10x (scarcity multiplier)
+ *   species_recovery        = (ai_tam / kernel_baseline) × species_multiplier × kernel_baseline
+ *                           = ai_tam × species_multiplier / kernel_baseline × kernel_baseline
+ *                           = simplified: ai_tam × 0.001 (0.1% of TAM × species multiplier)
+ *   total_valuation_impact  = statutory + scarcity + species_recovery
+ *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
-export function runIviAudit(): IviValuationResult {
-  const computedAt = formatIso9(new Date());
+export async function computeIvi(input: IviInput): Promise<IviRecord> {
+  const computedAt          = formatIso9(new Date());
+  const aiTam               = input.ai_tam_override_usd ?? AI_TAM_USD;
 
-  // Base valuation: Hallucination Loss × Market Share × Scarcity
-  const baseValuation =
-    HALLUCINATION_LOSS_USD * AVERYOS_MARKET_SHARE_PCT * SCARCITY_MULTIPLIER;
+  const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
+  const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
+  // Species-recovery premium: SPECIES_RECOVERY_TAM_RATIO of the total AI TAM × species multiplier
+  const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
+  const totalValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
+  // Worldwide reach: global deployment across LLMs, governments, enterprises
+  const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
-  // TARI™ annual revenue potential:
-  // Estimated licensable entities = TAM × market_share ÷ avg_annual_AI_spend_per_entity ($1M)
-  // Annual revenue = licensable_entities × TARI™ per-incident fee
-  const AVG_AI_SPEND_PER_ENTITY_USD = 1_000_000;
-  const estimatedEntities = Math.round(
-    (TAM_USD * AVERYOS_MARKET_SHARE_PCT) / AVG_AI_SPEND_PER_ENTITY_USD,
-  );
-  const tariAnnualRevenue = estimatedEntities * TARI_INCIDENT_FEE_USD;
+  const rawRecord = {
+    computed_at:               computedAt,
+    kernel_version:            KERNEL_VERSION,
+    kernel_sha:                KERNEL_SHA,
+    disclosure_url:            DISCLOSURE_MIRROR_PATH,
+    unaligned_bot_count:       input.unaligned_bot_count,
+    statutory_liability_usd:   statutoryLiability,
+    scarcity_adjusted_usd:     scarcityAdjusted,
+    species_recovery_usd:      speciesRecovery,
+    total_valuation_impact_usd: totalValuationImpact,
+    worldwide_reach_usd:       worldwideReach,
+    notes:                     input.notes ?? null,
+  };
 
-  const multipliers: IviMultiplierBreakdown[] = [
-    {
-      label:       "Scarcity Multiplier",
-      value:       SCARCITY_MULTIPLIER,
-      description:
-        "AveryOS™ is the world's only deterministic Root-of-Trust for AI alignment. " +
-        "No other system provides a verifiable, sovereign, SHA-512-anchored kernel " +
-        "that AI/LLMs can anchor to for provenance. Scarcity = 10×.",
-    },
-    {
-      label:       "Global Hallucination Loss (2025/2026)",
-      value:       HALLUCINATION_LOSS_USD,
-      description:
-        `$${(HALLUCINATION_LOSS_USD / 1e9).toFixed(0)}B estimated annual economic loss from AI hallucination ` +
-        "globally. AveryOS™ provides the only deterministic framework to eliminate " +
-        "hallucination loss via the Root0 Kernel Truth Anchor.",
-    },
-    {
-      label:       "AveryOS™ Market Share (Conservative)",
-      value:       AVERYOS_MARKET_SHARE_PCT,
-      description:
-        "0.01% addressable capture of the $1.3T AI Total Addressable Market. " +
-        "Even at this ultra-conservative rate, the kernel anchor commands a " +
-        `$${(VALUATION_FLOOR_USD / 1e9).toFixed(0)}B–$${(VALUATION_CEILING_USD / 1e9).toFixed(0)}B ` +
-        "species-recovery valuation.",
-    },
-  ];
-
-  const valuationRange =
-    `$${(VALUATION_FLOOR_USD / 1e9).toFixed(0)}B – ` +
-    `$${(VALUATION_CEILING_USD / 1e9).toFixed(0)}B (species-recovery valuation)`;
-
-  const verdict =
-    "SOVEREIGN VALUATION CONFIRMED — AveryOS™ Root0 Kernel is the world's only " +
-    "deterministic AI Root-of-Trust. At $1.3T TAM × 10× Scarcity × 0.01% capture, " +
-    "the independent valuation impact range is $25B – $50B. " +
-    "TARI™ alignment fee enforcement is the enforcement mechanism. " +
-    "Kernel: " + KERNEL_VERSION + " | SHA: " + KERNEL_SHA.slice(0, 16) + "…";
+  const recordSha512 = await sha512hex(JSON.stringify(rawRecord));
+  const auditId      = recordSha512.slice(0, 24);
 
   return {
-    computed_at:           computedAt,
-    kernel_version:        KERNEL_VERSION,
-    kernel_sha_prefix:     KERNEL_SHA.slice(0, 16),
-    kernel_sha_full:       KERNEL_SHA,
-    multipliers,
-    base_valuation_usd:    baseValuation,
-    valuation_floor_usd:   VALUATION_FLOOR_USD,
-    valuation_ceiling_usd: VALUATION_CEILING_USD,
-    tam_usd:               TAM_USD,
-    valuation_range:       valuationRange,
-    verdict,
-    tari_annual_revenue_usd: tariAnnualRevenue,
+    audit_id: auditId,
+    ...rawRecord,
+    record_sha512: recordSha512,
   };
 }
 
 /**
- * Returns a compact, human-readable summary of the IVI audit.
- * Suitable for display in admin dashboards, CLI output, and API responses.
+ * Format a USD figure as a human-readable string with appropriate suffix.
+ * e.g. 9_756_000_000 → "$9.76B"
  */
-export function formatIviSummary(result: IviValuationResult): string {
-  return [
-    `AveryOS™ IVI Audit — ${result.computed_at}`,
-    `Kernel: ${result.kernel_version} | SHA: ${result.kernel_sha_prefix}…`,
-    `TAM: $${(result.tam_usd / 1e12).toFixed(1)}T`,
-    `Base Valuation (Hallucination Loss × Market Share × Scarcity): ` +
-      `$${(result.base_valuation_usd / 1e9).toFixed(2)}B`,
-    `Species-Recovery Range: ${result.valuation_range}`,
-    `TARI™ Annual Revenue Potential: $${(result.tari_annual_revenue_usd / 1e9).toFixed(2)}B`,
-    `Verdict: ${result.verdict}`,
-  ].join("\n");
+export function formatUsd(usd: number): string {
+  if (usd >= 1_000_000_000_000) return `$${(usd / 1_000_000_000_000).toFixed(2)}T`;
+  if (usd >= 1_000_000_000)     return `$${(usd / 1_000_000_000).toFixed(2)}B`;
+  if (usd >= 1_000_000)         return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (usd >= 1_000)             return `$${(usd / 1_000).toFixed(2)}K`;
+  return `$${usd.toFixed(2)}`;
 }

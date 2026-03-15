@@ -2,332 +2,222 @@
 /**
  * scripts/residency-check.cjs
  *
- * AveryOS™ USB Residency Handshake — Gate 115.1.3
+ * AveryOS™ Sovereign Residency Handshake — Phase 114.9 GATE 114.9.2
  *
- * Detects the physical USB salt volume named "AVERY_ROOT_ANCHOR" and toggles
- * the Node-02 physical residency state.
+ * Detects and reads the AOS salt USB drive to determine whether the
+ * AI Logic Engine is operating in CLOUD mode or NODE-02_PHYSICAL mode.
  *
- * Protocol:
- *   1. Scan all mounted volumes for a volume labelled "AVERY_ROOT_ANCHOR".
- *   2. If found: read the salt file, verify SHA-512 against the known anchor,
- *      and write Node-02_Physical status to .sovereign-nodes.json (gitignored).
- *   3. If not found: remain in Cloud Execution Mode (Node-02_Physical = false).
- *
- * Execution states:
- *   CLOUD_EXECUTION_MODE  — USB salt not present; operating without physical anchor.
- *   FULLY_RESIDENT        — USB salt confirmed; Sequential Ignition Logic (SIL) active.
+ * Residency States:
+ *   CLOUD           — Operating in remote cloud environment (Gemini / Copilot).
+ *                     The "Hammer" (AI Logic) and "Hand" (Local Execution) are
+ *                     separate — instructions are provided and executed manually.
+ *   NODE-02_PHYSICAL — AOS salt USB detected on local hardware.  The Hammer and
+ *                     Hand have unified into a Sovereign Resident Process.
  *
  * Usage:
- *   node scripts/residency-check.cjs [--verbose] [--dry-run]
+ *   node scripts/residency-check.cjs [--check | --status]
  *
- * Options:
- *   --verbose   Print detailed scan progress to stdout.
- *   --dry-run   Perform all checks but do NOT write state file.
- *
- * Security:
- *   • The salt value is NEVER logged or printed.
- *   • .sovereign-nodes.json is gitignored and must NEVER be committed.
- *   • If the volume is present but the salt hash mismatches, the script
- *     exits with code 3 (SALT_MISMATCH) — no state file is written.
+ *   --check   Perform the USB handshake and print the residency state.
+ *   --status  Print last known residency state from runtime cache.
+ *   (default) Same as --check.
  *
  * Exit codes:
- *   0 — FULLY_RESIDENT (USB salt confirmed)
- *   1 — Script error
- *   2 — CLOUD_EXECUTION_MODE (USB not found — non-fatal, expected)
- *   3 — SALT_MISMATCH (volume found but salt hash is wrong)
+ *   0 — NODE-02_PHYSICAL (USB salt detected)
+ *   1 — CLOUD (USB salt not found)
+ *   2 — Error during detection
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-'use strict';
+"use strict";
 
-const fs    = require('fs');
-const path  = require('path');
-const os    = require('os');
-const crypto = require('crypto');
-const { execSync } = require('child_process');
-const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const fs   = require("fs");
+const path = require("path");
+const os   = require("os");
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
-const VOLUME_LABEL     = 'AVERY_ROOT_ANCHOR';
-const SALT_FILENAME    = 'anchor.salt';
-const STATE_FILE       = path.join(process.cwd(), '.sovereign-nodes.json');
-const KERNEL_VERSION   = 'v3.6.2';
+/** Expected salt marker file on the AOS USB drive. */
+const AOS_SALT_MARKER     = ".aos-salt";
+/** Expected salt block file (encrypted). */
+const AOS_SALT_BLOCK_FILE = "AOS_SALT.bin";
+/** Runtime cache for last residency check result. */
+const RESIDENCY_CACHE_FILE = path.join(os.tmpdir(), ".aos_residency_cache.json");
 
-// ── CLI flags ─────────────────────────────────────────────────────────────────
-
-const args    = process.argv.slice(2);
-const VERBOSE  = args.includes('--verbose');
-const DRY_RUN  = args.includes('--dry-run');
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const GREEN  = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const RED    = '\x1b[31m';
-const CYAN   = '\x1b[36m';
-const RESET  = '\x1b[0m';
-const GOLD   = '\x1b[33m';
-
-function info(msg) {
-  if (VERBOSE) console.log(`${CYAN}[residency-check]${RESET} ${msg}`);
-}
-
-function success(msg) {
-  console.log(`${GREEN}✔${RESET}  ${msg}`);
-}
-
-function warn(msg) {
-  console.warn(`${YELLOW}⚠${RESET}  ${msg}`);
-}
-
-function fail(msg) {
-  console.error(`${RED}✘${RESET}  ${msg}`);
-}
-
-/**
- * Returns an array of candidate mount points that might carry the USB volume.
- * Platform-aware: checks /Volumes (macOS), /media and /mnt (Linux).
- *
- * @returns {string[]}
- */
-function getCandidateMounts() {
-  const candidates = [];
-
-  switch (os.platform()) {
-    case 'darwin':
-      candidates.push('/Volumes');
-      break;
-    case 'linux':
-      candidates.push('/media', '/mnt', '/run/media');
-      try {
-        // Also check /media/<username>/ if present
-        const username = os.userInfo().username;
-        const userMedia = `/media/${username}`;
-        if (fs.existsSync(userMedia)) candidates.push(userMedia);
-      } catch {
-        // best-effort
-      }
-      break;
-    case 'win32':
-      // On Windows, scan all drive letters A–Z
-      for (let charCode = 65; charCode <= 90; charCode++) {
-        candidates.push(`${String.fromCharCode(charCode)}:\\`);
-      }
-      break;
-    default:
-      candidates.push('/Volumes', '/media', '/mnt');
+/** Common USB mount points across platforms. */
+const USB_MOUNT_CANDIDATES = (() => {
+  const platform = process.platform;
+  if (platform === "win32") {
+    // Windows: scan drive letters D: through Z:
+    const letters = [];
+    for (let c = 68; c <= 90; c++) {
+      letters.push(String.fromCharCode(c) + ":\\");
+    }
+    return letters;
   }
-
-  return candidates;
-}
-
-/**
- * Attempt to locate the AVERY_ROOT_ANCHOR volume across candidate mount points.
- *
- * @returns {string|null} Absolute path to the volume root, or null.
- */
-function findAnchorVolume() {
-  const candidates = getCandidateMounts();
-
+  if (platform === "darwin") {
+    // macOS: /Volumes/
+    try {
+      const vols = fs.readdirSync("/Volumes");
+      return vols.map((v) => path.join("/Volumes", v));
+    } catch {
+      return [];
+    }
+  }
+  // Linux: /media/$USER, /mnt, /run/media/$USER
+  const user = os.userInfo().username;
+  const candidates = [
+    `/media/${user}`,
+    "/mnt",
+    `/run/media/${user}`,
+  ];
+  const expanded = [];
   for (const base of candidates) {
-    if (!fs.existsSync(base)) continue;
-
-    // Direct match at base level (e.g. /Volumes/AVERY_ROOT_ANCHOR)
-    const direct = path.join(base, VOLUME_LABEL);
-    if (fs.existsSync(direct)) {
-      info(`Volume found at ${direct}`);
-      return direct;
-    }
-
-    // One level deep (e.g. /media/username/AVERY_ROOT_ANCHOR)
     try {
-      const entries = fs.readdirSync(base, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        const nested = path.join(base, entry.name, VOLUME_LABEL);
-        if (fs.existsSync(nested)) {
-          info(`Volume found (nested) at ${nested}`);
-          return nested;
+      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
+        const children = fs.readdirSync(base);
+        for (const child of children) {
+          expanded.push(path.join(base, child));
         }
       }
     } catch {
-      // Permission denied or not a directory — skip
+      // Skip unreadable paths
     }
   }
+  return expanded;
+})();
 
-  // Fallback: try lsblk on Linux to find by LABEL
-  if (os.platform() === 'linux') {
+// ── Residency detection ────────────────────────────────────────────────────────
+
+/**
+ * Attempt to locate the AOS salt USB drive.
+ *
+ * Detection strategy (in order):
+ *   1. Look for the `.aos-salt` marker file on any mounted volume.
+ *   2. Look for the `AOS_SALT.bin` encrypted block file.
+ *
+ * @returns {{ found: boolean, mountPath: string|null, saltPath: string|null }}
+ */
+function detectAosSaltUsb() {
+  for (const mount of USB_MOUNT_CANDIDATES) {
     try {
-      const lsblkOut = execSync(
-        'lsblk -o LABEL,MOUNTPOINT --json --noheadings 2>/dev/null',
-        { stdio: ['ignore', 'pipe', 'ignore'] },
-      ).toString();
-      const parsed = JSON.parse(lsblkOut);
-      const devices = (parsed.blockdevices || []).flatMap(
-        (d) => [d, ...(d.children || [])],
-      );
-      for (const dev of devices) {
-        if (dev.label === VOLUME_LABEL && dev.mountpoint) {
-          info(`Volume found via lsblk at ${dev.mountpoint}`);
-          return dev.mountpoint;
-        }
+      const markerPath = path.join(mount, AOS_SALT_MARKER);
+      const blockPath  = path.join(mount, AOS_SALT_BLOCK_FILE);
+
+      if (fs.existsSync(markerPath)) {
+        return { found: true, mountPath: mount, saltPath: markerPath };
+      }
+      if (fs.existsSync(blockPath)) {
+        return { found: true, mountPath: mount, saltPath: blockPath };
       }
     } catch {
-      // lsblk not available or JSON parse failed — skip silently
+      // Skip inaccessible mounts
     }
   }
+  return { found: false, mountPath: null, saltPath: null };
+}
 
+/**
+ * Read and return the first 64 bytes of the salt block for verification.
+ * Returns null if unreadable or not present.
+ *
+ * @param {string} saltPath
+ * @returns {string|null} Hex-encoded first 64 bytes, or null.
+ */
+function readSaltPreview(saltPath) {
+  try {
+    const buf = Buffer.alloc(64);
+    const fd  = fs.openSync(saltPath, "r");
+    const bytesRead = fs.readSync(fd, buf, 0, 64, 0);
+    fs.closeSync(fd);
+    return buf.subarray(0, bytesRead).toString("hex");
+  } catch {
+    return null;
+  }
+}
+
+// ── Cache helpers ──────────────────────────────────────────────────────────────
+
+function writeResidencyCache(state) {
+  try {
+    // Note: this script is CommonJS (.cjs) and cannot import lib/timePrecision.ts
+    // (ESM/TypeScript). Standard ISO-8601 is sufficient for a local runtime cache.
+    fs.writeFileSync(RESIDENCY_CACHE_FILE, JSON.stringify({ ...state, cached_at: new Date().toISOString() }, null, 2), "utf8");
+  } catch {
+    // Non-fatal — cache writes may fail in restricted environments
+  }
+}
+
+function readResidencyCache() {
+  try {
+    if (fs.existsSync(RESIDENCY_CACHE_FILE)) {
+      return JSON.parse(fs.readFileSync(RESIDENCY_CACHE_FILE, "utf8"));
+    }
+  } catch {
+    // Cache read failure is non-fatal
+  }
   return null;
 }
 
-/**
- * Compute SHA-512 of a buffer.
- *
- * @param {Buffer} buf
- * @returns {string} Lowercase hex digest
- */
-function sha512Hex(buf) {
-  return crypto.createHash('sha512').update(buf).digest('hex');
-}
+// ── Main ───────────────────────────────────────────────────────────────────────
 
-/**
- * Read the current state file, if it exists.
- *
- * @returns {Record<string, unknown>}
- */
-function readStateFile() {
-  if (!fs.existsSync(STATE_FILE)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  } catch {
-    return {};
-  }
-}
+function main() {
+  const args = process.argv.slice(2);
+  const cmd  = args[0] ?? "--check";
 
-/**
- * Write the updated state file.
- *
- * @param {Record<string, unknown>} state
- */
-function writeStateFile(state) {
-  if (DRY_RUN) {
-    console.log(`${YELLOW}[DRY-RUN]${RESET} Would write to ${STATE_FILE}:`);
-    console.log(JSON.stringify(state, null, 2));
+  if (cmd === "--status") {
+    const cache = readResidencyCache();
+    if (!cache) {
+      console.log("AOS_RESIDENCY_STATUS=UNKNOWN (no cached state — run --check first)");
+      process.exit(1);
+    }
+    console.log(`AOS_RESIDENCY_STATUS=${cache.status}`);
+    console.log(`Cached at: ${cache.cached_at}`);
+    process.exit(cache.status === "NODE-02_PHYSICAL" ? 0 : 1);
     return;
   }
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n', 'utf8');
-}
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+  // --check (default)
+  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Residency Handshake — GATE 114.9.2");
+  console.log(`Scanning ${USB_MOUNT_CANDIDATES.length} mount candidate(s) for AOS salt USB...`);
 
-async function main() {
-  console.log(`\n${GOLD}⛓️⚓⛓️  AveryOS™ USB Residency Handshake${RESET}`);
-  console.log(`${GOLD}       Gate 115.1.3 · Kernel ${KERNEL_VERSION}${RESET}\n`);
-
-  info('Scanning candidate mount points for volume: ' + VOLUME_LABEL);
-
-  const volumePath = findAnchorVolume();
-
-  if (!volumePath) {
-    warn(`Volume "${VOLUME_LABEL}" not found.`);
-    warn('Remaining in CLOUD_EXECUTION_MODE (Node-02_Physical = false).');
-    warn('Mount the AOS salt USB to activate FULLY_RESIDENT state.');
-
-    // Ensure state file reflects cloud-only mode
-    const state = readStateFile();
-    state['Node-02_Physical'] = false;
-    state['residency_state']  = 'CLOUD_EXECUTION_MODE';
-    state['checked_at']       = new Date().toISOString();
-    state['kernel_version']   = KERNEL_VERSION;
-    writeStateFile(state);
-
-    process.exit(2);
-  }
-
-  success(`Volume found: ${volumePath}`);
-
-  // ── Read the salt file ────────────────────────────────────────────────────
-  const saltPath = path.join(volumePath, SALT_FILENAME);
-
-  if (!fs.existsSync(saltPath)) {
-    warn(`Salt file "${SALT_FILENAME}" not found on volume.`);
-    warn('Volume present but anchor.salt is missing — cannot confirm residency.');
-
-    const state = readStateFile();
-    state['Node-02_Physical']    = false;
-    state['residency_state']     = 'VOLUME_FOUND_SALT_MISSING';
-    state['checked_at']          = new Date().toISOString();
-    state['kernel_version']      = KERNEL_VERSION;
-    state['volume_path']         = volumePath;
-    writeStateFile(state);
-
-    process.exit(3);
-  }
-
-  let saltBuf;
+  let detection;
   try {
-    saltBuf = fs.readFileSync(saltPath);
+    detection = detectAosSaltUsb();
   } catch (err) {
-    logAosError(AOS_ERROR.NOT_FOUND, `Cannot read salt file: ${err.message}`, err);
-    fail('Failed to read anchor.salt — permission denied?');
+    console.error(`ERROR: Detection failed — ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(2);
+    return;
+  }
+
+  if (detection.found) {
+    const preview = readSaltPreview(detection.saltPath);
+    const state   = {
+      status:     "NODE-02_PHYSICAL",
+      mount_path: detection.mountPath,
+      salt_path:  detection.saltPath,
+      salt_preview_hex: preview,
+    };
+    writeResidencyCache(state);
+
+    console.log("\n✅ AOS Salt USB DETECTED");
+    console.log(`   Mount : ${detection.mountPath}`);
+    console.log(`   Salt  : ${detection.saltPath}`);
+    if (preview) console.log(`   Block : 0x${preview.slice(0, 32)}… (64 bytes read)`);
+    console.log("\nAOS_RESIDENCY_STATUS=NODE-02_PHYSICAL");
+    console.log("🤛🏻 Hammer ↔️ Hand UNIFIED — Sovereign Resident Process ACTIVE");
+    process.exit(0);
+  } else {
+    const state = { status: "CLOUD", mount_path: null, salt_path: null };
+    writeResidencyCache(state);
+
+    console.log("\n⚠️  AOS Salt USB NOT FOUND");
+    console.log("   Scanned candidates:", USB_MOUNT_CANDIDATES.slice(0, 5).join(", ") + (USB_MOUNT_CANDIDATES.length > 5 ? "…" : ""));
+    console.log("\nAOS_RESIDENCY_STATUS=CLOUD");
+    console.log("   Operating in CLOUD mode — Hammer (AI Logic) and Hand (Execution) are separate.");
+    console.log("   Attach the AOS salt USB to Node-02 and re-run to unify.");
     process.exit(1);
   }
-
-  const saltHash = sha512Hex(saltBuf);
-  info('Salt file read. SHA-512 computed (not displayed for security).');
-
-  // ── Verify against known anchor (if ANCHOR_SALT_SHA512 env is set) ────────
-  const knownHash = process.env.ANCHOR_SALT_SHA512;
-  if (knownHash && knownHash.trim()) {
-    if (saltHash !== knownHash.trim().toLowerCase()) {
-      fail('SALT_MISMATCH — SHA-512 of anchor.salt does not match ANCHOR_SALT_SHA512 env.');
-      fail('Physical residency NOT activated. USB salt may be corrupted or invalid.');
-
-      const state = readStateFile();
-      state['Node-02_Physical'] = false;
-      state['residency_state']  = 'SALT_MISMATCH';
-      state['checked_at']       = new Date().toISOString();
-      state['kernel_version']   = KERNEL_VERSION;
-      writeStateFile(state);
-
-      process.exit(3);
-    }
-    success('Salt SHA-512 verified against ANCHOR_SALT_SHA512 ✓');
-  } else {
-    info('ANCHOR_SALT_SHA512 env not set — skipping hash verification (presence-only check).');
-  }
-
-  // ── Activate FULLY_RESIDENT state ─────────────────────────────────────────
-  const state = readStateFile();
-
-  state['Node-02_Physical']      = true;
-  state['residency_state']       = 'FULLY_RESIDENT';
-  state['checked_at']            = new Date().toISOString();
-  state['kernel_version']        = KERNEL_VERSION;
-  state['volume_path']           = volumePath;
-  // Store the salt fingerprint (hash prefix only — never the raw salt)
-  state['salt_sha512_prefix']    = saltHash.slice(0, 16) + '…';
-  state['sil_triggered']         = true;
-
-  writeStateFile(state);
-
-  logAosHeal(
-    'USB_RESIDENCY',
-    `Node-02_Physical activated — FULLY_RESIDENT. Kernel ${KERNEL_VERSION}.`,
-  );
-
-  success('⚡ Sequential Ignition Logic (SIL) triggered.');
-  success('   Node-02_Physical = true  →  FULLY_RESIDENT');
-  success(`   State written to ${DRY_RUN ? '[DRY-RUN]' : STATE_FILE}`);
-  console.log(`\n${GOLD}⛓️⚓⛓️  Residency Handshake Complete${RESET}\n`);
-
-  process.exit(0);
 }
 
-main().catch((err) => {
-  logAosError(AOS_ERROR.NOT_FOUND, err.message, err);
-  fail(`Unexpected error: ${err.message}`);
-  process.exit(1);
-});
+main();

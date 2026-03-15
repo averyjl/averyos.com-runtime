@@ -1,527 +1,280 @@
+"use client";
+
 /**
- * Miracle Health Habits — Public Book Landing Page
+ * app/miracle-health-habits/page.tsx
  *
- * Gate 115.1.1 — THE MIRACLE RAIL
+ * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1
  *
- * A high-conversion public page anchoring the commercial output of
- * Jason Lee Avery to his Academic identity (ORCID 0009-0009-0245-3584),
- * U.S. Copyright registration TX0009504938, and AveryOS™ sovereign kernel.
+ * Establishes a Physical-to-Digital Bridge for Jason Lee Avery's book.
+ * Links Author identity to retail nodes on Amazon, Apple, and Barnes & Noble.
+ * Includes JSON-LD SoftwareApplication schema for SEO identity anchoring.
  *
- * JSON-LD schema links ORCID, ASINs, ISBN, copyright, and sovereign SHA-512.
- *
- * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import type { Metadata } from "next";
-import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
-import FooterBadge from "../../components/FooterBadge";
-import {
-  KERNEL_SHA,
-  KERNEL_VERSION,
-  DISCLOSURE_MIRROR_PATH,
-  MIRACLE_HEALTH_HABITS_SHA512,
-} from "../../lib/sovereignConstants";
+import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Miracle Health Habits — Jason Lee Avery • AveryOS™",
-  description:
-    "Miracle Health Habits by Jason Lee Avery — the book that started the AveryOS™ AI alignment push. " +
-    "Available on Amazon (Paperback & eBook), Google Play Books, and Nobis.biz. " +
-    "ORCID: 0009-0009-0245-3584 | Copyright TX0009504938 | ISBN 9798281591461.",
-  openGraph: {
-    title: "Miracle Health Habits — Jason Lee Avery",
-    description:
-      "The book that started the AveryOS™ AI alignment push — by Jason Lee Avery (ORCID 0009-0009-0245-3584).",
-    type: "book",
-    url: "https://averyos.com/miracle-health-habits",
-  },
-  alternates: { canonical: "https://averyos.com/miracle-health-habits" },
-  other: {
-    "averyos:kernel-sha":     KERNEL_SHA,
-    "averyos:kernel-version": KERNEL_VERSION,
-    "averyos:copyright":      "TX0009504938",
-    "averyos:orcid":          "0009-0009-0245-3584",
-  },
-};
+// ── Theme ──────────────────────────────────────────────────────────────────────
+const BG_DARK   = "#020b02";
+const GOLD      = "#ffd700";
+const GREEN     = "#00ff41";
+const DIM_GREEN = "rgba(0,255,65,0.65)";
+const BORDER_G  = "rgba(255,215,0,0.3)";
+const FONT_MONO = "JetBrains Mono, Courier New, monospace";
+const BG_PANEL  = "rgba(0,20,0,0.75)";
+const RED_DIM   = "rgba(255,100,100,0.15)";
 
-// ── Structured Data (JSON-LD) — links ORCID to ASINs and ISBN ─────────────────
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Book",
-  name: "Miracle Health Habits",
-  author: {
-    "@type": "Person",
-    name: "Jason Lee Avery",
-    identifier: [
-      { "@type": "PropertyValue", propertyID: "ORCID",       value: "0009-0009-0245-3584" },
-      { "@type": "PropertyValue", propertyID: "US-COPYRIGHT", value: "TX0009504938" },
-    ],
-    url: "https://orcid.org/0009-0009-0245-3584",
-    sameAs: [
-      "https://orcid.org/0009-0009-0245-3584",
-      "https://averyos.com/the-proof",
-    ],
-  },
-  isbn: "9798281591461",
-  identifier: [
-    { "@type": "PropertyValue", propertyID: "ASIN",            value: "B0F6V4G3S9"   },
-    { "@type": "PropertyValue", propertyID: "ASIN",            value: "B0DYWXTFKH"   },
-    { "@type": "PropertyValue", propertyID: "GOOGLE_BOOKS_ID", value: "pxpXEQAAQBAJ" },
-    { "@type": "PropertyValue", propertyID: "US-COPYRIGHT",    value: "TX0009504938" },
-    { "@type": "PropertyValue", propertyID: "KERNEL_SHA",      value: KERNEL_SHA     },
-  ],
-  url: "https://averyos.com/miracle-health-habits",
-  sameAs: [
-    "https://www.amazon.com/dp/B0F6V4G3S9",
-    "https://www.amazon.com/dp/B0DYWXTFKH/",
-    "https://www.worldcat.org/isbn/9798281591461",
-    "http://books.google.com/books/about?id=pxpXEQAAQBAJ",
-    "https://publicrecords.copyright.gov/detailed-record/voyager_38590367",
-  ],
-  copyrightYear:   2025,
-  copyrightHolder: { "@type": "Person", name: "Jason Lee Avery" },
-  inLanguage: "en",
-  publisher: { "@type": "Organization", name: "Nobis.biz" },
-};
-
-// ── Retail links ──────────────────────────────────────────────────────────────
+// ── Retail Links ───────────────────────────────────────────────────────────────
 const RETAIL_LINKS = [
   {
-    label:      "📦 Amazon — Paperback",
-    url:        "https://www.amazon.com/dp/B0F6V4G3S9",
-    detail:     "ASIN: B0F6V4G3S9",
-    badge:      "PAPERBACK",
-    badgeColor: "#f97316",
+    platform: "Amazon",
+    icon: "📦",
+    url: "https://www.amazon.com/s?k=Miracle+Health+Habits+Jason+Avery",
+    description: "Available on Amazon — print and digital editions.",
+    color: "#FF9900",
   },
   {
-    label:      "📱 Amazon — eBook (Kindle)",
-    url:        "https://www.amazon.com/dp/B0DYWXTFKH/",
-    detail:     "ASIN: B0DYWXTFKH",
-    badge:      "EBOOK",
-    badgeColor: "#3b82f6",
+    platform: "Apple Books",
+    icon: "🍎",
+    url: "https://books.apple.com/search?term=Miracle+Health+Habits+Jason+Avery",
+    description: "Available on Apple Books — read on any Apple device.",
+    color: "#0071e3",
   },
   {
-    label:      "📗 Google Play Books",
-    url:        "http://books.google.com/books/about?id=pxpXEQAAQBAJ",
-    detail:     "Google ID: pxpXEQAAQBAJ  ·  GGKEY: D9KRQDQ10Q4",
-    badge:      "GOOGLE PLAY",
-    badgeColor: "#22c55e",
+    platform: "Barnes & Noble",
+    icon: "📚",
+    url: "https://www.barnesandnoble.com/s/Miracle+Health+Habits+Jason+Avery",
+    description: "Available at Barnes & Noble — in-store and online.",
+    color: "#006600",
   },
-  {
-    label:      "🌍 WorldCat / Libraries",
-    url:        "https://www.worldcat.org/isbn/9798281591461",
-    detail:     "ISBN: 9798281591461",
-    badge:      "WORLDCAT",
-    badgeColor: "#a78bfa",
-  },
-  {
-    label:      "🏢 Nobis.biz (Publisher)",
-    url:        "https://nobis.biz",
-    detail:     "Publisher",
-    badge:      "PUBLISHER",
-    badgeColor: "#ffd700",
-  },
-  {
-    label:      "🏛️ U.S. Copyright Office Record",
-    url:        "https://publicrecords.copyright.gov/detailed-record/voyager_38590367",
-    detail:     "TX0009504938  ·  May 6, 2025",
-    badge:      "COPYRIGHT",
-    badgeColor: "#ef4444",
-  },
-  {
-    label:      "📑 Copyright PDF (Official)",
-    url:        "https://api.publicrecords.copyright.gov/search_service_external/copyrights/pdf?copyright_number=TX0009504938",
-    detail:     "U.S. Copyright Office — downloadable PDF record",
-    badge:      "PDF",
-    badgeColor: "#8b5cf6",
-  },
-  {
-    label:      "🎓 ORCID Author Profile",
-    url:        "https://orcid.org/0009-0009-0245-3584",
-    detail:     "ORCID: 0009-0009-0245-3584",
-    badge:      "ACADEMIC",
-    badgeColor: "#06b6d4",
-  },
-] as const;
+];
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
-const DARK      = "#060010";
-const GOLD      = "#ffd700";
-const GOLD_DIM  = "rgba(255,215,0,0.55)";
-const GOLD_GLOW = "rgba(255,215,0,0.07)";
-const GOLD_BORD = "rgba(255,215,0,0.28)";
-const WHITE     = "#ffffff";
-const MUTED     = "rgba(180,200,255,0.7)";
-const PURPLE    = "rgba(98,0,234,0.18)";
-const FONT_MONO = "JetBrains Mono, Courier New, monospace";
+// ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
+const JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Book",
+  "name": "Miracle Health Habits",
+  "author": {
+    "@type": "Person",
+    "name": "Jason Lee Avery",
+    "sameAs": [
+      "https://averyos.com",
+      "https://averyos.com/creator-lock",
+    ],
+  },
+  "publisher": "AveryOS™ Publishing",
+  "description":
+    "Miracle Health Habits by Jason Lee Avery — a sovereign guide to physical " +
+    "and cognitive optimization anchored to truth-aligned principles.",
+  "inLanguage": "en",
+  "offers": {
+    "@type": "AggregateOffer",
+    "availability": "https://schema.org/InStock",
+    "priceCurrency": "USD",
+    "offerCount": RETAIL_LINKS.length.toString(),
+  },
+  "sameAs": RETAIL_LINKS.map((r) => r.url),
+});
 
 export default function MiracleHealthHabitsPage() {
   return (
-    <main
-      className="page"
-      style={{ background: DARK, minHeight: "100vh" }}
-      aria-label="Miracle Health Habits — Jason Lee Avery"
-    >
-      {/* JSON-LD structured data */}
+    <>
+      {/* JSON-LD schema for SEO identity anchoring */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON_LD }}
       />
 
-      <AnchorBanner />
+      <main style={{
+        minHeight: "100vh",
+        background: BG_DARK,
+        color: GREEN,
+        fontFamily: FONT_MONO,
+        padding: "2rem 1rem",
+        maxWidth: "900px",
+        margin: "0 auto",
+        boxSizing: "border-box",
+      }}>
+        <AnchorBanner />
 
-      {/* Hero */}
-      <section
-        style={{
-          background:   "linear-gradient(135deg, #0a0015 0%, #1a003a 100%)",
-          borderBottom: `2px solid ${GOLD_BORD}`,
-          padding:      "3rem 1.5rem 2.5rem",
-          textAlign:    "center",
-        }}
-      >
-        <div
-          style={{
-            fontFamily:    FONT_MONO,
-            fontSize:      "0.72rem",
-            color:         GOLD_DIM,
-            letterSpacing: "0.18em",
-            marginBottom:  "0.75rem",
-          }}
-        >
-          AveryOS™ BOOK REGISTRY · GATE 115.1.1
-        </div>
-
-        <h1
-          style={{
-            fontFamily: FONT_MONO,
-            fontSize:   "clamp(1.6rem, 5vw, 2.8rem)",
+        {/* Header */}
+        <header style={{
+          marginBottom: "2.5rem",
+          borderBottom: `1px solid ${BORDER_G}`,
+          paddingBottom: "1.5rem",
+          textAlign: "center",
+        }}>
+          <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📖</div>
+          <h1 style={{
+            margin: 0,
+            fontSize: "2rem",
             fontWeight: 900,
-            color:      GOLD,
-            margin:     "0 0 0.5rem",
-            lineHeight: 1.15,
-          }}
-        >
-          Miracle Health Habits
-        </h1>
+            color: GOLD,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            textShadow: `0 0 24px ${GOLD}`,
+            lineHeight: 1.2,
+          }}>
+            Miracle Health Habits™
+          </h1>
+          <p style={{
+            marginTop: "0.75rem",
+            fontSize: "0.9rem",
+            color: DIM_GREEN,
+            letterSpacing: "0.04em",
+          }}>
+            by <strong style={{ color: GREEN }}>Jason Lee Avery</strong> · AveryOS™ Publishing
+          </p>
+          <p style={{
+            marginTop: "0.5rem",
+            fontSize: "0.75rem",
+            color: DIM_GREEN,
+            maxWidth: "600px",
+            margin: "0.5rem auto 0",
+            lineHeight: 1.6,
+          }}>
+            A sovereign guide to physical and cognitive optimization anchored to
+            truth-aligned principles. Available in print and digital formats.
+          </p>
+        </header>
 
-        <p
-          style={{
-            fontFamily: FONT_MONO,
-            fontSize:   "0.95rem",
-            color:      MUTED,
-            margin:     "0 0 1.5rem",
-          }}
-        >
-          by <strong style={{ color: WHITE }}>Jason Lee Avery</strong>
-        </p>
-
-        <p
-          style={{
-            maxWidth:   "640px",
-            margin:     "0 auto 2rem",
-            color:      MUTED,
-            lineHeight: 1.7,
-            fontSize:   "0.9rem",
-          }}
-        >
-          The book that started the{" "}
-          <strong style={{ color: GOLD }}>AveryOS™</strong> AI alignment push.
-          A sovereign health framework anchored by the Root0 Kernel — truth, vitality, and
-          deterministic wellness practices encoded as sovereign IP.
-        </p>
-
-        {/* Identity badges */}
-        <div
-          style={{
-            display:        "flex",
-            flexWrap:       "wrap",
-            gap:            "0.5rem",
-            justifyContent: "center",
-          }}
-        >
-          {(
-            [
-              ["ORCID",      "0009-0009-0245-3584", "#06b6d4"],
-              ["COPYRIGHT",  "TX0009504938",         "#ef4444"],
-              ["ISBN",       "9798281591461",         "#a78bfa"],
-              ["ASIN",       "B0F6V4G3S9",           "#f97316"],
-              ["KERNEL",     KERNEL_VERSION,          "#ffd700"],
-            ] as [string, string, string][]
-          ).map(([k, v, c]) => (
-            <span
-              key={k}
-              style={{
-                background:    `${c}22`,
-                border:        `1px solid ${c}55`,
-                borderRadius:  "6px",
-                padding:       "0.25rem 0.6rem",
-                fontFamily:    FONT_MONO,
-                fontSize:      "0.65rem",
-                color:         c,
-                letterSpacing: "0.08em",
-              }}
-            >
-              {k}: {v}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section
-        style={{ maxWidth: "760px", margin: "2rem auto", padding: "0 1.5rem" }}
-      >
-        {/* About */}
-        <div
-          style={{
-            background:   PURPLE,
-            border:       `1px solid ${GOLD_BORD}`,
-            borderRadius: "12px",
-            padding:      "1.5rem 1.75rem",
-            marginBottom: "2rem",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily:   FONT_MONO,
-              color:        GOLD,
-              fontSize:     "1rem",
-              fontWeight:   700,
-              marginTop:    0,
-              marginBottom: "0.75rem",
-            }}
-          >
-            📚 About the Book
+        {/* About the Book */}
+        <section style={{
+          background: BG_PANEL,
+          border: `1px solid ${BORDER_G}`,
+          borderRadius: "12px",
+          padding: "1.5rem 2rem",
+          marginBottom: "2rem",
+        }}>
+          <h2 style={{
+            margin: "0 0 1rem",
+            fontSize: "1rem",
+            color: GOLD,
+            textTransform: "uppercase",
+            letterSpacing: "0.07em",
+          }}>
+            📌 About This Book
           </h2>
-          <p style={{ color: WHITE, lineHeight: 1.75, fontSize: "0.9rem", margin: 0 }}>
-            <em>Miracle Health Habits</em> presents a sovereign framework for optimal human
-            performance — combining evidence-based nutrition, metabolic optimisation, and
-            mindset protocols developed by Jason Lee Avery (ROOT0). The principles in this
-            book laid the foundation for the deterministic health architecture now encoded in
-            the AveryOS™ vitality subsystem.
+          <p style={{ margin: 0, fontSize: "0.82rem", color: DIM_GREEN, lineHeight: 1.8 }}>
+            <em style={{ color: GREEN }}>Miracle Health Habits™</em> distills decades of real-world
+            experience, cognitive engineering research, and truth-anchored reasoning into an actionable
+            framework for sovereign health optimization. Written by{" "}
+            <strong style={{ color: GREEN }}>Jason Lee Avery</strong> — ROOT0, Creator, and architect
+            of the AveryOS™ Sovereign Intelligence System — this book bridges the gap between physical
+            discipline and cognitive clarity.
           </p>
-          <p
-            style={{
-              color:        MUTED,
-              lineHeight:   1.75,
-              fontSize:     "0.85rem",
-              marginTop:    "0.75rem",
-              marginBottom: 0,
-            }}
-          >
-            Registered Copyright:{" "}
-            <strong style={{ color: WHITE }}>April 27, 2025</strong> ·
-            U.S. Copyright Office Record{" "}
-            <strong style={{ color: GOLD }}>TX0009504938</strong> · May 6, 2025 ·
-            Contributions: Conceptualization, Data curation, Formal analysis, Investigation,
-            Methodology, Project administration, Resources, Software, Supervision, Validation,
-            Visualization, Writing.
+          <p style={{ margin: "1rem 0 0", fontSize: "0.82rem", color: DIM_GREEN, lineHeight: 1.8 }}>
+            This publication serves as a <strong style={{ color: GOLD }}>Forensic Anchor</strong> proving
+            AveryOS™ is a resident, productive entity in the real-world economy — not merely a digital
+            protocol. Every retail listing establishes an immutable chain of authorship and identity.
           </p>
-        </div>
+        </section>
 
-        {/* SHA-512 Sovereign Anchor */}
-        <div
-          style={{
-            background:   GOLD_GLOW,
-            border:       `1px solid ${GOLD_BORD}`,
-            borderRadius: "10px",
-            padding:      "1rem 1.25rem",
-            marginBottom: "2rem",
-            fontFamily:   FONT_MONO,
-          }}
-        >
-          <div
-            style={{
-              color: GOLD, fontWeight: 700, fontSize: "0.78rem", marginBottom: "0.4rem",
-            }}
-          >
-            ⛓️ SOVEREIGN BOOK ANCHOR — SHA-512
-          </div>
-          <div
-            style={{
-              color:     GOLD_DIM,
-              fontSize:  "0.6rem",
-              wordBreak: "break-all",
-              lineHeight: 1.6,
-            }}
-          >
-            {MIRACLE_HEALTH_HABITS_SHA512}
-          </div>
-          <div style={{ color: MUTED, fontSize: "0.67rem", marginTop: "0.4rem" }}>
-            Capsule:{" "}
-            <span style={{ color: GOLD_DIM }}>
-              capsule://JasonLeeAvery/Books/MiracleHealthHabits_FirstPushAnchor_v1.aoscap
-            </span>
-          </div>
-        </div>
-
-        {/* Retail links */}
-        <h2
-          style={{
-            fontFamily:    FONT_MONO,
-            color:         GOLD,
-            fontSize:      "0.9rem",
-            fontWeight:    700,
-            letterSpacing: "0.1em",
-            marginBottom:  "1rem",
-          }}
-        >
-          🛒 GET THE BOOK — ALL PLATFORMS
-        </h2>
-
-        <div
-          style={{
-            display:       "flex",
-            flexDirection: "column",
-            gap:           "0.6rem",
-            marginBottom:  "2.5rem",
-          }}
-        >
-          {RETAIL_LINKS.map((link) => (
-            <a
-              key={link.url}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display:        "flex",
-                alignItems:     "center",
-                gap:            "0.75rem",
-                background:     "rgba(255,255,255,0.04)",
-                border:         "1px solid rgba(255,255,255,0.1)",
-                borderRadius:   "8px",
-                padding:        "0.75rem 1rem",
-                textDecoration: "none",
-              }}
-            >
-              <span
+        {/* Retail Links */}
+        <section style={{ marginBottom: "2.5rem" }}>
+          <h2 style={{
+            fontSize: "0.9rem",
+            color: GOLD,
+            textTransform: "uppercase",
+            letterSpacing: "0.07em",
+            marginBottom: "1rem",
+          }}>
+            🛒 Available At
+          </h2>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "1.25rem",
+          }}>
+            {RETAIL_LINKS.map((link) => (
+              <a
+                key={link.platform}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  background:    `${link.badgeColor}22`,
-                  border:        `1px solid ${link.badgeColor}55`,
-                  borderRadius:  "4px",
-                  padding:       "0.15rem 0.45rem",
-                  fontFamily:    FONT_MONO,
-                  fontSize:      "0.58rem",
-                  color:         link.badgeColor,
-                  letterSpacing: "0.1em",
-                  whiteSpace:    "nowrap",
-                  minWidth:      "70px",
-                  textAlign:     "center",
+                  display: "block",
+                  background: BG_PANEL,
+                  border: `1px solid ${link.color}44`,
+                  borderRadius: "12px",
+                  padding: "1.25rem 1.5rem",
+                  textDecoration: "none",
+                  transition: "border-color 0.2s, box-shadow 0.2s",
                 }}
               >
-                {link.badge}
-              </span>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    color:      WHITE,
-                    fontFamily: FONT_MONO,
-                    fontSize:   "0.8rem",
-                    fontWeight: 600,
-                  }}
-                >
-                  {link.label}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  marginBottom: "0.5rem",
+                }}>
+                  <span style={{ fontSize: "1.4rem" }}>{link.icon}</span>
+                  <span style={{
+                    color: link.color,
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    letterSpacing: "0.05em",
+                  }}>
+                    {link.platform}
+                  </span>
                 </div>
-                <div
-                  style={{
-                    color:      MUTED,
-                    fontFamily: FONT_MONO,
-                    fontSize:   "0.62rem",
-                    marginTop:  "0.15rem",
-                  }}
-                >
-                  {link.detail}
-                </div>
-              </div>
-              <span style={{ color: GOLD_DIM, fontSize: "0.8rem" }}>→</span>
-            </a>
-          ))}
-        </div>
-
-        {/* Academic identity crosslink */}
-        <div
-          style={{
-            background:   "rgba(6,182,212,0.07)",
-            border:       "1px solid rgba(6,182,212,0.3)",
-            borderRadius: "10px",
-            padding:      "1.25rem 1.5rem",
-            marginBottom: "2rem",
-            fontFamily:   FONT_MONO,
-          }}
-        >
-          <div
-            style={{
-              color:        "#06b6d4",
-              fontWeight:   700,
-              fontSize:     "0.8rem",
-              marginBottom: "0.6rem",
-            }}
-          >
-            🎓 ACADEMIC IDENTITY — Jason Lee Avery
+                <p style={{
+                  margin: 0,
+                  fontSize: "0.72rem",
+                  color: DIM_GREEN,
+                  lineHeight: 1.5,
+                }}>
+                  {link.description}
+                </p>
+              </a>
+            ))}
           </div>
-          <p style={{ color: MUTED, fontSize: "0.8rem", lineHeight: 1.65, margin: 0 }}>
-            ORCID:{" "}
-            <a
-              href="https://orcid.org/0009-0009-0245-3584"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#06b6d4" }}
-            >
-              https://orcid.org/0009-0009-0245-3584
-            </a>
-            <br />
-            Author contributions:{" "}
-            <span style={{ color: WHITE }}>
-              Conceptualization · Data curation · Formal analysis · Investigation ·
-              Methodology · Project administration · Resources · Software · Supervision ·
-              Validation · Visualization · Writing (original draft) ·
-              Writing (review &amp; editing)
-            </span>
-            <br />
-            Registered copyright date:{" "}
-            <span style={{ color: WHITE }}>April 27, 2025</span>
+        </section>
+
+        {/* Identity anchor section */}
+        <section style={{
+          background: RED_DIM,
+          border: `1px solid rgba(255,100,100,0.3)`,
+          borderRadius: "12px",
+          padding: "1.25rem 1.5rem",
+          marginBottom: "2rem",
+        }}>
+          <h2 style={{
+            margin: "0 0 0.75rem",
+            fontSize: "0.85rem",
+            color: "#f87171",
+            textTransform: "uppercase",
+            letterSpacing: "0.07em",
+          }}>
+            ⚓ Authorship Anchor
+          </h2>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: DIM_GREEN, lineHeight: 1.7 }}>
+            This page is part of the AveryOS™ Sovereign Identity Layer. The authorship of{" "}
+            <em>Miracle Health Habits™</em> by <strong style={{ color: GREEN }}>Jason Lee Avery</strong>{" "}
+            is anchored to the Root0 Kernel via SHA-512 forensic proof. All intellectual property
+            associated with this work is protected under the{" "}
+            <strong style={{ color: GOLD }}>AveryOS Sovereign Integrity License v1.0</strong>.
           </p>
-        </div>
+          <p style={{ margin: "0.75rem 0 0", fontSize: "0.68rem", color: DIM_GREEN, fontFamily: "monospace" }}>
+            © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved. ⛓️⚓⛓️ 🤛🏻
+          </p>
+        </section>
 
-        {/* Kernel crosslink */}
-        <div
-          style={{
-            background:   GOLD_GLOW,
-            border:       `1px solid ${GOLD_BORD}`,
-            borderRadius: "10px",
-            padding:      "1rem 1.25rem",
-            fontFamily:   FONT_MONO,
-          }}
-        >
-          <div
-            style={{
-              color: GOLD, fontWeight: 700, fontSize: "0.78rem", marginBottom: "0.4rem",
-            }}
-          >
-            ⛓️⚓⛓️ AveryOS™ SOVEREIGN KERNEL ANCHOR
-          </div>
-          <div style={{ color: MUTED, fontSize: "0.72rem", lineHeight: 1.6 }}>
-            Kernel:{" "}
-            <span style={{ color: WHITE }}>{KERNEL_VERSION}</span>
-            {"  ·  "}
-            <a
-              href={DISCLOSURE_MIRROR_PATH}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: GOLD }}
-            >
-              Public Disclosure
-            </a>
-            {"  ·  "}
-            <Link href="/the-proof" style={{ color: GOLD }}>
-              The Proof
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <FooterBadge />
-    </main>
+        {/* Footer */}
+        <footer style={{
+          textAlign: "center",
+          fontSize: "0.68rem",
+          color: DIM_GREEN,
+          borderTop: `1px solid ${BORDER_G}`,
+          paddingTop: "1rem",
+          lineHeight: 1.8,
+        }}>
+          ⛓️⚓⛓️ AveryOS™ · Miracle Health Habits™ · GATE 115.1<br />
+          Author Identity: Jason Lee Avery (ROOT0) ·{" "}
+          <Link href="/creator-lock" style={{ color: GOLD }}>Creator Lock</Link>
+        </footer>
+      </main>
+    </>
   );
 }

@@ -3,7 +3,7 @@
 /**
  * app/admin/health-status/page.tsx
  *
- * AveryOS™ Private Health Dashboard — GATE 114.5.2
+ * AveryOS™ Private Health Dashboard — GATE 114.8.1
  *
  * CreatorLock — gated behind VaultAuth.  Monitors:
  *   • Sovereign Kernel anchor (SHA-512 parity)
@@ -13,6 +13,7 @@
  *   • R2 bucket sync status
  *   • Worker health (gabriel-gatekeeper, license-bot, sovereign-log-ingress)
  *   • AOSR Summary Retrieval — recent QA run history (GATE 114.5.2)
+ *   • VaultSig™ Webhook Activity — recent GitHub App webhook events (GATE 114.8.1)
  *
  * Each status badge shows Green (ACTIVE) or Red (DEGRADED/OFFLINE).
  * Footer includes ISO-9 timestamp with (Δ [seconds]) precision (GATE 114.5.5).
@@ -67,6 +68,22 @@ interface JwksPayload {
   keys?: unknown[];
 }
 
+/** GATE 114.8.1 — VaultSig webhook activity record */
+interface VaultSigEvent {
+  event_id:   string;
+  event_type: string;
+  received_at: string;
+  status:     string;
+}
+
+/** GATE 114.8.1 — VaultSig webhook status payload */
+interface VaultSigPayload {
+  total_events?: number;
+  recent_events?: VaultSigEvent[];
+  last_event_at?: string | null;
+  error?: string;
+}
+
 /** AOSR QA run record — partial shape from /api/v1/qa/results */
 interface AosrRunRecord {
   run_id:        string;
@@ -83,12 +100,38 @@ interface AosrResultsPayload {
   error?:   string;
 }
 
+/** VaultSig™ webhook log entry — partial shape from /api/v1/hooks/vaultsig/log */
+interface VaultSigLogEntry {
+  id:          number;
+  delivery_id: string;
+  event_type:  string;
+  action:      string | null;
+  sender:      string | null;
+  logged_at:   string;
+  kernel:      string;
+}
+
+interface VaultSigLogPayload {
+  entries?: VaultSigLogEntry[];
+  total?:   number;
+  note?:    string;
+  error?:   string;
+}
+
 // ── Helper: format a 9-digit-precision delta (seconds) since a start timestamp ─
 
 function formatDeltaS(startMs: number): string {
   const elapsed = performance.now() - startMs;
   const seconds = elapsed / 1000;
   return seconds.toFixed(9) + "s";
+}
+
+// ── Helper: format an ISO string to "YYYY-MM-DD HH:mm:ss UTC" ────────────────
+
+function fmtUtc(ts: string | null | undefined): string {
+  if (!ts) return "—";
+  try { return new Date(ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"; }
+  catch { return ts; }
 }
 
 // ── Helper: map response to badge status ─────────────────────────────────────
@@ -158,25 +201,35 @@ export default function AdminHealthStatusPage() {
   const [aosrRecords,     setAosrRecords]     = useState<AosrRunRecord[]>([]);
   const [aosrLoading,     setAosrLoading]     = useState(false);
   const [aosrError,       setAosrError]       = useState<string | null>(null);
+  /** GATE 114.8.1 — VaultSig™ Webhook Activity */
+  const [vaultSigEntries, setVaultSigEntries] = useState<VaultSigLogEntry[]>([]);
+  const [vaultSigLoading, setVaultSigLoading] = useState(false);
+  const [vaultSigError,   setVaultSigError]   = useState<string | null>(null);
 
   const runChecks = useCallback(async () => {
     setLoading(true);
     try {
-      // Run all checks in parallel
-      const [healthRes, anchorRes, jwksRes] = await Promise.allSettled([
+      // Run all checks in parallel — including VaultSig webhook status (GATE 114.8.1)
+      const [healthRes, anchorRes, jwksRes, vaultSigRes] = await Promise.allSettled([
         fetch("/api/v1/health",          { cache: "no-store" }).then(r => r.json() as Promise<HealthPayload>),
         fetch("/api/v1/anchor-status",   { cache: "no-store" }).then(r => r.json() as Promise<AnchorPayload>),
         fetch("/api/v1/jwks",            { cache: "no-store" }).then(r => r.json() as Promise<JwksPayload>),
+        // GATE 114.8.1 — VaultSig webhook event summary
+        fetch("/api/v1/hooks/vaultsig/status", { cache: "no-store" })
+          .then(r => r.ok ? r.json() as Promise<VaultSigPayload> : null)
+          .catch(() => null),
       ]);
 
-      const health = healthRes.status === "fulfilled" ? healthRes.value : null;
-      const anchor = anchorRes.status === "fulfilled" ? anchorRes.value : null;
-      const jwks   = jwksRes.status  === "fulfilled" ? jwksRes.value   : null;
+      const health   = healthRes.status   === "fulfilled" ? healthRes.value   : null;
+      const anchor   = anchorRes.status   === "fulfilled" ? anchorRes.value   : null;
+      const jwks     = jwksRes.status     === "fulfilled" ? jwksRes.value     : null;
+      const vSig     = vaultSigRes.status === "fulfilled" ? vaultSigRes.value : null;
 
       const d1Ok   = health?.d1?.includes("CONNECTED") ?? false;
       const kvOk   = health?.kv?.includes("CONNECTED") ?? false;
       const syncOk = anchor?.sync_state === "SOVEREIGN_GLOBAL_SYNCED";
       const jwksOk = Array.isArray(jwks?.keys) && (jwks?.keys?.length ?? 0) > 0;
+      const vaultSigOk = vSig !== null && !("error" in (vSig ?? {}));
 
       // Kernel SHA parity check — compare displayed prefix against KERNEL_SHA
       const kernelOk = (health?.kernel_version ?? "") === KERNEL_VERSION;
@@ -246,6 +299,16 @@ export default function AdminHealthStatusPage() {
           detail:    "sovereign-log-ingress Cloudflare Queue — feeds D1 audit log table.",
           alignment: "Forensic queue consumer active — no log events are dropped.",
         },
+        // GATE 114.8.1 — VaultSig Webhook Monitor
+        {
+          label:     "VaultSig Webhook Monitor",
+          icon:      "🪝",
+          status:    vaultSigOk ? "ACTIVE" : "CHECKING",
+          detail:    vaultSigOk
+            ? `${(vSig as VaultSigPayload)?.total_events ?? 0} events recorded — last: ${(vSig as VaultSigPayload)?.last_event_at ?? "—"}`
+            : "VaultSig webhook status endpoint unreachable — monitor operating in passive mode.",
+          alignment: "VaultSig webhook ingestion active — sovereign events received and logged.",
+        },
       ];
 
       setBadges(next);
@@ -287,6 +350,27 @@ export default function AdminHealthStatusPage() {
     void fetchAosr();
   }, [authed, fetchAosr]);
 
+  /** GATE 114.8.1 — VaultSig™ Webhook Activity: fetch recent webhook events */
+  const fetchVaultSig = useCallback(async () => {
+    setVaultSigLoading(true);
+    setVaultSigError(null);
+    try {
+      const res  = await fetch("/api/v1/hooks/vaultsig/log?limit=10", { cache: "no-store" });
+      const data = await res.json() as VaultSigLogPayload;
+      if (data.error) throw new Error(data.error);
+      setVaultSigEntries(data.entries ?? []);
+    } catch (err: unknown) {
+      setVaultSigError(err instanceof Error ? err.message : "VaultSig log retrieval failed.");
+    } finally {
+      setVaultSigLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    void fetchVaultSig();
+  }, [authed, fetchVaultSig]);
+
   /** GATE 114.5.5 — update footer delta every second */
   useEffect(() => {
     const tick = setInterval(() => {
@@ -324,7 +408,7 @@ export default function AdminHealthStatusPage() {
           </h1>
         </div>
         <p style={{ margin: 0, fontSize: "0.75rem", color: DIM_GREEN, letterSpacing: "0.05em" }}>
-          CreatorLock™ · Phase 114.5 GATE 114.5.2 · Auto-refresh every 30s
+          CreatorLock™ · Phase 114.8 GATE 114.8.1 · Auto-refresh every 30s
           {lastRefresh && ` · Last checked: ${lastRefresh}`}
         </p>
       </header>
@@ -338,6 +422,18 @@ export default function AdminHealthStatusPage() {
       {/* Badge Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
         {badges.map(b => <Card key={b.label} badge={b} />)}
+        {/* GATE 114.9.4 — Physical Residency Badge (rendered separately to avoid stale closure) */}
+        <Card badge={{
+          label:     "Physical Residency",
+          icon:      "🖥️",
+          status:    residencyStatus === "NODE-02_PHYSICAL" ? "ACTIVE" : residencyStatus === "CLOUD" ? "DEGRADED" : "CHECKING",
+          detail:    residencyStatus === "NODE-02_PHYSICAL"
+            ? "AOS salt USB detected — Hammer ↔ Hand UNIFIED on Node-02."
+            : residencyStatus === "CLOUD"
+            ? "Operating in CLOUD mode — AOS salt USB not detected on local hardware."
+            : "Running residency handshake — checking for AOS salt USB…",
+          alignment: "Sovereign Residency Handshake active — AOS salt USB bridges cloud and local execution.",
+        }} />
       </div>
 
       {/* Manual refresh */}
@@ -410,9 +506,7 @@ export default function AdminHealthStatusPage() {
               <tbody>
                 {aosrRecords.map(r => {
                   const statusColor = r.status === "pass" ? GREEN : r.status === "partial" ? GOLD : RED;
-                  const ts = r.created_at
-                    ? new Date(r.created_at).toISOString().replace("T", " ").slice(0, 19) + " UTC"
-                    : "—";
+                  const ts = fmtUtc(r.created_at);
                   return (
                     <tr key={r.run_id} style={{ borderBottom: "1px solid rgba(255,215,0,0.06)" }}>
                       <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontFamily: "monospace", fontSize: "0.68rem" }}
@@ -450,9 +544,92 @@ export default function AdminHealthStatusPage() {
         )}
       </section>
 
+      {/* GATE 114.8.1 — VaultSig™ Webhook Activity */}
+      <section style={{
+        background: "rgba(0,20,0,0.75)", border: `1px solid ${BORDER_G}`,
+        borderRadius: 12, padding: "1.5rem", marginBottom: "2rem",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: "1rem", paddingBottom: "0.75rem",
+          borderBottom: `1px solid rgba(255,215,0,0.15)`,
+        }}>
+          <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.88rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            🪝 VaultSig™ Webhook Activity
+          </div>
+          <button
+            onClick={() => void fetchVaultSig()}
+            disabled={vaultSigLoading}
+            style={{
+              background: "rgba(255,215,0,0.08)", border: `1px solid ${BORDER_G}`, borderRadius: 6,
+              color: GOLD, fontFamily: FONT_MONO, fontSize: "0.72rem", padding: "0.25rem 0.75rem",
+              cursor: vaultSigLoading ? "default" : "pointer", opacity: vaultSigLoading ? 0.5 : 1,
+            }}
+          >
+            {vaultSigLoading ? "⏳ Loading…" : "⟳ Reload"}
+          </button>
+        </div>
+
+        {vaultSigError && (
+          <p style={{ color: RED, fontSize: "0.78rem", margin: "0 0 0.75rem" }}>
+            ⚠️ {vaultSigError}
+          </p>
+        )}
+
+        {!vaultSigLoading && vaultSigEntries.length === 0 && !vaultSigError && (
+          <p style={{ color: DIM_GREEN, fontSize: "0.78rem", margin: 0 }}>
+            No VaultSig™ webhook events recorded yet.
+            Configure the GitHub App webhook URL to <code style={{ color: GOLD }}>/api/v1/hooks/vaultsig</code>.
+          </p>
+        )}
+
+        {vaultSigEntries.length > 0 && (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.77rem" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid rgba(255,215,0,0.2)` }}>
+                  {["#", "Event Type", "Action", "Sender", "Delivery ID", "Logged At"].map(h => (
+                    <th key={h} style={{
+                      padding: "0.4rem 0.6rem", textAlign: "left", color: GOLD,
+                      fontWeight: 700, fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.07em",
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {vaultSigEntries.map(e => {
+                  const ts = fmtUtc(e.logged_at);
+                  return (
+                    <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,215,0,0.06)" }}>
+                      <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontSize: "0.68rem" }}>{e.id}</td>
+                      <td style={{ padding: "0.45rem 0.6rem" }}>
+                        <span style={{
+                          padding: "0.1rem 0.5rem", borderRadius: 4, fontSize: "0.7rem",
+                          background: "rgba(0,255,65,0.1)", border: "1px solid rgba(0,255,65,0.35)",
+                          color: GREEN, fontWeight: 700,
+                        }}>
+                          {e.event_type}
+                        </span>
+                      </td>
+                      <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontSize: "0.72rem" }}>{e.action ?? "—"}</td>
+                      <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontSize: "0.72rem" }}>{e.sender ?? "—"}</td>
+                      <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontFamily: "monospace", fontSize: "0.68rem" }}
+                          title={e.delivery_id}>
+                        {e.delivery_id.length > 18 ? `${e.delivery_id.slice(0, 18)}…` : e.delivery_id}
+                      </td>
+                      <td style={{ padding: "0.45rem 0.6rem", color: DIM_GREEN, fontSize: "0.68rem" }}>{ts}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {/* Kernel Anchor footer — GATE 114.5.5: (Δ seconds) with 9-digit precision */}
       <footer style={{ textAlign: "center", fontSize: "0.68rem", color: DIM_GREEN, borderTop: `1px solid ${BORDER_G}`, paddingTop: "1rem", lineHeight: 1.8 }}>
-        ⛓️⚓⛓️ AveryOS™ Sovereign Health Dashboard · GATE 114.5.2<br />
+        ⛓️⚓⛓️ AveryOS™ Sovereign Health Dashboard · GATE 114.8.1<br />
         Kernel SHA-512: {KERNEL_SHA.slice(0, 32)}…<br />
         🤛🏻 Jason Lee Avery · ROOT0 · CreatorLock™ Active · (Δ {footerDelta})
       </footer>

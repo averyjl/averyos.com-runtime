@@ -71,6 +71,8 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖", isAdmin: true },
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚", isAdmin: true },
+  { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹", isAdmin: true },
+  { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
   { path: "/licensing/agentic",         label: "Agentic Settlement",    icon: "🤖" },
@@ -98,4 +100,5 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖" },
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚" },
+  { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹" },
 ];
