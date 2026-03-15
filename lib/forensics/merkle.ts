@@ -56,6 +56,18 @@ export interface MerkleResult {
   sessionStart: string;
   /** Total number of exchanges in this session. */
   exchangeCount: number;
+  /**
+   * GATE 114.9.1 — Bitcoin Merkle anchor SHA for temporal immutability.
+   * Anchors the session root to a Bitcoin block hash, proving existence
+   * at a specific point in blockchain time.  Null when not provided.
+   */
+  btcAnchorSha: string | null;
+  /**
+   * GATE 114.9.1 — IPFS Content Identifier for decentralized redundancy.
+   * Ensures the session payload persists on IPFS independent of Cloudflare.
+   * Null when not provided.
+   */
+  ipfsCid: string | null;
 }
 
 // ── Minimal D1 binding types ───────────────────────────────────────────────────
@@ -130,15 +142,19 @@ async function buildMerkleRoot(leaves: string[]): Promise<string> {
  * Generate a Merkle root for a complete chat session and optionally persist
  * the full archive to D1.
  *
- * @param exchanges  - Ordered list of prompt/reply pairs.
- * @param sessionId  - Unique session identifier (used as the D1 chat_name).
- * @param db         - Optional D1 database binding. Pass `null` to skip persistence.
- * @returns          - `MerkleResult` containing the root and leaf hashes.
+ * @param exchanges    - Ordered list of prompt/reply pairs.
+ * @param sessionId    - Unique session identifier (used as the D1 chat_name).
+ * @param db           - Optional D1 database binding. Pass `null` to skip persistence.
+ * @param btcAnchorSha - GATE 114.9.1: Optional Bitcoin block hash anchor. Pass `null` to omit.
+ * @param ipfsCid      - GATE 114.9.1: Optional IPFS CID for decentralized redundancy. Pass `null` to omit.
+ * @returns            - `MerkleResult` containing the root, leaf hashes, and anchor fields.
  */
 export async function generateChatMerkleRoot(
-  exchanges: ChatExchange[],
-  sessionId: string,
-  db:        D1Database | null,
+  exchanges:    ChatExchange[],
+  sessionId:    string,
+  db:           D1Database | null,
+  btcAnchorSha: string | null = null,
+  ipfsCid:      string | null = null,
 ): Promise<MerkleResult> {
   if (exchanges.length === 0) {
     throw new Error("generateChatMerkleRoot: exchanges array must not be empty");
@@ -217,5 +233,8 @@ export async function generateChatMerkleRoot(
     phase:         firstExchange.phase ?? "unknown",
     sessionStart:  firstExchange.promptAt,
     exchangeCount: exchanges.length,
+    // GATE 114.9.1 — Multi-anchor Layer-3 Redundancy
+    btcAnchorSha,
+    ipfsCid,
   };
 }

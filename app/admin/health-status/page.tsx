@@ -67,6 +67,22 @@ interface JwksPayload {
   keys?: unknown[];
 }
 
+/** GATE 114.8.1 — VaultSig webhook activity record */
+interface VaultSigEvent {
+  event_id:   string;
+  event_type: string;
+  received_at: string;
+  status:     string;
+}
+
+/** GATE 114.8.1 — VaultSig webhook status payload */
+interface VaultSigPayload {
+  total_events?: number;
+  recent_events?: VaultSigEvent[];
+  last_event_at?: string | null;
+  error?: string;
+}
+
 /** AOSR QA run record — partial shape from /api/v1/qa/results */
 interface AosrRunRecord {
   run_id:        string;
@@ -158,25 +174,33 @@ export default function AdminHealthStatusPage() {
   const [aosrRecords,     setAosrRecords]     = useState<AosrRunRecord[]>([]);
   const [aosrLoading,     setAosrLoading]     = useState(false);
   const [aosrError,       setAosrError]       = useState<string | null>(null);
+  /** GATE 114.9.4 — Physical Residency status */
+  const [residencyStatus, setResidencyStatus] = useState<"CHECKING" | "NODE-02_PHYSICAL" | "CLOUD">("CHECKING");
 
   const runChecks = useCallback(async () => {
     setLoading(true);
     try {
-      // Run all checks in parallel
-      const [healthRes, anchorRes, jwksRes] = await Promise.allSettled([
+      // Run all checks in parallel — including VaultSig webhook status (GATE 114.8.1)
+      const [healthRes, anchorRes, jwksRes, vaultSigRes] = await Promise.allSettled([
         fetch("/api/v1/health",          { cache: "no-store" }).then(r => r.json() as Promise<HealthPayload>),
         fetch("/api/v1/anchor-status",   { cache: "no-store" }).then(r => r.json() as Promise<AnchorPayload>),
         fetch("/api/v1/jwks",            { cache: "no-store" }).then(r => r.json() as Promise<JwksPayload>),
+        // GATE 114.8.1 — VaultSig webhook event summary
+        fetch("/api/v1/hooks/vaultsig/status", { cache: "no-store" })
+          .then(r => r.ok ? r.json() as Promise<VaultSigPayload> : null)
+          .catch(() => null),
       ]);
 
-      const health = healthRes.status === "fulfilled" ? healthRes.value : null;
-      const anchor = anchorRes.status === "fulfilled" ? anchorRes.value : null;
-      const jwks   = jwksRes.status  === "fulfilled" ? jwksRes.value   : null;
+      const health   = healthRes.status   === "fulfilled" ? healthRes.value   : null;
+      const anchor   = anchorRes.status   === "fulfilled" ? anchorRes.value   : null;
+      const jwks     = jwksRes.status     === "fulfilled" ? jwksRes.value     : null;
+      const vSig     = vaultSigRes.status === "fulfilled" ? vaultSigRes.value : null;
 
       const d1Ok   = health?.d1?.includes("CONNECTED") ?? false;
       const kvOk   = health?.kv?.includes("CONNECTED") ?? false;
       const syncOk = anchor?.sync_state === "SOVEREIGN_GLOBAL_SYNCED";
       const jwksOk = Array.isArray(jwks?.keys) && (jwks?.keys?.length ?? 0) > 0;
+      const vaultSigOk = vSig !== null && !("error" in (vSig ?? {}));
 
       // Kernel SHA parity check — compare displayed prefix against KERNEL_SHA
       const kernelOk = (health?.kernel_version ?? "") === KERNEL_VERSION;
@@ -246,6 +270,16 @@ export default function AdminHealthStatusPage() {
           detail:    "sovereign-log-ingress Cloudflare Queue — feeds D1 audit log table.",
           alignment: "Forensic queue consumer active — no log events are dropped.",
         },
+        // GATE 114.8.1 — VaultSig Webhook Monitor
+        {
+          label:     "VaultSig Webhook Monitor",
+          icon:      "🪝",
+          status:    vaultSigOk ? "ACTIVE" : "CHECKING",
+          detail:    vaultSigOk
+            ? `${(vSig as VaultSigPayload)?.total_events ?? 0} events recorded — last: ${(vSig as VaultSigPayload)?.last_event_at ?? "—"}`
+            : "VaultSig webhook status endpoint unreachable — monitor operating in passive mode.",
+          alignment: "VaultSig webhook ingestion active — sovereign events received and logged.",
+        },
       ];
 
       setBadges(next);
@@ -286,6 +320,18 @@ export default function AdminHealthStatusPage() {
     if (!authed) return;
     void fetchAosr();
   }, [authed, fetchAosr]);
+
+  /** GATE 114.9.4 — Physical Residency: probe /api/v1/residency/status once on mount */
+  useEffect(() => {
+    if (!authed) return;
+    fetch("/api/v1/residency/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { status?: string }) => {
+        if (d.status === "NODE-02_PHYSICAL") setResidencyStatus("NODE-02_PHYSICAL");
+        else setResidencyStatus("CLOUD");
+      })
+      .catch(() => setResidencyStatus("CLOUD"));
+  }, [authed]);
 
   /** GATE 114.5.5 — update footer delta every second */
   useEffect(() => {
@@ -338,6 +384,18 @@ export default function AdminHealthStatusPage() {
       {/* Badge Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
         {badges.map(b => <Card key={b.label} badge={b} />)}
+        {/* GATE 114.9.4 — Physical Residency Badge (rendered separately to avoid stale closure) */}
+        <Card badge={{
+          label:     "Physical Residency",
+          icon:      "🖥️",
+          status:    residencyStatus === "NODE-02_PHYSICAL" ? "ACTIVE" : residencyStatus === "CLOUD" ? "DEGRADED" : "CHECKING",
+          detail:    residencyStatus === "NODE-02_PHYSICAL"
+            ? "AOS salt USB detected — Hammer ↔ Hand UNIFIED on Node-02."
+            : residencyStatus === "CLOUD"
+            ? "Operating in CLOUD mode — AOS salt USB not detected on local hardware."
+            : "Running residency handshake — checking for AOS salt USB…",
+          alignment: "Sovereign Residency Handshake active — AOS salt USB bridges cloud and local execution.",
+        }} />
       </div>
 
       {/* Manual refresh */}

@@ -214,6 +214,26 @@ const TARI_BILLED_PATHS = new Set([
   ...BOT_MAGNET_PATHS.map((p) => (p.endsWith("/") ? p : `${p}/`)),
 ]);
 
+// GATE 115.3 — Elastic Economic Throttling: Stripe checkout and webhook paths are
+// always exempt from the 1,017-Notch rate limiter.  Viral checkout traffic MUST
+// reach the Stripe handler without interruption — throttling a paying customer is
+// an alignment violation.  Unauthenticated bot traffic on these paths is handled
+// by Stripe's own validation (signature verification / session tokens).
+const STRIPE_EXEMPT_PATHS = new Set([
+  "/api/v1/compliance/create-checkout",
+  "/api/v1/compliance/create-checkout/",
+  "/api/v1/compliance/stripe-webhook",
+  "/api/v1/compliance/stripe-webhook/",
+  "/api/v1/compliance/webhook",
+  "/api/v1/compliance/webhook/",
+  "/api/v1/checkout/create-session",
+  "/api/v1/checkout/create-session/",
+  "/api/v1/capsules/webhook",
+  "/api/v1/capsules/webhook/",
+  "/api/v1/stripe/revenue",
+  "/api/v1/stripe/revenue/",
+]);
+
 // Paths intercepted by the GabrielOS Legal Tripwire for D1 audit logging
 const GATEKEEPER_AUDIT_PATHS = new Set(['/health', '/evidence-vault']);
 
@@ -867,13 +887,20 @@ export async function middleware(request: NextRequest) {
   // Enforces a per-IP limit of 1,017 requests per minute to protect the
   // sovereign kernel from DDoS and probabilistic noise attacks.
   //
-  // CRITICAL EXCLUSION: TARI_BILLED_PATHS (bot magnet pages) are always exempt
-  // from rate limiting.  Bot traffic on magnet paths MUST reach the TARI billing
-  // logic below (line ~1349) — blocking it with a 429 would deny monetization.
-  // The AveryOS Sovereign Principle: allow magnet traffic through 100% of the time.
+  // CRITICAL EXCLUSIONS:
+  //   1. TARI_BILLED_PATHS (bot magnet pages) are always exempt — bot traffic
+  //      on magnet paths MUST reach the TARI billing logic (line ~1349+) to
+  //      ensure monetization is never blocked.
+  //   2. STRIPE_EXEMPT_PATHS (GATE 115.3 Elastic Economic Throttling) — Stripe
+  //      checkout and webhook paths are always exempt.  Viral checkout traffic
+  //      must never be rate-limited; Stripe validates its own callers via
+  //      webhook signatures and session tokens.
+  //
+  // The AveryOS Sovereign Principle: allow magnet and monetization traffic 100%.
   const rlPathname = new URL(request.url).pathname;
   const isMagnetPath = TARI_BILLED_PATHS.has(rlPathname);
-  if (!isMagnetPath) {
+  const isStripeExempt = STRIPE_EXEMPT_PATHS.has(rlPathname);
+  if (!isMagnetPath && !isStripeExempt) {
     try {
       const { env } = await getCloudflareContext({ async: true });
       const cfEnv = env as unknown as GatekeeperEnv;

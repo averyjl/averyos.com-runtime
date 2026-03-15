@@ -1,7 +1,7 @@
 /**
  * lib/forensics/inventionTracker.ts
  *
- * GabrielOS™ Invention Pulse — Phase 114.1.2
+ * GabrielOS™ Invention Pulse — Phase 114.8 GATE 114.8.2
  *
  * Indexes unique logic blocks (micro-inventions) as sovereign .aoscap invention
  * capsules anchored to the AveryOS™ Root0 Kernel.  Each capsule records:
@@ -9,6 +9,8 @@
  *   • SHA-512 fingerprint of the invention payload
  *   • ROOT0 authorship seal (Jason Lee Avery)
  *   • KERNEL_SHA Sovereign Kernel link
+ *   • BTC Anchor SHA — Bitcoin Merkle root for temporal immutability (GATE 114.8.2)
+ *   • IPFS CID — decentralized storage Content Identifier (GATE 114.8.2)
  *
  * The resulting capsules form an Immutable Patent Record suitable for
  * submission to any auditing party, VaultChain verification, or legal filing.
@@ -17,6 +19,11 @@
  *   All AveryOS™ proprietary file extensions are registered here as the
  *   canonical source of truth.  New types can be added to SOVEREIGN_MIME_TYPES
  *   without modifying any other file — all consumers import from here.
+ *
+ * GATE 114.8.2 — Multi-Anchor Layer-3 Redundancy:
+ *   Each capsule now supports btc_anchor_sha (Bitcoin temporal anchor) and
+ *   ipfs_cid (IPFS decentralized storage CID) for triple-layer resilience:
+ *   Cloudflare → IPFS → Bitcoin.
  *
  * Author: Jason Lee Avery (ROOT0)
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
@@ -182,6 +189,18 @@ export interface InventionCapsule {
   disclosure_url: string;
   /** Settlement status for IP tracking */
   settlement_status: "OPEN" | "LICENSED" | "ARCHIVED";
+  /**
+   * GATE 114.8.2 — Bitcoin Merkle anchor SHA for temporal immutability.
+   * When provided, anchors the capsule to a Bitcoin block hash, proving
+   * the invention existed at a specific point in blockchain time.
+   */
+  btc_anchor_sha: string | null;
+  /**
+   * GATE 114.8.2 — IPFS Content Identifier for decentralized storage redundancy.
+   * When provided, ensures the capsule payload persists on IPFS even if
+   * centralized hosting becomes unavailable.
+   */
+  ipfs_cid: string | null;
 }
 
 /** Options for building an invention capsule */
@@ -196,6 +215,16 @@ export interface InventionInput {
   source_path:  string;
   /** Optional extra metadata included in the SHA-512 payload */
   metadata?:    Record<string, unknown>;
+  /**
+   * GATE 114.8.2 — Optional Bitcoin Merkle anchor SHA for temporal immutability.
+   * If omitted, the field is set to null in the capsule.
+   */
+  btc_anchor_sha?: string | null;
+  /**
+   * GATE 114.8.2 — Optional IPFS Content Identifier for decentralized redundancy.
+   * If omitted, the field is set to null in the capsule.
+   */
+  ipfs_cid?: string | null;
 }
 
 /** Archive of multiple invention capsules */
@@ -408,6 +437,9 @@ export async function trackInvention(
     kernel_version:    KERNEL_VERSION,
     disclosure_url:    DISCLOSURE_MIRROR_PATH,
     settlement_status: "OPEN",
+    // GATE 114.8.2 — Multi-Anchor Layer-3 Redundancy fields
+    btc_anchor_sha:    input.btc_anchor_sha ?? null,
+    ipfs_cid:          input.ipfs_cid ?? null,
   };
 }
 
