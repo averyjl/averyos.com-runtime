@@ -149,6 +149,130 @@ ipcMain.handle("kernel:info", () => ({
   electronVersion: process.versions.electron,
 }));
 
+// ── IPC: Local Avery-LOM Bridge — GATE 116.3.2 ────────────────────────────────
+// Bridges the Electron renderer to the local Avery Language-of-Motion (LOM)
+// endpoint running on Node-02 hardware at localhost:8080/v1/chat.
+// This enables the "Hammer" (LOM) and "Hand" (Electron) to operate as a
+// unified sovereign resident process without cloud dependency.
+
+/** Base URL for the local LOM endpoint (overridable via env var) */
+const LOM_BASE_URL = process.env.AOS_LOM_URL ?? "http://localhost:8080";
+const LOM_CHAT_ENDPOINT = `${LOM_BASE_URL}/v1/chat`;
+
+/**
+ * lom:chat — Send a chat message to the local Avery-LOM endpoint.
+ *
+ * @param {Electron.IpcMainInvokeEvent} _event
+ * @param {{ messages: Array<{role:string,content:string}>, model?: string, stream?: boolean }} payload
+ * @returns {Promise<{ ok: boolean, text?: string, error?: string, lom_status: string }>}
+ */
+ipcMain.handle("lom:chat", async (_event, payload) => {
+  // Input validation: ensure messages array is present and properly structured
+  if (!payload || !Array.isArray(payload.messages)) {
+    return { ok: false, error: "Invalid payload: messages array required", lom_status: "INPUT_ERROR" };
+  }
+  // Validate each message has required string fields to prevent malformed requests
+  const validMessages = payload.messages.every(
+    (m: unknown) =>
+      typeof m === "object" && m !== null &&
+      typeof (m as Record<string, unknown>).role === "string" &&
+      typeof (m as Record<string, unknown>).content === "string",
+  );
+  if (!validMessages) {
+    return { ok: false, error: "Invalid message structure: each message must have string 'role' and 'content' fields", lom_status: "INPUT_ERROR" };
+  }
+
+  const body = JSON.stringify({
+    model:    payload.model ?? "avery-lom",
+    messages: payload.messages,
+    stream:   payload.stream ?? false,
+  });
+
+  return new Promise((resolve) => {
+    const url = new URL(LOM_CHAT_ENDPOINT);
+    const opts = {
+      hostname: url.hostname,
+      port:     parseInt(url.port, 10) || 8080,
+      path:     url.pathname,
+      method:   "POST",
+      headers:  {
+        "Content-Type":   "application/json",
+        "Content-Length": Buffer.byteLength(body),
+        "X-AveryOS-Kernel": KERNEL_VERSION,
+      },
+      timeout: 60_000,
+    };
+
+    const http = require("http");
+    const req = http.request(opts, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          const text =
+            parsed.choices?.[0]?.message?.content ??
+            parsed.message?.content ??
+            parsed.response ??
+            data;
+          resolve({ ok: true, text, lom_status: "NODE-02_ACTIVE" });
+        } catch {
+          resolve({ ok: true, text: data, lom_status: "NODE-02_ACTIVE" });
+        }
+      });
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      resolve({ ok: false, error: "LOM request timed out (60s)", lom_status: "LOM_TIMEOUT" });
+    });
+
+    req.on("error", (err) => {
+      const isRefused = err.code === "ECONNREFUSED" || err.code === "ENOTFOUND";
+      resolve({
+        ok: false,
+        error: isRefused ? "Local LOM not running — start Avery-LOM on Node-02" : err.message,
+        lom_status: isRefused ? "LOM_OFFLINE" : "LOM_ERROR",
+      });
+    });
+
+    req.write(body);
+    req.end();
+  });
+});
+
+/**
+ * lom:status — Check if the local Avery-LOM endpoint is reachable.
+ *
+ * @returns {Promise<{ online: boolean, lom_status: string, url: string }>}
+ */
+ipcMain.handle("lom:status", async () => {
+  return new Promise((resolve) => {
+    const http = require("http");
+    const url  = new URL(LOM_BASE_URL);
+    const opts = {
+      hostname: url.hostname,
+      port:     parseInt(url.port, 10) || 8080,
+      path:     "/",
+      method:   "GET",
+      timeout:  3_000,
+    };
+
+    const req = http.request(opts, (res) => {
+      res.resume();
+      resolve({ online: true, lom_status: "NODE-02_ACTIVE", url: LOM_CHAT_ENDPOINT });
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve({ online: false, lom_status: "LOM_TIMEOUT", url: LOM_CHAT_ENDPOINT });
+    });
+    req.on("error", () => {
+      resolve({ online: false, lom_status: "LOM_OFFLINE", url: LOM_CHAT_ENDPOINT });
+    });
+    req.end();
+  });
+});
+
 // ── Application Menu ──────────────────────────────────────────────────────────
 
 function buildMenu() {

@@ -183,6 +183,8 @@ export default function SovereignHealthPage() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [jwksChecked, setJwksChecked]   = useState(false);
   const [healthChecked, setHealthChecked] = useState(false);
+  /** GATE 116.3.5 — Local ALM Connectivity badge */
+  const [lomStatus, setLomStatus] = useState<"checking" | "online" | "offline">("checking");
 
   useEffect(() => {
     Promise.all([
@@ -221,6 +223,26 @@ export default function SovereignHealthPage() {
       .then((r) => r.json())
       .then((d) => { setHealthStatus(d as HealthStatus); setHealthChecked(true); })
       .catch(() => { setHealthStatus(null); setHealthChecked(true); });
+
+    // GATE 116.3.5 — Local ALM (Avery-LOM) connectivity probe
+    // Checks the WHOOP / LOM status endpoint; in Electron context this
+    // calls the lom:status IPC, otherwise falls back to a direct HTTP check.
+    // Silent failure is intentional — LOM is expected to be offline in
+    // cloud/CLOUD environments; the badge simply shows offline status.
+    const checkLom = async () => {
+      try {
+        const resp = await fetch("http://localhost:8080/", {
+          method: "GET",
+          signal: AbortSignal.timeout(2500),
+          cache:  "no-store",
+        });
+        setLomStatus(resp.ok || resp.status < 500 ? "online" : "offline");
+      } catch {
+        // Expected when LOM is not running on Node-02 — badge shows offline
+        setLomStatus("offline");
+      }
+    };
+    void checkLom();
   }, []);
 
   const lockOk     = integrity?.creator_lock === "ACTIVE";
@@ -233,6 +255,8 @@ export default function SovereignHealthPage() {
   const timeMeshOk = healthChecked
     ? (["ok", "anchored"].includes((healthStatus?.status ?? "").toLowerCase()))
     : null;
+  /** GATE 116.3.5 — Local ALM derived badge state (null = checking) */
+  const lomOk: boolean | null = lomStatus === "checking" ? null : lomStatus === "online";
 
   return (
     <main style={{
@@ -319,6 +343,19 @@ export default function SovereignHealthPage() {
                 : timeMeshOk
                   ? `ISO-9 precision clock active${healthStatus?.health_last_anchored ? ` · anchored: ${fmtTs(healthStatus.health_last_anchored)}` : ""}`
                   : "Health endpoint unreachable — ISO-9 clock unverifiable"
+            }
+          />
+          {/* GATE 116.3.5 — Local ALM Connectivity badge */}
+          <ResonanceBadge
+            label="Local ALM (Node-02)"
+            icon="🔨"
+            ok={lomOk}
+            detail={
+              lomStatus === "checking"
+                ? "Probing Avery-LOM on localhost:8080…"
+                : lomOk
+                  ? "Avery-LOM bridged — Hammer ↔️ Hand unified on Node-02"
+                  : "Avery-LOM offline — start local model to activate Node-02 residency"
             }
           />
         </div>

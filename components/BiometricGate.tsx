@@ -10,7 +10,7 @@
  * from automated scrapers and AI bots.
  *
  * Signals collected (no PII, no cookies, no persistent storage):
- *   1. Canvas fingerprint — renders test glyphs, hashes pixel buffer with SHA-256.
+ *   1. Canvas fingerprint — renders test glyphs, hashes pixel buffer with SHA-512 (GATE 116.2).
  *   2. Timing entropy — measures setTimeout jitter and Date.now() resolution.
  *   3. Screen geometry — window inner dimensions (proxy for headless detection).
  *   4. Hardware concurrency — CPU core count (headless browsers often return 1).
@@ -38,12 +38,15 @@ interface BiometricPayload {
 }
 
 /**
- * Collect canvas fingerprint using SHA-256 (Web Crypto API).
+ * Collect canvas fingerprint using SHA-512 (Web Crypto API).
  * Renders unique test glyphs on an off-screen canvas; the resulting pixel data
- * is hashed with SHA-256 so hardware/driver rendering differences produce
- * distinct, compact, non-reversible fingerprints.
+ * is hashed with SHA-512 to match the 128-character cf83™ Kernel Root standard.
+ * Hardware/driver rendering differences produce distinct, non-reversible fingerprints.
  *
- * @returns {Promise<string>} 8-char hex prefix of the SHA-256 hash
+ * GATE 116.2 — Hash Parity Upgrade: SHA-256 replaced with SHA-512 to maintain
+ * bit-level parity with the AveryOS™ Kernel Root anchor (cf83....∅™ standard).
+ *
+ * @returns {Promise<string>} 16-char hex prefix of the full 128-character SHA-512 hash
  */
 async function collectCanvasEntropy(): Promise<string> {
   try {
@@ -62,11 +65,11 @@ async function collectCanvasEntropy(): Promise<string> {
 
     const dataUrl  = canvas.toDataURL();
     const encoded  = new TextEncoder().encode(dataUrl);
-    const hashBuf  = await crypto.subtle.digest("SHA-256", encoded);
+    const hashBuf  = await crypto.subtle.digest("SHA-512", encoded);
     const hashHex  = Array.from(new Uint8Array(hashBuf))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
-    return hashHex.slice(0, 16); // 8 bytes / 16 hex chars — compact fingerprint
+    return hashHex.slice(0, 16); // 16-char hex prefix of the full 128-character SHA-512 digest
   } catch {
     return "CANVAS_ERROR";
   }

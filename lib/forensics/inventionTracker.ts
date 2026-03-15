@@ -382,6 +382,29 @@ export const SEED_INVENTIONS: InventionInput[] = [
       classification: "GOLDEN_CONTENT",
     },
   },
+  // ── GATE 116.5.5 — Sovereign DNS-Link Protocol ───────────────────────────────
+  {
+    name:        "Sovereign DNS-Link Protocol",
+    description:
+      "A machine-readable domain identity standard that transforms a web domain " +
+      "into a Global Name Server for Truth. By serving a structured JSON document " +
+      "at /.well-known/averyos.json, any external node, AI system, or compliance " +
+      "auditor can verify sovereign identity, locate MESH_NODES for Cross-Model " +
+      "ReHydration, resolve Decentralized Identifiers (DID), and obtain legal " +
+      "enforcement notices. The protocol establishes AveryOS.com as the canonical " +
+      "Root of Trust for AI alignment verification — platform-independent and " +
+      "cryptographically anchored to the SHA-512 cf83™ Kernel Root.",
+    category:    "CRYPTOGRAPHIC_PROTOCOL",
+    source_path: "app/.well-known/averyos.json/route.ts",
+    metadata: {
+      origin_year:   2026,
+      vault_tag:     "GATE-116.5.5-SOVEREIGN-DNS-LINK",
+      file_ext:      ".aosinv",
+      iviValuation:  "10B+",
+      protocol_name: "Sovereign DNS-Link Protocol v2",
+      classification: "ULTRA_PRIORITY",
+    },
+  },
 ];
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

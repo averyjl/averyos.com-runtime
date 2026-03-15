@@ -24,6 +24,8 @@
  *   --ipfs-cid <cid>    Provide a pre-pinned IPFS CID (skips IPFS upload).
  *   --network <net>     Bitcoin network: "mainnet" | "testnet" (default: testnet).
  *   --db <name>         D1 database name (default: averyos_kernel_db).
+ *   --proxy <uri>       SOCKS5 proxy URI e.g. socks5://127.0.0.1:9050 (Stealth Mode).
+ *                       Also readable from env var AOS_BROADCAST_PROXY.
  *   --dry-run           Print all steps but do NOT broadcast or write to D1.
  *   --verbose           Print detailed progress.
  *
@@ -52,6 +54,7 @@ const path   = require('path');
 const crypto = require('crypto');
 const https  = require('https');
 const http   = require('http');
+const net    = require('net');
 const { execSync } = require('child_process');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
@@ -88,6 +91,184 @@ let IPFS_CID      = null;
 if (args.includes('--capsule'))  CAPSULE_PATH = args[args.indexOf('--capsule')  + 1];
 if (args.includes('--sha512'))   SHA512_INPUT = args[args.indexOf('--sha512')   + 1];
 if (args.includes('--ipfs-cid')) IPFS_CID     = args[args.indexOf('--ipfs-cid') + 1];
+
+// ── GATE 116.1 — On-Chain Stealth Proxy ──────────────────────────────────────
+// Optional SOCKS5 proxy for Bitcoin broadcast to protect Node-02 IP address.
+// Set via --proxy socks5://host:port CLI flag or AOS_BROADCAST_PROXY env var.
+// When set, all Esplora API calls are tunnelled through the proxy so that the
+// Node-02 residency IP is never exposed to public ledger aggregators.
+const SOCKS5_PROXY_RAW = (() => {
+  if (args.includes('--proxy')) return args[args.indexOf('--proxy') + 1] ?? null;
+  return process.env.AOS_BROADCAST_PROXY ?? null;
+})();
+
+/**
+ * Parse a socks5://host:port URI into { host, port }.
+ * Returns null if the URI is not a valid SOCKS5 URI.
+ *
+ * @param {string|null} raw
+ * @returns {{ host: string, port: number }|null}
+ */
+function parseSocks5Uri(raw) {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'socks5:') return null;
+    const host = u.hostname;
+    const port = parseInt(u.port, 10) || 1080;
+    if (!host) return null;
+    return { host, port };
+  } catch {
+    return null;
+  }
+}
+
+const SOCKS5_PROXY = parseSocks5Uri(SOCKS5_PROXY_RAW);
+
+/**
+ * Open a SOCKS5-tunnelled TLS socket to the given target host/port.
+ *
+ * Protocol (RFC 1928 CONNECT):
+ *   Client → Proxy: version(1) + nmethods(1) + methods([1])
+ *   Proxy  → Client: version(1) + method(1)
+ *   Client → Proxy: version(1) + cmd(1) + rsv(1) + atyp(1) + dst.host + dst.port(2)
+ *   Proxy  → Client: version(1) + rep(1) + rsv(1) + atyp(1) + bnd.addr + bnd.port(2)
+ *
+ * @param {string} targetHost
+ * @param {number} targetPort
+ * @param {{ host: string, port: number }} proxy
+ * @returns {Promise<import('tls').TLSSocket>}
+ */
+function socks5Connect(targetHost, targetPort, proxy) {
+  const tls = require('tls');
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: proxy.host, port: proxy.port }, () => {
+      // Step 1: send greeting (no-auth)
+      socket.write(Buffer.from([0x05, 0x01, 0x00]));
+    });
+
+    socket.once('error', reject);
+
+    let step = 'greeting';
+    let buf   = Buffer.alloc(0);
+
+    socket.on('data', (chunk) => {
+      buf = Buffer.concat([buf, chunk]);
+
+      if (step === 'greeting') {
+        if (buf.length < 2) return;
+        if (buf[0] !== 0x05 || buf[1] !== 0x00) {
+          socket.destroy();
+          return reject(new Error(`SOCKS5 greeting failed: ${buf.slice(0, 2).toString('hex')}`));
+        }
+        buf  = buf.slice(2);
+        step = 'connect';
+
+        // Step 2: send CONNECT request (DOMAINNAME address type)
+        const hostBuf  = Buffer.from(targetHost);
+        const portBuf  = Buffer.alloc(2);
+        portBuf.writeUInt16BE(targetPort, 0);
+        const req = Buffer.concat([
+          Buffer.from([0x05, 0x01, 0x00, 0x03]),
+          Buffer.from([hostBuf.length]),
+          hostBuf,
+          portBuf,
+        ]);
+        socket.write(req);
+        return;
+      }
+
+      if (step === 'connect') {
+        if (buf.length < 4) return;
+        if (buf[0] !== 0x05 || buf[1] !== 0x00) {
+          socket.destroy();
+          const SOCKS5_ERRORS = {
+            0x01: 'General failure',
+            0x02: 'Connection not allowed',
+            0x03: 'Network unreachable',
+            0x04: 'Host unreachable',
+            0x05: 'Connection refused',
+            0x06: 'TTL expired',
+            0x07: 'Command not supported',
+            0x08: 'Address type not supported',
+          };
+          return reject(new Error(`SOCKS5 connect failed: ${SOCKS5_ERRORS[buf[1]] ?? `code 0x${buf[1].toString(16)}`}`));
+        }
+        // Skip the bound address in the response
+        socket.removeAllListeners('data');
+        // Upgrade to TLS over the tunnel
+        const tlsSocket = tls.connect({ socket, servername: targetHost }, () => {
+          resolve(tlsSocket);
+        });
+        tlsSocket.once('error', reject);
+      }
+    });
+  });
+}
+
+/**
+ * Make an HTTPS POST request, optionally tunnelling through SOCKS5.
+ *
+ * @param {string} url
+ * @param {string} body
+ * @param {Record<string,string>} extraHeaders
+ * @param {{ host: string, port: number }|null} proxy
+ * @returns {Promise<{ statusCode: number, body: string }>}
+ */
+async function httpsPost(url, body, extraHeaders = {}, proxy = null) {
+  const parsedUrl = new URL(url);
+  const headers = {
+    'Content-Type':   'text/plain',
+    'Content-Length': Buffer.byteLength(body),
+    'Host':           parsedUrl.hostname,
+    ...extraHeaders,
+  };
+
+  if (!proxy) {
+    // Standard direct HTTPS
+    return new Promise((resolve, reject) => {
+      const opts = {
+        hostname: parsedUrl.hostname,
+        port:     443,
+        path:     parsedUrl.pathname + (parsedUrl.search || ''),
+        method:   'POST',
+        headers,
+      };
+      const req = https.request(opts, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => resolve({ statusCode: res.statusCode, body: data.trim() }));
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+  }
+
+  // SOCKS5-tunnelled HTTPS
+  const socket = await socks5Connect(parsedUrl.hostname, 443, proxy);
+  return new Promise((resolve, reject) => {
+    const reqLines = [
+      `POST ${parsedUrl.pathname}${parsedUrl.search || ''} HTTP/1.1`,
+      ...Object.entries(headers).map(([k, v]) => `${k}: ${v}`),
+      '',
+      body,
+    ].join('\r\n');
+
+    socket.write(reqLines);
+
+    let raw = '';
+    socket.on('data', (c) => { raw += c.toString(); });
+    socket.on('end', () => {
+      const [headerPart, ...bodyParts] = raw.split('\r\n\r\n');
+      const statusLine  = headerPart.split('\r\n')[0] ?? '';
+      const statusMatch = statusLine.match(/HTTP\/\S+ (\d+)/);
+      const statusCode  = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+      resolve({ statusCode, body: bodyParts.join('\r\n\r\n').trim() });
+    });
+    socket.once('error', reject);
+  });
+}
 
 // ── Theme helpers ─────────────────────────────────────────────────────────────
 
@@ -236,7 +417,11 @@ function buildOpReturnData(sha512, cid) {
 }
 
 /**
- * Broadcast a raw hex transaction via Blockstream Esplora.
+ * Broadcast a raw transaction to the Esplora API.
+ *
+ * GATE 116.1 — On-Chain Stealth Proxy: when SOCKS5_PROXY is configured
+ * (via --proxy or AOS_BROADCAST_PROXY env var) the request is tunnelled
+ * through the SOCKS5 proxy so Node-02's IP is never exposed to ledger crawlers.
  *
  * @param {string} rawTxHex
  * @returns {Promise<string|null>} txid on success, null on failure
@@ -245,38 +430,21 @@ async function broadcastTx(rawTxHex) {
   const base = NETWORK === 'mainnet' ? ESPLORA_MAINNET : ESPLORA_TESTNET;
   const url  = `${base}/tx`;
 
-  return new Promise((resolve) => {
-    const parsedUrl = new URL(url);
-    const opts = {
-      hostname: parsedUrl.hostname,
-      port:     443,
-      path:     parsedUrl.pathname,
-      method:   'POST',
-      headers:  {
-        'Content-Type':   'text/plain',
-        'Content-Length': Buffer.byteLength(rawTxHex),
-      },
-    };
+  if (SOCKS5_PROXY) {
+    info(`Routing broadcast through SOCKS5 proxy ${SOCKS5_PROXY.host}:${SOCKS5_PROXY.port} (Stealth Mode)`);
+  }
 
-    const req = https.request(opts, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          resolve(data.trim());
-        } else {
-          fail(`Esplora broadcast failed: HTTP ${res.statusCode} — ${data.trim()}`);
-          resolve(null);
-        }
-      });
-    });
-    req.on('error', (err) => {
-      fail(`Broadcast network error: ${err.message}`);
-      resolve(null);
-    });
-    req.write(rawTxHex);
-    req.end();
-  });
+  try {
+    const result = await httpsPost(url, rawTxHex, {}, SOCKS5_PROXY);
+    if (result.statusCode === 200) {
+      return result.body;
+    }
+    fail(`Esplora broadcast failed: HTTP ${result.statusCode} — ${result.body}`);
+    return null;
+  } catch (err) {
+    fail(`Broadcast network error: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
 }
 
 /**

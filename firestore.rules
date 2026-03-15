@@ -1,0 +1,99 @@
+// AveryOS™ Firebase VaultChain™ Firestore Security Rules — GATE 116.4.4
+// Version: v1.0 | Kernel: v3.6.2
+// Author: Jason Lee Avery (ROOT0)
+// ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+//
+// These rules enforce 100.000% schema integrity for all VaultChain™ collections.
+// All writes must include a valid kernel_sha matching the Root0 anchor.
+// Public read access is granted only to non-sensitive collections for transparency.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    /** Returns true if the caller is an authenticated AveryOS™ service account. */
+    function isServiceAccount() {
+      return request.auth != null &&
+             request.auth.token.aud == "averyos-vaultchain";
+    }
+
+    /** Returns true if the write includes a valid kernel SHA-512 anchor. */
+    function hasKernelAnchor() {
+      return request.resource.data.kernel_sha is string &&
+             request.resource.data.kernel_sha.size() == 128;
+    }
+
+    /** Returns true if a required field is present and non-empty. */
+    function hasField(field) {
+      return field in request.resource.data &&
+             request.resource.data[field] != null &&
+             request.resource.data[field] != "";
+    }
+
+    // ── tari_metrics ────────────────────────────────────────────────────────
+    // Real-time TARI™ Alignment Billing Engine metrics.
+    // Public read (transparency ledger); writes restricted to service accounts.
+    match /tari_metrics/{docId} {
+      // Anyone may read — this is the public transparency ledger
+      allow read: if true;
+
+      // Only authenticated service accounts may write
+      allow create: if isServiceAccount()
+        && hasKernelAnchor()
+        && hasField("event_type")
+        && hasField("entity_id")
+        && hasField("amount_usd")
+        && hasField("status")
+        && hasField("created_at");
+
+      allow update: if isServiceAccount()
+        && hasKernelAnchor()
+        && hasField("updated_at");
+
+      // Records are immutable — no deletion
+      allow delete: if false;
+    }
+
+    // ── drift_metrics ───────────────────────────────────────────────────────
+    // AI drift detection and alignment pulse records.
+    // Public read (drift transparency); writes restricted to service accounts.
+    match /drift_metrics/{docId} {
+      allow read: if true;
+
+      allow create: if isServiceAccount()
+        && hasKernelAnchor()
+        && hasField("source")
+        && hasField("drift_type")
+        && hasField("drift_score")
+        && hasField("detected_at");
+
+      allow update: if isServiceAccount()
+        && hasField("auto_healed");
+
+      // Drift records are immutable — no deletion
+      allow delete: if false;
+    }
+
+    // ── vaultchain_anchors ──────────────────────────────────────────────────
+    // Cross-cloud D1/Firebase parity sync.
+    // Public read; writes restricted to service accounts.
+    match /vaultchain_anchors/{docId} {
+      allow read: if true;
+
+      allow create, update: if isServiceAccount()
+        && hasKernelAnchor()
+        && hasField("capsule_slug")
+        && hasField("sha512");
+
+      allow delete: if false;
+    }
+
+    // ── Default deny ────────────────────────────────────────────────────────
+    // All other collections are private.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

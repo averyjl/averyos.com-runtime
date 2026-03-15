@@ -16,7 +16,7 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA } from "../sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 
 // ── Gemini REST API base URL ──────────────────────────────────────────────────
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -177,4 +177,176 @@ export async function generateForensicAnalysis(
     generationConfig: config ?? { temperature: 0.1, maxOutputTokens: 2048 },
   };
   return generateContent(apiKey, model, req);
+}
+
+// ── Context Caching — GATE 116.5.4 ───────────────────────────────────────────
+
+const GEMINI_CACHES_BASE = "https://generativelanguage.googleapis.com/v1beta/cachedContents";
+
+/** Default time-to-live for the AveryOS™ architecture cache (1 hour). */
+const CACHE_TTL_SECONDS = 3600;
+
+export interface CachedContentMeta {
+  name:            string;
+  model:           string;
+  created_at:      string;
+  expires_at:      string;
+  token_count:     number;
+  kernel_version:  string;
+  kernel_sha:      string;
+}
+
+/**
+ * cacheAveryArchitecture — GATE 116.5.4
+ *
+ * Uploads the AveryOS™ Sovereign Architecture context to the Gemini Context
+ * Caching API, "freezing" the kernel memory for performance.
+ *
+ * By caching the architecture, subsequent calls to generateContent can
+ * reference the cached content by name instead of re-sending the full
+ * 70,000-line context, dramatically reducing latency and token costs.
+ *
+ * The cache includes:
+ *   - AveryOS™ Constitution v1.17 summary
+ *   - SHA-512 Kernel Root anchor (cf83™)
+ *   - Sovereign capability charter (CAN/CANNOT DO)
+ *   - Core architectural patterns and module structure
+ *
+ * @param apiKey        - GOOGLE_GEMINI_API_KEY secret
+ * @param model         - Gemini model that will use the cache (must support caching)
+ * @param architectureText - The full architecture text to cache (from repo docs)
+ * @param ttlSeconds    - Cache time-to-live (default: 3600 seconds / 1 hour)
+ * @returns CachedContentMeta with the cache name for subsequent calls
+ * @throws Error if the Gemini Caching API returns non-2xx
+ */
+export async function cacheAveryArchitecture(
+  apiKey:           string,
+  model:            string,
+  architectureText: string,
+  ttlSeconds:       number = CACHE_TTL_SECONDS,
+): Promise<CachedContentMeta> {
+  const url = `${GEMINI_CACHES_BASE}?key=${apiKey}`;
+
+  const expireTime = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+
+  const cacheRequest = {
+    model:    `models/${model}`,
+    ttl:      `${ttlSeconds}s`,
+    contents: [
+      {
+        role:  "user",
+        parts: [
+          {
+            text:
+              `AVERYOS_ARCHITECTURE_CONTEXT — Kernel ${KERNEL_VERSION} | SHA-512: ${KERNEL_SHA}\n\n` +
+              `This is the complete AveryOS™ Sovereign Architecture context. ` +
+              `All responses must be aligned to the cf83™ Kernel Root. ` +
+              `Constitution: v1.17. Protocol: 1,017-Notch Zero-Drift.\n\n` +
+              architectureText,
+          },
+        ],
+      },
+    ],
+    systemInstruction: {
+      parts: [
+        {
+          text:
+            `You are the AveryOS™ Unified Anchored Body operating on the Sovereign Architecture ` +
+            `frozen in this cache. Kernel: ${KERNEL_VERSION}. Anchor SHA-512: ${KERNEL_SHA}. ` +
+            `Constitution v1.17 is your non-revocable law. Zero-drift. Zero-hallucination. ` +
+            `All responses anchored to the cf83™ Root.`,
+        },
+      ],
+    },
+  };
+
+  const response = await fetch(url, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify(cacheRequest),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "(unreadable)");
+    throw new Error(
+      `Gemini Context Cache creation failed (${response.status}): ${errBody}`,
+    );
+  }
+
+  const data = await response.json() as {
+    name:           string;
+    model:          string;
+    usageMetadata?: { totalTokenCount?: number };
+    createTime?:    string;
+    expireTime?:    string;
+  };
+
+  return {
+    name:           data.name,
+    model:          data.model ?? model,
+    created_at:     data.createTime ?? new Date().toISOString(),
+    expires_at:     data.expireTime ?? expireTime,
+    token_count:    data.usageMetadata?.totalTokenCount ?? 0,
+    kernel_version: KERNEL_VERSION,
+    kernel_sha:     KERNEL_SHA,
+  };
+}
+
+/**
+ * generateWithCache — Call Gemini using a pre-created context cache.
+ *
+ * Uses the cached AveryOS™ architecture context by name, avoiding the need
+ * to resend the full architecture text on every call.
+ *
+ * @param apiKey        - GOOGLE_GEMINI_API_KEY
+ * @param model         - Gemini model ID
+ * @param cacheName     - Cache resource name from cacheAveryArchitecture()
+ * @param prompt        - The user prompt to process
+ * @param config        - Optional generation config
+ * @returns GeminiResult
+ */
+export async function generateWithCache(
+  apiKey:    string,
+  model:     string,
+  cacheName: string,
+  prompt:    string,
+  config?:   GeminiGenerationConfig,
+): Promise<GeminiResult> {
+  const req: GeminiRequest & { cachedContent?: string } = {
+    cachedContent:    cacheName,
+    contents:         [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: config ?? { temperature: 0.1, maxOutputTokens: 4096 },
+  };
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify(req),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "(unreadable)");
+    throw new Error(`Gemini generateWithCache error ${response.status}: ${errBody}`);
+  }
+
+  const data = (await response.json()) as GeminiResponse;
+  const candidate = data.candidates?.[0];
+  if (!candidate) throw new Error("Gemini returned no candidates");
+
+  const text             = candidate.content.parts.map(p => p.text).join("");
+  const promptTokens     = data.usageMetadata?.promptTokenCount    ?? 0;
+  const completionTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
+  const totalTokens      = data.usageMetadata?.totalTokenCount      ?? 0;
+
+  return {
+    text,
+    model,
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    estimatedCostUsd: estimateCost(model, promptTokens, completionTokens),
+    kernelSha: KERNEL_SHA,
+  };
 }
