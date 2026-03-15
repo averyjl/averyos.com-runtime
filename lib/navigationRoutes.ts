@@ -69,6 +69,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚", isAdmin: true },
   { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹", isAdmin: true },
+  { path: "/admin/resonance",           label: "Resonance Dashboard",     icon: "📡", isAdmin: true },
   { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
@@ -97,4 +98,5 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚" },
   { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹" },
+  { path: "/admin/resonance",           label: "Resonance Dashboard",     icon: "📡" },
 ];

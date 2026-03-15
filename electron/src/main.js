@@ -26,6 +26,9 @@
 
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
+const fs   = require("fs");
+const os   = require("os");
+const http = require("http");
 const { spawn } = require("child_process");
 
 // ── Security: disable any proxy that may be set by the host OS ───────────────
@@ -149,7 +152,174 @@ ipcMain.handle("kernel:info", () => ({
   electronVersion: process.versions.electron,
 }));
 
-// ── Application Menu ──────────────────────────────────────────────────────────
+// ── IPC: .aossalt USB Residency Read — GATE 116.3 ────────────────────────────
+//
+// Scans all mounted volumes for the sovereign MIME-registered salt file
+// `AveryOS-anchor-salt.aossalt` and returns the first 64 bytes as hex.
+// Falls back to legacy `.aos-salt` / `AOS_SALT.bin` markers.
+//
+// Returns:
+//   { found: true,  state: "FULLY_RESIDENT"|"NODE-02_PHYSICAL",
+//     mountPath: string, saltPath: string, previewHex: string|null }
+// or
+//   { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null }
+
+const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
+const AOS_SALT_MARKER_LEG = ".aos-salt";
+const AOS_SALT_BLOCK_LEG  = "AOS_SALT.bin";
+
+function getUsbMountCandidates() {
+  if (process.platform === "win32") {
+    const letters = [];
+    for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
+    return letters;
+  }
+  if (process.platform === "darwin") {
+    try { return fs.readdirSync("/Volumes").map((v) => path.join("/Volumes", v)); }
+    catch { return []; }
+  }
+  // Linux
+  const user = os.userInfo().username;
+  const expanded = [];
+  for (const base of [`/media/${user}`, "/mnt", `/run/media/${user}`]) {
+    try {
+      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
+        fs.readdirSync(base).forEach((c) => expanded.push(path.join(base, c)));
+      }
+    } catch { /* skip */ }
+  }
+  return expanded;
+}
+
+function readSaltPreview(saltPath) {
+  try {
+    const buf = Buffer.alloc(64);
+    const fd  = fs.openSync(saltPath, "r");
+    const n   = fs.readSync(fd, buf, 0, 64, 0);
+    fs.closeSync(fd);
+    return buf.subarray(0, n).toString("hex");
+  } catch { return null; }
+}
+
+ipcMain.handle("residency:checkSalt", async () => {
+  const candidates = getUsbMountCandidates();
+  for (const mount of candidates) {
+    try {
+      // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
+      const aossaltPath = path.join(mount, AOS_SALT_AOSSALT);
+      if (fs.existsSync(aossaltPath)) {
+        return {
+          found:      true,
+          state:      "FULLY_RESIDENT",
+          mountPath:  mount,
+          saltPath:   aossaltPath,
+          previewHex: readSaltPreview(aossaltPath),
+          mimeType:   "application/x-averyos-sovereign-salt",
+        };
+      }
+      // Priority 2: legacy markers
+      for (const legacyName of [AOS_SALT_MARKER_LEG, AOS_SALT_BLOCK_LEG]) {
+        const legPath = path.join(mount, legacyName);
+        if (fs.existsSync(legPath)) {
+          return {
+            found:      true,
+            state:      "NODE-02_PHYSICAL",
+            mountPath:  mount,
+            saltPath:   legPath,
+            previewHex: readSaltPreview(legPath),
+            mimeType:   "application/octet-stream",
+          };
+        }
+      }
+    } catch { /* skip inaccessible */ }
+  }
+  return { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null, mimeType: null };
+});
+
+// ── IPC: Local Avery-LOM Sync — GATE 116.3 ───────────────────────────────────
+//
+// Forwards a JSON-RPC request to the local Avery-LOM (Ollama-compatible) API
+// running on Node-02.  Default endpoint: http://localhost:11434
+//
+// Security:
+//   • Only connects to loopback (127.0.0.1 / localhost) — never external.
+//   • Request body is validated: must be a plain object with a `model` string.
+//   • Response is returned verbatim to the renderer via IPC.
+
+const LOM_HOST    = "127.0.0.1";
+const LOM_PORT    = 11434;
+const LOM_TIMEOUT = 10_000; // 10 s
+
+ipcMain.handle("lom:generate", (_event, requestBody) => {
+  return new Promise((resolve) => {
+    // Validate input — only accept well-formed Ollama-style request objects
+    if (
+      !requestBody ||
+      typeof requestBody !== "object" ||
+      typeof requestBody.model !== "string" ||
+      !requestBody.model.trim()
+    ) {
+      resolve({ ok: false, error: "Invalid LOM request body: 'model' string is required." });
+      return;
+    }
+
+    const bodyStr = JSON.stringify(requestBody);
+    const options = {
+      hostname: LOM_HOST,
+      port:     LOM_PORT,
+      path:     "/api/generate",
+      method:   "POST",
+      headers:  {
+        "Content-Type":   "application/json",
+        "Content-Length": Buffer.byteLength(bodyStr),
+      },
+    };
+
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end",  () => {
+        if (settled) return;
+        settled = true;
+        try { resolve({ ok: true, status: res.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ ok: true, status: res.statusCode, body: data }); }
+      });
+    });
+
+    let settled = false;
+
+    req.setTimeout(LOM_TIMEOUT, () => {
+      if (settled) return;
+      settled = true;
+      req.destroy();
+      resolve({ ok: false, error: `LOM request timed out after ${LOM_TIMEOUT}ms` });
+    });
+
+    req.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: `LOM unavailable: ${err.message}` });
+    });
+
+    req.write(bodyStr);
+    req.end();
+  });
+});
+
+// ── IPC: LOM health ping — GATE 116.3 ────────────────────────────────────────
+
+ipcMain.handle("lom:ping", () => {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { hostname: LOM_HOST, port: LOM_PORT, path: "/api/tags", timeout: 3000 },
+      (res) => { resolve({ alive: res.statusCode === 200 }); }
+    );
+    req.on("error",   () => resolve({ alive: false }));
+    req.on("timeout", () => { req.destroy(); resolve({ alive: false }); });
+  });
+});
+
+
 
 function buildMenu() {
   const template = [
