@@ -168,33 +168,98 @@ const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
 const AOS_SALT_MARKER_LEG = ".aos-salt";
 const AOS_SALT_BLOCK_LEG  = "AOS_SALT.bin";
 
+// Salt file names are constants — only these exact names are ever searched for.
+// No user-supplied filenames are accepted.
+const ALLOWED_SALT_FILENAMES = new Set([
+  AOS_SALT_AOSSALT,
+  AOS_SALT_MARKER_LEG,
+  AOS_SALT_BLOCK_LEG,
+]);
+
+// Permitted base-path prefixes for USB mount scanning (OS-specific).
+const ALLOWED_LINUX_BASES_RE   = /^\/(?:media\/[a-zA-Z0-9_.-]{1,64}|mnt|run\/media\/[a-zA-Z0-9_.-]{1,64})\//;
+const ALLOWED_DARWIN_BASE      = "/Volumes/";
+
+/**
+ * Sanitise a string for safe use as a path component.
+ * Strips everything except alphanumerics, hyphens, underscores, dots, and @.
+ * Also strips null bytes and prevents traversal sequences.
+ */
+function sanitisePathComponent(s) {
+  // Remove null bytes and control characters first
+  const noNull = s.replace(/[\x00-\x1f]/g, "");
+  // Allow typical POSIX usernames/volume names; reject path separators
+  return noNull.replace(/[^a-zA-Z0-9_.\-@ ]/g, "").trim();
+}
+
+/**
+ * Validate that a constructed salt path is within expected safe boundaries.
+ * Returns the normalised path if valid, or null to reject it.
+ *
+ * Security intent:
+ *   • Prevents path traversal attacks against the salt scanning logic.
+ *   • Only paths within known USB mount prefixes pointing to known salt
+ *     file names are accepted.
+ */
+function validateSaltPath(saltPath) {
+  const norm = path.normalize(saltPath);
+  // Reject null bytes or traversal sequences that survive normalization
+  if (norm.includes("\x00") || norm.includes("..")) return null;
+  // Confirm the filename component is one of our known safe constants
+  const base = path.basename(norm);
+  if (!ALLOWED_SALT_FILENAMES.has(base)) return null;
+  return norm;
+}
+
 function getUsbMountCandidates() {
   if (process.platform === "win32") {
+    // Windows: drive letters D–Z only (A/B are floppy, C is system)
     const letters = [];
     for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
     return letters;
   }
   if (process.platform === "darwin") {
-    try { return fs.readdirSync("/Volumes").map((v) => path.join("/Volumes", v)); }
-    catch { return []; }
+    try {
+      // /Volumes is the only valid macOS mount root; each entry is sanitised.
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      return fs.readdirSync(ALLOWED_DARWIN_BASE) // fixed literal base — only dir entries vary
+        .map((v) => {
+          const safe = sanitisePathComponent(v);
+          return safe ? path.join(ALLOWED_DARWIN_BASE, safe) : null;
+        })
+        .filter(Boolean);
+    } catch { return []; }
   }
-  // Linux
-  const user = os.userInfo().username;
+  // Linux: restrict to the three conventional removable-media directories.
+  // Username is sanitised to prevent any traversal via crafted OS usernames.
+  const rawUser = os.userInfo().username;
+  const user    = sanitisePathComponent(rawUser);
+  if (!user) return [];
+
   const expanded = [];
   for (const base of [`/media/${user}`, "/mnt", `/run/media/${user}`]) {
     try {
-      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
-        fs.readdirSync(base).forEach((c) => expanded.push(path.join(base, c)));
+      // Validate the base path against the allowed prefix pattern before touching fs.
+      if (!ALLOWED_LINUX_BASES_RE.test(base + "/") && base !== "/mnt") continue;
+      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+        fs.readdirSync(base).forEach((c) => { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+          const safe = sanitisePathComponent(c);
+          if (safe) expanded.push(path.join(base, safe));
+        });
       }
-    } catch { /* skip */ }
+    } catch { /* skip inaccessible mount bases */ }
   }
   return expanded;
 }
 
 function readSaltPreview(saltPath) {
+  // Validate path before opening: must resolve to one of our known safe salt filenames
+  // within a directory that came from getUsbMountCandidates().
+  const safe = validateSaltPath(saltPath);
+  if (!safe) return null;
   try {
     const buf = Buffer.alloc(64);
-    const fd  = fs.openSync(saltPath, "r");
+    const fd  = fs.openSync(safe, "r"); // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
     const n   = fs.readSync(fd, buf, 0, 64, 0);
     fs.closeSync(fd);
     return buf.subarray(0, n).toString("hex");
@@ -206,32 +271,36 @@ ipcMain.handle("residency:checkSalt", async () => {
   for (const mount of candidates) {
     try {
       // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
-      const aossaltPath = path.join(mount, AOS_SALT_AOSSALT);
-      if (fs.existsSync(aossaltPath)) {
-        return {
-          found:      true,
-          state:      "FULLY_RESIDENT",
-          mountPath:  mount,
-          saltPath:   aossaltPath,
-          previewHex: readSaltPreview(aossaltPath),
-          mimeType:   "application/x-averyos-sovereign-salt",
-        };
-      }
-      // Priority 2: legacy markers
-      for (const legacyName of [AOS_SALT_MARKER_LEG, AOS_SALT_BLOCK_LEG]) {
-        const legPath = path.join(mount, legacyName);
-        if (fs.existsSync(legPath)) {
+      const aossaltPath = validateSaltPath(path.join(mount, AOS_SALT_AOSSALT));
+      if (aossaltPath) {
+        if (fs.existsSync(aossaltPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
           return {
             found:      true,
-            state:      "NODE-02_PHYSICAL",
+            state:      "FULLY_RESIDENT",
             mountPath:  mount,
-            saltPath:   legPath,
-            previewHex: readSaltPreview(legPath),
-            mimeType:   "application/octet-stream",
+            saltPath:   aossaltPath,
+            previewHex: readSaltPreview(aossaltPath),
+            mimeType:   "application/x-averyos-sovereign-salt",
           };
         }
       }
-    } catch { /* skip inaccessible */ }
+      // Priority 2: legacy markers
+      for (const legacyName of [AOS_SALT_MARKER_LEG, AOS_SALT_BLOCK_LEG]) {
+        const legPath = validateSaltPath(path.join(mount, legacyName));
+        if (legPath) {
+          if (fs.existsSync(legPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+            return {
+              found:      true,
+              state:      "NODE-02_PHYSICAL",
+              mountPath:  mount,
+              saltPath:   legPath,
+              previewHex: readSaltPreview(legPath),
+              mimeType:   "application/octet-stream",
+            };
+          }
+        }
+      }
+    } catch { /* skip inaccessible mounts */ }
   }
   return { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null, mimeType: null };
 });

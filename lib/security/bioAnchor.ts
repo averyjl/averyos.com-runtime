@@ -180,9 +180,13 @@ export async function fetchBioAnchor(
   const recovery = await fetchWhoopRecovery(accessToken, userId);
 
   if (!recovery) {
-    // Degraded mode — API unavailable; derive entropy from kernel anchor + timestamp only
-    const ts    = new Date().toISOString();
-    const token = await sha512hex(`${KERNEL_SHA}|degraded|${ts}|${KERNEL_VERSION}`);
+    // Degraded mode — API unavailable.
+    // Entropy sources: kernel anchor + timestamp + 16 random bytes via Web Crypto.
+    // Using multiple entropy sources prevents predictability when WHOOP is offline.
+    const ts         = new Date().toISOString();
+    const randHex    = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+    const token = await sha512hex(`${KERNEL_SHA}|degraded|${ts}|${KERNEL_VERSION}|${randHex}`);
     return {
       healthy:       false,
       entropyToken:  token,
