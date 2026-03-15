@@ -26,6 +26,9 @@
 
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
+const fs   = require("fs");
+const os   = require("os");
+const http = require("http");
 const { spawn } = require("child_process");
 
 // ── Security: disable any proxy that may be set by the host OS ───────────────
@@ -149,7 +152,243 @@ ipcMain.handle("kernel:info", () => ({
   electronVersion: process.versions.electron,
 }));
 
-// ── Application Menu ──────────────────────────────────────────────────────────
+// ── IPC: .aossalt USB Residency Read — GATE 116.3 ────────────────────────────
+//
+// Scans all mounted volumes for the sovereign MIME-registered salt file
+// `AveryOS-anchor-salt.aossalt` and returns the first 64 bytes as hex.
+// Falls back to legacy `.aos-salt` / `AOS_SALT.bin` markers.
+//
+// Returns:
+//   { found: true,  state: "FULLY_RESIDENT"|"NODE-02_PHYSICAL",
+//     mountPath: string, saltPath: string, previewHex: string|null }
+// or
+//   { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null }
+
+const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
+const AOS_SALT_MARKER_LEG = ".aos-salt";
+const AOS_SALT_BLOCK_LEG  = "AOS_SALT.bin";
+
+// Salt file names are constants — only these exact names are ever searched for.
+// No user-supplied filenames are accepted.
+const ALLOWED_SALT_FILENAMES = new Set([
+  AOS_SALT_AOSSALT,
+  AOS_SALT_MARKER_LEG,
+  AOS_SALT_BLOCK_LEG,
+]);
+
+// Permitted base-path prefixes for USB mount scanning (OS-specific).
+const ALLOWED_LINUX_BASES_RE   = /^\/(?:media\/[a-zA-Z0-9_.-]{1,64}|mnt|run\/media\/[a-zA-Z0-9_.-]{1,64})\//;
+const ALLOWED_DARWIN_BASE      = "/Volumes/";
+
+/**
+ * Sanitise a string for safe use as a path component.
+ * Strips everything except alphanumerics, hyphens, underscores, dots, and @.
+ * Also strips null bytes and prevents traversal sequences.
+ */
+function sanitisePathComponent(s) {
+  // Remove null bytes and control characters first
+  const noNull = s.replace(/[\x00-\x1f]/g, "");
+  // Allow typical POSIX usernames/volume names; reject path separators
+  return noNull.replace(/[^a-zA-Z0-9_.\-@ ]/g, "").trim();
+}
+
+/**
+ * Validate that a constructed salt path is within expected safe boundaries.
+ * Returns the normalised path if valid, or null to reject it.
+ *
+ * Security intent:
+ *   • Prevents path traversal attacks against the salt scanning logic.
+ *   • Only paths within known USB mount prefixes pointing to known salt
+ *     file names are accepted.
+ */
+function validateSaltPath(saltPath) {
+  const norm = path.normalize(saltPath);
+  // Reject null bytes or traversal sequences that survive normalization
+  if (norm.includes("\x00") || norm.includes("..")) return null;
+  // Confirm the filename component is one of our known safe constants
+  const base = path.basename(norm);
+  if (!ALLOWED_SALT_FILENAMES.has(base)) return null;
+  return norm;
+}
+
+function getUsbMountCandidates() {
+  if (process.platform === "win32") {
+    // Windows: drive letters D–Z only (A/B are floppy, C is system)
+    const letters = [];
+    for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
+    return letters;
+  }
+  if (process.platform === "darwin") {
+    try {
+      // /Volumes is the only valid macOS mount root; each entry is sanitised.
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      return fs.readdirSync(ALLOWED_DARWIN_BASE) // fixed literal base — only dir entries vary
+        .map((v) => {
+          const safe = sanitisePathComponent(v);
+          return safe ? path.join(ALLOWED_DARWIN_BASE, safe) : null;
+        })
+        .filter(Boolean);
+    } catch { return []; }
+  }
+  // Linux: restrict to the three conventional removable-media directories.
+  // Username is sanitised to prevent any traversal via crafted OS usernames.
+  const rawUser = os.userInfo().username;
+  const user    = sanitisePathComponent(rawUser);
+  if (!user) return [];
+
+  const expanded = [];
+  for (const base of [`/media/${user}`, "/mnt", `/run/media/${user}`]) {
+    try {
+      // Validate the base path against the allowed prefix pattern before touching fs.
+      if (!ALLOWED_LINUX_BASES_RE.test(base + "/") && base !== "/mnt") continue;
+      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+        fs.readdirSync(base).forEach((c) => { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+          const safe = sanitisePathComponent(c);
+          if (safe) expanded.push(path.join(base, safe));
+        });
+      }
+    } catch { /* skip inaccessible mount bases */ }
+  }
+  return expanded;
+}
+
+function readSaltPreview(saltPath) {
+  // Validate path before opening: must resolve to one of our known safe salt filenames
+  // within a directory that came from getUsbMountCandidates().
+  const safe = validateSaltPath(saltPath);
+  if (!safe) return null;
+  try {
+    const buf = Buffer.alloc(64);
+    const fd  = fs.openSync(safe, "r"); // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+    const n   = fs.readSync(fd, buf, 0, 64, 0);
+    fs.closeSync(fd);
+    return buf.subarray(0, n).toString("hex");
+  } catch { return null; }
+}
+
+ipcMain.handle("residency:checkSalt", async () => {
+  const candidates = getUsbMountCandidates();
+  for (const mount of candidates) {
+    try {
+      // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
+      const aossaltPath = validateSaltPath(path.join(mount, AOS_SALT_AOSSALT));
+      if (aossaltPath) {
+        if (fs.existsSync(aossaltPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+          return {
+            found:      true,
+            state:      "FULLY_RESIDENT",
+            mountPath:  mount,
+            saltPath:   aossaltPath,
+            previewHex: readSaltPreview(aossaltPath),
+            mimeType:   "application/x-averyos-sovereign-salt",
+          };
+        }
+      }
+      // Priority 2: legacy markers
+      for (const legacyName of [AOS_SALT_MARKER_LEG, AOS_SALT_BLOCK_LEG]) {
+        const legPath = validateSaltPath(path.join(mount, legacyName));
+        if (legPath) {
+          if (fs.existsSync(legPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+            return {
+              found:      true,
+              state:      "NODE-02_PHYSICAL",
+              mountPath:  mount,
+              saltPath:   legPath,
+              previewHex: readSaltPreview(legPath),
+              mimeType:   "application/octet-stream",
+            };
+          }
+        }
+      }
+    } catch { /* skip inaccessible mounts */ }
+  }
+  return { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null, mimeType: null };
+});
+
+// ── IPC: Local Avery-LOM Sync — GATE 116.3 ───────────────────────────────────
+//
+// Forwards a JSON-RPC request to the local Avery-LOM (Ollama-compatible) API
+// running on Node-02.  Default endpoint: http://localhost:11434
+//
+// Security:
+//   • Only connects to loopback (127.0.0.1 / localhost) — never external.
+//   • Request body is validated: must be a plain object with a `model` string.
+//   • Response is returned verbatim to the renderer via IPC.
+
+const LOM_HOST    = "127.0.0.1";
+const LOM_PORT    = 11434;
+const LOM_TIMEOUT = 10_000; // 10 s
+
+ipcMain.handle("lom:generate", (_event, requestBody) => {
+  return new Promise((resolve) => {
+    // Validate input — only accept well-formed Ollama-style request objects
+    if (
+      !requestBody ||
+      typeof requestBody !== "object" ||
+      typeof requestBody.model !== "string" ||
+      !requestBody.model.trim()
+    ) {
+      resolve({ ok: false, error: "Invalid LOM request body: 'model' string is required." });
+      return;
+    }
+
+    const bodyStr = JSON.stringify(requestBody);
+    const options = {
+      hostname: LOM_HOST,
+      port:     LOM_PORT,
+      path:     "/api/generate",
+      method:   "POST",
+      headers:  {
+        "Content-Type":   "application/json",
+        "Content-Length": Buffer.byteLength(bodyStr),
+      },
+    };
+
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end",  () => {
+        if (settled) return;
+        settled = true;
+        try { resolve({ ok: true, status: res.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ ok: true, status: res.statusCode, body: data }); }
+      });
+    });
+
+    let settled = false;
+
+    req.setTimeout(LOM_TIMEOUT, () => {
+      if (settled) return;
+      settled = true;
+      req.destroy();
+      resolve({ ok: false, error: `LOM request timed out after ${LOM_TIMEOUT}ms` });
+    });
+
+    req.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: `LOM unavailable: ${err.message}` });
+    });
+
+    req.write(bodyStr);
+    req.end();
+  });
+});
+
+// ── IPC: LOM health ping — GATE 116.3 ────────────────────────────────────────
+
+ipcMain.handle("lom:ping", () => {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { hostname: LOM_HOST, port: LOM_PORT, path: "/api/tags", timeout: 3000 },
+      (res) => { resolve({ alive: res.statusCode === 200 }); }
+    );
+    req.on("error",   () => resolve({ alive: false }));
+    req.on("timeout", () => { req.destroy(); resolve({ alive: false }); });
+  });
+});
+
+
 
 function buildMenu() {
   const template = [

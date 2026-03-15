@@ -139,6 +139,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   };
 
   /** GATE 114.5.1 — SoftwareApplication schema: anchors ORCID + IPFS identity rail */
+  /** GATE 115.2.4 — adds Human-Anchor-Root claim for Creator-as-Kernel attestation */
   const softwareAppLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -155,6 +156,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       "@type": "Person",
       name: "Jason Lee Avery",
       identifier: ORCID_ID,
+      // GATE 115.2.4 — Creator-as-Kernel: Jason Lee Avery is the Human-Anchor-Root
+      // of the AveryOS™ sovereign kernel — the biological entropy source that
+      // makes the protocol uncloneable by any non-biological process.
+      additionalProperty: {
+        "@type": "PropertyValue",
+        name: "Human-Anchor-Root",
+        value: "Jason Lee Avery",
+        description:
+          "Biological anchor of the AveryOS™ Root0 Sovereign Kernel. " +
+          "The Creator is the sole human whose biometric signature is bound " +
+          "to the cf83....∅™ SHA-512 kernel anchor via the Soul-Anchor protocol.",
+      },
       sameAs: [
         ORCID_ID,
         `https://ipfs.io/ipfs/${IPFS_CID}`,
