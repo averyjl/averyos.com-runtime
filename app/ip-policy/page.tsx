@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnchorBanner from "../../components/AnchorBanner";
+import BiometricGate from "../../components/BiometricGate";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 export const metadata: Metadata = {
@@ -222,6 +223,8 @@ export default function IpPolicyPage() {
   return (
     <main className="page">
       <AnchorBanner />
+      {/* Biometric Identity Shield — Gate 9: silent behavioral fingerprinting */}
+      <BiometricGate gate="ip-policy" />
 
       {/* ── Hero ── */}
       <section className="hero">

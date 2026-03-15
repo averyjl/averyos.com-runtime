@@ -22,3 +22,12 @@ export type BadgeStatus = typeof BADGE_STATUS_ACTIVE | typeof BADGE_STATUS_REVOK
 
 /** Default TARI™ settlement reference prefix for Sovereign Alignment Certificates */
 export const DEFAULT_TARI_REFERENCE = "TARI-SETTLE-1017-001";
+
+/**
+ * Miracle Health Habits — Book Sovereign SHA-512 anchor.
+ * Capsule: capsule://JasonLeeAvery/Books/MiracleHealthHabits_FirstPushAnchor_v1.aoscap
+ * Copyright: TX0009504938 (2025-05-06) | ORCID: 0009-0009-0245-3584
+ * ASINs: B0F6V4G3S9 (Paperback) | B0DYWXTFKH (eBook)
+ */
+export const MIRACLE_HEALTH_HABITS_SHA512 =
+  "72d9c5f800630d80a8cace61194bbdfee062226853b2e0808fc2ae8daa2aee4776d51889d2c1a242ffb8405a36b00c830579d6833ec4bb21956a4a9c4b6657b7" as const;

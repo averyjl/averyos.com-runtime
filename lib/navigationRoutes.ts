@@ -54,6 +54,8 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
+  // ── Books ───────────────────────────────────────────────────────────────────
+  { path: "/miracle-health-habits", label: "Miracle Health Habits", icon: "📚" },
   // ── Admin (VaultGate-protected) ─────────────────────────────────────────────
   // PERMANENT UPGRADE: Add new admin pages here — NavBar, Sidebar, Drawer, and
   // the /admin dashboard all pick them up automatically from this list.
@@ -65,6 +67,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡", isAdmin: true },
   { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️", isAdmin: true },
   { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰", isAdmin: true },
+  { path: "/admin/evidence",            label: "R2 Evidence Monitor",   icon: "🗄️", isAdmin: true },
   { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖", isAdmin: true },
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚", isAdmin: true },
@@ -91,6 +94,7 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/admin/tai-accomplishments", label: "TAI™ Accomplishments", icon: "⚡" },
   { path: "/admin/settlements",         label: "Settlement Dashboard",  icon: "⚖️" },
   { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰" },
+  { path: "/admin/evidence",            label: "R2 Evidence Monitor",   icon: "🗄️" },
   { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖" },
   { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚" },
