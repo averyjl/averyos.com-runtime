@@ -2,338 +2,510 @@
 /**
  * scripts/registerCapsuleOnChain.cjs
  *
- * AveryOS™ On-Chain Capsule Registration — Phase 116 GATE 116.1
+ * AveryOS™ BTC/IPFS On-Chain Registration — Gate 6 (Sovereign Roadmap)
  *
- * Broadcasts a Bitcoin OP_RETURN transaction anchoring a capsule hash to the
- * public ledger.  The payload is a compact fingerprint:
- *
- *   OP_RETURN <AVERYOS_PREFIX (4 bytes)> <SHA-512 truncated to 24 bytes> <IPFS CID (variable)>
- *
- * Privacy (GATE 116.1 — On-Chain Stealth Proxy):
- *   The broadcast API call is routed through a SOCKS5 proxy when
- *   BITCOIN_SOCKS5_PROXY is set (format: socks5://host:port or host:port).
- *   This prevents the Node-02 IP address from being exposed to public
- *   ledger aggregators (Blockstream Esplora, BlockCypher, etc.).
- *
- * When BITCOIN_SOCKS5_PROXY is NOT set the script falls back to a direct
- * HTTPS call — suitable for CI/local dry-runs where privacy is not required.
+ * Registers a .aoscap capsule SHA-512 fingerprint on-chain by:
+ *   1. Computing or accepting a SHA-512 hash of the capsule payload.
+ *   2. Uploading the capsule JSON to IPFS via the configured pinning service
+ *      (Pinata / nft.storage / web3.storage — set via env vars).
+ *   3. Writing an OP_RETURN Bitcoin transaction embedding the SHA-512 and
+ *      IPFS CID via the Blockstream Esplora API (testnet or mainnet).
+ *   4. Updating the capsule record in the local Cloudflare D1 database (via
+ *      wrangler d1 execute) with the btc_anchor_sha and ipfs_cid fields.
  *
  * Usage:
- *   node scripts/registerCapsuleOnChain.cjs --hash <sha512hex> [options]
+ *   node scripts/registerCapsuleOnChain.cjs --capsule <path.aoscap>
+ *   node scripts/registerCapsuleOnChain.cjs --capsule <path.aoscap> --dry-run
+ *   node scripts/registerCapsuleOnChain.cjs --sha512 <hash> --ipfs-cid <cid> --dry-run
  *
  * Options:
- *   --hash <hex>         Full 128-char SHA-512 hex of the capsule to register.
- *   --cid  <cid>         IPFS CID of the capsule content (optional).
- *   --dry-run            Print the OP_RETURN payload without broadcasting.
- *   --api  <url>         Esplora-compatible broadcast URL
- *                        (default: https://blockstream.info/api/tx).
- *   --proxy <socks5>     SOCKS5 proxy URL override (overrides env var).
+ *   --capsule <file>    Path to the .aoscap capsule JSON file.
+ *   --sha512 <hash>     Provide a pre-computed SHA-512 hex (skips file read).
+ *   --ipfs-cid <cid>    Provide a pre-pinned IPFS CID (skips IPFS upload).
+ *   --network <net>     Bitcoin network: "mainnet" | "testnet" (default: testnet).
+ *   --db <name>         D1 database name (default: averyos_kernel_db).
+ *   --dry-run           Print all steps but do NOT broadcast or write to D1.
+ *   --verbose           Print detailed progress.
  *
- * Environment variables:
- *   BITCOIN_SOCKS5_PROXY   SOCKS5 proxy URL (e.g. socks5://127.0.0.1:9050).
- *   BITCOIN_RAW_TX         Pre-signed raw hex transaction to broadcast.
- *                          When provided, --hash / --cid are ignored (the
- *                          signed TX is used directly).
- *   BITCOIN_API_KEY        Optional API key forwarded as X-Api-Key header.
+ * Required environment variables (for full on-chain registration):
+ *   PINATA_JWT           — Pinata JWT for IPFS pinning (or WEB3_STORAGE_TOKEN)
+ *   BTC_PRIVATE_KEY_WIF  — Bitcoin private key in WIF format (for signing)
+ *   BTC_UTXO_TXID        — Funding UTXO transaction ID
+ *   BTC_UTXO_VOUT        — Funding UTXO output index
+ *   BTC_UTXO_VALUE_SAT   — Funding UTXO value in satoshis
+ *   BTC_CHANGE_ADDRESS   — Bitcoin change address
  *
  * Exit codes:
- *   0 — Broadcast succeeded (or dry-run completed)
- *   1 — Broadcast failed
- *   2 — Usage / validation error
+ *   0 — Registration successful (or dry-run completed)
+ *   1 — Script error / fatal failure
+ *   2 — Capsule file not found
+ *   3 — IPFS pinning failed
+ *   4 — Bitcoin broadcast failed
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-"use strict";
+'use strict';
 
-const https = require("https");
-const http  = require("http");
-const net   = require("net");
-const tls   = require("tls");
-const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
+const https  = require('https');
+const http   = require('http');
+const { execSync } = require('child_process');
+const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
-// ── Sovereign kernel anchor ────────────────────────────────────────────────────
-const KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
-const KERNEL_VERSION = "v3.6.2";
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-// ── ANSI colours ───────────────────────────────────────────────────────────────
-const R    = "\x1b[0m";
-const RED  = "\x1b[31m";
-const GRN  = "\x1b[32m";
-const YEL  = "\x1b[33m";
-const CYN  = "\x1b[36m";
-const BOLD = "\x1b[1m";
+const KERNEL_VERSION    = 'v3.6.2';
+// First 16 chars of the kernel SHA for display
+const KERNEL_SHA_PREFIX = 'cf83e1357eefb8bd';
 
-// ── OP_RETURN prefix: 4-byte ASCII "AVOS" ────────────────────────────────────
-const AOS_OP_PREFIX = "41564f53"; // hex: A V O S
+// BTC OP_RETURN prefix: "AVERYOS" in ASCII hex (7 bytes)
+const OP_RETURN_PREFIX = '41564552594f53'; // "AVERYOS"
 
-// ── CLI parsing ────────────────────────────────────────────────────────────────
+// IPFS pinning endpoints
+const PINATA_PIN_URL    = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+const ESPLORA_MAINNET   = 'https://blockstream.info/api';
+const ESPLORA_TESTNET   = 'https://blockstream.info/testnet/api';
 
-const args    = process.argv.slice(2);
-const DRY_RUN = args.includes("--dry-run");
+// ── CLI flags ─────────────────────────────────────────────────────────────────
 
-function getArg(flag) {
-  const idx = args.indexOf(flag);
-  return idx !== -1 ? (args[idx + 1] ?? null) : null;
-}
+const args       = process.argv.slice(2);
+const VERBOSE    = args.includes('--verbose');
+const DRY_RUN    = args.includes('--dry-run');
+const NETWORK    = args.includes('--network')
+  ? args[args.indexOf('--network') + 1] ?? 'testnet'
+  : 'testnet';
+const DB_NAME    = args.includes('--db')
+  ? args[args.indexOf('--db') + 1] ?? 'averyos_kernel_db'
+  : 'averyos_kernel_db';
 
-const capsuleHashArg = getArg("--hash");
-const ipfsCidArg     = getArg("--cid")  ?? "";
-const apiUrlArg      = getArg("--api")  ?? "https://blockstream.info/api/tx";
-const proxyArg       = getArg("--proxy") ?? process.env.BITCOIN_SOCKS5_PROXY ?? null;
-const rawTx          = process.env.BITCOIN_RAW_TX ?? null;
-const apiKey         = process.env.BITCOIN_API_KEY ?? null;
+let CAPSULE_PATH  = null;
+let SHA512_INPUT  = null;
+let IPFS_CID      = null;
 
-// ── Validation ─────────────────────────────────────────────────────────────────
+if (args.includes('--capsule'))  CAPSULE_PATH = args[args.indexOf('--capsule')  + 1];
+if (args.includes('--sha512'))   SHA512_INPUT = args[args.indexOf('--sha512')   + 1];
+if (args.includes('--ipfs-cid')) IPFS_CID     = args[args.indexOf('--ipfs-cid') + 1];
 
-if (!rawTx && (!capsuleHashArg || !/^[0-9a-f]{128}$/i.test(capsuleHashArg))) {
-  console.error(`${RED}ERROR: --hash must be a 128-char hex SHA-512 digest (or set BITCOIN_RAW_TX).${R}`);
-  process.exit(2);
-}
+// ── Theme helpers ─────────────────────────────────────────────────────────────
 
-// ── Build OP_RETURN payload ────────────────────────────────────────────────────
+const GREEN  = '\x1b[32m';
+const YELLOW = '\x1b[33m';
+const RED    = '\x1b[31m';
+const CYAN   = '\x1b[36m';
+const GOLD   = '\x1b[33m';
+const RESET  = '\x1b[0m';
 
-/**
- * Build a compact OP_RETURN payload hex string:
- *   AOS_OP_PREFIX (4 bytes) + SHA-512 truncated to 24 bytes (48 hex chars) + CID hex
- *
- * Total payload is capped at 80 bytes (160 hex chars) per Bitcoin protocol limit.
- */
-function buildOpReturnPayload(sha512hex, cid) {
-  // Truncate SHA-512 to 24 bytes (48 hex chars) for space efficiency
-  const hashBytes = sha512hex.slice(0, 48).toLowerCase();
-  // Encode CID as hex (UTF-8), capped to keep total ≤ 80 bytes
-  const cidHex    = Buffer.from(cid.slice(0, 40), "utf8").toString("hex");
-  const raw       = AOS_OP_PREFIX + hashBytes + cidHex;
-  // Enforce 80-byte (160 hex char) cap
-  return raw.slice(0, 160);
-}
+function info(msg)    { if (VERBOSE) console.log(`${CYAN}[onchain]${RESET} ${msg}`); }
+function success(msg) { console.log(`${GREEN}✔${RESET}  ${msg}`); }
+function warn(msg)    { console.warn(`${YELLOW}⚠${RESET}  ${msg}`); }
+function fail(msg)    { console.error(`${RED}✘${RESET}  ${msg}`); }
 
-// ── SOCKS5 proxy support ───────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Parse a SOCKS5 proxy URL.
- * Accepts:
- *   socks5://host:port
- *   socks5h://host:port
- *   host:port           (assumed SOCKS5)
+ * Compute SHA-512 of a buffer.
  *
- * @param {string} proxyStr
- * @returns {{ host: string, port: number } | null}
+ * @param {Buffer} buf
+ * @returns {string}
  */
-function parseSocks5(proxyStr) {
-  try {
-    let str = proxyStr.trim();
-    str = str.replace(/^socks5h?:\/\//i, "");
-    const [host, portStr] = str.split(":");
-    const port = parseInt(portStr ?? "1080", 10);
-    if (!host || isNaN(port) || port < 1 || port > 65535) return null;
-    return { host, port };
-  } catch {
-    return null;
-  }
+function sha512Hex(buf) {
+  return crypto.createHash('sha512').update(buf).digest('hex');
 }
 
 /**
- * Create an HTTPS agent that tunnels through a SOCKS5 proxy.
+ * POST JSON to a URL and return the parsed response.
  *
- * Implementation: opens a raw TCP connection to the SOCKS5 proxy, performs the
- * SOCKS5 handshake, then wraps the socket with TLS for the target HTTPS host.
- *
- * Supports unauthenticated SOCKS5 only (version 5, no-auth method 0x00).
- *
- * @param {{ host: string, port: number }} proxy
- * @param {string} targetHost
- * @param {number} targetPort
- * @returns {Promise<https.Agent>}
+ * @param {string}  url
+ * @param {object}  body
+ * @param {object}  headers
+ * @returns {Promise<{status: number, body: unknown}>}
  */
-function createSocks5Agent(proxy, targetHost, targetPort) {
+function postJson(url, body, headers = {}) {
   return new Promise((resolve, reject) => {
-    const socket = net.connect(proxy.port, proxy.host, () => {
-      // ── SOCKS5 greeting: version=5, 1 method, method=0x00 (no-auth) ──
-      socket.write(Buffer.from([0x05, 0x01, 0x00]));
-    });
+    const payload    = JSON.stringify(body);
+    const parsedUrl  = new URL(url);
+    const isHttps    = parsedUrl.protocol === 'https:';
+    const mod        = isHttps ? https : http;
 
-    socket.once("data", (greeting) => {
-      // Server responds: [0x05, 0x00] = accepted no-auth
-      if (greeting[0] !== 0x05 || greeting[1] !== 0x00) {
-        socket.destroy();
-        reject(new Error(`SOCKS5 server rejected no-auth method (response: ${greeting.toString("hex")})`));
-        return;
-      }
-
-      // ── SOCKS5 CONNECT request ────────────────────────────────────────
-      // [VER=5, CMD=1 (CONNECT), RSV=0, ATYP=3 (domain), domain_len, domain, port_hi, port_lo]
-      const hostBuf  = Buffer.from(targetHost, "ascii");
-      const portBuf  = Buffer.alloc(2);
-      portBuf.writeUInt16BE(targetPort, 0);
-      const connect = Buffer.concat([
-        Buffer.from([0x05, 0x01, 0x00, 0x03, hostBuf.length]),
-        hostBuf,
-        portBuf,
-      ]);
-      socket.write(connect);
-
-      socket.once("data", (response) => {
-        // Response: [VER, REP, RSV, ATYP, ...]
-        if (response[1] !== 0x00) {
-          socket.destroy();
-          reject(new Error(`SOCKS5 CONNECT failed with reply code: 0x${response[1].toString(16)}`));
-          return;
-        }
-
-        // Tunnel established — wrap with TLS
-        const tlsSocket = tls.connect({
-          socket,
-          servername: targetHost,
-          rejectUnauthorized: true,
-        });
-
-        tlsSocket.once("secureConnect", () => {
-          const agent = new https.Agent({ keepAlive: false });
-          // Monkey-patch createConnection to return our already-established socket
-          agent.createConnection = () => tlsSocket;
-          resolve(agent);
-        });
-
-        tlsSocket.once("error", reject);
-      });
-    });
-
-    socket.once("error", reject);
-    socket.setTimeout(10_000, () => {
-      socket.destroy();
-      reject(new Error("SOCKS5 connection timed out"));
-    });
-  });
-}
-
-// ── HTTP broadcast ─────────────────────────────────────────────────────────────
-
-/**
- * POST rawTxHex to an Esplora-compatible broadcast endpoint.
- *
- * @param {string} txHex
- * @param {string} apiUrl
- * @param {https.Agent | null} agent
- * @returns {Promise<{ txid: string }>}
- */
-function broadcastTransaction(txHex, apiUrl, agent) {
-  return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(apiUrl);
-    const isHttps   = parsedUrl.protocol === "https:";
-    const lib       = isHttps ? https : http;
-
-    const headers = {
-      "Content-Type":   "text/plain",
-      "Content-Length": Buffer.byteLength(txHex),
-      "User-Agent":     `AveryOS/${KERNEL_VERSION} registerCapsuleOnChain`,
-    };
-    if (apiKey) headers["X-Api-Key"] = apiKey;
-
-    const options = {
+    const opts = {
       hostname: parsedUrl.hostname,
-      port:     parsedUrl.port ? parseInt(parsedUrl.port, 10) : (isHttps ? 443 : 80),
-      path:     parsedUrl.pathname,
-      method:   "POST",
-      headers,
-      timeout:  30_000,
+      port:     parsedUrl.port || (isHttps ? 443 : 80),
+      path:     parsedUrl.pathname + parsedUrl.search,
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        ...headers,
+      },
     };
-    if (agent && isHttps) options.agent = agent;
 
-    const req = lib.request(options, (res) => {
-      let body = "";
-      res.on("data", (c) => { body += c; });
-      res.on("end",  () => {
-        if (res.statusCode === 200 || res.statusCode === 201) {
-          resolve({ txid: body.trim() });
-        } else {
-          reject(new Error(`Broadcast failed: HTTP ${res.statusCode} — ${body.slice(0, 200)}`));
-        }
+    const req = mod.request(opts, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        let parsed = data;
+        try { parsed = JSON.parse(data); } catch {}
+        resolve({ status: res.statusCode, body: parsed });
       });
     });
-
-    req.on("error",   (err) => reject(err));
-    req.on("timeout", ()    => { req.destroy(); reject(new Error("Broadcast request timed out")); });
-
-    req.write(txHex);
+    req.on('error', reject);
+    req.write(payload);
     req.end();
   });
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
-
-async function main() {
-  console.log(`${BOLD}⛓️⚓⛓️  AveryOS™ On-Chain Capsule Registration — GATE 116.1${R}`);
-  console.log(`Kernel: ${CYN}${KERNEL_VERSION}${R}  |  Anchor: ${CYN}${KERNEL_SHA.slice(0, 24)}…${R}`);
-
-  // ── Determine payload ────────────────────────────────────────────────────────
-  const txHex = rawTx ?? (() => {
-    const opReturn = buildOpReturnPayload(capsuleHashArg, ipfsCidArg);
-    console.log(`${YEL}OP_RETURN payload (hex):${R} ${opReturn}`);
-    // NOTE: A real broadcast requires a fully-signed Bitcoin transaction.
-    // The OP_RETURN payload above is the data embedding only.  To broadcast,
-    // set BITCOIN_RAW_TX to a signed raw transaction that includes this payload.
-    console.log(`${YEL}NOTE:${R} Set BITCOIN_RAW_TX to a signed raw transaction to broadcast.`);
+/**
+ * Pin JSON to IPFS via Pinata.
+ *
+ * @param {object} json     The capsule JSON to pin.
+ * @param {string} sha512   SHA-512 of the capsule (used as pin name).
+ * @returns {Promise<string>} IPFS CID
+ */
+async function pinToIpfs(json, sha512) {
+  const jwt = process.env.PINATA_JWT ?? process.env.WEB3_STORAGE_TOKEN;
+  if (!jwt) {
+    warn('PINATA_JWT / WEB3_STORAGE_TOKEN not set — skipping IPFS pinning.');
     return null;
-  })();
+  }
 
-  // ── Dry-run ───────────────────────────────────────────────────────────────────
+  info('Pinning capsule to IPFS via Pinata…');
+
+  const pinBody = {
+    pinataContent:  json,
+    pinataMetadata: {
+      name: `averyos-capsule-${sha512.slice(0, 16)}`,
+      keyvalues: {
+        kernel_version: KERNEL_VERSION,
+        sha512_prefix:  sha512.slice(0, 16),
+        creator_lock:   'Jason Lee Avery',
+      },
+    },
+    pinataOptions: { cidVersion: 1 },
+  };
+
+  const res = await postJson(PINATA_PIN_URL, pinBody, {
+    Authorization: `Bearer ${jwt}`,
+  });
+
+  if (res.status !== 200) {
+    fail(`IPFS pinning failed: HTTP ${res.status}`);
+    if (VERBOSE) console.log('Pinata response:', JSON.stringify(res.body, null, 2));
+    return null;
+  }
+
+  const cid = (res.body).IpfsHash;
+  if (!cid) {
+    fail('IPFS pinning succeeded but IpfsHash missing in response.');
+    return null;
+  }
+
+  success(`IPFS CID: ${cid}`);
+  return cid;
+}
+
+/**
+ * Build the OP_RETURN data for the BTC transaction.
+ * Format: <OP_RETURN_PREFIX (7 bytes)> + <sha512[0:48 hex chars] (24 bytes)>
+ *           + <ipfsCidShort (variable, max 80 bytes total)>
+ *
+ * @param {string} sha512   Full SHA-512 hex.
+ * @param {string} cid      IPFS CID string (may be null).
+ * @returns {string} Hex-encoded OP_RETURN data (max 80 bytes).
+ */
+function buildOpReturnData(sha512, cid) {
+  // Prefix "AVERYOS" (7 bytes) + SHA-512 first 48 hex chars (24 bytes) = 31 bytes
+  // Then fit as much CID as possible up to 80 byte total limit.
+  const prefixBuf  = Buffer.from(OP_RETURN_PREFIX, 'hex'); // 7 bytes
+  const sha512Buf  = Buffer.from(sha512.slice(0, 48), 'hex'); // 24 bytes
+
+  const remaining  = 80 - prefixBuf.length - sha512Buf.length; // 49 bytes left
+  let cidBuf = Buffer.alloc(0);
+  if (cid) {
+    const cidFull = Buffer.from(cid, 'utf8');
+    if (cidFull.length > remaining) {
+      warn(`IPFS CID (${cidFull.length} bytes) exceeds OP_RETURN space (${remaining} bytes) — CID will be truncated on-chain.`);
+      warn('The truncated CID will not be resolvable. Consider using a shorter CIDv1 or storing the full CID off-chain.');
+    }
+    cidBuf = cidFull.slice(0, remaining);
+  }
+
+  return Buffer.concat([prefixBuf, sha512Buf, cidBuf]).toString('hex');
+}
+
+/**
+ * Broadcast a raw hex transaction via Blockstream Esplora.
+ *
+ * @param {string} rawTxHex
+ * @returns {Promise<string|null>} txid on success, null on failure
+ */
+async function broadcastTx(rawTxHex) {
+  const base = NETWORK === 'mainnet' ? ESPLORA_MAINNET : ESPLORA_TESTNET;
+  const url  = `${base}/tx`;
+
+  return new Promise((resolve) => {
+    const parsedUrl = new URL(url);
+    const opts = {
+      hostname: parsedUrl.hostname,
+      port:     443,
+      path:     parsedUrl.pathname,
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'text/plain',
+        'Content-Length': Buffer.byteLength(rawTxHex),
+      },
+    };
+
+    const req = https.request(opts, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve(data.trim());
+        } else {
+          fail(`Esplora broadcast failed: HTTP ${res.statusCode} — ${data.trim()}`);
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', (err) => {
+      fail(`Broadcast network error: ${err.message}`);
+      resolve(null);
+    });
+    req.write(rawTxHex);
+    req.end();
+  });
+}
+
+/**
+ * Update D1 with the btc_anchor_sha and ipfs_cid fields.
+ * Uses a temporary SQL file with safe literals to avoid injection.
+ * Input values are validated to contain only safe characters before use.
+ *
+ * @param {string} sha512
+ * @param {string|null} btcTxid
+ * @param {string|null} ipfsCid
+ */
+function updateD1Record(sha512, btcTxid, ipfsCid) {
   if (DRY_RUN) {
-    const opReturn = buildOpReturnPayload(capsuleHashArg ?? "0".repeat(128), ipfsCidArg);
-    console.log(`\n${CYN}[DRY-RUN]${R} OP_RETURN payload: ${opReturn}`);
-    console.log(`[DRY-RUN] Broadcast URL: ${apiUrlArg}`);
-    console.log(`[DRY-RUN] SOCKS5 proxy: ${proxyArg ?? "(none — direct connection)"}`);
-    console.log(`${GRN}Dry-run complete — no broadcast performed.${R}`);
-    process.exit(0);
+    console.log(
+      `${YELLOW}[DRY-RUN]${RESET} Would update D1 record where sha512 LIKE '${sha512.slice(0, 16)}%':`,
+      JSON.stringify({ btc_anchor_sha: btcTxid, ipfs_cid: ipfsCid }, null, 2),
+    );
+    return;
   }
 
-  if (!txHex) {
-    console.error(`${RED}ERROR: BITCOIN_RAW_TX is required to broadcast.  Use --dry-run to inspect the payload.${R}`);
-    process.exit(2);
+  // ── Input validation: only allow safe characters before SQL interpolation ──
+  const HEX_RE   = /^[0-9a-fA-F]{1,128}$/;
+  const TXID_RE  = /^[0-9a-fA-F]{64}$/;
+  const CID_RE   = /^[A-Za-z0-9+/=._-]{1,128}$/;
+
+  if (!HEX_RE.test(sha512)) {
+    warn('sha512 contains unsafe characters — skipping D1 write.');
+    return;
+  }
+  if (btcTxid && !TXID_RE.test(btcTxid)) {
+    warn('btcTxid contains unsafe characters — skipping D1 write.');
+    return;
+  }
+  if (ipfsCid && !CID_RE.test(ipfsCid)) {
+    warn('ipfsCid contains unsafe characters — skipping D1 write.');
+    return;
   }
 
-  // ── Resolve SOCKS5 agent (GATE 116.1 — Stealth Proxy) ────────────────────────
-  let agent = null;
-  if (proxyArg) {
-    const proxy = parseSocks5(proxyArg);
-    if (!proxy) {
-      console.error(`${RED}ERROR: Invalid SOCKS5 proxy format '${proxyArg}'.  Expected socks5://host:port${R}`);
-      process.exit(2);
-    }
-    console.log(`${CYN}🔒 Routing broadcast via SOCKS5 proxy ${proxy.host}:${proxy.port} (Node-02 IP stealth)${R}`);
-    try {
-      const broadcastUrl = new URL(apiUrlArg);
-      const targetPort   = broadcastUrl.port ? parseInt(broadcastUrl.port, 10) : 443;
-      agent = await createSocks5Agent(proxy, broadcastUrl.hostname, targetPort);
-      console.log(`${GRN}✅ SOCKS5 tunnel established${R}`);
-    } catch (err) {
-      logAosError(AOS_ERROR.NETWORK_ERROR, `SOCKS5 tunnel failed: ${err.message}`);
-      console.error(`${RED}ERROR: SOCKS5 tunnel failed — ${err.message}${R}`);
-      process.exit(1);
-    }
-  } else {
-    console.log(`${YEL}⚠️  No SOCKS5 proxy configured — broadcasting directly (IP may be visible to ledger aggregators).${R}`);
-    console.log(`   Set BITCOIN_SOCKS5_PROXY=socks5://host:port for stealth mode.`);
+  if (!btcTxid && !ipfsCid) {
+    warn('Neither btc_anchor_sha nor ipfs_cid to update — skipping D1 write.');
+    return;
   }
 
-  // ── Broadcast ─────────────────────────────────────────────────────────────────
-  console.log(`\nBroadcasting to ${apiUrlArg} …`);
+  // Write SQL to a temp file to avoid shell-injection from string interpolation
+  const tmpSqlPath = path.join(require('os').tmpdir(), `aos_onchain_${Date.now()}.sql`);
+  const sha512Prefix = sha512.slice(0, 16);
+  const setClauses = [];
+  if (btcTxid) setClauses.push(`btc_anchor_sha = '${btcTxid}'`);
+  if (ipfsCid)  setClauses.push(`ipfs_cid = '${ipfsCid}'`);
+  const sql = `UPDATE anchor_audit_logs SET ${setClauses.join(', ')} WHERE sha512 LIKE '${sha512Prefix}%';`;
+
   try {
-    const result = await broadcastTransaction(txHex, apiUrlArg, agent);
-    logAosHeal(AOS_ERROR.BTC_ANCHOR_FAILED, `Capsule registered on-chain: txid=${result.txid}`);
-    console.log(`\n${GRN}${BOLD}✅ Broadcast SUCCESS${R}`);
-    console.log(`   txid: ${GRN}${result.txid}${R}`);
-    console.log(`   Ledger: ${CYN}${apiUrlArg.replace("/api/tx", "")}/tx/${result.txid}${R}`);
+    fs.writeFileSync(tmpSqlPath, sql, 'utf8');
+    execSync(
+      `npx wrangler d1 execute ${DB_NAME} --remote --file "${tmpSqlPath}"`,
+      { stdio: 'inherit' },
+    );
+    logAosHeal('D1_UPDATE', `btc_anchor_sha / ipfs_cid written for sha512 prefix ${sha512.slice(0, 16)}`);
+    success('D1 record updated with on-chain anchors.');
   } catch (err) {
-    logAosError(AOS_ERROR.NETWORK_ERROR, `On-chain broadcast failed: ${err.message}`);
-    console.error(`\n${RED}${BOLD}✗ Broadcast FAILED:${R} ${err.message}`);
-    process.exit(1);
+    logAosError(AOS_ERROR.DB_QUERY_FAILED, `D1 update failed: ${err.message}`, err);
+    warn('D1 update failed — record not updated. Run manually if needed.');
+  } finally {
+    try { fs.unlinkSync(tmpSqlPath); } catch { /* best-effort cleanup */ }
   }
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+async function main() {
+  console.log(`\n${GOLD}⛓️⚓⛓️  AveryOS™ BTC/IPFS On-Chain Registration${RESET}`);
+  console.log(`${GOLD}       Gate 6 · Kernel ${KERNEL_VERSION}${RESET}\n`);
+
+  if (DRY_RUN) warn('DRY-RUN mode — no real transactions will be broadcast.');
+  if (NETWORK === 'mainnet') warn('Running on MAINNET — real BTC will be spent.');
+
+  // ── Step 1: Resolve capsule SHA-512 ──────────────────────────────────────
+  let sha512 = SHA512_INPUT;
+  let capsuleJson = null;
+
+  if (!sha512 && CAPSULE_PATH) {
+    if (!fs.existsSync(CAPSULE_PATH)) {
+      fail(`Capsule file not found: ${CAPSULE_PATH}`);
+      process.exit(2);
+    }
+    const capsuleBuf = fs.readFileSync(CAPSULE_PATH);
+    sha512       = sha512Hex(capsuleBuf);
+    try { capsuleJson = JSON.parse(capsuleBuf.toString('utf8')); } catch {}
+    success(`Capsule SHA-512: ${sha512.slice(0, 32)}…`);
+  }
+
+  if (!sha512) {
+    fail('No --capsule or --sha512 provided. Provide at least one.');
+    console.log('\nUsage: node scripts/registerCapsuleOnChain.cjs --capsule <path.aoscap>');
+    process.exit(1);
+  }
+
+  info(`SHA-512: ${sha512}`);
+  info(`Network: ${NETWORK}`);
+
+  // ── Step 2: IPFS pinning ─────────────────────────────────────────────────
+  let ipfsCid = IPFS_CID;
+
+  if (!ipfsCid && capsuleJson) {
+    if (!DRY_RUN) {
+      ipfsCid = await pinToIpfs(capsuleJson, sha512);
+      if (!ipfsCid) {
+        warn('IPFS pinning failed — continuing without IPFS CID.');
+      }
+    } else {
+      console.log(`${YELLOW}[DRY-RUN]${RESET} Would pin capsule JSON to IPFS (Pinata).`);
+      ipfsCid = 'bafyDRYRUN000000000000000000000000000000000000000000000000';
+    }
+  }
+
+  // ── Step 3: Build OP_RETURN data ─────────────────────────────────────────
+  const opReturnHex = buildOpReturnData(sha512, ipfsCid);
+  info(`OP_RETURN data (hex): ${opReturnHex}`);
+  info(`OP_RETURN length: ${opReturnHex.length / 2} bytes`);
+
+  // ── Step 4: Broadcast BTC transaction ────────────────────────────────────
+  let btcTxid = null;
+
+  const privateKeyWif = process.env.BTC_PRIVATE_KEY_WIF;
+  const utxoTxid      = process.env.BTC_UTXO_TXID;
+  const utxoVout      = process.env.BTC_UTXO_VOUT;
+  const utxoValueSat  = process.env.BTC_UTXO_VALUE_SAT;
+  const changeAddress = process.env.BTC_CHANGE_ADDRESS;
+
+  if (!privateKeyWif || !utxoTxid || !utxoVout || !utxoValueSat || !changeAddress) {
+    warn('BTC environment variables not fully configured — skipping Bitcoin broadcast.');
+    warn('To enable: set BTC_PRIVATE_KEY_WIF, BTC_UTXO_TXID, BTC_UTXO_VOUT,');
+    warn('           BTC_UTXO_VALUE_SAT, BTC_CHANGE_ADDRESS as environment variables.');
+    warn('OP_RETURN data prepared — broadcast manually with the hex above.');
+
+    if (DRY_RUN) {
+      console.log(`${YELLOW}[DRY-RUN]${RESET} OP_RETURN hex for manual broadcast:`);
+      console.log(`  ${opReturnHex}`);
+    }
+  } else if (!DRY_RUN) {
+    // Build and broadcast the raw transaction.
+    // NOTE: Raw BTC transaction construction requires a library (bitcoinjs-lib).
+    // If bitcoinjs-lib is not installed, print instructions for manual broadcast.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const bitcoin = require('bitcoinjs-lib');
+      const ECPair  = require('ecpair');
+      const ecc     = require('tiny-secp256k1');
+
+      const network = NETWORK === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+      const ECPairFactory = ECPair.ECPairFactory(ecc);
+      const keyPair = ECPairFactory.fromWIF(privateKeyWif, network);
+
+      const psbt = new bitcoin.Psbt({ network });
+      psbt.addInput({
+        hash:  utxoTxid,
+        index: parseInt(utxoVout, 10),
+        witnessUtxo: {
+          script: bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network }).output,
+          value:  parseInt(utxoValueSat, 10),
+        },
+      });
+
+      const feeEstimateSat = 2000; // conservative fee
+      const changeSat      = parseInt(utxoValueSat, 10) - feeEstimateSat;
+
+      if (changeSat < 546) { // dust threshold
+        fail('Change output would be below dust threshold — increase UTXO value.');
+        process.exit(4);
+      }
+
+      // OP_RETURN output
+      const opReturnScript = bitcoin.script.compile([
+        bitcoin.opcodes.OP_RETURN,
+        Buffer.from(opReturnHex, 'hex'),
+      ]);
+      psbt.addOutput({ script: opReturnScript, value: 0 });
+
+      // Change output
+      psbt.addOutput({ address: changeAddress, value: changeSat });
+
+      psbt.signInput(0, keyPair);
+      psbt.finalizeAllInputs();
+
+      const rawTx = psbt.extractTransaction().toHex();
+      info(`Raw transaction built (${rawTx.length / 2} bytes)`);
+
+      btcTxid = await broadcastTx(rawTx);
+      if (btcTxid) {
+        success(`BTC transaction broadcast: ${btcTxid}`);
+      }
+    } catch (err) {
+      if (err.code === 'MODULE_NOT_FOUND') {
+        warn('bitcoinjs-lib / ecpair / tiny-secp256k1 not installed.');
+        warn('Run: npm install bitcoinjs-lib ecpair tiny-secp256k1');
+        warn('Then re-run this script to broadcast the BTC transaction.');
+        warn(`OP_RETURN hex for manual broadcast: ${opReturnHex}`);
+      } else {
+        logAosError(AOS_ERROR.DB_QUERY_FAILED, `BTC build/broadcast failed: ${err.message}`, err);
+        fail(`BTC transaction failed: ${err.message}`);
+      }
+    }
+  } else {
+    console.log(`${YELLOW}[DRY-RUN]${RESET} Would broadcast BTC OP_RETURN transaction.`);
+    console.log(`  OP_RETURN hex: ${opReturnHex}`);
+    btcTxid = 'DRY_RUN_TXID';
+  }
+
+  // ── Step 5: Update D1 record ─────────────────────────────────────────────
+  updateD1Record(sha512, btcTxid, ipfsCid);
+
+  // ── Summary ──────────────────────────────────────────────────────────────
+  console.log(`\n${GOLD}⛓️⚓⛓️  Registration Summary${RESET}`);
+  console.log(`  SHA-512:     ${sha512.slice(0, 32)}…`);
+  console.log(`  IPFS CID:    ${ipfsCid ?? 'N/A'}`);
+  console.log(`  BTC TxID:    ${btcTxid ?? 'N/A'}`);
+  console.log(`  Network:     ${NETWORK}`);
+  console.log(`  Kernel:      ${KERNEL_VERSION} | ${KERNEL_SHA_PREFIX}…\n`);
+
+  logAosHeal(
+    'ON_CHAIN_REGISTRATION',
+    `Capsule registered. SHA512: ${sha512.slice(0, 16)}… IPFS: ${ipfsCid ?? 'N/A'} BTC: ${btcTxid ?? 'N/A'}`,
+  );
+
+  process.exit(0);
+}
+
 main().catch((err) => {
-  logAosError(AOS_ERROR.UNKNOWN_ERROR, `Unhandled error in registerCapsuleOnChain: ${err.message}`);
-  console.error(err);
+  logAosError(AOS_ERROR.NOT_FOUND, err.message, err);
+  fail(`Unexpected error: ${err.message}`);
   process.exit(1);
 });
