@@ -70,7 +70,8 @@ function buildIdentityDocument(host: string) {
         protocol: "HTTP",
         status:   "NODE-02_PHYSICAL",
         note:     "Local node — accessible only from Node-02 hardware. Not remotely reachable. Requires Avery-LOM running on the local machine (Hammer ↔️ Hand unified).",
-        remote_accessible: false,
+        remote_accessible:  false,
+        public_visibility:  false,
       },
     ],
 

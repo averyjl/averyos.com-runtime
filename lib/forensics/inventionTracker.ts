@@ -248,7 +248,7 @@ export interface InventionArchive {
 //
 // Canonical list of foundational AveryOS™ micro-inventions authored by
 // Jason Lee Avery (ROOT0).  This registry is the authoritative source for
-// the 44-year retroactive patent scan initiated by Gabriel OS.
+// the 44-year retroactive patent scan initiated by GabrielOS™.
 //
 // Each entry will be materialized into a full InventionCapsule when
 // `trackAndArchiveInventions(SEED_INVENTIONS)` is called.

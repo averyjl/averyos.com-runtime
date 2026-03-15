@@ -25,5 +25,13 @@
       "caughtErrorsIgnorePattern": "^_",
       "destructuredArrayIgnorePattern": "^_"
     }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["electron/**/*.js", "electron/**/*.cjs", "**/*.cjs", "scripts/**/*.js"],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off"
+      }
+    }
+  ]
 }

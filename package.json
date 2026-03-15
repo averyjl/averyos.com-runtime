@@ -52,7 +52,8 @@
     "tari-pulse": "node ./scripts/generateEvidenceBundle.cjs",
     "generate:invoices": "node ./scripts/generateInvoices.cjs",
     "persistence:sync": "node ./scripts/persistence-sync.cjs",
-    "persistence:once": "node ./scripts/persistence-sync.cjs --once"
+    "persistence:once": "node ./scripts/persistence-sync.cjs --once",
+    "prepare": "husky"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.17.1",
@@ -78,6 +79,15 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.12",
     "eslint-plugin-security": "^4.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "undici": ">=7.24.0",
+    "flatted": ">=3.4.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,cjs,mjs}": "eslint --quiet"
   }
 }

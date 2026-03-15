@@ -27,6 +27,7 @@
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
+const http = require("http");
 
 // ── Security: disable any proxy that may be set by the host OS ───────────────
 app.commandLine.appendSwitch("no-proxy-server");
@@ -173,10 +174,10 @@ ipcMain.handle("lom:chat", async (_event, payload) => {
   }
   // Validate each message has required string fields to prevent malformed requests
   const validMessages = payload.messages.every(
-    (m: unknown) =>
+    (m) =>
       typeof m === "object" && m !== null &&
-      typeof (m as Record<string, unknown>).role === "string" &&
-      typeof (m as Record<string, unknown>).content === "string",
+      typeof m.role === "string" &&
+      typeof m.content === "string",
   );
   if (!validMessages) {
     return { ok: false, error: "Invalid message structure: each message must have string 'role' and 'content' fields", lom_status: "INPUT_ERROR" };
@@ -203,7 +204,6 @@ ipcMain.handle("lom:chat", async (_event, payload) => {
       timeout: 60_000,
     };
 
-    const http = require("http");
     const req = http.request(opts, (res) => {
       let data = "";
       res.on("data", (chunk) => { data += chunk; });
@@ -248,7 +248,6 @@ ipcMain.handle("lom:chat", async (_event, payload) => {
  */
 ipcMain.handle("lom:status", async () => {
   return new Promise((resolve) => {
-    const http = require("http");
     const url  = new URL(LOM_BASE_URL);
     const opts = {
       hostname: url.hostname,

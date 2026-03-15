@@ -31,7 +31,7 @@ function buildRedirectUri(): string {
 export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = request.nextUrl;
   const code  = searchParams.get("code");
-  const _state = searchParams.get("state"); // reserved for CSRF validation in production
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
 
   // Handle OAuth error responses from WHOOP
@@ -41,6 +41,25 @@ export async function GET(request: NextRequest): Promise<Response> {
       AOS_ERROR.UNAUTHORIZED,
       `WHOOP authorization denied: ${errorDescription}`,
       401,
+    );
+  }
+
+  // ── CSRF state validation ─────────────────────────────────────────────────
+  // The initiation route stores the random state in the `whoop_oauth_state`
+  // HttpOnly cookie.  We must verify it matches the `state` returned by WHOOP
+  // to prevent authorization-code injection (OAuth CSRF attacks).
+  const cookieHeader  = request.headers.get("cookie") ?? "";
+  const stateCookie   = cookieHeader
+    .split(";")
+    .map(s => s.trim())
+    .find(s => s.startsWith("whoop_oauth_state="))
+    ?.split("=")[1];
+
+  if (!stateCookie || !state || stateCookie !== state) {
+    return aosErrorResponse(
+      AOS_ERROR.UNAUTHORIZED,
+      "WHOOP OAuth state mismatch — possible CSRF attack detected",
+      403,
     );
   }
 

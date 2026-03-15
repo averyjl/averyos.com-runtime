@@ -166,6 +166,10 @@ function socks5Connect(targetHost, targetPort, proxy) {
 
         // Step 2: send CONNECT request (DOMAINNAME address type)
         const hostBuf  = Buffer.from(targetHost);
+        if (hostBuf.length > 255) {
+          socket.destroy();
+          throw new Error(`Hostname too long for SOCKS5 DOMAINNAME address type — max 255 bytes, got ${hostBuf.length}: ${targetHost}`);
+        }
         const portBuf  = Buffer.alloc(2);
         portBuf.writeUInt16BE(targetPort, 0);
         const req = Buffer.concat([

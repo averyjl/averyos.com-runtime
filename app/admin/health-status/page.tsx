@@ -205,6 +205,8 @@ export default function AdminHealthStatusPage() {
   const [vaultSigEntries, setVaultSigEntries] = useState<VaultSigLogEntry[]>([]);
   const [vaultSigLoading, setVaultSigLoading] = useState(false);
   const [vaultSigError,   setVaultSigError]   = useState<string | null>(null);
+  /** GATE 114.9.4 — Physical Residency status (null = CHECKING, "NODE-02_PHYSICAL" | "CLOUD") */
+  const [residencyStatus, setResidencyStatus] = useState<string | null>(null);
 
   const runChecks = useCallback(async () => {
     setLoading(true);
@@ -370,6 +372,17 @@ export default function AdminHealthStatusPage() {
     if (!authed) return;
     void fetchVaultSig();
   }, [authed, fetchVaultSig]);
+
+  /** GATE 114.9.4 — Physical Residency check: probe /api/v1/residency-status, default CLOUD */
+  useEffect(() => {
+    if (!authed) return;
+    fetch("/api/v1/residency-status", { cache: "no-store" })
+      .then(r => r.json())
+      .then((d: { residency_status?: string }) => {
+        setResidencyStatus(d.residency_status ?? "CLOUD");
+      })
+      .catch(() => setResidencyStatus("CLOUD"));
+  }, [authed]);
 
   /** GATE 114.5.5 — update footer delta every second */
   useEffect(() => {

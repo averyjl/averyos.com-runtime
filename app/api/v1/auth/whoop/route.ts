@@ -73,8 +73,14 @@ export async function GET(_request: NextRequest): Promise<Response> {
 
   const authUrl = `${WHOOP_AUTH_BASE}?${params.toString()}`;
 
-  // Return redirect to WHOOP authorization page
-  return Response.redirect(authUrl, 302);
+  // Store the CSRF state in a short-lived HttpOnly cookie so the callback can validate it.
+  // SameSite=Lax is appropriate for OAuth flows where the redirect returns to this origin.
+  const response = Response.redirect(authUrl, 302);
+  response.headers.set(
+    "Set-Cookie",
+    `whoop_oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/api/v1/auth/whoop; Max-Age=600`,
+  );
+  return response;
 }
 
 // ── GET /callback — Handle OAuth callback ────────────────────────────────────
