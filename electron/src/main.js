@@ -24,6 +24,7 @@
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-require-imports -- Electron main process is CommonJS; ESM import() is unavailable in this context */
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
