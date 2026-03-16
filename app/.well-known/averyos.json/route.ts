@@ -24,7 +24,7 @@
 
 import { getCloudflareContext }       from "@opennextjs/cloudflare";
 import { getSovereignKeys }           from "../../../lib/security/keys";
-import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../../../lib/sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH, KERNEL_SHA256_BRIDGE } from "../../../lib/sovereignConstants";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -138,8 +138,9 @@ export async function GET(request: Request): Promise<Response> {
     vaultchain_collection: "vaultchain_anchors",
     firebase_project:      cfEnv.FIREBASE_PROJECT_ID ?? "PENDING_CREDENTIALS",
 
-    // Kernel anchor
+    // Kernel anchor — GATE 118.4: dual-hash (SHA-512 primary + SHA-256 bridge)
     kernel_sha:            KERNEL_SHA,
+    kernel_sha256_bridge:  KERNEL_SHA256_BRIDGE,
     kernel_version:        KERNEL_VERSION,
     disclosure_url:        `${baseUrl}${DISCLOSURE_MIRROR_PATH}`,
     sovereign_anchor:      "⛓️⚓⛓️",
