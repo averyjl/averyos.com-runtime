@@ -5,14 +5,20 @@ import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 import { buildKaasLineItem, getAsnTier } from "../../../../../lib/kaas/pricing";
 import { getSovereignKeys } from "../../../../../lib/security/keys";
+import { appendRecord } from "../../../../../lib/forensics/vaultChain";
 
 interface CloudflareEnv {
   STRIPE_SECRET_KEY?: string;
   NEXT_PUBLIC_SITE_URL?: string;
   SITE_URL?: string;
-  DB?: unknown;
+  DB?: D1Database;
   AVERYOS_PRIVATE_KEY_B64?: string;
   AVERYOS_PUBLIC_KEY_B64?: string;
+}
+
+// Minimal D1 binding interface for the VaultChain appendRecord call
+interface D1Database {
+  prepare(sql: string): { bind(...args: unknown[]): { run(): Promise<unknown>; first<T>(): Promise<T | null> } };
 }
 
 // ── JWT invoice token helpers ─────────────────────────────────────────────────
@@ -394,6 +400,21 @@ export async function POST(request: Request) {
         ray_id: rayIdStr || undefined,
         asn: asnStr || undefined,
       });
+
+      // Gate 4 — VaultChain™ ledger append on TARI™ settlement path
+      // Appends an immutable RECORD block so that every compliance checkout
+      // is permanently anchored to the sovereign ledger for forensic audit.
+      void appendRecord(cfEnv.DB, "TARI_SETTLEMENT", {
+        session_id:      session.id.slice(0, 32),
+        bundle_id:       resolvedBundleId.slice(0, 64),
+        pricing_tier:    pricingTier,
+        liability_cents: liabilityCents,
+        liability_usd:   (liabilityCents / 100).toFixed(2),
+        asn:             asnStr || null,
+        ray_id:          rayIdStr || null,
+        kernel_sha:      KERNEL_SHA.slice(0, 16),
+        kernel_version:  KERNEL_VERSION,
+      }).catch(() => { /* non-fatal — ledger append is best-effort */ });
     }
 
     // ── RS256 Invoice Token — signed with the sovereign private key ───────────

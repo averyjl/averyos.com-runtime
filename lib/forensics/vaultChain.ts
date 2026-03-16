@@ -410,27 +410,44 @@ export async function writeBlock(
 ): Promise<number | null> {
   await ensureVaultChainTable(db);
 
-  const computedAt = new Date().toISOString();
-  const prevSha    = (await latestBlockSha(db)) ?? KERNEL_SHA;
-  const blockSha   = await sha512Hex(
-    `${prevSha}:${input.block_type}:${input.author ?? "ROOT0"}:${input.payload}:${computedAt}`
-  );
+  const ts       = formatIso9();
+  const prevSha  = await latestBlockSha(db);
+  const payloadObj = (() => {
+    try { return JSON.parse(input.payload) as Record<string, unknown>; }
+    catch { return { raw: input.payload }; }
+  })();
+  const canonical = canonicalPayload({
+    type:           input.block_type,
+    event:          input.block_type,
+    payload:        input.payload,
+    author:         input.author ?? "ROOT0",
+    created_at:     ts,
+    prev_sha512:    prevSha,
+    kernel_version: KERNEL_VERSION,
+    ...(input.ref_block_id !== null ? { ref_id: input.ref_block_id } : {}),
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  // RECORD type uses the standard vaultchain_ledger schema
+  const event = payloadObj.event
+    ? String(payloadObj.event)
+    : input.block_type;
 
   try {
     const result = await (db
       .prepare(
         `INSERT INTO vaultchain_ledger
-          (block_type, author, payload, prev_block_sha, block_sha, ref_block_id, computed_at)
+          (type, created_at, block_sha512, prev_sha512, kernel_version, event, payload)
          VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         input.block_type,
-        input.author ?? "ROOT0",
-        input.payload,
-        prevSha,
+        ts,
         blockSha,
-        input.ref_block_id,
-        computedAt,
+        prevSha,
+        KERNEL_VERSION,
+        event,
+        input.payload,
       ) as unknown as { run(): Promise<{ meta?: { last_row_id?: number } }> })
       .run();
     return result?.meta?.last_row_id ?? null;

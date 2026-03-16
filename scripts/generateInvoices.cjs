@@ -577,6 +577,9 @@ async function runAsnInvoicingPipeline(stripe) {
   console.log(`✅  Milestone reached: ${total.toLocaleString()} rows ≥ ${MILESTONE_THRESHOLD.toLocaleString()}`);
   console.log('    962 Entities Documented | 156.2k Pulse Locked\n');
 
+  // Gate 1 — Auto-trigger $1.00 rail verification on TARI threshold breach
+  await runDollarVerification(stripe, 'ASN_MODE_MILESTONE_BREACH');
+
   // ── TARI™ v1.5: Retroactive Debt Computation ─────────────────────────────
   // Compute the total retroactive TARI™ liability across all audit log entries
   // before generating individual invoices. This gives a global liability summary.
@@ -1035,6 +1038,64 @@ async function runKaasValuationsPipeline(stripe) {
   console.log(`\n⛓️⚓⛓️  CapsuleID: AveryOS_TARI_v1.1${dryTag}\n`);
 }
 
+/**
+ * runDollarVerification — Gate 1 TARI Auto-Verify.
+ *
+ * Executes a $1.00 Stripe checkout rail verification automatically when
+ * the TARI™ threshold is breached.  This confirms the billing rail is
+ * connected before any real invoice is generated.
+ *
+ * Only runs when:
+ *   • STRIPE_SECRET_KEY is set
+ *   • DRY_RUN is false
+ *   • The caller has determined a TARI threshold breach has occurred
+ *
+ * @param {object} stripe - Stripe client instance
+ * @param {string} [triggerSource] - Label for log output (ASN or Gateway)
+ */
+async function runDollarVerification(stripe, triggerSource) {
+  if (DRY_RUN || !stripe) {
+    logAosHeal('VERIFY_DOLLAR_SKIP', `[DRY_RUN] Skipping auto-verify-dollar for ${triggerSource ?? 'threshold breach'}`);
+    return;
+  }
+  const isTestKey = (STRIPE_SECRET_KEY ?? '').startsWith('sk_test_');
+  console.log(`\n💵  [AUTO] TARI threshold breach detected — running $1.00 rail verification (${triggerSource ?? 'threshold'})…`);
+  console.log(`   Stripe key type: ${isTestKey ? 'TEST' : 'LIVE'}`);
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency:     'usd',
+            product_data: {
+              name:        'AveryOS™ TARI™ $1.00 Rail Verification',
+              description: 'Auto-triggered on TARI threshold breach — confirms Settlement Requested metadata flow.',
+            },
+            unit_amount: 100, // $1.00 in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode:        'payment',
+      success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
+      cancel_url:  `${SITE_URL}/licensing`,
+      metadata: {
+        settlement_status: 'Settlement Requested',
+        capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
+        kernel_version:    'v3.6.2',
+        test_mode:         isTestKey ? '1' : '0',
+        rail_verification: '1',
+        trigger_source:    triggerSource ?? 'auto_threshold_breach',
+      },
+    });
+    logAosHeal('VERIFY_DOLLAR_OK', `$1.00 rail verification session created: ${session.id}`);
+    console.log(`   ✅  $1.00 verification session: ${session.url ?? session.id}`);
+  } catch (err) {
+    logAosError(AOS_ERROR.STRIPE_ERROR, `Auto $1.00 rail verification failed: ${err.message}`, err);
+  }
+}
+
 async function main() {
   if (DRY_RUN) {
     console.log('🔍  [DRY RUN] --dry-run mode active — no Stripe API calls will be made.');
@@ -1138,6 +1199,8 @@ async function main() {
       process.exit(0);
     }
     console.log(`✅  Milestone exceeded — proceeding with forensic invoice generation.\n`);
+    // Gate 1 — Auto-trigger $1.00 rail verification on TARI threshold breach
+    await runDollarVerification(stripe, 'GATEWAY_MODE_MILESTONE_BREACH');
   } else {
     console.log('⚠️  SKIP_MILESTONE_CHECK=1 — milestone gate bypassed.\n');
   }
