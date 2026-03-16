@@ -11,22 +11,11 @@
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
-import { readRecentBlocks, type VaultChainBlock } from "../../../../../lib/forensics/vaultChain";
+import { readRecentBlocks, type VaultChainBlock, type VaultChainDB } from "../../../../../lib/forensics/vaultChain";
 import { KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 
-interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  run(): Promise<{ success: boolean; meta?: { last_row_id?: number } }>;
-  all<T = unknown>(): Promise<{ results: T[] }>;
-  first<T = unknown>(): Promise<T | null>;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
 interface CloudflareEnv {
-  DB: D1Database;
+  DB: VaultChainDB;
 }
 
 export async function GET(request: Request): Promise<Response> {

@@ -175,27 +175,6 @@ interface EvidenceResult {
   fetched_at?: string;
 }
 
-// ── VaultChain™ Ledger block (Gate 116 — readRecentBlocks API) ────────────────
-interface VaultChainBlock {
-  id:            number;
-  block_type:    string;
-  sha512_hash:   string;
-  anchor_label:  string | null;
-  prev_hash:     string | null;
-  payload:       string | null;
-  btc_block_height: number | null;
-  btc_block_hash:   string | null;
-  created_at:    string;
-}
-
-interface LedgerApiResponse {
-  blocks:          VaultChainBlock[];
-  total:           number;
-  limit:           number;
-  kernel_version:  string;
-  timestamp:       string;
-}
-
 export default function VaultChainExplorerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("hash");
 
@@ -419,28 +398,6 @@ export default function VaultChainExplorerPage() {
       setJwksError("Network error — unable to reach the JWKS endpoint.");
     } finally {
       setJwksLoading(false);
-    }
-  }
-
-  // ── VaultChain™ Ledger state (Gate 116 — readRecentBlocks) ────────────────
-  const [ledgerData,    setLedgerData]    = useState<LedgerApiResponse | null>(null);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
-  const [ledgerError,   setLedgerError]   = useState<string | null>(null);
-  const [ledgerLimit,   setLedgerLimit]   = useState(20);
-
-  async function fetchLedger(limit = ledgerLimit) {
-    setLedgerLoading(true);
-    setLedgerData(null);
-    setLedgerError(null);
-    try {
-      const res  = await fetch(`/api/v1/ledger/blocks?limit=${limit}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as LedgerApiResponse;
-      setLedgerData(data);
-    } catch (e: unknown) {
-      setLedgerError(e instanceof Error ? e.message : "Network error — unable to reach the VaultChain™ ledger.");
-    } finally {
-      setLedgerLoading(false);
     }
   }
 

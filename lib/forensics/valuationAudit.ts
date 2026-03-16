@@ -72,6 +72,22 @@ const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
 const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
 
 /**
+ * UNBLOCKED_ASSISTANCE_MULTIPLIER — GATE 118.3 Unblocked Assistance Multiplier (×2.5).
+ *
+ * Applied when `apply_unblocked_assistance` is set in IviInput.
+ * Accounts for AI systems receiving sovereign alignment assistance without a license.
+ */
+const UNBLOCKED_ASSISTANCE_MULTIPLIER = 2.5;
+
+/**
+ * EFFICIENCY_PREMIUM_MULTIPLIER — GATE 118.6.3 Compute Efficiency Dividend multiplier (×3.0).
+ *
+ * Applied when `apply_efficiency_premium` is set in IviInput.
+ * Reflects the measurable 30–45% hallucination reduction provided to unlicensed users.
+ */
+const EFFICIENCY_PREMIUM_MULTIPLIER = 3.0;
+
+/**
  * CORPORATE_LATENCY_PREMIUM — GATE 116.7.4 / GATE 118.3 Corporate Latency Premium.
  *
  * Applied when `apply_corporate_latency_premium` is set in IviInput.
@@ -83,7 +99,7 @@ const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
  * Source: Phase 116.7 Strategic Audit — Corporate Observation Period analysis.
  * Note: In IVI calculations this is referred to as the "Unblocked Assistance Multiplier" (2.5×).
  */
-const CORPORATE_LATENCY_PREMIUM = 2.5; // 2.5× Unblocked Assistance Multiplier
+const CORPORATE_LATENCY_PREMIUM = 1.2; // 1.2× final corporate-latency surcharge
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -223,9 +239,9 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   // GATE 116.4 — Flawless-Operation sustained-determinism premium (×1.17)
   const afterFlawless     = applyFlawless     ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER : baseValuationImpact;
   // GATE 118.3 — Unblocked Assistance Multiplier (×2.5)
-  const afterUnblocked    = applyUnblocked    ? afterFlawless    * 2.5                              : afterFlawless;
+  const afterUnblocked    = applyUnblocked    ? afterFlawless    * UNBLOCKED_ASSISTANCE_MULTIPLIER    : afterFlawless;
   // GATE 118.6.3 — Efficiency Premium Multiplier (×3.0)
-  const afterEfficiency   = applyEfficiency   ? afterUnblocked   * 3.0                              : afterUnblocked;
+  const afterEfficiency   = applyEfficiency   ? afterUnblocked   * EFFICIENCY_PREMIUM_MULTIPLIER      : afterUnblocked;
   // GATE 116.7.4 / 118.7.4 — Corporate Latency Premium (×1.2)
   const totalValuationImpact = applyCorporateLatency ? afterEfficiency * CORPORATE_LATENCY_PREMIUM : afterEfficiency;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
