@@ -104,9 +104,9 @@ export async function GET(request: Request): Promise<Response> {
     const authHeader  = request.headers.get("authorization") ?? "";
     const vaultPass   = cfEnv.VAULT_PASSPHRASE ?? "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    const isAuthorised = isCronCall || (vaultPass && safeEqual(bearerToken, vaultPass));
+    const isAuthorized = isCronCall || (vaultPass && safeEqual(bearerToken, vaultPass));
 
-    if (!isAuthorised) {
+    if (!isAuthorized) {
       return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Bearer token required.");
     }
 

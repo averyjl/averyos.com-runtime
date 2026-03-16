@@ -1,5 +1,4 @@
 ⛓️⚓⛓️  AveryOS™ DNS ANCHOR MANIFEST
-====================================
 Phase 119.8 GATE 119.8.1 | 119.9.2
 
 This file documents the Cloudflare DNS records required to establish

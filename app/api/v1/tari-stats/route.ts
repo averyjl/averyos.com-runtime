@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { d1ErrorResponse } from '../../../../lib/sovereignError';
 import { getFirebaseStatus } from '../../../../lib/firebaseClient';
+import Stripe from 'stripe';
 
 interface D1PreparedStatement {
   all<T = unknown>(): Promise<{ results: T[] }>;
@@ -14,6 +15,7 @@ interface D1Database {
 interface CloudflareEnv {
   DB: D1Database;
   FIREBASE_PROJECT_ID?: string;
+  STRIPE_SECRET_KEY?: string;
 }
 
 interface TariLedgerRow {
@@ -50,6 +52,10 @@ interface TariStatsResponse {
   // Phase 117 — Firebase tari_metrics stream URL (Firestore collection: averyos-tari-probe)
   firebase_tari_metrics_url: string;
   timestamp: string;
+  // Gate 2 — Live Stripe revenue balance
+  stripe_available_usd: number | null;
+  stripe_pending_usd:   number | null;
+  stripe_revenue_status: string;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
@@ -146,6 +152,24 @@ export async function GET() {
         `?orderBy=timestamp%20desc&pageSize=20`
       : null;
 
+    // ── Gate 2 — Live Stripe Revenue Pull ────────────────────────────────────
+    let stripeAvailableUsd: number | null = null;
+    let stripePendingUsd:   number | null = null;
+    let stripeRevenueStatus               = 'PENDING_CREDENTIALS';
+    if (cfEnv.STRIPE_SECRET_KEY) {
+      try {
+        const stripe  = new Stripe(cfEnv.STRIPE_SECRET_KEY);
+        const balance = await stripe.balance.retrieve();
+        const avail   = balance.available.find((b) => b.currency === 'usd');
+        const pend    = balance.pending.find((b)   => b.currency === 'usd');
+        stripeAvailableUsd  = avail ? avail.amount / 100 : 0;
+        stripePendingUsd    = pend  ? pend.amount  / 100 : 0;
+        stripeRevenueStatus = 'ACTIVE';
+      } catch (stripeErr: unknown) {
+        stripeRevenueStatus = `ERROR: ${stripeErr instanceof Error ? stripeErr.message : String(stripeErr)}`;
+      }
+    }
+
     const response: TariStatsResponse = {
       trust_premium_index_pct:    trustPremiumIndexPct,
       recent_entries:             recent,
@@ -163,6 +187,9 @@ export async function GET() {
       firebase_sync_status:       firebaseSyncStatus,
       firebase_tari_metrics_url:  firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
       timestamp:                  new Date().toISOString(),
+      stripe_available_usd:       stripeAvailableUsd,
+      stripe_pending_usd:         stripePendingUsd,
+      stripe_revenue_status:      stripeRevenueStatus,
     };
 
     return Response.json(response);

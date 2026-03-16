@@ -70,9 +70,9 @@ export async function GET(request: Request) {
     const isCronCall   = !authHeader;
     const vaultPass    = cfEnv.VAULT_PASSPHRASE ?? "";
     const bearerToken  = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    const isAuthorised = isCronCall || (!!vaultPass && safeEqual(bearerToken, vaultPass));
+    const isAuthorized = isCronCall || (!!vaultPass && safeEqual(bearerToken, vaultPass));
 
-    if (!isAuthorised) {
+    if (!isAuthorized) {
       return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Bearer VAULT_PASSPHRASE token required.");
     }
 
