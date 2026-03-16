@@ -28,8 +28,10 @@ export const navigationRoutes: NavigationRoute[] = [
   // ── Licensing & compliance ──────────────────────────────────────────────────
   { path: "/license", label: "License", icon: "🔐" },
   { path: "/licensing", label: "Licensing Hub", icon: "📋" },
+  { path: "/licensing/tiers", label: "Licensing Tiers", icon: "📊" },
   { path: "/tari-gate", label: "TARI Portal", icon: "💰" },
   { path: "/partners", label: "Partners", icon: "🤝" },
+  { path: "/compatibility", label: "Compatibility", icon: "🔗" },
   // ── Vault & forensics ───────────────────────────────────────────────────────
   { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },

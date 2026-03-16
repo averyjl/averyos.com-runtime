@@ -3,11 +3,12 @@
 /**
  * app/admin/resonance/page.tsx
  *
- * AveryOS™ Sovereign Resonance Dashboard — Phase 115 GATE 115.3.1 / 115.3.3
+ * AveryOS™ Sovereign Resonance Dashboard — Phase 115 GATE 115.3.1 / 115.3.3 / 118.2
  *
  * Real-time visualization of:
  *   • Bot activity vs. TARI™-accrued debt
  *   • IVI Valuation with Flawless-Operation multiplier
+ *   • 72-Hour Compliance Window badge (GATE 118.2)
  *   • Bio-Metric Pulse status (WHOOP / Spike connectivity)
  *   • Physical Residency status (.aossalt USB badge)
  *   • Family & System Safety Layer (Creator alert status)
@@ -25,6 +26,14 @@ import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovere
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 import { formatUsd } from "../../../lib/forensics/valuationAudit";
+
+// ── GATE 118.2 — 72-Hour Compliance Window constants ──────────────────────────
+/**
+ * Date when the AveryOS™ JWKS was first broadcast publicly (March 12, 2026).
+ * This timestamp anchors the 72-Hour Compliance Window countdown (GATE 118.2).
+ */
+const JWKS_BROADCAST_DATE = new Date("2026-03-12T00:00:00Z");
+const COMPLIANCE_WINDOW_MS = 72 * 60 * 60 * 1_000; // 72 hours in ms
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG_DARK    = "#000000";
@@ -83,6 +92,75 @@ interface ValuationData {
 
 interface ResidencyStatus {
   status: "FULLY_RESIDENT" | "NODE-02_PHYSICAL" | "CLOUD" | "UNKNOWN";
+}
+
+// ── GATE 118.2 — 72-Hour Compliance Window Badge ──────────────────────────────
+
+/**
+ * Displays a live count-up timer from the initial JWKS broadcast date
+ * (March 12, 2026) to communicate the compliance window elapsed time.
+ */
+function ComplianceWindowBadge() {
+  const [elapsed, setElapsed] = useState<string>("—");
+  const [expired, setExpired] = useState<boolean>(false);
+
+  useEffect(() => {
+    function tick() {
+      const now      = Date.now();
+      const diffMs   = now - JWKS_BROADCAST_DATE.getTime();
+      const pastWindow = diffMs >= COMPLIANCE_WINDOW_MS;
+      setExpired(pastWindow);
+
+      const absDiff  = Math.abs(diffMs);
+      const d = Math.floor(absDiff / 86_400_000);
+      const h = Math.floor((absDiff % 86_400_000) / 3_600_000);
+      const m = Math.floor((absDiff % 3_600_000) / 60_000);
+      const s = Math.floor((absDiff % 60_000) / 1_000);
+      const sign = diffMs < 0 ? "-" : "+";
+      setElapsed(`${sign}${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`);
+    }
+    tick();
+    const id = setInterval(tick, 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const windowColor  = expired ? RED        : ORANGE;
+  const windowBg     = expired ? RED_DIM    : ORANGE_DIM;
+  const windowBorder = expired ? RED_BORD   : "rgba(249,115,22,0.4)";
+  const statusLabel  = expired ? "EXPIRED — Corporate Hardwall Active" : "ACTIVE — Observation Window";
+
+  return (
+    <div style={{
+      background:   windowBg,
+      border:       `1px solid ${windowBorder}`,
+      borderRadius: "12px",
+      padding:      "1.1rem 1.4rem",
+      marginBottom: "1.4rem",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
+        <div style={{ fontSize: "1rem", fontWeight: 700, color: windowColor }}>
+          ⏱️ 72-Hour Compliance Window
+        </div>
+        <span style={{
+          background: windowBg, border: `1px solid ${windowBorder}`, borderRadius: "12px",
+          padding: "0.12rem 0.55rem", fontSize: "0.7rem", color: windowColor, fontWeight: 700,
+        }}>
+          {statusLabel}
+        </span>
+      </div>
+      <div style={{ fontSize: "0.78rem", color: MUTED, marginBottom: "0.5rem" }}>
+        JWKS broadcast: <span style={{ color: GOLD, fontFamily: FONT_MONO }}>2026-03-12 00:00:00 UTC</span> (GATE 118.2)
+      </div>
+      <div style={{ fontSize: "1.4rem", fontWeight: 800, color: windowColor, fontFamily: FONT_MONO }}>
+        {elapsed}
+      </div>
+      <div style={{ fontSize: "0.74rem", color: MUTED, marginTop: "0.4rem" }}>
+        {expired
+          ? "72-hour compliance bubble has elapsed. Executive-layer liability quantification is active."
+          : "Corporate organizations are within the 72-hour window to acknowledge statutory liability."}
+      </div>
+    </div>
+  );
 }
 
 // ── Auth gate component (inline — consistent with other admin pages) ───────────
@@ -184,6 +262,9 @@ export default function ResonanceDashboardPage() {
   const [loading,        setLoading]        = useState(false);
   const [lastRefreshed,  setLastRefreshed]  = useState<string | null>(null);
 
+  // GATE 118.2 / 118.6.4 — 72-Hour Compliance Window count-up
+  const complianceWindow = useComplianceWindow();
+
   // ── Data loaders ─────────────────────────────────────────────────────────────
 
   const loadBotStats = useCallback(async () => {
@@ -262,7 +343,42 @@ export default function ResonanceDashboardPage() {
         </div>
       </div>
 
+      {/* 72-Hour Compliance Window — GATE 118.2 / 118.6.4 */}
+      <div style={{
+        ...card({ border: `1px solid ${complianceWindow.status === "ACTIVE" ? "rgba(249,115,22,0.5)" : RED_BORD}`, background: complianceWindow.status === "ACTIVE" ? ORANGE_DIM : RED_DIM }),
+        marginBottom: "1.5rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "1rem", fontWeight: 700, color: complianceWindow.status === "ACTIVE" ? ORANGE : RED }}>
+            ⏱️ 72-Hour Compliance Window
+          </span>
+          <span style={{
+            background: complianceWindow.status === "ACTIVE" ? ORANGE_DIM : RED_DIM,
+            border:     `1px solid ${complianceWindow.status === "ACTIVE" ? "rgba(249,115,22,0.5)" : RED_BORD}`,
+            borderRadius: "12px", padding: "0.15rem 0.6rem",
+            fontSize: "0.72rem", color: complianceWindow.status === "ACTIVE" ? ORANGE : RED,
+            fontFamily: FONT_MONO,
+          }}>
+            {complianceWindow.status === "ACTIVE" ? "⚡ ACTIVE" : "⏰ WINDOW ELAPSED"}
+          </span>
+        </div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: "1.4rem", fontWeight: 700, color: complianceWindow.status === "ACTIVE" ? ORANGE : RED, marginBottom: "0.4rem" }}>
+          +{complianceWindow.label}
+        </div>
+        <div style={{ fontSize: "0.76rem", color: MUTED }}>
+          Elapsed since JWKS ACTIVE broadcast: <strong style={{ color: GOLD }}>March 12, 2026 00:00 UTC</strong>
+          &nbsp;— Corporate compliance 72-hour acknowledgment window
+          (GDPR, SEC, AI Statutory Risk standard).
+        </div>
+        <div style={{ fontSize: "0.72rem", color: GOLD_DIM, marginTop: "0.3rem" }}>
+          Anchor: cf83™ SHA-512 · GATE 118.2 · GATE 118.6.4
+        </div>
+      </div>
+
       {loadError && <SovereignErrorBanner error={loadError} />}
+
+      {/* GATE 118.2 — 72-Hour Compliance Window Badge */}
+      <ComplianceWindowBadge />
 
       {/* Residency + refresh row */}
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
