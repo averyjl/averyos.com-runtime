@@ -24,12 +24,14 @@
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-require-imports -- Electron main process is CommonJS; ESM import() is unavailable in this context */
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
 const fs   = require("fs");
 const os   = require("os");
 const http = require("http");
 const { spawn } = require("child_process");
+const http = require("http");
 
 // ── Security: disable any proxy that may be set by the host OS ───────────────
 app.commandLine.appendSwitch("no-proxy-server");

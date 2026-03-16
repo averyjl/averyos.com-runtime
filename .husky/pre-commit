@@ -1,0 +1,34 @@
+#!/bin/sh
+# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6
+# ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+#
+# Permanent upgrade: catches the same classes of errors as CI (ESLint, TypeScript,
+# linguistic drift, npm audit) at COMMIT TIME — before the code reaches PR stage.
+#
+# Gate sequence:
+#   1. lint-staged — ESLint on staged .ts/.tsx/.js/.cjs/.mjs files (fast, scoped)
+#   2. tsc --noEmit — full TypeScript type-check (catches type errors)
+#   3. Sovereign Linguistic Drift Scan — HIGH-severity brand drift in source files
+#   4. npm audit --audit-level=high — supply-chain vulnerability gate
+#
+# Bypass: git commit --no-verify (sovereign emergency only — Constitution Art. 2)
+
+set -e
+
+# 1. ESLint on staged files (fast — only touches changed files)
+npx lint-staged
+
+# 2. TypeScript — catch type errors before they reach CI
+echo "⛓️ TypeScript type-check…"
+npx tsc --noEmit
+echo "✅ TypeScript clean."
+
+# 3. Sovereign Linguistic Drift Scan (HIGH severity in source files only)
+echo "⛓️ Sovereign Linguistic Drift Scan…"
+node scripts/sovereignLinguisticAudit.cjs --file .
+echo "✅ Linguistic drift: clean."
+
+# 4. npm audit — HIGH severity supply-chain gate
+echo "⛓️ npm audit (HIGH severity gate)…"
+npm audit --audit-level=high
+echo "✅ npm audit clean."

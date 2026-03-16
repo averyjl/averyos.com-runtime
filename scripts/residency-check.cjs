@@ -122,6 +122,9 @@ function detectAosSaltUsb() {
       const markerPath = path.join(mount, AOS_SALT_MARKER);
       const blockPath  = path.join(mount, AOS_SALT_BLOCK_FILE);
 
+      if (fs.existsSync(namedPath)) {
+        return { found: true, mountPath: mount, saltPath: namedPath };
+      }
       if (fs.existsSync(markerPath)) {
         return { found: true, mountPath: mount, saltPath: markerPath, fullyResident: false };
       }
@@ -211,6 +214,7 @@ function main() {
   if (detection.found && detection.fullyResident) {
     // ── FULLY_RESIDENT: AveryOS-anchor-salt.aossalt detected (GATE 115.2.2) ──
     const preview = readSaltPreview(detection.saltPath);
+    const isNamedSalt = detection.saltPath ? path.basename(detection.saltPath) === AOS_SALT_PRIMARY_FILE : false;
     const state   = {
       status:           "FULLY_RESIDENT",
       mount_path:       detection.mountPath,
@@ -242,6 +246,7 @@ function main() {
     console.log("\n✅ AOS Salt USB DETECTED (legacy marker)");
     console.log(`   Mount : ${detection.mountPath}`);
     console.log(`   Salt  : ${detection.saltPath}`);
+    if (isNamedSalt) console.log("   Type  : AveryOS-anchor-salt.aossalt (GATE 116.3.3 — Named Salt)");
     if (preview) console.log(`   Block : 0x${preview.slice(0, 32)}… (64 bytes read)`);
     console.log("\nAOS_RESIDENCY_STATUS=NODE-02_PHYSICAL");
     console.log("🤛🏻 Hammer ↔️ Hand UNIFIED — Sovereign Resident Process ACTIVE");
