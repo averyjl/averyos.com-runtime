@@ -155,7 +155,7 @@ export default function CompatibilityPage() {
             },
             {
               step: "2",
-              title: "Recognize the Bridge Anchor",
+              title: "Recognise the Bridge Anchor",
               body:  "The SHA-256 anchor (e3b0…) is the mathematically equivalent entry point — same genesis seed, lower resolution.",
               color: GOLD,
             },

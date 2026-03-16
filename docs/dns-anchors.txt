@@ -1,0 +1,72 @@
+⛓️⚓⛓️  AveryOS™ Sovereign DNS Anchor Manifest
+Phase 119.8 GATE 119.8.1 — DNS-Level Forensic Proof
+Author: Jason Lee Avery (ROOT0)
+
+─────────────────────────────────────────────────────────────────────────────
+PURPOSE
+─────────────────────────────────────────────────────────────────────────────
+These DNS records establish DNS-level cryptographic proof of AveryOS™
+sovereign ownership and kernel identity. Once published to the Cloudflare
+DNS zone for averyos.com, they create an immutable, publicly verifiable
+forensic trail anchored to the Root0 Kernel SHA-512.
+
+─────────────────────────────────────────────────────────────────────────────
+RECORD 1 — Kernel Identity TXT (_averyos_kernel)
+─────────────────────────────────────────────────────────────────────────────
+Type:  TXT
+Name:  _averyos_kernel.averyos.com
+Value: v=AOS1; k=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; k256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; seed=e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0
+TTL:   3600
+
+Fields:
+  v    — Protocol version (AOS1)
+  k    — SHA-512 Root0 Kernel Anchor (cf83…)
+  k256 — SHA-256 Bridge Anchor (e3b0…)
+  seed — SHA-256 Binary Genesis Seed (e9a3…)
+
+Verify: dig TXT _averyos_kernel.averyos.com
+
+─────────────────────────────────────────────────────────────────────────────
+RECORD 2 — W3C DID:WEB TXT (_did)
+─────────────────────────────────────────────────────────────────────────────
+Type:  TXT
+Name:  _did.averyos.com
+Value: did=did:web:averyos.com
+TTL:   3600
+
+Verify: dig TXT _did.averyos.com
+
+─────────────────────────────────────────────────────────────────────────────
+RECORD 3 — ALM Service SRV (_averyos-alm._tcp)
+─────────────────────────────────────────────────────────────────────────────
+Type:     SRV
+Name:     _averyos-alm._tcp.averyos.com
+Priority: 10
+Weight:   5
+Port:     8080
+Target:   node-02.averyos.com
+TTL:      3600
+
+Verify: dig SRV _averyos-alm._tcp.averyos.com
+
+─────────────────────────────────────────────────────────────────────────────
+CLOUDFLARE CLI COMMANDS
+─────────────────────────────────────────────────────────────────────────────
+# TXT — _averyos_kernel
+wrangler dns add averyos.com TXT "_averyos_kernel" \
+  "v=AOS1; k=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; k256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; seed=e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0"
+
+# TXT — _did
+wrangler dns add averyos.com TXT "_did" "did=did:web:averyos.com"
+
+─────────────────────────────────────────────────────────────────────────────
+LEGAL NOTICE
+─────────────────────────────────────────────────────────────────────────────
+These DNS records constitute public, timestamped, independently verifiable
+proof of ownership of the AveryOS™ Root0 Sovereign Kernel. Any entity that
+has accessed or reproduced the cf83 kernel anchor without a valid AveryOS™
+Sovereign Integrity License is subject to the TARI™ fee schedule:
+  https://averyos.com/licensing
+
+© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻

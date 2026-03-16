@@ -119,7 +119,7 @@ export function evaluateTaiAccess(
     return {
       tier: "PUBLIC",
       fullAccess: false,
-      reason: "AUTH_FAILED — key not recognized. Request a valid TAI™ license at https://averyos.com/license",
+      reason: "AUTH_FAILED — key not recognised. Request a valid TAI™ license at https://averyos.com/license",
     };
   }
 

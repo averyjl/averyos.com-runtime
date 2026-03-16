@@ -287,7 +287,7 @@ export default function AdminHealthStatusPage() {
           detail:    health
             ? `Last anchored: ${health.health_last_anchored ?? "—"}`
             : "Health endpoint unreachable — ISO-9 precision clock unverifiable.",
-          alignment: "ISO-9 microsecond precision clock synchronized to Sovereign Time Mesh.",
+          alignment: "ISO-9 microsecond precision clock synchronised to Sovereign Time Mesh.",
         },
         {
           label:     "JWKS Signer",

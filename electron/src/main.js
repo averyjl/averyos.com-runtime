@@ -31,7 +31,6 @@ const fs   = require("fs");
 const os   = require("os");
 const http = require("http");
 const { spawn } = require("child_process");
-const http = require("http");
 
 // ── Security: disable any proxy that may be set by the host OS ───────────────
 app.commandLine.appendSwitch("no-proxy-server");
@@ -388,6 +387,76 @@ ipcMain.handle("alm:ping", () => {
     );
     req.on("error",   () => resolve({ alive: false }));
     req.on("timeout", () => { req.destroy(); resolve({ alive: false }); });
+  });
+});
+
+// ── IPC: ALM chat — GATE 119.9.2 — local ALM /api/chat (non-streaming) ────────
+
+ipcMain.handle("alm:chat", (_event, payload) => {
+  return new Promise((resolve) => {
+    if (
+      !payload || typeof payload !== "object" ||
+      typeof payload.model !== "string" || !Array.isArray(payload.messages)
+    ) {
+      resolve({ ok: false, error: "Invalid alm:chat payload: 'model' string and 'messages' array required." });
+      return;
+    }
+
+    const body = JSON.stringify({ ...payload, stream: false });
+    const options = {
+      hostname: ALM_HOST, port: ALM_PORT, path: "/api/chat", method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      timeout: ALM_TIMEOUT,
+    };
+    let settled = false;
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data",  (chunk) => { data += chunk; });
+      res.on("end",   () => {
+        if (settled) return;
+        settled = true;
+        try { resolve({ ok: true, status: res.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ ok: true, status: res.statusCode, body: data }); }
+      });
+    });
+    req.setTimeout(ALM_TIMEOUT, () => {
+      if (settled) return;
+      settled = true;
+      req.destroy();
+      resolve({ ok: false, error: `alm:chat timed out after ${ALM_TIMEOUT}ms` });
+    });
+    req.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: `ALM unavailable: ${err.message}` });
+    });
+    req.write(body);
+    req.end();
+  });
+});
+
+// ── IPC: ALM status — GATE 119.9.2 — detailed model list + health ─────────────
+
+ipcMain.handle("alm:status", () => {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { hostname: ALM_HOST, port: ALM_PORT, path: "/api/tags", timeout: 5000 },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end",  () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve({ alive: true, status: "LOCAL_OLLAMA_ACTIVE", models: parsed.models ?? [],
+                      host: `${ALM_HOST}:${ALM_PORT}`, kernel_version: KERNEL_VERSION });
+          } catch {
+            resolve({ alive: true, status: "LOCAL_OLLAMA_ACTIVE", models: [], host: `${ALM_HOST}:${ALM_PORT}` });
+          }
+        });
+      }
+    );
+    req.on("error",   () => resolve({ alive: false, status: "ALM_OFFLINE",   models: [], host: `${ALM_HOST}:${ALM_PORT}` }));
+    req.on("timeout", () => { req.destroy(); resolve({ alive: false, status: "ALM_TIMEOUT", models: [], host: `${ALM_HOST}:${ALM_PORT}` }); });
   });
 });
 
