@@ -251,3 +251,30 @@ name = "RATE_LIMITER_API"
 namespace_id = "1019"
 simple = { limit = 1017, period = 60 }
 
+# ── 1,017-Notch Rate Limiting — Additional Sovereign Bindings ────────────────
+# Gate 6 / Roadmap 1,017-Notch: Additional Cloudflare Workers Rate Limiting API
+# bindings for granular per-path sovereign protection. All use the
+# [[unsafe.bindings]] type = "ratelimit" approach (Workers Rate Limiting API).
+# Programmatic enforcement is applied in middleware.ts.
+#
+# Rule 1 — Sovereign Global Rate Limit (1,017 req/60s per IP, all paths)
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER_GLOBAL"
+namespace_id = "1020"
+simple = { limit = 1017, period = 60 }
+
+# Rule 2 — Gateway PoW Path Rate Limit (50 req/60s per IP — PoW gate protection)
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER_POW"
+namespace_id = "1021"
+simple = { limit = 50, period = 60 }
+
+# Rule 3 — Licensing / TARI™ Settlement Rate Limit (200 req/60s per IP)
+[[unsafe.bindings]]
+type = "ratelimit"
+name = "RATE_LIMITER_LICENSING"
+namespace_id = "1022"
+simple = { limit = 200, period = 60 }
+

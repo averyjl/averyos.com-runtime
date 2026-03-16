@@ -36,15 +36,16 @@ contextBridge.exposeInMainWorld("aosTerminal", {
   residencyCheckSalt: () => ipcRenderer.invoke("residency:checkSalt"),
 
   /**
-   * GATE 116.3 — Send a generate request to the local Avery-LOM (Ollama) API.
+   * GATE 116.3 / GATE 117.1 — Send a generate request to the local Avery-ALM
+   * (Anchored Language Model, Ollama-compatible) API.
    * @param {object} requestBody - Ollama-compatible request body with at least { model, prompt }.
    * Returns { ok, status?, body?, error? }.
    */
-  lomGenerate: (requestBody) => ipcRenderer.invoke("lom:generate", requestBody),
+  almGenerate: (requestBody) => ipcRenderer.invoke("alm:generate", requestBody),
 
   /**
-   * GATE 116.3 — Ping the local Avery-LOM to check if it is running.
+   * GATE 116.3 / GATE 117.1 — Ping the local Avery-ALM to check if it is running.
    * Returns { alive: boolean }.
    */
-  lomPing: () => ipcRenderer.invoke("lom:ping"),
+  almPing: () => ipcRenderer.invoke("alm:ping"),
 });

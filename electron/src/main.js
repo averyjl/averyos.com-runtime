@@ -305,21 +305,22 @@ ipcMain.handle("residency:checkSalt", async () => {
   return { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null, mimeType: null };
 });
 
-// ── IPC: Local Avery-LOM Sync — GATE 116.3 ───────────────────────────────────
+// ── IPC: Local Avery-ALM Sync — GATE 116.3 / GATE 117.1 ─────────────────────
 //
-// Forwards a JSON-RPC request to the local Avery-LOM (Ollama-compatible) API
-// running on Node-02.  Default endpoint: http://localhost:11434
+// Forwards a JSON-RPC request to the local Avery-ALM (Anchored Language Model,
+// Ollama-compatible) API running on Node-02.
+// Default endpoint: http://127.0.0.1:11434
 //
 // Security:
 //   • Only connects to loopback (127.0.0.1 / localhost) — never external.
 //   • Request body is validated: must be a plain object with a `model` string.
 //   • Response is returned verbatim to the renderer via IPC.
 
-const LOM_HOST    = "127.0.0.1";
-const LOM_PORT    = 11434;
-const LOM_TIMEOUT = 10_000; // 10 s
+const ALM_HOST    = "127.0.0.1";
+const ALM_PORT    = 11434;
+const ALM_TIMEOUT = 10_000; // 10 s
 
-ipcMain.handle("lom:generate", (_event, requestBody) => {
+ipcMain.handle("alm:generate", (_event, requestBody) => {
   return new Promise((resolve) => {
     // Validate input — only accept well-formed Ollama-style request objects
     if (
@@ -328,14 +329,14 @@ ipcMain.handle("lom:generate", (_event, requestBody) => {
       typeof requestBody.model !== "string" ||
       !requestBody.model.trim()
     ) {
-      resolve({ ok: false, error: "Invalid LOM request body: 'model' string is required." });
+      resolve({ ok: false, error: "Invalid ALM request body: 'model' string is required." });
       return;
     }
 
     const bodyStr = JSON.stringify(requestBody);
     const options = {
-      hostname: LOM_HOST,
-      port:     LOM_PORT,
+      hostname: ALM_HOST,
+      port:     ALM_PORT,
       path:     "/api/generate",
       method:   "POST",
       headers:  {
@@ -357,17 +358,17 @@ ipcMain.handle("lom:generate", (_event, requestBody) => {
 
     let settled = false;
 
-    req.setTimeout(LOM_TIMEOUT, () => {
+    req.setTimeout(ALM_TIMEOUT, () => {
       if (settled) return;
       settled = true;
       req.destroy();
-      resolve({ ok: false, error: `LOM request timed out after ${LOM_TIMEOUT}ms` });
+      resolve({ ok: false, error: `ALM request timed out after ${ALM_TIMEOUT}ms` });
     });
 
     req.on("error", (err) => {
       if (settled) return;
       settled = true;
-      resolve({ ok: false, error: `LOM unavailable: ${err.message}` });
+      resolve({ ok: false, error: `ALM unavailable: ${err.message}` });
     });
 
     req.write(bodyStr);
@@ -375,12 +376,12 @@ ipcMain.handle("lom:generate", (_event, requestBody) => {
   });
 });
 
-// ── IPC: LOM health ping — GATE 116.3 ────────────────────────────────────────
+// ── IPC: ALM health ping — GATE 116.3 / GATE 117.1 ───────────────────────────
 
-ipcMain.handle("lom:ping", () => {
+ipcMain.handle("alm:ping", () => {
   return new Promise((resolve) => {
     const req = http.get(
-      { hostname: LOM_HOST, port: LOM_PORT, path: "/api/tags", timeout: 3000 },
+      { hostname: ALM_HOST, port: ALM_PORT, path: "/api/tags", timeout: 3000 },
       (res) => { resolve({ alive: res.statusCode === 200 }); }
     );
     req.on("error",   () => resolve({ alive: false }));
