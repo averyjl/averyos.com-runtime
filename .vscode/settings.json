@@ -48,5 +48,23 @@
       "icon": "terminal-powershell",
       "args": ["-NoProfile"]
     }
-  }
+  },
+  "dbcode.connections": [
+    {
+      "connectionId": "4fBZXgdIcFcaJ3rOohCIM",
+      "name": "CloudFlare_D1_averyos_kernel_db",
+      "driver": "d1",
+      "color": "#0074B3",
+      "socket": "32491bfd-c9dc-4356-80e7-8d58efc1913e",
+      "username": "374875d33ef47a741a129bd5e716abff",
+      "password": "",
+      "savePassword": "secretStorage",
+      "readOnly": false,
+      "postConnectionSqlType": "inline",
+      "introspection": {
+        "progressive": false
+      },
+      "connectionType": "socket"
+    }
+  ]
 }
