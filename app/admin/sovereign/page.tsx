@@ -3,18 +3,25 @@
 /**
  * app/admin/sovereign/page.tsx
  *
- * AveryOS™ Sovereign Admin Hub — GATE 119.8.4 / 119.9.4
+ * AveryOS™ Consolidated Sovereign Admin Dashboard — Phase 119.7 GATE 119.7.2
  *
- * Consolidates R2, D1, TARI™ metrics and Resonance behind a single
- * VaultGate-secured tab interface. Password verification uses
- * sha512_payload column via /api/v1/vault/auth-check.
+ * Single unified dashboard surfacing:
+ *   • R2  — Cloudflare R2 evidence vault status & capsule object count
+ *   • D1  — Cloudflare D1 database health & VaultChain™ ledger summary
+ *   • TARI™ — Alignment billing revenue, pending invoices, & settlement rail
+ *   • Resonance — Bot activity, threat level, & Magnet Beacon live feed
  *
- * Tabs: TARI™ · D1 Ledger · R2 Vault · Resonance
+ * Auth: sha512_payload VaultGate verification (GATE 119.6.3).
+ *   Uses the standard useVaultAuth hook — the same HttpOnly cookie pattern
+ *   as all other admin pages, with sha512_payload alignment.
+ *
+ * GATE 119.9.4 — Live Magnet Beacon feed integrated below the Resonance panel.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
@@ -22,327 +29,646 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
-const BG          = "#000000";
-const GOLD        = "#ffd700";
-const GOLD_DIM    = "rgba(255,215,0,0.65)";
-const GOLD_BORDER = "rgba(255,215,0,0.28)";
-const GREEN       = "#00ff41";
-const RED         = "#f87171";
-const MUTED       = "rgba(255,255,255,0.45)";
-const PANEL_BG    = "rgba(10,10,10,0.85)";
-const FONT_MONO   = "JetBrains Mono, Courier New, monospace";
 
-// ── Tab type ──────────────────────────────────────────────────────────────────
-type SovTab = "tari" | "d1" | "r2" | "resonance";
+const BG         = "#030008";
+const GOLD       = "#D4AF37";
+const GOLD_DIM   = "rgba(212,175,55,0.55)";
+const GOLD_BG    = "rgba(212,175,55,0.07)";
+const GOLD_BORD  = "rgba(212,175,55,0.3)";
+const GREEN      = "#4ade80";
+const GREEN_BG   = "rgba(74,222,128,0.07)";
+const GREEN_BORD = "rgba(74,222,128,0.3)";
+const BLUE       = "#60a5fa";
+const BLUE_BG    = "rgba(96,165,250,0.07)";
+const BLUE_BORD  = "rgba(96,165,250,0.3)";
+const PURPLE_BG  = "rgba(98,0,234,0.15)";
+const PURPLE_BORD= "rgba(120,60,255,0.35)";
+const RED        = "#ff4444";
+const RED_BG     = "rgba(255,68,68,0.08)";
+const RED_BORD   = "rgba(255,68,68,0.3)";
+const WHITE      = "#ffffff";
+const MUTED      = "rgba(180,200,255,0.6)";
+const MONO       = "JetBrains Mono, Courier New, monospace";
 
-// ── Data interfaces ───────────────────────────────────────────────────────────
-interface TariStats {
-  total_entries: number;
-  total_tier9_events: number;
-  liability_accrued_usd: number;
-  stripe_available_usd: number | null;
-  stripe_pending_usd: number | null;
-  stripe_revenue_status: string;
-  firebase_sync_status: string;
-  timestamp: string;
-}
-
-interface VaultBlock {
-  id: number; block_type: string; timestamp: string;
-  block_sha512: string; payload: string;
-}
-
-interface LedgerData {
-  blocks: VaultBlock[]; total: number;
-  kernel_sha_prefix: string; timestamp: string;
-}
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface HealthData {
-  status: string; d1: string; r2?: string;
-  kernel_version: string; health_last_anchored: string;
+  status?:          string;
+  d1_ok?:           boolean;
+  kv_ok?:           boolean;
+  r2_ok?:           boolean;
+  kernel_version?:  string;
 }
 
-// ── Utility ───────────────────────────────────────────────────────────────────
-function fmtUsd(val: number | null): string {
-  if (val === null) return "—";
-  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
-  if (val >= 1_000_000)     return `$${(val / 1_000_000).toFixed(2)}M`;
-  if (val >= 1_000)         return `$${(val / 1_000).toFixed(2)}K`;
-  return `$${val.toFixed(2)}`;
+interface TariStats {
+  total_entries?:    number;
+  total_revenue_usd?: number;
+  pending_invoices?: number;
+  latest_invoice_at?: string;
 }
 
-// ── Auth Gate ─────────────────────────────────────────────────────────────────
-function AuthGate({
-  password, setPassword, onSubmit, error, checking,
-}: {
-  password: string; setPassword: (v: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  error: string | null; checking: boolean;
-}) {
+interface BotStats {
+  total_hits?:         number;
+  tier9_count?:        number;
+  total_debt_usd?:     number;
+  top_asn?:            string;
+}
+
+interface VaultChainStatus {
+  latest_block_id?:   number;
+  latest_block_sha?:  string;
+  total_blocks?:      number;
+  genesis_verified?:  boolean;
+}
+
+interface MagnetBeaconEntry {
+  ray_id?:      string;
+  ip_address?:  string;
+  asn?:         string;
+  path?:        string;
+  event_type?:  string;
+  anchored_at?: string;
+}
+
+interface DashboardData {
+  health:       HealthData;
+  tari:         TariStats;
+  bots:         BotStats;
+  vaultchain:   VaultChainStatus;
+  beacon:       MagnetBeaconEntry[];
+  loadedAt:     string;
+}
+
+// ── Card helper ───────────────────────────────────────────────────────────────
+
+function card(
+  bg: string,
+  border: string,
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return {
+    background:   bg,
+    border:       `1px solid ${border}`,
+    borderRadius: "14px",
+    padding:      "1.2rem 1.5rem",
+    marginBottom: "1.2rem",
+    ...extra,
+  };
+}
+
+function badge(
+  value: string | number | null | undefined,
+  color: string,
+): React.ReactNode {
   return (
-    <main style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: FONT_MONO }}>
-      <AnchorBanner />
-      <div style={{ maxWidth: 420, margin: "8rem auto", padding: "2rem",
-                    border: `1px solid ${GOLD_BORDER}`, borderRadius: 8, background: PANEL_BG }}>
-        <h1 style={{ color: GOLD, fontSize: "1.2rem", marginBottom: "1.5rem", textAlign: "center" }}>
-          🔐 Sovereign Admin — VaultGate
-        </h1>
-        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <label style={{ color: GOLD_DIM, fontSize: "0.82rem", letterSpacing: "0.08em" }}>
-            VAULT PASSPHRASE
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoFocus
-            style={{
-              background: "#0a0a0a", color: GOLD, border: `1px solid ${GOLD_BORDER}`,
-              borderRadius: 4, padding: "0.6rem 0.85rem", fontFamily: FONT_MONO,
-              fontSize: "0.9rem", outline: "none",
-            }}
-          />
-          {error && <p style={{ color: RED, fontSize: "0.8rem", margin: 0 }}>{error}</p>}
-          <button type="submit" disabled={checking} style={{
-            background: GOLD, color: "#000", border: "none", borderRadius: 4,
-            padding: "0.6rem", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
-            opacity: checking ? 0.6 : 1,
-          }}>
-            {checking ? "Verifying…" : "Unlock"}
-          </button>
-        </form>
-      </div>
-    </main>
+    <span style={{
+      display:      "inline-block",
+      padding:      "0.15rem 0.6rem",
+      borderRadius: "20px",
+      fontSize:     "0.78rem",
+      fontWeight:   700,
+      background:   color + "22",
+      color,
+      border:       `1px solid ${color}66`,
+      fontFamily:   MONO,
+    }}>
+      {value ?? "—"}
+    </span>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-export default function SovereignAdminPage() {
-  const { authed, checking: authChecking, password, setPassword,
-          authError, handleAuth } = useVaultAuth();
+// ── Main component ────────────────────────────────────────────────────────────
 
-  const [activeTab, setActiveTab] = useState<SovTab>("tari");
-  const [tariStats, setTariStats]   = useState<TariStats | null>(null);
-  const [tariError, setTariError]   = useState<AosUiError | null>(null);
-  const [tariLoading, setTariLoading] = useState(false);
-  const [ledger, setLedger]           = useState<LedgerData | null>(null);
-  const [ledgerError, setLedgerError] = useState<AosUiError | null>(null);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
-  const [health, setHealth]             = useState<HealthData | null>(null);
-  const [healthError, setHealthError]   = useState<AosUiError | null>(null);
-  const [healthLoading, setHealthLoading] = useState(false);
+export default function SovereignAdminDashboard() {
+  const { authed, checking, password, setPassword, authError, handleAuth } = useVaultAuth();
 
-  const fetchTari = useCallback(async () => {
-    setTariLoading(true); setTariError(null);
+  const [data,      setData]      = useState<DashboardData | null>(null);
+  const [loading,   setLoading]   = useState(false);
+  const [loadError, setLoadError] = useState<AosUiError | null>(null);
+  const [refreshAt, setRefreshAt] = useState<string | null>(null);
+
+  // ── Data loader ───────────────────────────────────────────────────────────
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      const res = await fetch("/api/v1/tari-stats", { credentials: "same-origin", cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setTariStats(await res.json() as TariStats);
-    } catch (err) {
-      setTariError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, err instanceof Error ? err.message : String(err)));
-    } finally { setTariLoading(false); }
-  }, []);
+      const [healthRes, tariRes, botRes] = await Promise.allSettled([
+        fetch("/api/v1/health",          { credentials: "same-origin" }),
+        fetch("/api/v1/tari-stats",      { credentials: "same-origin" }),
+        fetch("/api/v1/audit-alert?mode=stats", { credentials: "same-origin" }),
+      ]);
 
-  const fetchLedger = useCallback(async () => {
-    setLedgerLoading(true); setLedgerError(null);
-    try {
-      const res = await fetch("/api/v1/vaultchain-ledger?limit=10", { credentials: "same-origin", cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setLedger(await res.json() as LedgerData);
-    } catch (err) {
-      setLedgerError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, err instanceof Error ? err.message : String(err)));
-    } finally { setLedgerLoading(false); }
-  }, []);
+      const health: HealthData = healthRes.status === "fulfilled" && healthRes.value.ok
+        ? await healthRes.value.json() as HealthData
+        : {};
 
-  const fetchHealth = useCallback(async () => {
-    setHealthLoading(true); setHealthError(null);
-    try {
-      const res = await fetch("/api/v1/health", { credentials: "same-origin", cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setHealth(await res.json() as HealthData);
+      const tari: TariStats = tariRes.status === "fulfilled" && tariRes.value.ok
+        ? await tariRes.value.json() as TariStats
+        : {};
+
+      const bots: BotStats = botRes.status === "fulfilled" && botRes.value.ok
+        ? await botRes.value.json() as BotStats
+        : {};
+
+      // VaultChain™ status — latest block from integrity-status endpoint
+      const vcRes = await fetch("/api/v1/integrity-status", { credentials: "same-origin" });
+      const vaultchain: VaultChainStatus = vcRes.ok
+        ? await vcRes.json() as VaultChainStatus
+        : {};
+
+      // Magnet Beacon — recent bot hits (last 10)
+      const beaconRes = await fetch("/api/v1/forensics/rayid-log?limit=10", {
+        credentials: "same-origin",
+      });
+      const beaconJson = beaconRes.ok
+        ? await beaconRes.json() as { rows: MagnetBeaconEntry[] }
+        : { rows: [] };
+
+      setData({
+        health,
+        tari,
+        bots,
+        vaultchain,
+        beacon:    beaconJson.rows ?? [],
+        loadedAt:  new Date().toISOString(),
+      });
+      setRefreshAt(new Date().toLocaleTimeString());
     } catch (err) {
-      setHealthError(buildAosUiError(AOS_ERROR.EXTERNAL_API_ERROR, err instanceof Error ? err.message : String(err)));
-    } finally { setHealthLoading(false); }
+      setLoadError(buildAosUiError(
+        AOS_ERROR.INTERNAL_ERROR,
+        err instanceof Error ? err.message : String(err),
+      ));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
-    if (activeTab === "tari")      fetchTari();
-    if (activeTab === "d1")        fetchLedger();
-    if (activeTab === "r2" || activeTab === "resonance") fetchHealth();
-  }, [authed, activeTab, fetchTari, fetchLedger, fetchHealth]);
+    if (authed) void loadAll();
+  }, [authed, loadAll]);
 
-  if (authChecking || !authed) {
+  // ── Auth gate ─────────────────────────────────────────────────────────────
+
+  if (checking) {
     return (
-      <AuthGate
-        password={password}
-        setPassword={setPassword}
-        onSubmit={handleAuth}
-        error={authError}
-        checking={authChecking}
-      />
+      <main className="page" style={{ background: BG, minHeight: "100vh" }}>
+        <AnchorBanner />
+        <p style={{ color: MUTED, textAlign: "center", marginTop: "4rem" }}>
+          Verifying VaultGate sha512_payload…
+        </p>
+      </main>
     );
   }
 
-  function tabStyle(tab: SovTab): React.CSSProperties {
-    const active = activeTab === tab;
-    return {
-      background: active ? GOLD : "transparent",
-      color: active ? "#000" : GOLD_DIM,
-      border: `1px solid ${active ? GOLD : GOLD_BORDER}`,
-      borderRadius: 4, padding: "0.4rem 1.1rem",
-      cursor: "pointer", fontWeight: active ? 700 : 400,
-      fontFamily: FONT_MONO, fontSize: "0.82rem",
-    };
-  }
-
-  function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  if (!authed) {
     return (
-      <div style={{ background: PANEL_BG, border: `1px solid ${GOLD_BORDER}`, borderRadius: 6, padding: "0.85rem 1.1rem", minWidth: 155 }}>
-        <div style={{ color: GOLD_DIM, fontSize: "0.72rem", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>{label}</div>
-        <div style={{ color: GOLD, fontSize: "1.1rem", fontWeight: 700 }}>{value}</div>
-        {sub && <div style={{ color: MUTED, fontSize: "0.72rem", marginTop: "0.2rem" }}>{sub}</div>}
-      </div>
+      <main className="page" style={{ background: BG, minHeight: "100vh" }}>
+        <AnchorBanner />
+        <div style={{
+          maxWidth:    420,
+          margin:      "5rem auto",
+          padding:     "2rem",
+          background:  PURPLE_BG,
+          border:      `1px solid ${PURPLE_BORD}`,
+          borderRadius: 16,
+          textAlign:   "center",
+        }}>
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⛓️⚓⛓️</div>
+          <h2 style={{ color: WHITE, marginBottom: "0.5rem" }}>Sovereign Admin</h2>
+          <p style={{ color: MUTED, marginBottom: "1.5rem", fontSize: "0.88rem" }}>
+            VaultGate sha512_payload verification required.
+          </p>
+          <input
+            type="password"
+            placeholder="VAULTAUTH_TOKEN"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") void handleAuth(); }}
+            style={{
+              width:        "100%",
+              padding:      "0.75rem",
+              borderRadius: 8,
+              border:       `1px solid ${PURPLE_BORD}`,
+              background:   "rgba(0,0,0,0.45)",
+              color:        WHITE,
+              marginBottom: "0.75rem",
+              fontFamily:   MONO,
+              boxSizing:    "border-box",
+            }}
+          />
+          {authError && (
+            <p style={{ color: RED, marginBottom: "0.75rem", fontSize: "0.85rem" }}>
+              {authError}
+            </p>
+          )}
+          <button
+            onClick={() => void handleAuth()}
+            style={{
+              width:        "100%",
+              padding:      "0.75rem",
+              borderRadius: 8,
+              background:   "rgba(212,175,55,0.7)",
+              border:       "none",
+              color:        "#000",
+              cursor:       "pointer",
+              fontWeight:   "bold",
+              fontFamily:   MONO,
+            }}
+          >
+            🔓 Unlock Sovereign Dashboard
+          </button>
+        </div>
+      </main>
     );
   }
 
-  function RefreshBtn({ onClick, loading }: { onClick: () => void; loading: boolean }) {
-    return (
-      <button onClick={onClick} disabled={loading} style={{
-        background: GOLD, color: "#000", border: "none", borderRadius: 4,
-        padding: "0.35rem 0.9rem", fontWeight: 700, cursor: "pointer", fontSize: "0.78rem",
-        opacity: loading ? 0.6 : 1,
-      }}>
-        {loading ? "Loading…" : "⟳ Refresh"}
-      </button>
-    );
-  }
+  // ── Authed: render dashboard ──────────────────────────────────────────────
+
+  const h = data?.health   ?? {};
+  const t = data?.tari     ?? {};
+  const b = data?.bots     ?? {};
+  const v = data?.vaultchain ?? {};
 
   return (
-    <main style={{ background: BG, minHeight: "100vh", color: "#fff", fontFamily: FONT_MONO }}>
+    <main className="page" style={{ background: BG, minHeight: "100vh" }}>
       <AnchorBanner />
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: "2rem", borderBottom: `1px solid ${GOLD_BORDER}`, paddingBottom: "1.25rem" }}>
-          <h1 style={{ color: GOLD, fontSize: "1.5rem", margin: 0, fontWeight: 900 }}>🛡️ Sovereign Admin Hub</h1>
-          <p style={{ color: GOLD_DIM, margin: "0.4rem 0 0", fontSize: "0.82rem" }}>
-            Kernel {KERNEL_VERSION} · cf83…{KERNEL_SHA.slice(-8)} · VaultGate Active
-          </p>
+      {/* Header */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h1 style={{ color: GOLD, margin: 0, fontFamily: MONO, fontSize: "1.4rem" }}>
+          ⛓️⚓⛓️ Sovereign Admin Dashboard
+        </h1>
+        <p style={{ color: MUTED, margin: "0.35rem 0 0", fontSize: "0.82rem", fontFamily: MONO }}>
+          Phase 119.7 GATE 119.7.2 · v{KERNEL_VERSION} ·{" "}
+          {refreshAt ? `Last refresh: ${refreshAt}` : "Loading…"}
+        </p>
+      </div>
+
+      {loadError && <SovereignErrorBanner error={loadError} />}
+
+      {loading && (
+        <p style={{ color: MUTED, fontFamily: MONO, fontSize: "0.85rem", marginBottom: "1rem" }}>
+          ⏳ Loading dashboard data…
+        </p>
+      )}
+
+      {/* Refresh button */}
+      <button
+        onClick={() => void loadAll()}
+        disabled={loading}
+        style={{
+          padding:      "0.45rem 1.2rem",
+          borderRadius: 8,
+          background:   GOLD_BG,
+          border:       `1px solid ${GOLD_BORD}`,
+          color:        GOLD,
+          cursor:       loading ? "not-allowed" : "pointer",
+          fontFamily:   MONO,
+          fontSize:     "0.82rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {loading ? "⏳ Refreshing…" : "🔄 Refresh All"}
+      </button>
+
+      {/* ── Panel row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" }}>
+
+        {/* ── R2 + D1 Health ── */}
+        <div style={card(BLUE_BG, BLUE_BORD)}>
+          <h3 style={{ color: BLUE, margin: "0 0 0.9rem", fontFamily: MONO, fontSize: "1rem" }}>
+            🗄️ Cloudflare R2 / D1
+          </h3>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <tbody>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>D1 status</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(h.d1_ok ? "ONLINE" : "—", h.d1_ok ? GREEN : MUTED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>KV status</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(h.kv_ok ? "ONLINE" : "—", h.kv_ok ? GREEN : MUTED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>R2 status</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(h.r2_ok ? "ONLINE" : "—", h.r2_ok ? GREEN : MUTED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED }}>Overall</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(h.status ?? "—", h.status === "ok" ? GREEN : RED)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Link
+            href="/admin/evidence"
+            style={{ color: BLUE, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → R2 Evidence Monitor
+          </Link>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-          <button style={tabStyle("tari")}      onClick={() => setActiveTab("tari")}>⚡ TARI™</button>
-          <button style={tabStyle("d1")}        onClick={() => setActiveTab("d1")}>🗃️ D1 Ledger</button>
-          <button style={tabStyle("r2")}        onClick={() => setActiveTab("r2")}>📦 R2 Vault</button>
-          <button style={tabStyle("resonance")} onClick={() => setActiveTab("resonance")}>🔮 Resonance</button>
+        {/* ── VaultChain™ Ledger ── */}
+        <div style={card(GREEN_BG, GREEN_BORD)}>
+          <h3 style={{ color: GREEN, margin: "0 0 0.9rem", fontFamily: MONO, fontSize: "1rem" }}>
+            ⛓️ VaultChain™ Ledger
+          </h3>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <tbody>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Total blocks</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(v.total_blocks ?? "—", GREEN)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Latest block</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(v.latest_block_id ?? "—", GOLD)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Genesis</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(v.genesis_verified ? "VERIFIED" : "—", v.genesis_verified ? GREEN : RED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED }}>SHA-512 anchor</td>
+                <td style={{ textAlign: "right", fontFamily: MONO, fontSize: "0.7rem", color: GREEN }}>
+                  cf83…{KERNEL_SHA.slice(-6)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Link
+            href="/vaultchain-explorer"
+            style={{ color: GREEN, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → VaultChain™ Explorer
+          </Link>
         </div>
 
-        {/* TARI™ Tab */}
-        {activeTab === "tari" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ color: GOLD, margin: 0, fontSize: "1.1rem" }}>⚡ TARI™ Revenue</h2>
-              <RefreshBtn onClick={fetchTari} loading={tariLoading} />
-            </div>
-            {tariError && <SovereignErrorBanner error={tariError} />}
-            {tariStats && (
-              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <MetricCard label="STRIPE AVAILABLE" value={fmtUsd(tariStats.stripe_available_usd)} sub={tariStats.stripe_revenue_status} />
-                <MetricCard label="STRIPE PENDING"   value={fmtUsd(tariStats.stripe_pending_usd)} />
-                <MetricCard label="LIABILITY ACCRUED" value={fmtUsd(tariStats.liability_accrued_usd)} />
-                <MetricCard label="TARI ENTRIES"     value={String(tariStats.total_entries)} />
-                <MetricCard label="TIER-9 EVENTS"    value={String(tariStats.total_tier9_events)} />
-              </div>
-            )}
-            {!tariStats && !tariLoading && !tariError && (
-              <p style={{ color: MUTED }}>Click ⟳ Refresh to load TARI™ metrics.</p>
-            )}
-          </div>
-        )}
+        {/* ── TARI™ Revenue ── */}
+        <div style={card(GOLD_BG, GOLD_BORD)}>
+          <h3 style={{ color: GOLD, margin: "0 0 0.9rem", fontFamily: MONO, fontSize: "1rem" }}>
+            💹 TARI™ Alignment Billing
+          </h3>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <tbody>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Total entries</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(t.total_entries?.toLocaleString() ?? "—", GOLD)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Revenue collected</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(
+                    t.total_revenue_usd != null
+                      ? `$${t.total_revenue_usd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                      : "—",
+                    GREEN,
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Pending invoices</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(t.pending_invoices ?? "—", t.pending_invoices ? GOLD : MUTED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED }}>Latest invoice</td>
+                <td style={{ textAlign: "right", fontFamily: MONO, fontSize: "0.75rem", color: MUTED }}>
+                  {t.latest_invoice_at ? new Date(t.latest_invoice_at).toLocaleString() : "—"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Link
+            href="/tari-revenue"
+            style={{ color: GOLD, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → TARI™ Revenue Dashboard
+          </Link>
+        </div>
 
-        {/* D1 Ledger Tab */}
-        {activeTab === "d1" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ color: GOLD, margin: 0, fontSize: "1.1rem" }}>🗃️ VaultChain™ Ledger</h2>
-              <RefreshBtn onClick={fetchLedger} loading={ledgerLoading} />
-            </div>
-            {ledgerError && <SovereignErrorBanner error={ledgerError} />}
-            {ledger && (
-              <>
-                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
-                  <MetricCard label="TOTAL BLOCKS" value={String(ledger.total)} sub={`kernel ${ledger.kernel_sha_prefix}…`} />
-                  <MetricCard label="LAST UPDATED" value={ledger.timestamp.slice(0, 19)} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {ledger.blocks.map((b) => (
-                    <div key={b.id} style={{ background: PANEL_BG, border: `1px solid ${GOLD_BORDER}`,
-                                             borderRadius: 6, padding: "0.65rem 0.9rem", fontSize: "0.79rem" }}>
-                      <div style={{ display: "flex", gap: "0.6rem", marginBottom: "0.2rem" }}>
-                        <span style={{ color: GOLD, fontWeight: 700 }}>#{b.id}</span>
-                        <span style={{ color: GOLD_DIM }}>{b.block_type}</span>
-                        <span style={{ color: MUTED, fontSize: "0.74rem" }}>{b.timestamp}</span>
-                      </div>
-                      <div style={{ color: "#e2e8f0", wordBreak: "break-word" }}>{b.payload}</div>
-                      <div style={{ color: MUTED, fontSize: "0.68rem", marginTop: "0.2rem" }}>{b.block_sha512.slice(0, 24)}…</div>
-                    </div>
+        {/* ── Resonance / Bot Activity ── */}
+        <div style={card(RED_BG, RED_BORD)}>
+          <h3 style={{ color: RED, margin: "0 0 0.9rem", fontFamily: MONO, fontSize: "1rem" }}>
+            📡 Resonance — Bot Activity
+          </h3>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <tbody>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Total hits</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(b.total_hits?.toLocaleString() ?? "—", RED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>Tier-9 events</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(b.tier9_count ?? "—", b.tier9_count ? RED : MUTED)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED, paddingBottom: "0.4rem" }}>TARI™ debt accrued</td>
+                <td style={{ textAlign: "right" }}>
+                  {badge(
+                    b.total_debt_usd != null
+                      ? `$${b.total_debt_usd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                      : "—",
+                    GOLD,
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ color: MUTED }}>Top ASN</td>
+                <td style={{ textAlign: "right", fontFamily: MONO, fontSize: "0.78rem", color: WHITE }}>
+                  {b.top_asn ?? "—"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Link
+            href="/admin/resonance"
+            style={{ color: RED, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → Resonance Dashboard
+          </Link>
+        </div>
+      </div>
+
+      {/* ── GATE 119.9.4 — Live Magnet Beacon Feed ── */}
+      <div style={{
+        ...card(PURPLE_BG, PURPLE_BORD),
+        marginTop: "0.5rem",
+      }}>
+        <h3 style={{
+          color:      GOLD,
+          margin:     "0 0 0.75rem",
+          fontFamily: MONO,
+          fontSize:   "1rem",
+          display:    "flex",
+          alignItems: "center",
+          gap:        "0.5rem",
+        }}>
+          🧲 Live Magnet Beacon Feed
+          <span style={{ fontSize: "0.72rem", color: MUTED, fontWeight: 400 }}>
+            (last 10 hits)
+          </span>
+        </h3>
+        {data?.beacon?.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{
+              width:           "100%",
+              borderCollapse:  "collapse",
+              fontSize:        "0.78rem",
+              fontFamily:      MONO,
+            }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${PURPLE_BORD}` }}>
+                  {["Ray-ID", "IP", "ASN", "Path", "Event", "Time"].map(h => (
+                    <th key={h} style={{
+                      color:       MUTED,
+                      padding:     "0.3rem 0.6rem",
+                      textAlign:   "left",
+                      fontWeight:  600,
+                    }}>
+                      {h}
+                    </th>
                   ))}
-                </div>
-              </>
-            )}
-            {!ledger && !ledgerLoading && !ledgerError && <p style={{ color: MUTED }}>Click ⟳ Refresh to load ledger data.</p>}
+                </tr>
+              </thead>
+              <tbody>
+                {data.beacon.map((row, i) => (
+                  <tr
+                    key={i}
+                    style={{
+                      borderBottom:    `1px solid rgba(120,60,255,0.15)`,
+                      background:      i % 2 === 0 ? "transparent" : "rgba(98,0,234,0.06)",
+                    }}
+                  >
+                    <td style={{ padding: "0.3rem 0.6rem", color: GOLD, whiteSpace: "nowrap" }}>
+                      {row.ray_id?.slice(0, 12) ?? "—"}…
+                    </td>
+                    <td style={{ padding: "0.3rem 0.6rem", color: MUTED }}>
+                      {row.ip_address ?? "—"}
+                    </td>
+                    <td style={{ padding: "0.3rem 0.6rem", color: WHITE }}>
+                      {row.asn ?? "—"}
+                    </td>
+                    <td style={{ padding: "0.3rem 0.6rem", color: GREEN, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {row.path ?? "—"}
+                    </td>
+                    <td style={{ padding: "0.3rem 0.6rem" }}>
+                      {badge(row.event_type ?? "—", RED)}
+                    </td>
+                    <td style={{ padding: "0.3rem 0.6rem", color: MUTED, whiteSpace: "nowrap", fontSize: "0.73rem" }}>
+                      {row.anchored_at
+                        ? new Date(row.anchored_at).toLocaleTimeString()
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        ) : (
+          <p style={{ color: MUTED, fontFamily: MONO, fontSize: "0.83rem", margin: 0 }}>
+            {loading ? "⏳ Loading beacon…" : "No beacon entries yet."}
+          </p>
         )}
+        <div style={{ marginTop: "0.75rem" }}>
+          <Link
+            href="/audit-stream"
+            style={{ color: GOLD, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → Full Audit Stream
+          </Link>
+          {" · "}
+          <Link
+            href="/admin/forensics"
+            style={{ color: BLUE, fontSize: "0.8rem", fontFamily: MONO, textDecoration: "none" }}
+          >
+            → Forensic Dashboard
+          </Link>
+        </div>
+      </div>
 
-        {/* R2 Vault Tab */}
-        {activeTab === "r2" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ color: GOLD, margin: 0, fontSize: "1.1rem" }}>📦 R2 Vault Status</h2>
-              <RefreshBtn onClick={fetchHealth} loading={healthLoading} />
-            </div>
-            {healthError && <SovereignErrorBanner error={healthError} />}
-            {health && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <MetricCard label="D1 STATUS"       value={health.d1}                              sub="sovereign database" />
-                <MetricCard label="R2 STATUS"       value={health.r2 ?? "PENDING"}                sub="evidence vault" />
-                <MetricCard label="KERNEL"          value={health.kernel_version} />
-                <MetricCard label="HEALTH ANCHOR"   value={(health.health_last_anchored ?? "—").slice(0, 19)} />
-              </div>
-            )}
-            {!health && !healthLoading && !healthError && <p style={{ color: MUTED }}>Click ⟳ Refresh to load R2 status.</p>}
-            <p style={{ color: MUTED, fontSize: "0.78rem", marginTop: "1.25rem" }}>
-              R2 capsule keys use <code style={{ color: GOLD }}>averyos-capsules/</code> prefix via <code style={{ color: GOLD }}>capsuleKey()</code>.
-            </p>
-          </div>
-        )}
+      {/* ── Quick links ── */}
+      <div style={{
+        ...card(GOLD_BG, GOLD_BORD),
+        marginTop: "0.5rem",
+      }}>
+        <h3 style={{ color: GOLD, margin: "0 0 0.75rem", fontFamily: MONO, fontSize: "0.95rem" }}>
+          🔗 Quick Links
+        </h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {[
+            { href: "/admin",               label: "🛡️ Admin Hub"           },
+            { href: "/sovereign-anchor",    label: "⛓️⚓⛓️ Anchor Status"  },
+            { href: "/admin/health-status", label: "💚 Health Status"        },
+            { href: "/admin/valuation",     label: "💹 IVI Valuation"        },
+            { href: "/admin/settlements",   label: "⚖️ Settlements"          },
+            { href: "/admin/monetization",  label: "💰 Stripe Revenue"       },
+            { href: "/licensing",           label: "📜 Licensing Portal"     },
+            { href: "/.well-known/did.json",label: "🪪 DID Document"         },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                padding:      "0.35rem 0.9rem",
+                borderRadius: 8,
+                background:   GOLD_BG,
+                border:       `1px solid ${GOLD_BORD}`,
+                color:        GOLD,
+                fontSize:     "0.8rem",
+                fontFamily:   MONO,
+                textDecoration: "none",
+                whiteSpace:   "nowrap",
+              }}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
-        {/* Resonance Tab */}
-        {activeTab === "resonance" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ color: GOLD, margin: 0, fontSize: "1.1rem" }}>🔮 Kernel Resonance</h2>
-              <RefreshBtn onClick={fetchHealth} loading={healthLoading} />
-            </div>
-            {healthError && <SovereignErrorBanner error={healthError} />}
-            <div style={{ background: PANEL_BG, border: `1px solid ${GOLD_BORDER}`, borderRadius: 6, padding: "1rem 1.25rem", marginBottom: "1rem" }}>
-              <div style={{ color: GOLD_DIM, fontSize: "0.72rem", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>KERNEL ANCHOR</div>
-              <div style={{ color: GREEN, fontSize: "0.78rem", wordBreak: "break-all", fontFamily: FONT_MONO }}>{KERNEL_SHA}</div>
-              <div style={{ color: MUTED, fontSize: "0.72rem", marginTop: "0.35rem" }}>{KERNEL_VERSION} · 100.000% alignment</div>
-            </div>
-            {health && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <MetricCard label="SYSTEM STATUS"  value={health.status} />
-                <MetricCard label="D1 PARITY"      value={health.d1} />
-                <MetricCard label="KERNEL VERSION" value={health.kernel_version} />
-                <MetricCard label="LAST ANCHORED"  value={(health.health_last_anchored ?? "—").slice(0, 19)} />
-              </div>
-            )}
-            {!health && !healthLoading && !healthError && <p style={{ color: MUTED }}>Click ⟳ Refresh to load resonance data.</p>}
-          </div>
-        )}
+      {/* ── Kernel anchor footer ── */}
+      <div style={{
+        marginTop:  "2rem",
+        padding:    "1rem 1.5rem",
+        background: "rgba(212,175,55,0.04)",
+        border:     `1px solid ${GOLD_BORD}`,
+        borderRadius: 10,
+        fontFamily: MONO,
+        fontSize:   "0.73rem",
+        color:      GOLD_DIM,
+      }}>
+        <span>⛓️⚓⛓️ &nbsp;</span>
+        <strong>KERNEL SHA-512:</strong>{" "}
+        <span style={{ wordBreak: "break-all" }}>
+          {KERNEL_SHA.slice(0, 32)}…{KERNEL_SHA.slice(-16)}
+        </span>
+        <span style={{ marginLeft: "1.5rem" }}>
+          <strong>VERSION:</strong> {KERNEL_VERSION}
+        </span>
+        <span style={{ marginLeft: "1.5rem" }}>
+          <strong>CREATOR:</strong> Jason Lee Avery (ROOT0) 🤛🏻
+        </span>
       </div>
     </main>
   );

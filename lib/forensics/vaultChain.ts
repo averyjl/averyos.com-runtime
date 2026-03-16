@@ -1,167 +1,365 @@
 /**
  * lib/forensics/vaultChain.ts
  *
- * AveryOS™ VaultChain™ Ledger Addition Engine — GATE 119.9.4
+ * AveryOS™ VaultChain™ Versioning — Ledger Addition Engine
+ * Phase 119.7 GATE 119.7.4
  *
- * Append-only sovereign ledger backed by D1 table `vaultchain_ledger`.
+ * Implements the "Ledger Addition" principle:
+ *   • History is immutable — existing records are never modified or deleted.
+ *   • Corrections are appended as new "Correction" blocks that reference
+ *     the original record's ID and hash.
+ *   • Every block in the chain is SHA-512 hashed and linked to the previous
+ *     block hash, creating a tamper-evident append-only forensic ledger.
+ *
+ * The "Never Modified" rule (Jason Lee Avery, ROOT0):
+ *   "Nothing should be changed... we never change history we just correct
+ *   it later on down the Ledger line."
  *
  * Block types:
- *   GENESIS    — initial anchor block (one per chain)
- *   RECORD     — standard sovereign event record
- *   CORRECTION — approved amendment to a prior block
- *   ANCHOR     — periodic SHA-512 checkpoint block
- *
- * All writes are append-only; no UPDATE or DELETE is ever issued.
+ *   GENESIS       — First block; anchors the chain to the KERNEL_SHA.
+ *   RECORD        — Standard forensic event record.
+ *   CORRECTION    — References and supersedes a prior RECORD block.
+ *   ANCHOR        — Periodic SHA-512 checkpoint (e.g. per BTC block).
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 } from "../timePrecision";
+import { formatIso9 }                 from "../timePrecision";
 
-// ── Block types ────────────────────────────────────────────────────────────────
+// ── Block type catalogue ───────────────────────────────────────────────────────
 
-export type BlockType = "GENESIS" | "RECORD" | "CORRECTION" | "ANCHOR";
+export type VaultChainBlockType =
+  | "GENESIS"
+  | "RECORD"
+  | "CORRECTION"
+  | "ANCHOR";
 
-export interface VaultBlock {
-  id:            number;
-  block_type:    BlockType;
-  timestamp:     string;
-  block_sha512:  string;
-  payload:       string;
-  ref_block_id:  number | null;
+// ── Block interfaces ───────────────────────────────────────────────────────────
+
+/** Base fields present on every VaultChain™ block. */
+export interface VaultChainBlockBase {
+  /** Unique monotonic block ID (auto-incremented by the ledger). */
+  id:             number;
+  /** Block type. */
+  type:           VaultChainBlockType;
+  /** ISO-9 timestamp of block creation. */
+  created_at:     string;
+  /** SHA-512 hash of this block's canonical payload. */
+  block_sha512:   string;
+  /** SHA-512 hash of the immediately preceding block (null for GENESIS). */
+  prev_sha512:    string | null;
+  /** Kernel version at time of block creation. */
   kernel_version: string;
-  kernel_sha:    string;
-  author:        string | null;
 }
 
-// ── Minimal D1 types ──────────────────────────────────────────────────────────
+/** A standard forensic event record. */
+export interface VaultChainRecord extends VaultChainBlockBase {
+  type:        "RECORD";
+  /** Arbitrary event label (e.g. 'BOT_HIT', 'TARI_INVOICE'). */
+  event:       string;
+  /** Serialised JSON payload of the event. */
+  payload:     string;
+}
+
+/** A correction block that supersedes a prior record. */
+export interface VaultChainCorrection extends VaultChainBlockBase {
+  type:              "CORRECTION";
+  /** ID of the original RECORD block being corrected. */
+  corrects_id:       number;
+  /** SHA-512 hash of the original block being corrected. */
+  corrects_sha512:   string;
+  /** Human-readable reason for the correction. */
+  reason:            string;
+  /** Corrected event payload (serialised JSON). */
+  corrected_payload: string;
+}
+
+/** A periodic SHA-512 anchor checkpoint. */
+export interface VaultChainAnchor extends VaultChainBlockBase {
+  type:         "ANCHOR";
+  /** Running SHA-512 of the entire chain up to this block. */
+  chain_sha512: string;
+  /** Optional: Bitcoin block height at anchor time. */
+  btc_height?:  number;
+  /** Optional: Bitcoin block hash at anchor time. */
+  btc_hash?:    string;
+}
+
+/** The genesis block (first block in the chain). */
+export interface VaultChainGenesis extends VaultChainBlockBase {
+  type:              "GENESIS";
+  /** The AveryOS™ Kernel SHA-512 anchor embedded in the genesis block. */
+  kernel_anchor:     string;
+  /** The SHA-256 Genesis seed (e9a3 bridge). */
+  genesis_sha256:    string;
+  /** SKC version at genesis. */
+  skc_version:       string;
+}
+
+export type VaultChainBlock =
+  | VaultChainGenesis
+  | VaultChainRecord
+  | VaultChainCorrection
+  | VaultChainAnchor;
+
+// ── Minimal D1 binding types ───────────────────────────────────────────────────
 
 interface D1Statement {
-  all<T = unknown>(): Promise<{ results: T[] }>;
-  first<T = unknown>(): Promise<T | null>;
-  run(): Promise<{ success: boolean; meta?: { last_row_id?: number } }>;
-  bind(...values: unknown[]): D1Statement;
+  run(): Promise<{ meta: { changes: number; last_row_id?: number } }>;
+  first<T = Record<string, unknown>>(): Promise<T | null>;
 }
-
-export interface VaultChainDB {
-  prepare(query: string): D1Statement;
+interface D1Database {
+  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
 // ── SHA-512 helper ─────────────────────────────────────────────────────────────
 
-async function sha512hex(input: string): Promise<string> {
-  if (typeof globalThis.crypto?.subtle?.digest === "function") {
-    const buf  = new TextEncoder().encode(input);
-    const hash = await globalThis.crypto.subtle.digest("SHA-512", buf);
-    return Array.from(new Uint8Array(hash))
-      .map((b) => b.toString(16).padStart(2, "0"))
+async function sha512Hex(text: string): Promise<string> {
+  const encoder    = new TextEncoder();
+  const data       = encoder.encode(text);
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
       .join("");
   }
+  // Node.js fallback
   const { createHash } = await import("crypto");
-  return createHash("sha512").update(input, "utf8").digest("hex");
+  return createHash("sha512").update(text, "utf8").digest("hex");
 }
 
-// ── DDL guard ─────────────────────────────────────────────────────────────────
+// ── Canonical payload for hashing ─────────────────────────────────────────────
 
-export async function ensureVaultChainTable(db: VaultChainDB): Promise<void> {
-  await db.prepare(
-    `CREATE TABLE IF NOT EXISTS vaultchain_ledger (
-       id             INTEGER PRIMARY KEY AUTOINCREMENT,
-       block_type     TEXT    NOT NULL DEFAULT 'RECORD',
-       timestamp      TEXT    NOT NULL,
-       block_sha512   TEXT    NOT NULL,
-       payload        TEXT    NOT NULL,
-       ref_block_id   INTEGER,
-       kernel_version TEXT    NOT NULL,
-       kernel_sha     TEXT    NOT NULL,
-       author         TEXT
-     )`
-  ).run();
+function canonicalPayload(fields: Record<string, unknown>): string {
+  return JSON.stringify(fields, Object.keys(fields).sort());
 }
 
-// ── Read API ──────────────────────────────────────────────────────────────────
+// ── Table bootstrap ────────────────────────────────────────────────────────────
+
+export async function ensureVaultChainTable(db: D1Database): Promise<void> {
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS vaultchain_ledger (
+      id               INTEGER  PRIMARY KEY AUTOINCREMENT,
+      type             TEXT     NOT NULL,
+      created_at       TEXT     NOT NULL,
+      block_sha512     TEXT     NOT NULL,
+      prev_sha512      TEXT,
+      kernel_version   TEXT     NOT NULL,
+      event            TEXT,
+      payload          TEXT,
+      corrects_id      INTEGER,
+      corrects_sha512  TEXT,
+      reason           TEXT,
+      corrected_payload TEXT,
+      chain_sha512     TEXT,
+      btc_height       INTEGER,
+      btc_hash         TEXT,
+      kernel_anchor    TEXT,
+      genesis_sha256   TEXT,
+      skc_version      TEXT
+    )
+  `).bind().run();
+}
+
+// ── Fetch the latest block hash ────────────────────────────────────────────────
+
+async function latestBlockSha(db: D1Database): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT block_sha512 FROM vaultchain_ledger ORDER BY id DESC LIMIT 1")
+    .bind()
+    .first<{ block_sha512: string }>();
+  return row?.block_sha512 ?? null;
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Read the most recent blocks from the ledger, newest first.
+ * Append a standard RECORD block to the VaultChain™ ledger.
  *
- * @param db     D1 database binding.
- * @param limit  Maximum number of blocks (default 20, max 100).
+ * @param db      D1 database binding.
+ * @param event   Event label (e.g. 'BOT_HIT').
+ * @param payload Arbitrary event payload (will be JSON-serialised).
+ * @returns       The SHA-512 hash of the appended block.
+ */
+export async function appendRecord(
+  db: D1Database,
+  event: string,
+  payload: Record<string, unknown>,
+): Promise<string> {
+  const ts       = formatIso9();
+  const prevSha  = await latestBlockSha(db);
+  const payloadS = JSON.stringify(payload);
+  const canonical = canonicalPayload({
+    type:           "RECORD",
+    event,
+    payload:        payloadS,
+    created_at:     ts,
+    prev_sha512:    prevSha,
+    kernel_version: KERNEL_VERSION,
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version, event, payload)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind("RECORD", ts, blockSha, prevSha, KERNEL_VERSION, event, payloadS).run();
+
+  return blockSha;
+}
+
+/**
+ * Append a CORRECTION block that supersedes a prior RECORD.
+ *
+ * This is the "Ledger Addition" pattern: history is never rewritten.
+ * The original block remains intact; the correction block points to it
+ * by ID and SHA-512 hash, then provides the corrected payload.
+ *
+ * @param db                D1 database binding.
+ * @param correctsId        ID of the original RECORD block.
+ * @param correctsSha512    SHA-512 hash of the original block (for verification).
+ * @param reason            Human-readable correction reason.
+ * @param correctedPayload  The corrected payload.
+ * @returns                 SHA-512 hash of the appended correction block.
+ */
+export async function appendCorrection(
+  db: D1Database,
+  correctsId: number,
+  correctsSha512: string,
+  reason: string,
+  correctedPayload: Record<string, unknown>,
+): Promise<string> {
+  const ts        = formatIso9();
+  const prevSha   = await latestBlockSha(db);
+  const correctedS = JSON.stringify(correctedPayload);
+  const canonical  = canonicalPayload({
+    type:              "CORRECTION",
+    corrects_id:       correctsId,
+    corrects_sha512:   correctsSha512,
+    reason,
+    corrected_payload: correctedS,
+    created_at:        ts,
+    prev_sha512:       prevSha,
+    kernel_version:    KERNEL_VERSION,
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version,
+       corrects_id, corrects_sha512, reason, corrected_payload)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    "CORRECTION", ts, blockSha, prevSha, KERNEL_VERSION,
+    correctsId, correctsSha512, reason, correctedS,
+  ).run();
+
+  return blockSha;
+}
+
+/**
+ * Append a periodic ANCHOR checkpoint to the chain.
+ *
+ * @param db         D1 database binding.
+ * @param btcHeight  Optional Bitcoin block height.
+ * @param btcHash    Optional Bitcoin block hash.
+ * @returns          SHA-512 hash of the appended anchor block.
+ */
+export async function appendAnchor(
+  db: D1Database,
+  btcHeight?: number,
+  btcHash?: string,
+): Promise<string> {
+  const ts      = formatIso9();
+  const prevSha = await latestBlockSha(db);
+
+  // Build running chain hash: SHA-512(prevChainSha || KERNEL_SHA || ts)
+  const chainSha = await sha512Hex(`${prevSha ?? ""}${KERNEL_SHA}${ts}`);
+
+  const canonical = canonicalPayload({
+    type:           "ANCHOR",
+    chain_sha512:   chainSha,
+    created_at:     ts,
+    prev_sha512:    prevSha,
+    kernel_version: KERNEL_VERSION,
+    ...(btcHeight !== undefined ? { btc_height: btcHeight } : {}),
+    ...(btcHash   !== undefined ? { btc_hash:   btcHash   } : {}),
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version,
+       chain_sha512, btc_height, btc_hash)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    "ANCHOR", ts, blockSha, prevSha, KERNEL_VERSION,
+    chainSha,
+    btcHeight ?? null,
+    btcHash   ?? null,
+  ).run();
+
+  return blockSha;
+}
+
+/**
+ * Bootstrap the GENESIS block if the ledger is empty.
+ *
+ * Idempotent: if the ledger already contains a GENESIS block this is a no-op.
+ *
+ * @param db  D1 database binding.
+ * @returns   SHA-512 hash of the genesis block, or null if already exists.
+ */
+export async function bootstrapGenesis(db: D1Database): Promise<string | null> {
+  // Check for existing genesis block
+  const existing = await db
+    .prepare("SELECT id FROM vaultchain_ledger WHERE type = 'GENESIS' LIMIT 1")
+    .bind()
+    .first<{ id: number }>();
+
+  if (existing) return null;
+
+  const ts     = formatIso9();
+  const genesis256 = "e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0";
+  const canonical  = canonicalPayload({
+    type:           "GENESIS",
+    kernel_anchor:  KERNEL_SHA,
+    genesis_sha256: genesis256,
+    kernel_version: KERNEL_VERSION,
+    skc_version:    "SKC-2026.1",
+    created_at:     ts,
+    prev_sha512:    null,
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version,
+       kernel_anchor, genesis_sha256, skc_version)
+    VALUES (?, ?, ?, NULL, ?, ?, ?, ?)
+  `).bind(
+    "GENESIS", ts, blockSha, KERNEL_VERSION,
+    KERNEL_SHA, genesis256, "SKC-2026.1",
+  ).run();
+
+  return blockSha;
+}
+
+/**
+ * Read the N most recent blocks from the VaultChain™ ledger.
+ *
+ * @param db    D1 database binding.
+ * @param limit Maximum number of blocks to return (default: 20).
  */
 export async function readRecentBlocks(
-  db: VaultChainDB,
-  limit = 20
-): Promise<VaultBlock[]> {
-  const safeLimit = Math.min(Math.max(1, limit), 100);
-  try {
-    await ensureVaultChainTable(db);
-    const { results } = await db.prepare(
-      `SELECT id, block_type, timestamp, block_sha512, payload,
-              ref_block_id, kernel_version, kernel_sha, author
-       FROM vaultchain_ledger
-       ORDER BY id DESC
-       LIMIT ?`
-    ).bind(safeLimit).all<VaultBlock>();
-    return results;
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Count total blocks in the ledger.
- */
-export async function countBlocks(db: VaultChainDB): Promise<number> {
-  try {
-    await ensureVaultChainTable(db);
-    const row = await db.prepare(
-      `SELECT COUNT(*) AS total FROM vaultchain_ledger`
-    ).first<{ total: number }>();
-    return row?.total ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
-// ── Write API ─────────────────────────────────────────────────────────────────
-
-export interface WriteBlockInput {
-  block_type?:   BlockType;
-  payload:       string;
-  ref_block_id?: number | null;
-  author?:       string | null;
-}
-
-/**
- * Append a new block to the VaultChain™ ledger.
- * Returns the new block's row id, or null on failure.
- */
-export async function writeBlock(
-  db: VaultChainDB,
-  input: WriteBlockInput
-): Promise<number | null> {
-  const blockType  = input.block_type ?? "RECORD";
-  const timestamp  = formatIso9(new Date());
-  const refBlockId = input.ref_block_id ?? null;
-  const author     = input.author ?? "ROOT0";
-
-  const contentForHash = JSON.stringify({
-    block_type: blockType, timestamp,
-    payload: input.payload, ref_block_id: refBlockId,
-    kernel_version: KERNEL_VERSION, kernel_sha: KERNEL_SHA, author,
-  });
-  const blockSha512 = await sha512hex(contentForHash);
-
-  try {
-    await ensureVaultChainTable(db);
-    const result = await db.prepare(
-      `INSERT INTO vaultchain_ledger
-         (block_type, timestamp, block_sha512, payload, ref_block_id, kernel_version, kernel_sha, author)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(blockType, timestamp, blockSha512, input.payload,
-           refBlockId, KERNEL_VERSION, KERNEL_SHA, author).run();
-    return result.meta?.last_row_id ?? null;
-  } catch {
-    return null;
-  }
+  db: D1Database,
+  limit = 20,
+): Promise<VaultChainBlock[]> {
+  const rows = await (db
+    .prepare("SELECT * FROM vaultchain_ledger ORDER BY id DESC LIMIT ?")
+    .bind(limit) as unknown as {
+      all<T>(): Promise<{ results: T[] }>
+    }).all<VaultChainBlock>();
+  return rows.results;
 }

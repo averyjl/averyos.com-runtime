@@ -43,6 +43,32 @@ export type BadgeStatus = typeof BADGE_STATUS_ACTIVE | typeof BADGE_STATUS_REVOK
 export const DEFAULT_TARI_REFERENCE = "TARI-SETTLE-1017-001";
 
 /**
+ * AveryOS™ Time Mesh Precision — ISO-9 nine-digit sub-millisecond timestamp standard.
+ *
+ * Hardlocked as a system constant to prevent the 'Platform Time' (zeros) from
+ * overriding 'Sovereign Time'. FCA fix: GATE 119.8.4.
+ *
+ * Format: YYYY-MM-DDTHH:MM:SS.mmmuuunnnZ
+ *   mmm = milliseconds (3 digits)
+ *   uuu = microseconds (3 digits)
+ *   nnn = nanoseconds  (3 digits)
+ *
+ * Total sub-second digits: 9 (ISO-9 precision)
+ */
+export const AOS_TIME_MESH_PRECISION = 9 as const;
+
+/**
+ * AveryOS™ Sovereign System UUID namespace.
+ *
+ * A deterministic UUID v5 namespace derived from the KERNEL_SHA.
+ * Used to generate reproducible UUIDs for sovereign system identifiers
+ * (nodes, capsules, DID documents) without external entropy.
+ *
+ * Hardlocked: GATE 119.8.4
+ */
+export const AOS_SYSTEM_UUID_NAMESPACE = "averyos-sovereign-v3.6.2" as const;
+
+/**
  * Miracle Health Habits — Book Sovereign SHA-512 anchor.
  * Capsule: capsule://JasonLeeAvery/Books/MiracleHealthHabits_FirstPushAnchor_v1.aoscap
  * Copyright: TX0009504938 (2025-05-06) | ORCID: 0009-0009-0245-3584

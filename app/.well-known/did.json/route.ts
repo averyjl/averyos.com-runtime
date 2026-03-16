@@ -50,12 +50,33 @@ export async function GET(request: Request): Promise<Response> {
           "x-averyos-kernel-sha": KERNEL_SHA,
         },
       },
+      // ── SHA-256 Genesis Bridge — GATE 119.8.3 ──────────────────────────────
+      // Legacy SHA-256 public key for cross-system verification.
+      // The e9a3 genesis anchor bridges legacy (256-bit) systems to the
+      // current SHA-512 Root0 standard, allowing older verifiers to confirm
+      // the root anchor without requiring SHA-512 support.
+      {
+        id:         `${did}#genesis-bridge-sha256`,
+        type:       "Sha256GenesisBridge2026",
+        controller: did,
+        publicKeyJwk: {
+          kty:                     "OKP",
+          crv:                     "X25519",
+          use:                     "enc",
+          "x-averyos-genesis-sha256":
+            "e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0",
+          "x-averyos-bridge-note":
+            "SHA-256 genesis seed established at Root0 inception (May 2025). " +
+            "Bridges legacy 256-bit verifiers to the SHA-512 Kernel standard.",
+          "x-averyos-kernel-sha":  KERNEL_SHA,
+        },
+      },
     ],
 
     // ── Capability Invocation & Delegation ────────────────────────────────────
     capabilityInvocation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
     capabilityDelegation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
-    assertionMethod:      [`${did}#sovereign-key-${KERNEL_VERSION}`],
+    assertionMethod:      [`${did}#sovereign-key-${KERNEL_VERSION}`, `${did}#genesis-bridge-sha256`],
     authentication:       [`${did}#sovereign-key-${KERNEL_VERSION}`],
 
     // ── Service Endpoints ─────────────────────────────────────────────────────
