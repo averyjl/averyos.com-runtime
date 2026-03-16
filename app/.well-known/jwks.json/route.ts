@@ -19,7 +19,7 @@
 
 import { getCloudflareContext }     from "@opennextjs/cloudflare";
 import { getSovereignKeys }         from "../../../lib/security/keys";
-import { KERNEL_SHA, KERNEL_VERSION, KERNEL_SHA256_BRIDGE } from "../../../lib/sovereignConstants";
+import { KERNEL_SHA, KERNEL_SHA_256, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 
 // ── JWK construction helpers ──────────────────────────────────────────────────
 
@@ -66,12 +66,13 @@ export async function GET(request: Request): Promise<Response> {
           use: "sig",
           alg: "RS256",
           // AveryOS™ sovereign extensions
-          "x-averyos-status":              "ACTIVE",
-          "x-averyos-kernel-sha":          KERNEL_SHA,
-          "x-averyos-kernel-sha256-bridge": KERNEL_SHA256_BRIDGE,
-          "x-averyos-kernel-version":      KERNEL_VERSION,
-          "x-averyos-creator":             "Jason Lee Avery (ROOT0) 🤛🏻",
-          "x-averyos-anchor":              "⛓️⚓⛓️",
+          "x-averyos-status":         "ACTIVE",
+          "x-averyos-kernel-sha":     KERNEL_SHA,
+          "x-averyos-kernel-sha-256": KERNEL_SHA_256,
+          "x-averyos-hash-bridge":    "SHA-256→SHA-512 interoperability seal (GATE 116.7.1)",
+          "x-averyos-kernel-version": KERNEL_VERSION,
+          "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
+          "x-averyos-anchor":         "⛓️⚓⛓️",
         } as JsonWebKey & { kid: string; use: string; alg: string }],
       };
     } else {
@@ -114,12 +115,13 @@ function buildPendingJwks(
         alg: "RS256",
         kid: `averyos-sovereign-key-${KERNEL_VERSION}`,
         // Indicate that the key is pending deployment
-        "x-averyos-status":              "PENDING_KEY_DEPLOYMENT",
-        "x-averyos-kernel-sha":          KERNEL_SHA,
-        "x-averyos-kernel-sha256-bridge": KERNEL_SHA256_BRIDGE,
-        "x-averyos-kernel-version":      KERNEL_VERSION,
-        "x-averyos-creator":             "Jason Lee Avery (ROOT0) 🤛🏻",
-        "x-averyos-anchor":              "⛓️⚓⛓️",
+        "x-averyos-status":         "PENDING_KEY_DEPLOYMENT",
+        "x-averyos-kernel-sha":     KERNEL_SHA,
+        "x-averyos-kernel-sha-256": KERNEL_SHA_256,
+        "x-averyos-hash-bridge":    "SHA-256→SHA-512 interoperability seal (GATE 116.7.1)",
+        "x-averyos-kernel-version": KERNEL_VERSION,
+        "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
+        "x-averyos-anchor":         "⛓️⚓⛓️",
         "x-averyos-contact":        `${baseUrl}/licensing/enterprise`,
         "x-averyos-note":
           "Key material pending deployment. Set AVERYOS_PUBLIC_KEY_B64 or " +

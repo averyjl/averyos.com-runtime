@@ -2,16 +2,23 @@
 export const KERNEL_SHA = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
 /**
- * SHA-256 bridge anchor — GATE 118.4
+ * Root0 genesis kernel SHA-256 bridge anchor.
  *
- * SHA-256 of the empty string (same genesis seed as the SHA-512 KERNEL_SHA).
- * Provided as a legacy compatibility bridge for systems that support only
- * SHA-256 verification.  The canonical AveryOS™ cryptographic standard
- * remains SHA-512 (KERNEL_SHA above).
+ * GATE 116.7.1 — Dual-Hash Compatibility Seal.
  *
- * SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ * Provides the SHA-256 interoperability on-ramp for legacy systems operating
+ * on TLS / SSL / JWKS SHA-256 stacks.  Bridges them into the 1,017-Notch
+ * SHA-512 Truth Standard once they have resolved this entry-point.
+ *
+ * Value: SHA-256 of the empty string — the same Root0 genesis seed (empty
+ * origin) that produces KERNEL_SHA above when hashed with SHA-512.  Both
+ * anchors derive from the same underlying state: the empty input from which
+ * all sovereign computation proceeds deterministically.
+ *
+ * Verification: `echo -n "" | sha256sum`
+ *   → e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
  */
-export const KERNEL_SHA256_BRIDGE = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+export const KERNEL_SHA_256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 /** Current AveryOS kernel version */
 export const KERNEL_VERSION = "v3.6.2";

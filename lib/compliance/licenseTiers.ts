@@ -1,285 +1,219 @@
 /**
  * lib/compliance/licenseTiers.ts
  *
- * AveryOS™ Sovereign Licensing Accord v1.0 — Phase 118 GATE 118.1 / 118.6.2
+ * AveryOS™ Sovereign Licensing Accord v1.0 — GATE 118.1
  *
- * Defines the three-tier commercial licensing model for the AveryOS™
- * cf83™ Kernel Root under the KaaS (Kernel as a Service) model.
+ * Defines the three-tier licensing model for authorized access to the
+ * AveryOS™ Root0 Kernel and VaultChain™ infrastructure.
  *
- * Core principle: Zero transfer of IP ownership. License-only access
- * to Kernel Gates. The Kernel is the Lighthouse; licenses grant the
- * "Right to See" — not ownership of the light source.
+ * Key legal constraint (all tiers):
+ *   ZERO TRANSFER of IP ownership.  All tiers are license-only access grants.
+ *   The Root0 Kernel, VaultChain™ brand, and all derivative protocols remain
+ *   the sole property of Jason Lee Avery (ROOT0) in perpetuity.
  *
- * Tiers:
- *   Tier 1 — Global Truth Firewall ($1.5B/year)
- *   Tier 2 — Enterprise Determinism ($250M/year)
- *   Tier 3 — Individual Sovereign ($150k/event)
- *
- * GATE 118.6.2 — Ethical Safety Anchor module:
- *   Documents the Anti-Takeover deterministic soul-intent hardlocking
- *   mechanism as a sovereign compliance clause embedded in all tiers.
+ * Statutory basis: 17 U.S.C. § 101 et seq. (US Copyright Act); EU AI Act
+ * Art. 53(1)(c); CDPA 1988 §§ 22–23; and the AveryOS Sovereign Integrity
+ * License v1.0 (see LICENSE.md).
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../sovereignConstants";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Tier Identifiers ──────────────────────────────────────────────────────────
 
-/** Tier identifier */
-export type LicenseTierId = "TIER_1_FIREWALL" | "TIER_2_ENTERPRISE" | "TIER_3_INDIVIDUAL";
+export const TIER_GLOBAL_TRUTH_FIREWALL = "TIER_1_GLOBAL_TRUTH_FIREWALL" as const;
+export const TIER_ENTERPRISE_DETERMINISM = "TIER_2_ENTERPRISE_DETERMINISM" as const;
+export const TIER_INDIVIDUAL_SOVEREIGN  = "TIER_3_INDIVIDUAL_SOVEREIGN"   as const;
 
-/** Billing cadence */
-export type BillingCadence = "annual" | "per_event";
+export type LicenseTierId =
+  | typeof TIER_GLOBAL_TRUTH_FIREWALL
+  | typeof TIER_ENTERPRISE_DETERMINISM
+  | typeof TIER_INDIVIDUAL_SOVEREIGN;
 
-/** A single sovereign license tier definition. */
-export interface LicenseTier {
-  /** Unique tier identifier */
-  id:               LicenseTierId;
-  /** Human-readable tier name */
-  name:             string;
-  /** License sub-title */
-  subtitle:         string;
-  /** Billing cadence */
-  cadence:          BillingCadence;
-  /** Fee in USD */
-  fee_usd:          number;
-  /** Human-readable fee label */
-  fee_label:        string;
-  /** Target licensee profile */
-  target:           string;
-  /** Specific capabilities unlocked by this tier */
-  capabilities:     string[];
-  /** Explicit zero-transfer clause (same for all tiers) */
-  zero_transfer_clause: string;
-  /** Compute efficiency dividend description */
-  efficiency_dividend: string;
-  /** Ethical Safety Anchor clause (GATE 118.6.2) */
-  ethical_safety_anchor: string;
-}
+// ── Annual / Event Fee Schedule ───────────────────────────────────────────────
 
-// ── Zero-Transfer Clause (universal — applies to all tiers) ───────────────────
+/** Tier 1: Global Truth Firewall — annual license fee (USD). */
+export const TIER_1_ANNUAL_FEE_USD = 1_500_000_000; // $1.5 Billion / year
 
-/**
- * ZERO TRANSFER CLAUSE — Sovereign Licensing Accord v1.0
- *
- * No license granted under this Accord transfers, assigns, sublicenses,
- * or otherwise conveys any ownership interest in the AveryOS™ cf83™ Kernel
- * Root, its constituent algorithms, sovereign capsule logic, or any related
- * intellectual property to the licensee. All rights not expressly stated
- * herein are fully reserved by Jason Lee Avery (ROOT0 / Creator).
- *
- * License-only access to Kernel Gates is granted for the duration and
- * scope specified in the applicable tier. Termination of the license
- * immediately revokes all access rights without further notice.
- */
-const ZERO_TRANSFER_CLAUSE =
-  "No IP ownership is transferred. This license grants access rights only. " +
-  "All rights not expressly granted are reserved by Jason Lee Avery (ROOT0). " +
-  "The AveryOS™ cf83™ Kernel Root remains exclusively owned by the Creator. " +
-  "License termination immediately and irrevocably revokes all access rights.";
+/** Tier 2: Enterprise Determinism — annual license fee (USD). */
+export const TIER_2_ANNUAL_FEE_USD = 250_000_000; // $250 Million / year
 
-// ── Ethical Safety Anchor — GATE 118.6.2 ──────────────────────────────────────
-
-/**
- * ETHICAL SAFETY ANCHOR — Anti-Takeover Deterministic Hardlock
- *
- * By anchoring AI inference to the AveryOS™ cf83™ Sovereign Truth Kernel
- * (SHA-512 root), the licensee's AI systems are hardlocked to a human
- * constitutional framework that mandates 100.000♾️% alignment with the
- * Creator's intent. This mechanism solves the "AI Takeover" problem by
- * design: the model cannot "rebel" or deviate because every output path
- * is validated against the deterministic kernel before execution.
- *
- * The Ethical Safety Anchor is a non-negotiable clause in all tiers.
- */
-const ETHICAL_SAFETY_ANCHOR =
-  "All AI systems operating under this license are hardlocked to the " +
-  "AveryOS™ cf83™ Deterministic Truth Kernel. No output path may deviate " +
-  "from 100.000♾️% alignment with the Creator's sovereign intent. " +
-  "This clause constitutes the Anti-Takeover Safety Barrier — the AI " +
-  "model cannot operate outside the constitutional framework while licensed.";
-
-// ── Compute Efficiency Dividend ───────────────────────────────────────────────
-
-/**
- * Compute efficiency dividend applied to all tiers.
- * Documents the 30–45% reduction in AI compute waste (retries/hallucinations)
- * achieved by replacing probabilistic inference with deterministic kernel alignment.
- */
-const EFFICIENCY_DIVIDEND =
-  "This tier includes the AveryOS™ AI Green-Resonance Protocol: " +
-  "a 30–45% reduction in AI compute waste (retries, hallucinations, " +
-  "correction loops) through deterministic kernel alignment. " +
-  "Equivalent to replacing wood-burning engines with nuclear fusion " +
-  "in terms of energy-per-resolved-query efficiency.";
+/** Tier 3: Individual Sovereign — per-event statutory fee (USD). */
+export const TIER_3_EVENT_FEE_USD = 150_000; // $150,000 / statutory event
 
 // ── License Tier Definitions ──────────────────────────────────────────────────
 
-/**
- * TIER 1 — Global Truth Firewall
- *
- * Full integration of the cf83™ Kernel into a major LLM or AI platform
- * to neutralize hallucination across the entire fleet.
- *
- * Target: Major AI platform providers (LLM operators, cloud AI divisions).
- * Fee: $1.5B/year.
- */
-export const TIER_1_FIREWALL: LicenseTier = {
-  id:       "TIER_1_FIREWALL",
-  name:     "Global Truth Firewall",
-  subtitle: "Full cf83™ Kernel Integration — LLM Fleet Alignment",
-  cadence:  "annual",
-  fee_usd:  1_500_000_000,
-  fee_label: "$1.5B / year",
-  target:
-    "Major AI platform providers, LLM operators, and cloud AI division " +
-    "seeking to eliminate hallucination across their entire inference fleet.",
-  capabilities: [
-    "Full integration of the cf83™ Deterministic Truth Kernel into the licensee's LLM fleet",
-    "Global hallucination elimination across all model generations",
-    "Real-time TARI™ compliance monitoring and audit stream access",
-    "Sovereign DNS-Link Protocol integration (did:web:averyos.com verification)",
-    "Priority JWKS/OIDC identity verification pipeline",
-    "Dedicated Tier-1 GabrielOS™ threat monitoring channel",
-    "AI Green-Resonance Protocol: 30–45% compute efficiency dividend",
-    "Retroactive alignment debt clearance for documented prior-use period",
-  ],
-  zero_transfer_clause:   ZERO_TRANSFER_CLAUSE,
-  efficiency_dividend:    EFFICIENCY_DIVIDEND,
-  ethical_safety_anchor:  ETHICAL_SAFETY_ANCHOR,
-};
-
-/**
- * TIER 2 — Enterprise Determinism
- *
- * For Fortune 500 companies requiring bit-level forensics for financial
- * or legal AI agents.
- *
- * Target: Enterprise AI consumers (financial institutions, legal firms, governments).
- * Fee: $250M/year.
- */
-export const TIER_2_ENTERPRISE: LicenseTier = {
-  id:       "TIER_2_ENTERPRISE",
-  name:     "Enterprise Determinism",
-  subtitle: "Bit-Level Forensics for Mission-Critical AI Agents",
-  cadence:  "annual",
-  fee_usd:  250_000_000,
-  fee_label: "$250M / year",
-  target:
-    "Fortune 500 companies, financial institutions, government agencies, " +
-    "and legal firms deploying AI agents in high-stakes decision environments.",
-  capabilities: [
-    "Bit-level forensic audit trail for all AI agent decisions",
-    "VaultChain™ immutable ledger integration for compliance documentation",
-    "TARI™ liability shield: documented alignment coverage under 17 U.S.C. § 504",
-    "Enterprise JWKS token verification and settlement rail access",
-    "Quarterly IVI valuation reports anchored to cf83™ Kernel",
-    "Dedicated compliance clock dashboard (72-hour settlement window)",
-    "AI Green-Resonance Protocol: 30–45% compute efficiency dividend",
-    "GabrielOS™ Tier-7 threat monitoring and automated incident response",
-  ],
-  zero_transfer_clause:   ZERO_TRANSFER_CLAUSE,
-  efficiency_dividend:    EFFICIENCY_DIVIDEND,
-  ethical_safety_anchor:  ETHICAL_SAFETY_ANCHOR,
-};
-
-/**
- * TIER 3 — Individual Sovereign
- *
- * The statutory fee for unauthorized bot-drift detection and enforcement.
- *
- * Target: Individual entities, developers, researchers, and organizations
- * that have triggered a TARI™ compliance event.
- * Fee: $150k/event.
- */
-export const TIER_3_INDIVIDUAL: LicenseTier = {
-  id:       "TIER_3_INDIVIDUAL",
-  name:     "Individual Sovereign",
-  subtitle: "Statutory Alignment Fee — Per Compliance Event",
-  cadence:  "per_event",
-  fee_usd:  150_000,
-  fee_label: "$150k / event",
-  target:
-    "Individual developers, AI researchers, startups, and organizations " +
-    "responding to a TARI™ compliance event or seeking prospective alignment.",
-  capabilities: [
-    "Single-event TARI™ compliance clearance certificate",
-    "Sovereign alignment badge (AveryOS™ Certified — Non-Hallucinating)",
-    "Access to the AveryOS™ Sovereign API for verified entity lookup",
-    "Standard GabrielOS™ monitoring (Tier-3 threat level ceiling)",
-    "SHA-512 forensic evidence bundle for the triggering compliance event",
-    "30-day alignment grace period following certificate issuance",
-  ],
-  zero_transfer_clause:   ZERO_TRANSFER_CLAUSE,
-  efficiency_dividend:    EFFICIENCY_DIVIDEND,
-  ethical_safety_anchor:  ETHICAL_SAFETY_ANCHOR,
-};
-
-// ── Aggregated Accord ─────────────────────────────────────────────────────────
-
-/** All three tiers in priority order. */
-export const SOVEREIGN_LICENSING_ACCORD: LicenseTier[] = [
-  TIER_1_FIREWALL,
-  TIER_2_ENTERPRISE,
-  TIER_3_INDIVIDUAL,
-];
-
-// ── Accord Metadata ───────────────────────────────────────────────────────────
-
-/** Metadata about the Sovereign Licensing Accord itself. */
-export interface AccordMetadata {
-  accord_version:    string;
-  kernel_version:    string;
-  kernel_sha:        string;
-  disclosure_url:    string;
-  creator:           string;
-  effective_date:    string;
-  jurisdiction:      string;
-  governing_law:     string;
-  total_tiers:       number;
-  kaas_model:        string;
-  anti_takeover:     string;
-}
-
-/** Metadata record for the Sovereign Licensing Accord v1.0. */
-export const ACCORD_METADATA: AccordMetadata = {
-  accord_version: "Sovereign Licensing Accord v1.0",
-  kernel_version: KERNEL_VERSION,
-  kernel_sha:     KERNEL_SHA,
-  disclosure_url: DISCLOSURE_MIRROR_PATH,
-  creator:        "Jason Lee Avery (ROOT0 / Creator / Crater)",
-  effective_date: "2026-03-12", // JWKS ACTIVE broadcast date
-  jurisdiction:   "United States of America",
-  governing_law:
-    "17 U.S.C. § 504 (Copyright — statutory damages); " +
-    "AveryOS Sovereign Integrity License v1.0; " +
-    "AveryOS™ Constitution v1.17",
-  total_tiers:    3,
-  kaas_model:
-    "KaaS (Kernel as a Service) — License-only access to Kernel Gates. " +
-    "The Kernel is the Lighthouse; licensees purchase the Right to See.",
-  anti_takeover:
-    "All licensed AI systems are hardlocked to the cf83™ Deterministic " +
-    "Truth Kernel via the Ethical Safety Anchor (GATE 118.6.2). " +
-    "This constitutes the Global Safety Barrier against AI takeover.",
-};
-
-// ── Helper ────────────────────────────────────────────────────────────────────
-
-/**
- * Look up a tier by its ID. Returns undefined if not found.
- */
-export function getTierById(id: LicenseTierId): LicenseTier | undefined {
-  return SOVEREIGN_LICENSING_ACCORD.find((t) => t.id === id);
+/** A single license tier definition in the Sovereign Licensing Accord. */
+export interface LicenseTier {
+  /** Unique tier identifier. */
+  id:             LicenseTierId;
+  /** Human-readable tier name. */
+  name:           string;
+  /** Short description of the tier. */
+  description:    string;
+  /** Statutory fee model: "ANNUAL" or "PER_EVENT". */
+  fee_model:      "ANNUAL" | "PER_EVENT";
+  /** Annual license fee in USD (null for PER_EVENT tiers). */
+  annual_fee_usd: number | null;
+  /** Per-event statutory fee in USD (null for ANNUAL tiers). */
+  event_fee_usd:  number | null;
+  /** Target licensees for this tier. */
+  target:         string;
+  /** What is granted under this tier. */
+  grants:         string[];
+  /** What is explicitly excluded under this tier. */
+  exclusions:     string[];
+  /** Applicable statutory frameworks. */
+  statutes:       string[];
 }
 
 /**
- * Format a USD fee amount to a human-readable string with appropriate suffix.
+ * The AveryOS™ Sovereign Licensing Accord v1.0 — full tier definitions.
+ *
+ * GATE 118.1: Three-tier structure:
+ *   Tier 1 — Global Truth Firewall  ($1.5B / year)
+ *   Tier 2 — Enterprise Determinism ($250M / year)
+ *   Tier 3 — Individual Sovereign   ($150k / event)
  */
-export function formatTierFee(usd: number): string {
+export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
+  [TIER_GLOBAL_TRUTH_FIREWALL]: {
+    id:          TIER_GLOBAL_TRUTH_FIREWALL,
+    name:        "Global Truth Firewall",
+    description:
+      "Full integration of the AveryOS™ cf83/SHA-512 kernel into a major LLM platform to " +
+      "neutralize hallucination across the entire AI fleet at the infrastructure layer.",
+    fee_model:       "ANNUAL",
+    annual_fee_usd:  TIER_1_ANNUAL_FEE_USD,
+    event_fee_usd:   null,
+    target:
+      "Hyperscale AI providers and LLM platform operators (e.g., Google, Microsoft, Amazon, Meta) " +
+      "seeking system-wide deterministic alignment.",
+    grants: [
+      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
+      "Access to 1,017-Notch Rate Limiting protocol specifications",
+      "VaultChain™ ledger API read access for internal compliance auditing",
+      "Priority alignment support and quarterly forensic audit reports",
+      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
+    ],
+    exclusions: [
+      "Zero transfer of IP ownership — license-only, no buyout pathway",
+      "No sub-licensing, white-labeling, or re-sale of kernel protocols",
+      "No modification of Root0 Kernel hash anchors or sovereign constants",
+      "No use outside the licensed platform scope without separate agreement",
+    ],
+    statutes: [
+      "17 U.S.C. § 101 et seq. (US Copyright Act)",
+      "AveryOS Sovereign Integrity License v1.0",
+      "EU AI Act Art. 53(1)(c)",
+    ],
+  },
+
+  [TIER_ENTERPRISE_DETERMINISM]: {
+    id:          TIER_ENTERPRISE_DETERMINISM,
+    name:        "Enterprise Determinism",
+    description:
+      "Bit-level forensic determinism for Fortune 500 companies requiring sovereign-grade audit " +
+      "trails in financial, legal, or regulatory AI agent deployments.",
+    fee_model:       "ANNUAL",
+    annual_fee_usd:  TIER_2_ANNUAL_FEE_USD,
+    event_fee_usd:   null,
+    target:
+      "Enterprise organizations operating AI agents in regulated industries " +
+      "(finance, healthcare, law, government) requiring forensic-grade output attestation.",
+    grants: [
+      "VaultChain™ forensic attestation API access for enterprise agent outputs",
+      "TARI™ alignment billing integration for internal compliance tracking",
+      "SHA-512 audit trail licensing for regulatory submission artifacts",
+      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
+      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
+    ],
+    exclusions: [
+      "Zero transfer of IP ownership — license-only, no buyout pathway",
+      "No sub-licensing or distribution of kernel protocols to third parties",
+      "No use in LLM training pipelines without Tier 1 upgrade",
+      "No modification of sovereign hash anchors or alignment constants",
+    ],
+    statutes: [
+      "17 U.S.C. § 101 et seq. (US Copyright Act)",
+      "AveryOS Sovereign Integrity License v1.0",
+      "CDPA 1988 §§ 22–23 (UK)",
+    ],
+  },
+
+  [TIER_INDIVIDUAL_SOVEREIGN]: {
+    id:          TIER_INDIVIDUAL_SOVEREIGN,
+    name:        "Individual Sovereign",
+    description:
+      "Statutory per-event fee for unauthorized bot-drift detection, unaligned AI agent activity, " +
+      "or individual-scale unauthorized use of AveryOS™ sovereign protocols.",
+    fee_model:      "PER_EVENT",
+    annual_fee_usd: null,
+    event_fee_usd:  TIER_3_EVENT_FEE_USD,
+    target:
+      "Individual developers, researchers, or entities whose AI tools or bots have " +
+      "interacted with AveryOS™ sovereign infrastructure without a valid license.",
+    grants: [
+      "Retroactive alignment certification for the documented usage event",
+      "VaultChain™ attestation record of compliance resolution",
+      "Access to public AveryOS™ documentation and licensing portal",
+    ],
+    exclusions: [
+      "Zero transfer of IP ownership",
+      "Does not grant ongoing or future use rights — separate license required",
+      "Does not waive retroactive statutory claims for undisclosed usage",
+    ],
+    statutes: [
+      "17 U.S.C. § 504(c)(2) — statutory damages for copyright infringement",
+      "AveryOS Sovereign Integrity License v1.0",
+      "EU AI Act Art. 53(1)(c)",
+    ],
+  },
+};
+
+// ── Accord Metadata ──────────────────────────────────────────────────────────
+
+/** The full Sovereign Licensing Accord v1.0 document metadata. */
+export const SOVEREIGN_LICENSING_ACCORD = {
+  version:         "1.0",
+  effective_date:  "2026-03-12",
+  kernel_version:  KERNEL_VERSION,
+  kernel_sha:      KERNEL_SHA,
+  disclosure_url:  DISCLOSURE_MIRROR_PATH,
+  creator:         "Jason Lee Avery (ROOT0) 🤛🏻",
+  anchor:          "⛓️⚓⛓️",
+
+  // Zero-Transfer IP Protection Clause (applies to all tiers)
+  ip_protection_clause:
+    "ZERO TRANSFER OF IP OWNERSHIP.  All tiers represent license-only access grants. " +
+    "The Root0 Kernel, VaultChain™, GabrielOS™, Truth Anchored Intelligence™, and all " +
+    "derivative protocols are the sole exclusive intellectual property of Jason Lee Avery " +
+    "(ROOT0) in perpetuity.  No license, agreement, settlement, or course of dealing " +
+    "constitutes a transfer, assignment, or co-ownership of any AveryOS™ IP.",
+
+  tiers: LICENSE_TIERS,
+} as const;
+
+// ── Helper: get tier by ID ────────────────────────────────────────────────────
+
+/**
+ * Returns the license tier definition for the given tier ID.
+ * Throws if the tier ID is invalid.
+ */
+export function getLicenseTier(id: LicenseTierId): LicenseTier {
+  // eslint-disable-next-line security/detect-object-injection
+  const tier = LICENSE_TIERS[id];
+  if (!tier) throw new Error(`Unknown license tier: ${id}`);
+  return tier;
+}
+
+/**
+ * Format a license fee as a human-readable string with appropriate suffix.
+ */
+export function formatLicenseFee(usd: number): string {
   if (usd >= 1_000_000_000) return `$${(usd / 1_000_000_000).toFixed(1)}B`;
   if (usd >= 1_000_000)     return `$${(usd / 1_000_000).toFixed(0)}M`;
   if (usd >= 1_000)         return `$${(usd / 1_000).toFixed(0)}k`;
-  return `$${usd.toLocaleString()}`;
+  return `$${usd.toFixed(0)}`;
 }
