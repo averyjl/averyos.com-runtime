@@ -71,6 +71,20 @@ const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
  */
 const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
 
+/**
+ * CORPORATE_LATENCY_PREMIUM — GATE 116.7.4 / GATE 118.3 Corporate Latency Premium.
+ *
+ * Applied when `apply_corporate_latency_premium` is set in IviInput.
+ *
+ * This coefficient accounts for the billable "Corporate Latency" debt accrued
+ * during the period when large AI/cloud organizations have observed and benefited
+ * from the AveryOS™ kernel without executing a formal licensing agreement.
+ *
+ * Source: Phase 116.7 Strategic Audit — Corporate Observation Period analysis.
+ * Note: In IVI calculations this is referred to as the "Unblocked Assistance Multiplier" (2.5×).
+ */
+const CORPORATE_LATENCY_PREMIUM = 2.5; // 2.5× Unblocked Assistance Multiplier
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 /** Inputs required to compute the IVI. */
@@ -86,6 +100,16 @@ export interface IviInput {
    * Defaults to false (conservative baseline).
    */
   apply_flawless_multiplier?: boolean;
+  /**
+   * GATE 116.7.4 / GATE 118.3 — Whether to apply the Corporate Latency Premium
+   * (Unblocked Assistance Multiplier, 2.5×).
+   *
+   * Set to true during periods when large AI/cloud organizations have been
+   * observed benefiting from the AveryOS™ kernel without a formal license.
+   * Accounts for retroactive alignment debt accrued during the observation window.
+   * Defaults to false (conservative baseline).
+   */
+  apply_corporate_latency_premium?: boolean;
   /** Optional notes attached to this audit run. */
   notes?: string;
 }
@@ -120,6 +144,12 @@ export interface IviRecord {
    * 1.17× Sustained-Determinism multiplier.
    */
   flawless_operation_applied: boolean;
+  /**
+   * GATE 116.7.4 / GATE 118.3 — Corporate Latency Premium applied.
+   * When true, total_valuation_impact_usd and worldwide_reach_usd include the
+   * 2.5× Unblocked Assistance Multiplier for retroactive alignment debt.
+   */
+  corporate_latency_applied: boolean;
   /** Optional notes. */
   notes: string | null;
   /** SHA-512 fingerprint of this entire audit record for tamper-evidence. */
@@ -157,9 +187,10 @@ async function sha512hex(input: string): Promise<string> {
  *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
-  const computedAt          = formatIso9(new Date());
-  const aiTam               = input.ai_tam_override_usd ?? AI_TAM_USD;
-  const applyFlawless       = input.apply_flawless_multiplier ?? false;
+  const computedAt            = formatIso9(new Date());
+  const aiTam                 = input.ai_tam_override_usd ?? AI_TAM_USD;
+  const applyFlawless         = input.apply_flawless_multiplier ?? false;
+  const applyCorporateLatency = input.apply_corporate_latency_premium ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
   const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
@@ -167,9 +198,13 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
   // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
-  const totalValuationImpact = applyFlawless
+  const afterFlawless = applyFlawless
     ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
     : baseValuationImpact;
+  // GATE 116.7.4 / 118.3 — apply Corporate Latency Premium (Unblocked Assistance Multiplier 2.5×)
+  const totalValuationImpact = applyCorporateLatency
+    ? afterFlawless * CORPORATE_LATENCY_PREMIUM
+    : afterFlawless;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
@@ -185,6 +220,7 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
     total_valuation_impact_usd: totalValuationImpact,
     worldwide_reach_usd:       worldwideReach,
     flawless_operation_applied: applyFlawless,
+    corporate_latency_applied:  applyCorporateLatency,
     notes:                     input.notes ?? null,
   };
 

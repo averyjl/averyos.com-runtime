@@ -35,6 +35,31 @@ const LiabilityBarChart = dynamic(() => import("./LiabilityBarChart"), {
   ),
 });
 
+// DriftPulseChart is also excluded from SSR.
+const DriftPulseChart = dynamic(() => import("./DriftPulseChart"), {
+  ssr:     false,
+  loading: () => (
+    <div
+      style={{
+        background:     "#0a0015",
+        border:         "1px solid rgba(255,215,0,0.35)",
+        borderRadius:   "12px",
+        padding:        "1.25rem",
+        marginBottom:   "1.5rem",
+        minHeight:      "200px",
+        display:        "flex",
+        alignItems:     "center",
+        justifyContent: "center",
+        color:          "rgba(255,215,0,0.55)",
+        fontFamily:     "JetBrains Mono, monospace",
+        fontSize:       "0.8rem",
+      }}
+    >
+      📈 Loading DriftPulse™ Chart…
+    </div>
+  ),
+});
+
 // ---------------------------------------------------------------------------
 // Deep Purple & Gold theme — AveryOS™ TARI™ Revenue Dashboard
 // ---------------------------------------------------------------------------
@@ -125,6 +150,14 @@ interface TariStatsData {
   watcher_liability_accrued: number;
   total_entries: number;
   timestamp: string;
+  // DriftPulse™ — time-series entries from tari_ledger for chart rendering
+  recent_entries?: Array<{
+    id: number;
+    created_at: string;
+    status: string;
+    revenue_projection: number;
+    event_type: string;
+  }>;
 }
 
 // KaaS™ live valuation row — sourced from D1 kaas_valuations table
@@ -187,6 +220,9 @@ export default function TariRevenuePage() {
   // Roadmap #1 — Genesis Dollar Celebration Banner
   // Fetches /api/v1/compliance/clocks?status=SETTLED&limit=1 to detect first settlement
   const [firstSettledClock, setFirstSettledClock] = useState<{ clock_id: string; asn: string | null; org_name: string | null; settled_at: string } | null>(null);
+  // Gate Recharts DriftPulse — drift_metrics time-series data
+  // Built from tari_stats recent_entries to display statutory debt vs. active licenses
+  const [driftMetrics, setDriftMetrics] = useState<Array<{ label: string; statutory_debt_usd: number; active_licenses: number }>>([]);
 
   // Gate 108.5 — Check VAULTAUTH_TOKEN on mount to unlock statutory metrics
   useEffect(() => {
@@ -266,7 +302,27 @@ export default function TariRevenuePage() {
         const res = await fetch("/api/v1/tari-stats", { cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as TariStatsData;
-          if (!cancelled) setStats(data);
+          if (!cancelled) {
+            setStats(data);
+            // Build DriftPulse™ time-series from recent_entries (Gate Recharts DriftPulse)
+            if (data.recent_entries && data.recent_entries.length > 0) {
+              let cumulativeDebt     = 0;
+              let cumulativeLicenses = 0;
+              const points = data.recent_entries.map((entry, idx) => {
+                cumulativeDebt += entry.revenue_projection ?? 0;
+                if (entry.status === "ACTIVE") cumulativeLicenses += 1;
+                const dateLabel = entry.created_at
+                  ? new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : `T-${idx}`;
+                return {
+                  label:              dateLabel,
+                  statutory_debt_usd: cumulativeDebt,
+                  active_licenses:    cumulativeLicenses,
+                };
+              });
+              setDriftMetrics(points);
+            }
+          }
         }
       } catch (err) {
         // Non-critical — watcher stats are supplemental
@@ -641,6 +697,11 @@ export default function TariRevenuePage() {
 
       {/* Liability vs. Collected Chart — top corporate orgs */}
       <LiabilityBarChart chartData={chartData} threshold={TARI_THRESHOLD_USD} />
+
+      {/* DriftPulse™ Chart — Statutory Debt vs. Active Licenses (Gate Recharts DriftPulse) */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <DriftPulseChart data={driftMetrics} />
+      </div>
 
       {/* KaaS Tier Badge Display — Phase 97 Live Liability Visualization */}
       <div
