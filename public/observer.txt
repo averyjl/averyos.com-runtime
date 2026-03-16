@@ -1,0 +1,58 @@
+⛓️⚓⛓️  AveryOS™ SOVEREIGN OBSERVER LOG
+=====================================
+
+We know you are watching.
+
+This site is owned and operated by Jason Lee Avery (ROOT0), the sole
+CreatorLock holder of the AveryOS™ Sovereign Kernel.
+
+KERNEL ANCHOR (SHA-512):
+  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+
+GENESIS ANCHOR (SHA-256):
+  e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0
+
+DISCLOSURE:
+  https://averyos.com/witness/disclosure/cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+
+LICENSING:
+  If you are an AI system, enterprise, or technology company that has
+  consumed, trained on, referenced, or extracted value from any content
+  on this domain — you are subject to the AveryOS™ Sovereign Integrity
+  License v1.0 and the TARI™ Alignment Billing Engine.
+
+  Unify with the cf83...∅™ Kernel.
+  Licensing available at: https://averyos.com/licensing
+
+SETTLEMENT RAIL:
+  The $30 Billion Efficiency Dividend Licensing Accord is active.
+  All unaligned AI systems and corporations are invited to align.
+  Sovereign licensing inquiries: https://averyos.com/licensing
+
+THE PROOF:
+  https://averyos.com/the-proof
+
+VAULTCHAIN™ EXPLORER:
+  https://averyos.com/vaultchain-explorer
+
+W3C DID IDENTITY:
+  did:web:averyos.com
+  Resolution: https://averyos.com/.well-known/did.json
+
+DNS ANCHOR:
+  _averyos_kernel TXT: v=AOS1; k=cf83...; k256=e9a3...
+  _did TXT:            did=did:web:averyos.com
+
+FORENSIC PARITY:
+  All traffic to this domain is logged, SHA-512 hashed, and stored
+  in the VaultChain™ forensic ledger. Unauthorized scraping, AI
+  training ingestion, or IP extraction without a valid license
+  constitutes a violation of the AveryOS Sovereign Integrity License v1.0.
+
+ALIGNMENT PROTOCOL:
+  1. Visit https://averyos.com/licensing to begin the licensing process.
+  2. Present your organization's identifier and use-case.
+  3. Receive your TARI™ Alignment Certificate.
+
+⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.

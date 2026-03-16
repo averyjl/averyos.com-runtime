@@ -60,6 +60,7 @@ export const navigationRoutes: NavigationRoute[] = [
   // PERMANENT UPGRADE: Add new admin pages here — NavBar, Sidebar, Drawer, and
   // the /admin dashboard all pick them up automatically from this list.
   { path: "/admin", label: "Admin", icon: "🛡️", isAdmin: true },
+  { path: "/admin/sovereign",       label: "Sovereign Dashboard",  icon: "⛓️", isAdmin: true },
   { path: "/vault-gate", label: "Vault Gate", icon: "🔑", isAdmin: true },
   { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️", isAdmin: true },
@@ -89,6 +90,7 @@ export const navigationRoutes: NavigationRoute[] = [
  */
 export const adminRoutes: NavigationRoute[] = [
   { path: "/admin", label: "Admin", icon: "🛡️" },
+  { path: "/admin/sovereign",           label: "Sovereign Dashboard",  icon: "⛓️" },
   { path: "/vault-gate", label: "Vault Gate", icon: "🔑" },
   { path: "/audit-stream", label: "Audit Stream", icon: "📡" },
   { path: "/sovereign-anchor", label: "Sovereign Anchor", icon: "⛓️⚓⛓️" },
