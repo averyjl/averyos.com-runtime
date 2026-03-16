@@ -694,6 +694,11 @@ export default function TariRevenuePage() {
       {/* Liability vs. Collected Chart — top corporate orgs */}
       <LiabilityBarChart chartData={chartData} threshold={TARI_THRESHOLD_USD} />
 
+      {/* DriftPulse™ Chart — Statutory Debt vs. Active Licenses (Gate Recharts DriftPulse) */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <DriftPulseChart data={driftMetrics} />
+      </div>
+
       {/* Phase 117 — Firebase tari_metrics Stream Status Panel */}
       {stats && (
         <div
