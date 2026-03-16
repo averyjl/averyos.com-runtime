@@ -184,6 +184,9 @@ async function sha512hex(input: string): Promise<string> {
  *                           = simplified: ai_tam × 0.001 (0.1% of TAM × species multiplier)
  *   total_valuation_impact  = statutory + scarcity + species_recovery
  *                           [× 1.17 if apply_flawless_multiplier (GATE 116.4)]
+ *                           [× 2.5  if apply_unblocked_assistance (GATE 118.3)]
+ *                           [× 3.0  if apply_efficiency_premium (GATE 118.6.3)]
+ *                           [× 1.2  if apply_corporate_latency_premium (GATE 118.7.4)]
  *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
@@ -197,6 +200,9 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   // Species-recovery premium: SPECIES_RECOVERY_TAM_RATIO of the total AI TAM × species multiplier
   const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
+
+  // Apply stacked multipliers in order of increasing market evidence
+  let totalValuationImpact = baseValuationImpact;
   // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
   const afterFlawless = applyFlawless
     ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER

@@ -70,7 +70,7 @@ function subdomainRules(hostname: string): { allow: string[]; disallow: string[]
   // Default — Full Magnet: open all public content to non-malicious bots
   return {
     allow: ["/"],
-    disallow: ["/api/v1/vault", "/api/v1/audit-alert", "/_next", "/admin"],
+    disallow: ["/api/v1/vault", "/api/v1/audit-alert", "/_next", "/admin", "/api/v1/magnet"],
   };
 }
 
