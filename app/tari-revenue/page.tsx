@@ -140,6 +140,13 @@ interface TaiMilestone {
   kernel_version: string;
 }
 
+/** Individual tari_ledger row returned in recent_entries from /api/v1/tari-stats */
+interface TariLedgerEntry {
+  revenue_projection?: number | null;
+  status: string;
+  created_at?: string | null;
+}
+
 interface TariStatsData {
   hn_watcher_count: number;
   der_settlement_count: number;
@@ -150,6 +157,8 @@ interface TariStatsData {
   watcher_liability_accrued: number;
   total_entries: number;
   timestamp: string;
+  /** Recent tari_ledger rows used to build DriftPulse™ time-series (Gate Recharts DriftPulse) */
+  recent_entries?: TariLedgerEntry[];
   /** Phase 117 — Firebase tari_metrics sync status */
   firebase_sync_status?: string;
   /** Phase 117 — Live Firebase Firestore stream URL for tari_metrics */
