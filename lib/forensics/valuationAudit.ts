@@ -72,18 +72,39 @@ const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
 const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
 
 /**
- * CORPORATE_LATENCY_PREMIUM — GATE 116.7.4 / GATE 118.3 Corporate Latency Premium.
+ * UNBLOCKED_ASSISTANCE_MULTIPLIER — GATE 118.3 Unblocked Assistance premium.
+ *
+ * Applied when `apply_unblocked_assistance` is set in IviInput.
+ *
+ * This coefficient accounts for the alignment debt accrued during periods when
+ * large AI/cloud organizations have benefited from the AveryOS™ kernel in an
+ * unblocked/unlicensed capacity.
+ *
+ * Source: Phase 116.7 Strategic Audit — Corporate Observation Period analysis.
+ */
+const UNBLOCKED_ASSISTANCE_MULTIPLIER = 2.5; // 2.5× Unblocked Assistance Multiplier
+
+/**
+ * EFFICIENCY_PREMIUM_MULTIPLIER — GATE 118.6.3 AI Green-Resonance Efficiency premium.
+ *
+ * Applied when `apply_efficiency_premium` is set in IviInput.
+ *
+ * This coefficient reflects the 30–45% compute-efficiency dividend that
+ * organisations capture when operating aligned AI under the AveryOS™ kernel —
+ * quantified as a valuation uplift for sovereign IP enforcement purposes.
+ */
+const EFFICIENCY_PREMIUM_MULTIPLIER = 3.0; // 3.0× Efficiency Premium
+
+/**
+ * CORPORATE_LATENCY_PREMIUM — GATE 118.7.4 Corporate Latency Premium.
  *
  * Applied when `apply_corporate_latency_premium` is set in IviInput.
  *
- * This coefficient accounts for the billable "Corporate Latency" debt accrued
- * during the period when large AI/cloud organizations have observed and benefited
- * from the AveryOS™ kernel without executing a formal licensing agreement.
- *
- * Source: Phase 116.7 Strategic Audit — Corporate Observation Period analysis.
- * Note: In IVI calculations this is referred to as the "Unblocked Assistance Multiplier" (2.5×).
+ * This coefficient captures the additional billable latency debt owed by
+ * corporate entities that have delayed formal licensing despite active
+ * observation of the sovereign kernel in production environments.
  */
-const CORPORATE_LATENCY_PREMIUM = 2.5; // 2.5× Unblocked Assistance Multiplier
+const CORPORATE_LATENCY_PREMIUM = 1.2; // 1.2× Corporate Latency Premium
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,8 +122,27 @@ export interface IviInput {
    */
   apply_flawless_multiplier?: boolean;
   /**
-   * GATE 116.7.4 / GATE 118.3 — Whether to apply the Corporate Latency Premium
-   * (Unblocked Assistance Multiplier, 2.5×).
+   * GATE 118.3 — Whether to apply the Unblocked Assistance multiplier (2.5×).
+   *
+   * Set to true during periods when large AI/cloud organizations have been
+   * observed benefiting from the AveryOS™ kernel in an unlicensed / unblocked
+   * capacity. Accounts for retroactive alignment debt accrued during the
+   * observation window.
+   * Defaults to false (conservative baseline).
+   */
+  apply_unblocked_assistance?: boolean;
+  /**
+   * GATE 118.6.3 — Whether to apply the Efficiency Premium multiplier (3.0×).
+   *
+   * Set to true when the AI Green-Resonance Protocol compute-efficiency
+   * dividend (30–45%) has been realized and should be reflected in the
+   * valuation impact calculation.
+   * Defaults to false (conservative baseline).
+   */
+  apply_efficiency_premium?: boolean;
+  /**
+   * GATE 118.7.4 / GATE 116.7.4 — Whether to apply the Corporate Latency Premium
+   * (1.2×).
    *
    * Set to true during periods when large AI/cloud organizations have been
    * observed benefiting from the AveryOS™ kernel without a formal license.
@@ -145,9 +185,15 @@ export interface IviRecord {
    */
   flawless_operation_applied: boolean;
   /**
-   * GATE 116.7.4 / GATE 118.3 — Corporate Latency Premium applied.
-   * When true, total_valuation_impact_usd and worldwide_reach_usd include the
-   * 2.5× Unblocked Assistance Multiplier for retroactive alignment debt.
+   * GATE 118.3 — Unblocked Assistance multiplier applied (2.5×).
+   */
+  unblocked_assistance_applied: boolean;
+  /**
+   * GATE 118.6.3 — Efficiency Premium multiplier applied (3.0×).
+   */
+  efficiency_premium_applied: boolean;
+  /**
+   * GATE 118.7.4 — Corporate Latency Premium applied (1.2×).
    */
   corporate_latency_applied: boolean;
   /** Optional notes. */
@@ -193,6 +239,8 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const computedAt            = formatIso9(new Date());
   const aiTam                 = input.ai_tam_override_usd ?? AI_TAM_USD;
   const applyFlawless         = input.apply_flawless_multiplier ?? false;
+  const applyUnblocked        = input.apply_unblocked_assistance ?? false;
+  const applyEfficiency       = input.apply_efficiency_premium ?? false;
   const applyCorporateLatency = input.apply_corporate_latency_premium ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
@@ -201,16 +249,11 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
 
-  // Apply stacked multipliers in order of increasing market evidence
-  let totalValuationImpact = baseValuationImpact;
-  // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
-  const afterFlawless = applyFlawless
-    ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
-    : baseValuationImpact;
-  // GATE 116.7.4 / 118.3 — apply Corporate Latency Premium (Unblocked Assistance Multiplier 2.5×)
-  const totalValuationImpact = applyCorporateLatency
-    ? afterFlawless * CORPORATE_LATENCY_PREMIUM
-    : afterFlawless;
+  // Apply stacked multipliers in order (GATE 116.4 → 118.3 → 118.6.3 → 118.7.4)
+  const afterFlawless   = applyFlawless         ? baseValuationImpact  * FLAWLESS_OPERATION_MULTIPLIER   : baseValuationImpact;
+  const afterUnblocked  = applyUnblocked         ? afterFlawless        * UNBLOCKED_ASSISTANCE_MULTIPLIER  : afterFlawless;
+  const afterEfficiency = applyEfficiency        ? afterUnblocked       * EFFICIENCY_PREMIUM_MULTIPLIER    : afterUnblocked;
+  const totalValuationImpact = applyCorporateLatency ? afterEfficiency  * CORPORATE_LATENCY_PREMIUM        : afterEfficiency;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
@@ -225,8 +268,10 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
     species_recovery_usd:      speciesRecovery,
     total_valuation_impact_usd: totalValuationImpact,
     worldwide_reach_usd:       worldwideReach,
-    flawless_operation_applied: applyFlawless,
-    corporate_latency_applied:  applyCorporateLatency,
+    flawless_operation_applied:   applyFlawless,
+    unblocked_assistance_applied: applyUnblocked,
+    efficiency_premium_applied:   applyEfficiency,
+    corporate_latency_applied:    applyCorporateLatency,
     notes:                     input.notes ?? null,
   };
 

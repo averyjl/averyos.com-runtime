@@ -113,6 +113,21 @@ interface D1Database {
   prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
+/** Exported alias for D1Database — use in route CloudflareEnv interfaces. */
+export type VaultChainDB = D1Database;
+
+/** Input for the general-purpose {@link writeBlock} function. */
+export interface WriteBlockInput {
+  /** Block type to write (default: "RECORD"). */
+  block_type:   VaultChainBlockType;
+  /** Arbitrary text/JSON payload for this block. */
+  payload:      string;
+  /** Optional reference to a related block ID (e.g. for CORRECTION blocks). */
+  ref_block_id: number | null;
+  /** Author identifier (default: "ROOT0"). */
+  author:       string;
+}
+
 // ── SHA-512 helper ─────────────────────────────────────────────────────────────
 
 async function sha512Hex(text: string): Promise<string> {
@@ -362,4 +377,63 @@ export async function readRecentBlocks(
       all<T>(): Promise<{ results: T[] }>
     }).all<VaultChainBlock>();
   return rows.results;
+}
+
+/**
+ * Count the total number of blocks in the VaultChain™ ledger.
+ *
+ * @param db  D1 database binding.
+ * @returns   Total block count (0 if the table is empty or does not exist yet).
+ */
+export async function countBlocks(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) as count FROM vaultchain_ledger")
+    .bind()
+    .first<{ count: number }>();  // bind() required by the D1 fluent API even with no params
+  return row?.count ?? 0;
+}
+
+/**
+ * Append a generic block to the VaultChain™ ledger.
+ *
+ * This is the general-purpose writer used by the REST API. For strongly-typed
+ * helpers that enforce the specific block-type schema, use {@link appendRecord},
+ * {@link appendCorrection}, {@link appendAnchor}, or {@link bootstrapGenesis}.
+ *
+ * @param db    D1 database binding.
+ * @param input Block payload descriptor.
+ * @returns     The auto-incremented ID of the newly inserted block, or null on failure.
+ */
+export async function writeBlock(
+  db: D1Database,
+  input: WriteBlockInput,
+): Promise<number | null> {
+  const ts       = formatIso9();
+  const prevSha  = await latestBlockSha(db);
+  const canonical = canonicalPayload({
+    type:           input.block_type,
+    payload:        input.payload,
+    ref_block_id:   input.ref_block_id,
+    author:         input.author,
+    created_at:     ts,
+    prev_sha512:    prevSha,
+    kernel_version: KERNEL_VERSION,
+  });
+  const blockSha = await sha512Hex(canonical);
+
+  const result = await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version, payload, corrects_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    input.block_type,    // type
+    ts,                  // created_at
+    blockSha,            // block_sha512
+    prevSha,             // prev_sha512
+    KERNEL_VERSION,      // kernel_version
+    input.payload,       // payload
+    input.ref_block_id,  // corrects_id (null for non-CORRECTION blocks)
+  ).run();
+
+  return result.meta?.last_row_id ?? null;
 }
