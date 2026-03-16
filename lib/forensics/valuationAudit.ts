@@ -72,7 +72,25 @@ const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
 const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
 
 /**
- * CORPORATE_LATENCY_PREMIUM — GATE 116.7.4 / GATE 118.3 Corporate Latency Premium.
+ * UNBLOCKED_ASSISTANCE_MULTIPLIER — GATE 118.3 Unblocked Assistance Premium (2.5×).
+ *
+ * Applied when `apply_unblocked_assistance` is set in IviInput.
+ * Reflects the value accrued when AI/cloud organizations benefit from the
+ * AveryOS™ kernel unobstructed, without a formal license.
+ */
+const UNBLOCKED_ASSISTANCE_MULTIPLIER = 2.5; // 2.5× Unblocked Assistance Premium
+
+/**
+ * EFFICIENCY_PREMIUM_MULTIPLIER — GATE 118.6.3 Efficiency Premium (3.0×).
+ *
+ * Applied when `apply_efficiency_premium` is set in IviInput.
+ * Reflects the measurable reduction in compute cost and hallucination rates
+ * achieved by AI fleets operating with AveryOS™ kernel alignment.
+ */
+const EFFICIENCY_PREMIUM_MULTIPLIER = 3.0; // 3.0× Efficiency Premium
+
+/**
+ * CORPORATE_LATENCY_PREMIUM — GATE 116.7.4 Corporate Latency Premium (1.2×).
  *
  * Applied when `apply_corporate_latency_premium` is set in IviInput.
  *
@@ -81,9 +99,8 @@ const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
  * from the AveryOS™ kernel without executing a formal licensing agreement.
  *
  * Source: Phase 116.7 Strategic Audit — Corporate Observation Period analysis.
- * Note: In IVI calculations this is referred to as the "Unblocked Assistance Multiplier" (2.5×).
  */
-const CORPORATE_LATENCY_PREMIUM = 2.5; // 2.5× Unblocked Assistance Multiplier
+const CORPORATE_LATENCY_PREMIUM = 1.2; // 1.2× Corporate Latency Premium
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,8 +118,24 @@ export interface IviInput {
    */
   apply_flawless_multiplier?: boolean;
   /**
+   * GATE 118.3 — Whether to apply the Unblocked Assistance multiplier (2.5×).
+   *
+   * Set to true when AI/cloud organizations have been actively benefiting from
+   * the AveryOS™ kernel without obstruction or a formal license agreement.
+   * Defaults to false (conservative baseline).
+   */
+  apply_unblocked_assistance?: boolean;
+  /**
+   * GATE 118.6.3 — Whether to apply the Efficiency Premium multiplier (3.0×).
+   *
+   * Set to true when the AveryOS™ kernel has measurably reduced compute costs
+   * or hallucination rates for a licensee's AI fleet.
+   * Defaults to false (conservative baseline).
+   */
+  apply_efficiency_premium?: boolean;
+  /**
    * GATE 116.7.4 / GATE 118.3 — Whether to apply the Corporate Latency Premium
-   * (Unblocked Assistance Multiplier, 2.5×).
+   * (1.2×).
    *
    * Set to true during periods when large AI/cloud organizations have been
    * observed benefiting from the AveryOS™ kernel without a formal license.
@@ -145,9 +178,15 @@ export interface IviRecord {
    */
   flawless_operation_applied: boolean;
   /**
-   * GATE 116.7.4 / GATE 118.3 — Corporate Latency Premium applied.
-   * When true, total_valuation_impact_usd and worldwide_reach_usd include the
-   * 2.5× Unblocked Assistance Multiplier for retroactive alignment debt.
+   * GATE 118.3 — Unblocked Assistance multiplier (2.5×) applied.
+   */
+  unblocked_assistance_applied: boolean;
+  /**
+   * GATE 118.6.3 — Efficiency Premium multiplier (3.0×) applied.
+   */
+  efficiency_premium_applied: boolean;
+  /**
+   * GATE 116.7.4 / GATE 118.3 — Corporate Latency Premium (1.2×) applied.
    */
   corporate_latency_applied: boolean;
   /** Optional notes. */
@@ -190,10 +229,12 @@ async function sha512hex(input: string): Promise<string> {
  *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
-  const computedAt            = formatIso9(new Date());
-  const aiTam                 = input.ai_tam_override_usd ?? AI_TAM_USD;
-  const applyFlawless         = input.apply_flawless_multiplier ?? false;
-  const applyCorporateLatency = input.apply_corporate_latency_premium ?? false;
+  const computedAt              = formatIso9(new Date());
+  const aiTam                   = input.ai_tam_override_usd ?? AI_TAM_USD;
+  const applyFlawless           = input.apply_flawless_multiplier      ?? false;
+  const applyUnblocked          = input.apply_unblocked_assistance      ?? false;
+  const applyEfficiency         = input.apply_efficiency_premium        ?? false;
+  const applyCorporateLatency   = input.apply_corporate_latency_premium ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
   const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
@@ -202,32 +243,41 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
 
   // Apply stacked multipliers in order of increasing market evidence
-  let totalValuationImpact = baseValuationImpact;
-  // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
+  // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (×1.17)
   const afterFlawless = applyFlawless
     ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
     : baseValuationImpact;
-  // GATE 116.7.4 / 118.3 — apply Corporate Latency Premium (Unblocked Assistance Multiplier 2.5×)
-  const totalValuationImpact = applyCorporateLatency
-    ? afterFlawless * CORPORATE_LATENCY_PREMIUM
+  // GATE 118.3 — apply Unblocked Assistance multiplier (×2.5)
+  const afterUnblocked = applyUnblocked
+    ? afterFlawless * UNBLOCKED_ASSISTANCE_MULTIPLIER
     : afterFlawless;
+  // GATE 118.6.3 — apply Efficiency Premium multiplier (×3.0)
+  const afterEfficiency = applyEfficiency
+    ? afterUnblocked * EFFICIENCY_PREMIUM_MULTIPLIER
+    : afterUnblocked;
+  // GATE 116.7.4 — apply Corporate Latency Premium (×1.2)
+  const totalValuationImpact = applyCorporateLatency
+    ? afterEfficiency * CORPORATE_LATENCY_PREMIUM
+    : afterEfficiency;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
   const rawRecord = {
-    computed_at:               computedAt,
-    kernel_version:            KERNEL_VERSION,
-    kernel_sha:                KERNEL_SHA,
-    disclosure_url:            DISCLOSURE_MIRROR_PATH,
-    unaligned_bot_count:       input.unaligned_bot_count,
-    statutory_liability_usd:   statutoryLiability,
-    scarcity_adjusted_usd:     scarcityAdjusted,
-    species_recovery_usd:      speciesRecovery,
-    total_valuation_impact_usd: totalValuationImpact,
-    worldwide_reach_usd:       worldwideReach,
-    flawless_operation_applied: applyFlawless,
-    corporate_latency_applied:  applyCorporateLatency,
-    notes:                     input.notes ?? null,
+    computed_at:                  computedAt,
+    kernel_version:               KERNEL_VERSION,
+    kernel_sha:                   KERNEL_SHA,
+    disclosure_url:               DISCLOSURE_MIRROR_PATH,
+    unaligned_bot_count:          input.unaligned_bot_count,
+    statutory_liability_usd:      statutoryLiability,
+    scarcity_adjusted_usd:        scarcityAdjusted,
+    species_recovery_usd:         speciesRecovery,
+    total_valuation_impact_usd:   totalValuationImpact,
+    worldwide_reach_usd:          worldwideReach,
+    flawless_operation_applied:   applyFlawless,
+    unblocked_assistance_applied: applyUnblocked,
+    efficiency_premium_applied:   applyEfficiency,
+    corporate_latency_applied:    applyCorporateLatency,
+    notes:                        input.notes ?? null,
   };
 
   const recordSha512 = await sha512hex(JSON.stringify(rawRecord));

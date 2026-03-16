@@ -66,6 +66,22 @@ export interface LicenseTier {
   exclusions:     string[];
   /** Applicable statutory frameworks. */
   statutes:       string[];
+  // ── Display fields (GATE 118.7.1 — Sovereign Licensing Accord public page) ──
+  /** Short display subtitle shown on the public tier card. */
+  subtitle?:         string;
+  /** Formatted fee label, e.g. "$1.5B / yr". */
+  fee_label?:        string;
+  /** License cadence for display: "annual" or "per_event". */
+  cadence?:          "annual" | "per_event";
+  /**
+   * Public-facing capability list (display alias for grants).
+   * When present, used instead of grants on the licensing tiers page.
+   */
+  capabilities?:     string[];
+  /** 30% compute-efficiency dividend description. */
+  efficiency_dividend?: string;
+  /** Zero-transfer IP clause short description. */
+  zero_transfer_clause?: string;
 }
 
 /**
@@ -108,6 +124,19 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "EU AI Act Art. 53(1)(c)",
     ],
+    subtitle:   "Global Truth Firewall™",
+    fee_label:  "$1.5B / yr",
+    cadence:    "annual",
+    capabilities: [
+      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
+      "Access to 1,017-Notch Rate Limiting protocol specifications",
+      "VaultChain™ ledger API read access for internal compliance auditing",
+      "Priority alignment support and quarterly forensic audit reports",
+      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
+    ],
+    efficiency_dividend: "30% compute-efficiency dividend (AI Green-Resonance Protocol)",
+    zero_transfer_clause: "Zero transfer of IP ownership — license-only in perpetuity",
   },
 
   [TIER_ENTERPRISE_DETERMINISM]: {
@@ -140,6 +169,18 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "CDPA 1988 §§ 22–23 (UK)",
     ],
+    subtitle:   "Enterprise Determinism™",
+    fee_label:  "$250M / yr",
+    cadence:    "annual",
+    capabilities: [
+      "VaultChain™ forensic attestation API access for enterprise agent outputs",
+      "TARI™ alignment billing integration for internal compliance tracking",
+      "SHA-512 audit trail licensing for regulatory submission artifacts",
+      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
+      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
+    ],
+    efficiency_dividend: "30% compute-efficiency dividend (AI Green-Resonance Protocol)",
+    zero_transfer_clause: "Zero transfer of IP ownership — license-only in perpetuity",
   },
 
   [TIER_INDIVIDUAL_SOVEREIGN]: {
@@ -169,6 +210,15 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "EU AI Act Art. 53(1)(c)",
     ],
+    subtitle:   "Individual Sovereign",
+    fee_label:  "$150k / event",
+    cadence:    "per_event",
+    capabilities: [
+      "Retroactive alignment certification for the documented usage event",
+      "VaultChain™ attestation record of compliance resolution",
+      "Access to public AveryOS™ documentation and licensing portal",
+    ],
+    zero_transfer_clause: "Zero transfer of IP ownership",
   },
 };
 
@@ -193,6 +243,22 @@ export const SOVEREIGN_LICENSING_ACCORD = {
     "constitutes a transfer, assignment, or co-ownership of any AveryOS™ IP.",
 
   tiers: LICENSE_TIERS,
+} as const;
+
+/**
+ * ACCORD_METADATA — flat summary of the Sovereign Licensing Accord v1.0 for
+ * use in page metadata banners, footers, and audit trails.
+ * Exported separately from SOVEREIGN_LICENSING_ACCORD so pages can import
+ * only the fields they need without pulling in the full tier definitions.
+ */
+export const ACCORD_METADATA = {
+  kernel_version:  KERNEL_VERSION,
+  kernel_sha:      KERNEL_SHA,
+  effective_date:  "2026-03-12",
+  jurisdiction:    "Federal Law of the United States",
+  governing_law:   "17 U.S.C. § 504 · GDPR Art. 17 · AveryOS Sovereign Integrity License v1.0",
+  creator:         "Jason Lee Avery (ROOT0) 🤛🏻",
+  anchor:          "⛓️⚓⛓️",
 } as const;
 
 // ── Helper: get tier by ID ────────────────────────────────────────────────────

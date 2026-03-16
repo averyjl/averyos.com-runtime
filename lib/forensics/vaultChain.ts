@@ -113,6 +113,21 @@ interface D1Database {
   prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
+/**
+ * VaultChainDB — exported alias for the D1 binding interface, used by API routes.
+ */
+export type VaultChainDB = D1Database;
+
+/**
+ * WriteBlockInput — input shape for the writeBlock() helper.
+ */
+export interface WriteBlockInput {
+  block_type:   "GENESIS" | "RECORD" | "CORRECTION" | "ANCHOR";
+  payload:      string;
+  ref_block_id: number | null;
+  author?:      string;
+}
+
 // ── SHA-512 helper ─────────────────────────────────────────────────────────────
 
 async function sha512Hex(text: string): Promise<string> {
@@ -362,4 +377,64 @@ export async function readRecentBlocks(
       all<T>(): Promise<{ results: T[] }>
     }).all<VaultChainBlock>();
   return rows.results;
+}
+
+/**
+ * Count the total number of blocks in the VaultChain™ ledger.
+ *
+ * @param db  D1 database binding.
+ * @returns   Total block count, or 0 if the table does not exist yet.
+ */
+export async function countBlocks(db: D1Database): Promise<number> {
+  try {
+    const row = await (db
+      .prepare("SELECT COUNT(*) AS cnt FROM vaultchain_ledger")
+      .bind() as unknown as { first<T>(): Promise<T | null> })
+      .first<{ cnt: number }>();
+    return row?.cnt ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Append a single new block to the VaultChain™ ledger.
+ *
+ * @param db    D1 database binding.
+ * @param input Block data to append.
+ * @returns     The new block's auto-incremented id, or null on failure.
+ */
+export async function writeBlock(
+  db: D1Database,
+  input: WriteBlockInput,
+): Promise<number | null> {
+  await ensureVaultChainTable(db);
+
+  const computedAt = new Date().toISOString();
+  const prevSha    = (await latestBlockSha(db)) ?? KERNEL_SHA;
+  const blockSha   = await sha512Hex(
+    `${prevSha}:${input.block_type}:${input.author ?? "ROOT0"}:${input.payload}:${computedAt}`
+  );
+
+  try {
+    const result = await (db
+      .prepare(
+        `INSERT INTO vaultchain_ledger
+          (block_type, author, payload, prev_block_sha, block_sha, ref_block_id, computed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        input.block_type,
+        input.author ?? "ROOT0",
+        input.payload,
+        prevSha,
+        blockSha,
+        input.ref_block_id,
+        computedAt,
+      ) as unknown as { run(): Promise<{ meta?: { last_row_id?: number } }> })
+      .run();
+    return result?.meta?.last_row_id ?? null;
+  } catch {
+    return null;
+  }
 }
