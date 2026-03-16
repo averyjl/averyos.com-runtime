@@ -229,3 +229,55 @@ export async function deleteCredential(
 // ── Re-export anchor for convenience ─────────────────────────────────────────
 
 export { ANCHOR as VAULTGATE_ANCHOR };
+
+// ── SHA-512 payload verification — GATE 119.6.3 ───────────────────────────────
+
+/**
+ * Compute the SHA-512 hash of a plaintext passphrase.
+ *
+ * This is the `sha512_payload` alignment standard for VaultGate auth.
+ * The Admin Dashboard (app/admin/sovereign) uses this to verify that the
+ * submitted passphrase matches the stored SHA-512 hash, preventing plaintext
+ * comparison and aligning with the AveryOS™ SHA-512 cryptographic standard.
+ *
+ * Usage:
+ *   const hash = await vaultGateSha512Payload(submittedPassphrase);
+ *   if (hash !== storedSha512Hash) throw new Error("Invalid passphrase");
+ */
+export async function vaultGateSha512Payload(plaintext: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data    = encoder.encode(plaintext);
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  // Node.js fallback
+  const { createHash } = await import("crypto");
+  return createHash("sha512").update(plaintext, "utf8").digest("hex");
+}
+
+/**
+ * Verify a submitted passphrase against a stored SHA-512 hash.
+ *
+ * This is a constant-time comparison using the SHA-512 digest of both values
+ * to prevent timing attacks on the passphrase comparison.
+ *
+ * @param submitted   Plaintext passphrase submitted by the user.
+ * @param storedHash  SHA-512 hash previously stored for the user.
+ * @returns           True if the passphrase matches.
+ */
+export async function verifySha512Payload(
+  submitted:  string,
+  storedHash: string,
+): Promise<boolean> {
+  const submittedHash = await vaultGateSha512Payload(submitted);
+  // Constant-time comparison: compare as hex strings of equal length
+  if (submittedHash.length !== storedHash.length) return false;
+  let diff = 0;
+  for (let i = 0; i < submittedHash.length; i++) {
+    diff |= submittedHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+  }
+  return diff === 0;
+}

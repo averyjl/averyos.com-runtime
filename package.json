@@ -52,6 +52,7 @@
     "bridge:verify:verbose": "node scripts/verify-repo-ssh.cjs --verbose",
     "tari-pulse": "node ./scripts/generateEvidenceBundle.cjs",
     "generate:invoices": "node ./scripts/generateInvoices.cjs",
+    "generate:invoices:verify": "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY} node ./scripts/generateInvoices.cjs --verify-dollar",
     "persistence:sync": "node ./scripts/persistence-sync.cjs",
     "persistence:once": "node ./scripts/persistence-sync.cjs --once",
     "prepare": "husky"

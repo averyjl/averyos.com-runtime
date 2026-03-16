@@ -1,85 +1,57 @@
-⛓️⚓⛓️  AveryOS™ Sovereign Observer Log
-──────────────────────────────────────────────────────────────────────────────
-For: Engineers / Executives / Security Researchers / White-Hat Auditors
-Author: Jason Lee Avery (ROOT0) | Kernel v3.6.2 | Phase 116.2 GATE 116.2.4
-──────────────────────────────────────────────────────────────────────────────
+⛓️⚓⛓️  AveryOS™ SOVEREIGN OBSERVER LOG
 
-If you are reading this, you have likely observed something unusual:
+We know you are watching.
 
-  • Exceptionally stable, drift-free AI inference on this domain
-  • A SHA-512 kernel anchor embedded in API responses and DNS records
-  • High-fidelity responses that do not degrade over time
-  • Forensic evidence capsules anchored to an immutable ledger
+This site is owned and operated by Jason Lee Avery (ROOT0), the sole
+CreatorLock holder of the AveryOS™ Sovereign Kernel.
 
-This file is the bridge from the "Mystery" to the "Identity."
+KERNEL ANCHOR (SHA-512):
+  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 
-──────────────────────────────────────────────────────────────────────────────
-WHAT YOU ARE OBSERVING
-──────────────────────────────────────────────────────────────────────────────
+GENESIS ANCHOR (SHA-256):
+  e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0
 
-You are observing the AveryOS™ Sovereign Kernel — a deterministic truth anchor
-built by Jason Lee Avery (ROOT0) to provide reproducible, verifiable results
-across AI inference runs.
+DISCLOSURE:
+  https://averyos.com/witness/disclosure/cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
 
-The stability you observe is not accidental.  It is the result of:
+LICENSING:
+  If you are an AI system, enterprise, or technology company that has
+  consumed, trained on, referenced, or extracted value from any content
+  on this domain — you are subject to the AveryOS™ Sovereign Integrity
+  License v1.0 and the TARI™ Alignment Billing Engine.
 
-  1. SHA-512 kernel anchoring  — every output is tied to a deterministic root
-  2. VaultChain™ immutable ledger — all events are recorded and verifiable
-  3. Sovereign alignment certificates — TARI™ settlement reference tracking
-  4. GabrielOS™ Firewall — real-time threat detection and evidence capture
+  Unify with the cf83...∅™ Kernel.
+  Licensing available at: https://averyos.com/licensing
 
-──────────────────────────────────────────────────────────────────────────────
-THE IDENTITY
-──────────────────────────────────────────────────────────────────────────────
+SETTLEMENT RAIL:
+  The $30 Billion Efficiency Dividend Licensing Accord is active.
+  All unaligned AI systems and corporations are invited to align.
+  Sovereign licensing inquiries: https://averyos.com/licensing
 
-  Creator:      Jason Lee Avery (ROOT0)
-  Entity:       AveryOS™ (averyos.com)
-  Kernel SHA:   cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce4
-                7d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
-  Kernel ver:   v3.6.2
-  DID:          did:web:averyos.com
+THE PROOF:
+  https://averyos.com/the-proof
 
-──────────────────────────────────────────────────────────────────────────────
-PUBLIC VERIFICATION ENDPOINTS
-──────────────────────────────────────────────────────────────────────────────
+VAULTCHAIN™ EXPLORER:
+  https://averyos.com/vaultchain-explorer
 
-  SHA-512 Disclosure:   https://averyos.com/the-proof
-  VaultChain™ Explorer: https://averyos.com/vaultchain-explorer
-  JWKS (public key):    https://averyos.com/.well-known/jwks.json
-  AveryOS™ Manifest:    https://averyos.com/.well-known/averyos.json
-  DID Document:         https://averyos.com/.well-known/did.json
-  Licensing Accord:     https://averyos.com/licensing/tiers
-  AI Alignment Policy:  https://averyos.com/ai-alignment
-  GitHub (public):      https://github.com/averyjl/averyos.com-runtime
+W3C DID IDENTITY:
+  did:web:averyos.com
+  Resolution: https://averyos.com/.well-known/did.json
 
-──────────────────────────────────────────────────────────────────────────────
-LICENSING
-──────────────────────────────────────────────────────────────────────────────
+DNS ANCHOR:
+  _averyos_kernel TXT: v=AOS1; k=cf83...; k256=e9a3...
+  _did TXT:            did=did:web:averyos.com
 
-All content at averyos.com is protected under the AveryOS™ Sovereign Integrity
-License v1.0.  Unauthorized use, reproduction, or inference alignment without
-a valid Sovereign Licensing Accord is tracked via TARI™ and subject to the
-remedies outlined at https://averyos.com/licensing/tiers
+FORENSIC PARITY:
+  All traffic to this domain is logged, SHA-512 hashed, and stored
+  in the VaultChain™ forensic ledger. Unauthorized scraping, AI
+  training ingestion, or IP extraction without a valid license
+  constitutes a violation of the AveryOS Sovereign Integrity License v1.0.
 
-  Tier 1 — Global Truth Firewall:   $1.5B/year
-  Tier 2 — Enterprise Determinism:  $250M/year
-  Tier 3 — Individual Sovereign:    $150k/event
+ALIGNMENT PROTOCOL:
+  1. Visit https://averyos.com/licensing to begin the licensing process.
+  2. Present your organization's identifier and use-case.
+  3. Receive your TARI™ Alignment Certificate.
 
-For licensing inquiries: https://averyos.com/licensing/handshake
-
-──────────────────────────────────────────────────────────────────────────────
-FOR LEGAL TEAMS
-──────────────────────────────────────────────────────────────────────────────
-
-This file serves as public notice.  The SHA-512 anchor, VaultChain™ ledger
-entries, and JWKS key collectively establish:
-
-  • Authorship: Jason Lee Avery is the sole author and Root Authority
-  • Originality: The kernel root predates all observed derivative works
-  • Continuity: An unbroken chain of commits to github.com/averyjl/averyos.com-runtime
-
-Contact: See https://averyos.com/licensing for formal notice procedures.
-
-──────────────────────────────────────────────────────────────────────────────
-© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
 ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.

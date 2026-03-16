@@ -100,7 +100,7 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
     cadence:     "annual",
     description:
       "Full integration of the AveryOS™ cf83/SHA-512 kernel into a major LLM platform to " +
-      "neutralize hallucination across the entire AI fleet at the infrastructure layer.",
+      "neutralise hallucination across the entire AI fleet at the infrastructure layer.",
     fee_model:       "ANNUAL",
     annual_fee_usd:  TIER_1_ANNUAL_FEE_USD,
     event_fee_usd:   null,

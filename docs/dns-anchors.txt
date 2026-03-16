@@ -1,107 +1,86 @@
-⛓️⚓⛓️  AveryOS™ Sovereign Identity DNS Anchors
-──────────────────────────────────────────────────────────────────
-Kernel: v3.6.2 | Anchor: cf83e135...da3e™ | Phase 116.3 / 116.4
-Author: Jason Lee Avery (ROOT0)
+⛓️⚓⛓️  AveryOS™ DNS ANCHOR MANIFEST
+Phase 119.8 GATE 119.8.1 | 119.9.2
 
-PURPOSE
-───────
-These DNS TXT records establish Jason Lee Avery as the cryptographic
-Root Authority of the AveryOS™ Kernel at the DNS level.  They transform
-the "High-Resolution Mystery" (observed by corporate security teams as a
-statistical anomaly) into a publicly verifiable Sovereign Fact.
+This file documents the Cloudflare DNS records required to establish
+DNS-level forensic proof of the AveryOS™ Sovereign Kernel identity.
+Add these records in the Cloudflare DNS dashboard for averyos.com.
 
-Once these records are applied at averyos.com, any legal or technical team
-can confirm the Creator identity chain:
+LEGAL CLOCK: Adding these records to DNS creates a timestamped,
+publicly-verifiable record that averyos.com is anchored to the
+cf83...∅™ Kernel as of the date applied.
 
-  DNS _averyos_kernel.averyos.com  →  cf83™ SHA-512 anchor
-  DNS _did.averyos.com             →  W3C DID document URL
-  DNS _averyos_sha256.averyos.com  →  SHA-256 bridge for legacy systems
+────────────────────────────────────────────────────────────────────────
+TXT RECORD #1 — Kernel Anchor (SHA-512 + SHA-256 Dual Proof)
+────────────────────────────────────────────────────────────────────────
+  Name:  _averyos_kernel.averyos.com
+  Type:  TXT
+  TTL:   3600 (Auto)
+  Value: v=AOS1; k=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; k256=e9a3cbcd8a0f4f58b1b3f3f0c5a8e1d7b2c9f4e6a0d3b7c1e5f8a2d4c6b9e3f0; skc=SKC-2026.1; ver=v3.6.2
 
-──────────────────────────────────────────────────────────────────────────────
-CLOUDFLARE DNS CONFIGURATION
-──────────────────────────────────────────────────────────────────────────────
-Add the following TXT records in the Cloudflare Dashboard (DNS › Records):
+  Purpose: Proves the SHA-512 Root0 Kernel and SHA-256 Genesis Anchor
+           at the DNS level. Machine-readable by AI bots and DID resolvers.
 
-  1. PRIMARY KERNEL ANCHOR (SHA-512)
-     ─────────────────────────────────
-     Type  : TXT
-     Name  : _averyos_kernel
-     Value : v=averyos1; sha512=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; version=v3.6.2; root=ROOT0; owner=jason-lee-avery
-     TTL   : Auto (or 3600)
+────────────────────────────────────────────────────────────────────────
+TXT RECORD #2 — DID Hardlock
+────────────────────────────────────────────────────────────────────────
+  Name:  _did.averyos.com
+  Type:  TXT
+  TTL:   3600 (Auto)
+  Value: did=did:web:averyos.com; resolver=https://averyos.com/.well-known/did.json
 
-  2. SHA-256 BRIDGE ANCHOR (Legacy interop)
-     ─────────────────────────────────────────
-     Type  : TXT
-     Name  : _averyos_sha256
-     Value : v=averyos1; sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; version=v3.6.2; bridge=sha512
-     TTL   : Auto (or 3600)
+  Purpose: Hardlocks the W3C DID identity to the domain at the DNS level.
+           Allows bots to find the DID document without crawling the site.
 
-  3. W3C DID DOCUMENT POINTER
-     ───────────────────────────
-     Type  : TXT
-     Name  : _did
-     Value : did:web:averyos.com
-     TTL   : Auto (or 3600)
+────────────────────────────────────────────────────────────────────────
+SRV RECORD — AveryOS™ ALM (Anchored Language Model) Discovery
+────────────────────────────────────────────────────────────────────────
+  Name:     _averyos-alm._tcp.averyos.com
+  Type:     SRV
+  TTL:      3600 (Auto)
+  Priority: 10
+  Weight:   5
+  Port:     8080
+  Target:   node-02.averyos.com
 
-  4. VAULTCHAIN MERKLE ROOT
-     ────────────────────────
-     Type  : TXT
-     Name  : _averyos_merkle
-     Value : v=averyos1; merkle=88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe; algo=sha512
-     TTL   : Auto (or 3600)
+  Purpose: Enables global mesh discovery of the AveryOS-ALM resident on
+           Node-02 (PC / Ollama). The ALM runs at port 8080 on node-02.
+           This SRV record bridges the cloud mesh to your physical PC.
 
-  5. KERNEL VERSION BADGE
-     ──────────────────────
-     Type  : TXT
-     Name  : _averyos_version
-     Value : v3.6.2
-     TTL   : Auto (or 3600)
+────────────────────────────────────────────────────────────────────────
+TXT RECORD #3 — VaultChain™ Merkle Root
+────────────────────────────────────────────────────────────────────────
+  Name:  _vaultchain.averyos.com
+  Type:  TXT
+  TTL:   3600 (Auto)
+  Value: merkle=88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe; artifact=AveryOS_Golden_Lock_ColdStorage_2026-02-22
 
-──────────────────────────────────────────────────────────────────────────────
-DID DOCUMENT (did:web:averyos.com)
-──────────────────────────────────────────────────────────────────────────────
-The DID document is served at:  https://averyos.com/.well-known/did.json
+  Purpose: Attests the VaultChain™ Merkle root and Golden Lock artifact
+           at the DNS level for cold-storage forensic verification.
 
-It links:
-  • verificationMethod  → JWKS at /.well-known/jwks.json (kid: averyos-sovereign-key-v3.6.2)
-  • service             → VaultChain™ Explorer at /vaultchain-explorer
-  • service             → The Proof at /the-proof (SHA-512 disclosure)
+────────────────────────────────────────────────────────────────────────
+CNAME RECORD — Node-02 ALM Target
+────────────────────────────────────────────────────────────────────────
+  Name:  node-02.averyos.com
+  Type:  CNAME or A
+  TTL:   60 (Low — dynamic IP)
+  Value: <YOUR_NODE_02_DYNAMIC_IP_OR_DDNS_HOSTNAME>
 
-──────────────────────────────────────────────────────────────────────────────
+  Note:  Replace with your Node-02 (PC) IP address or a DDNS hostname
+         (e.g. node-02.yourdomain.ddns.net). The low TTL (60s) allows
+         rapid failover when your home IP changes.
+
+────────────────────────────────────────────────────────────────────────
 VERIFICATION COMMANDS
-──────────────────────────────────────────────────────────────────────────────
-  After applying records, verify with:
+────────────────────────────────────────────────────────────────────────
+After applying DNS records, verify with:
 
-    # Primary kernel anchor
-    nslookup -type=TXT _averyos_kernel.averyos.com
+  dig TXT _averyos_kernel.averyos.com +short
+  dig TXT _did.averyos.com +short
+  dig SRV _averyos-alm._tcp.averyos.com +short
+  dig TXT _vaultchain.averyos.com +short
 
-    # DID pointer
-    nslookup -type=TXT _did.averyos.com
-
-    # Fetch the DID document
-    curl https://averyos.com/.well-known/did.json
-
-    # Fetch JWKS
-    curl https://averyos.com/.well-known/jwks.json
-
-──────────────────────────────────────────────────────────────────────────────
-PROPAGATION
-──────────────────────────────────────────────────────────────────────────────
-  DNS propagation typically completes within 5 minutes on Cloudflare.
-  Global propagation: 1–48 hours depending on upstream TTL caching.
-  Use https://dnschecker.org to confirm worldwide propagation.
-
-──────────────────────────────────────────────────────────────────────────────
-LEGAL SIGNIFICANCE
-──────────────────────────────────────────────────────────────────────────────
-  These records constitute public attestation of the Creator identity.
-  Combined with:
-    • VaultChain™ immutable ledger entries
-    • SHA-512 signed JWKS key (kid: averyos-sovereign-key-v3.6.2)
-    • /the-proof SHA-512 disclosure page
-    • Public GitHub commit history (github.com/averyjl/averyos.com-runtime)
-
-  They form a multi-layer, externally verifiable chain of identity linking
-  Jason Lee Avery (ROOT0) to the AveryOS™ cf83™ Kernel Root.
+Expected: Each should return the value specified above within ~5 minutes
+          of DNS propagation.
 
 ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.

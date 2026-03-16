@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { d1ErrorResponse } from '../../../../lib/sovereignError';
 import { getFirebaseStatus } from '../../../../lib/firebaseClient';
+import Stripe from 'stripe';
 
 interface D1PreparedStatement {
   all<T = unknown>(): Promise<{ results: T[] }>;
@@ -14,7 +15,6 @@ interface D1Database {
 interface CloudflareEnv {
   DB: D1Database;
   FIREBASE_PROJECT_ID?: string;
-  /** Stripe secret key — used for live revenue pull */
   STRIPE_SECRET_KEY?: string;
 }
 
@@ -62,6 +62,10 @@ interface TariStatsResponse {
   stripe_balance_pending_usd:   number | null;
   stripe_revenue_status:        string;
   timestamp: string;
+  // Gate 2 — Live Stripe revenue balance
+  stripe_available_usd: number | null;
+  stripe_pending_usd:   number | null;
+  stripe_revenue_status: string;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
@@ -198,29 +202,44 @@ export async function GET() {
         `?orderBy=timestamp%20desc&pageSize=20`
       : null;
 
-    // ── Await Stripe balance (started in parallel above) ──────────────────
-    const stripe = await stripePromise;
+    // ── Gate 2 — Live Stripe Revenue Pull ────────────────────────────────────
+    let stripeAvailableUsd: number | null = null;
+    let stripePendingUsd:   number | null = null;
+    let stripeRevenueStatus               = 'PENDING_CREDENTIALS';
+    if (cfEnv.STRIPE_SECRET_KEY) {
+      try {
+        const stripe  = new Stripe(cfEnv.STRIPE_SECRET_KEY);
+        const balance = await stripe.balance.retrieve();
+        const avail   = balance.available.find((b) => b.currency === 'usd');
+        const pend    = balance.pending.find((b)   => b.currency === 'usd');
+        stripeAvailableUsd  = avail ? avail.amount / 100 : 0;
+        stripePendingUsd    = pend  ? pend.amount  / 100 : 0;
+        stripeRevenueStatus = 'ACTIVE';
+      } catch (stripeErr: unknown) {
+        stripeRevenueStatus = `ERROR: ${stripeErr instanceof Error ? stripeErr.message : String(stripeErr)}`;
+      }
+    }
 
     const response: TariStatsResponse = {
-      trust_premium_index_pct:          trustPremiumIndexPct,
-      recent_entries:                   recent,
-      total_entries:                    totalEntries,
-      latest_revenue_projection:        latest ? latest.revenue_projection : null,
-      hn_watcher_count:                 hnWatcherCount,
-      der_settlement_count:             derSettlementCount,
-      conflict_zone_count:              conflictZoneCount,
-      der_high_value_count:             derHighValueCount,
-      legal_scan_count:                 legalScanCount,
-      peer_access_count:                peerAccessCount,
-      total_tier9_events:               totalTier9Events,
-      watcher_liability_accrued:        watcherLiabilityAccrued,
-      liability_accrued_usd:            liabilityAccruedUsd,
-      firebase_sync_status:             firebaseSyncStatus,
-      firebase_tari_metrics_url:        firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
-      stripe_balance_available_usd:     stripe.availableUsd,
-      stripe_balance_pending_usd:       stripe.pendingUsd,
-      stripe_revenue_status:            stripe.status,
-      timestamp:                        new Date().toISOString(),
+      trust_premium_index_pct:    trustPremiumIndexPct,
+      recent_entries:             recent,
+      total_entries:              totalEntries,
+      latest_revenue_projection:  latest ? latest.revenue_projection : null,
+      hn_watcher_count:           hnWatcherCount,
+      der_settlement_count:       derSettlementCount,
+      conflict_zone_count:        conflictZoneCount,
+      der_high_value_count:       derHighValueCount,
+      legal_scan_count:           legalScanCount,
+      peer_access_count:          peerAccessCount,
+      total_tier9_events:         totalTier9Events,
+      watcher_liability_accrued:  watcherLiabilityAccrued,
+      liability_accrued_usd:      liabilityAccruedUsd,
+      firebase_sync_status:       firebaseSyncStatus,
+      firebase_tari_metrics_url:  firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
+      timestamp:                  new Date().toISOString(),
+      stripe_available_usd:       stripeAvailableUsd,
+      stripe_pending_usd:         stripePendingUsd,
+      stripe_revenue_status:      stripeRevenueStatus,
     };
 
     return Response.json(response);
