@@ -4,7 +4,7 @@
  * TAI™ Network Handshake — Phase 94.1
  *
  * Validates an AVERYOS_LICENSE_KEY and returns a time-limited Sovereign Pulse Token
- * that authorises a remote AI Studio Gem to POST forensic insights to the D1
+ * that authorizes a remote AI Studio Gem to POST forensic insights to the D1
  * Sovereign Audit Logs via /api/v1/tai/sync.
  *
  * Request body (JSON):

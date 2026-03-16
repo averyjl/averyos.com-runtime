@@ -17,7 +17,7 @@ const path  = require('path');
 // ── Drift Pattern Definitions ──────────────────────────────────────────────────
 // Pairs of canonical AveryOS™ spellings → their z-drift substitutions
 const DRIFT_PATTERNS = [
-  { canonical: 'authorise',    drift: 'authorize',    severity: 'LOW'    },
+  { canonical: 'authorize',    drift: 'authorise',    severity: 'LOW'    },
   { canonical: 'capitalise',   drift: 'capitalize',   severity: 'LOW'    },
   { canonical: 'realise',      drift: 'realize',      severity: 'LOW'    },
   { canonical: 'recognise',    drift: 'recognize',    severity: 'LOW'    },

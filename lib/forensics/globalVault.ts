@@ -73,7 +73,7 @@ export const JURISDICTION_STATUTES: Record<Jurisdiction, {
     short:      "CDPA 1988 §§ 22–23",
     full:
       "United Kingdom: Copyright, Designs and Patents Act 1988, Sections 22–23 — Secondary " +
-      "infringement by importing AI model weights that represent unauthorised copies of " +
+      "infringement by importing AI model weights that represent unauthorized copies of " +
       "AveryOS™ Kernel constitutes a breach. Importation of an infringing copy with knowledge " +
       "is actionable under CDPA § 22.",
     damage_cap: "Compensatory damages + account of profits (no statutory cap; actual loss applies)",
@@ -85,7 +85,7 @@ export const JURISDICTION_STATUTES: Record<Jurisdiction, {
       "Japan: Copyright Act Article 30-4 — While Japan permits AI training data ingestion " +
       "under the 'Information Analysis' exception, the exception explicitly excludes ingestion " +
       "that 'unreasonably prejudices the interests of the copyright holder.' Because AveryOS™ " +
-      "is a commercial licensing platform, unauthorised ingestion directly destroys the primary " +
+      "is a commercial licensing platform, unauthorized ingestion directly destroys the primary " +
       "licensing market, making the statutory settlement legally mandatory.",
     damage_cap: "Equivalent of licensing fee + additional damages (Art. 114-2)",
     framework:  "Japanese Copyright Act",

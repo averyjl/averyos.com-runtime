@@ -175,7 +175,7 @@ export async function POST(request: Request): Promise<Response> {
   if (tokenRecord.capsule_id !== capsuleId) {
     return aosErrorResponse(
       AOS_ERROR.INVALID_FIELD,
-      "Token is not authorised for the requested capsule.",
+      "Token is not authorized for the requested capsule.",
       403,
     );
   }

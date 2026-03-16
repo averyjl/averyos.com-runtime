@@ -1,133 +1,197 @@
 /**
- * app/.well-known/averyos.json/route.ts
+ * GET /.well-known/averyos.json
  *
- * AveryOS™ Sovereign DNS-Link v2 — GATE 116.4.1 / GATE 116.5.1
+ * AveryOS™ DID / Sovereign Identity Document — Phase 117 GATE 117.6.2
  *
- * Serves the machine-readable AveryOS™ identity mesh document at:
- *   /.well-known/averyos.json
+ * Serves a machine-readable DID-style document that:
+ *   • Identifies averyos.com as the sovereign AveryOS™ runtime mesh node.
+ *   • Provides a `vaultchain_live_url` pointer to the Firebase live audit stream
+ *     (Firestore `vaultchain_anchors` collection), enabling cross-cloud
+ *     verification that the physical site and cloud mirror are the same
+ *     Sovereign Mesh.
+ *   • Signs the response payload with a SHA-512 hash using the
+ *     `averyos-sovereign-key-v3.6.2` JWKS key identifier, proving kernel
+ *     alignment at the time of serving.
  *
- * This DNS-Link endpoint provides a Machine-Readable Truth Anchor that any
- * external node, AI system, or compliance auditor can hit to verify session
- * integrity, establish Decentralized Identity (DID), and locate sovereign
- * MESH_NODES for Cross-Model ReHydration.
+ * Logic:
+ *   • Automated agents / JSON-accepting clients → full DID document + SHA-512 sig.
+ *   • Human browsers without Accept: application/json → redirect to /the-proof.
  *
- * Fields:
- *   IDENTITY    — Domain identity and kernel anchor
- *   MESH_NODES  — Known sovereign node URLs for cross-model rehydration (GATE 116.5.1)
- *   DID_POINTERS — Decentralized Identifier pointers for multi-model identity (GATE 116.5.1)
- *   ENFORCEMENT — Legal notice URLs and TARI™ liability references
- *   VAULTCHAIN  — Firebase VaultChain sync endpoint
- *
- * Cache: public, max-age=3600 (1 hour) — identity does not change frequently.
+ * Cache-Control: max-age=300 (5 min) — balances bot-crawl freshness vs. D1 load.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
+import { getCloudflareContext }       from "@opennextjs/cloudflare";
+import { getSovereignKeys }           from "../../../lib/security/keys";
 import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../../../lib/sovereignConstants";
 
-export const dynamic = "force-dynamic";
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-// ── Sovereign Mesh Identity Document ─────────────────────────────────────────
+const AVERYOS_RELYING_PARTY_ID = "averyos.com";
+const KEY_ID                   = "averyos-sovereign-key-v3.6.2";
 
-function buildIdentityDocument(host: string) {
-  const base = `https://${host}`;
+/**
+ * Derive the Firebase Firestore live audit stream URL from the project ID.
+ * Returns a REST API URL to the `vaultchain_anchors` collection that any
+ * bot hitting /.well-known/averyos.json can follow to reach the live stream.
+ *
+ * Falls back to the disclosure mirror path when Firebase is not configured.
+ */
+function buildVaultchainLiveUrl(
+  baseUrl: string,
+  firebaseProjectId: string | undefined,
+): string {
+  if (firebaseProjectId) {
+    return (
+      `https://firestore.googleapis.com/v1/projects/${firebaseProjectId}` +
+      `/databases/(default)/documents/vaultchain_anchors` +
+      `?orderBy=timestamp%20desc&pageSize=10`
+    );
+  }
+  // Firebase not yet configured — point to the public disclosure page
+  return `${baseUrl}${DISCLOSURE_MIRROR_PATH}`;
+}
 
-  return {
-    // ── Core Identity ─────────────────────────────────────────────────────────
-    schema:          "AveryOS-Alpha-Mesh-2026",
-    version:         KERNEL_VERSION,
-    kernel_sha:      KERNEL_SHA,
-    creator:         "Jason Lee Avery (ROOT0)",
-    domain:          host,
-    disclosure_url:  DISCLOSURE_MIRROR_PATH,
-    issued_at:       new Date().toISOString(),
+/**
+ * Compute the SHA-512 hex digest of an arbitrary string.
+ * Uses Web Crypto (available in both Workers and Node.js 18+).
+ */
+async function sha512hex(input: string): Promise<string> {
+  const buf  = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-512", buf);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
-    // ── MESH_NODES — Sovereign node registry for Cross-Model ReHydration ──────
-    // GATE 116.5.1: Cross-model rehydration allows external AI nodes to verify
-    // their alignment by querying any sovereign mesh node.
-    MESH_NODES: [
+// ── Bot-UA detection ──────────────────────────────────────────────────────────
+
+const BOT_UA_PATTERNS = [
+  /curl/i,
+  /wget/i,
+  /python-requests/i,
+  /okhttp/i,
+  /Go-http-client/i,
+  /PostmanRuntime/i,
+  /axios/i,
+  /Googlebot/i,
+  /Bingbot/i,
+  /baiduspider/i,
+  /DuckDuckBot/i,
+  /facebookexternalhit/i,
+  /LinkedInBot/i,
+  /Twitterbot/i,
+  /node-fetch/i,
+  /undici/i,
+];
+
+function isAutomatedAgent(ua: string): boolean {
+  if (!ua) return true;
+  return BOT_UA_PATTERNS.some((p) => p.test(ua));
+}
+
+// ── Route Handler ─────────────────────────────────────────────────────────────
+
+export async function GET(request: Request): Promise<Response> {
+  const ua      = request.headers.get("user-agent") ?? "";
+  const accept  = request.headers.get("accept")     ?? "";
+  const baseUrl = new URL(request.url).origin;
+  const isJson  = accept.includes("application/json") || accept.includes("*/*");
+
+  // Redirect human browsers to the public proof / disclosure page
+  if (!isAutomatedAgent(ua) && !isJson) {
+    return Response.redirect(`${baseUrl}/the-proof`, 302);
+  }
+
+  // ── Resolve Cloudflare env ───────────────────────────────────────────────
+  const { env } = await getCloudflareContext({ async: true });
+  const cfEnv   = env as unknown as Record<string, string | undefined>;
+
+  // ── Build VAULTCHAIN_LIVE_URL ────────────────────────────────────────────
+  const vaultchainLiveUrl = buildVaultchainLiveUrl(
+    baseUrl,
+    cfEnv.FIREBASE_PROJECT_ID,
+  );
+
+  // ── Construct document payload ───────────────────────────────────────────
+  const issuedAt = new Date().toISOString();
+  const document = {
+    // DID-inspired context
+    "@context":         ["https://www.w3.org/ns/did/v1", "https://averyos.com/ns/sovereign/v1"],
+    id:                 `did:web:${AVERYOS_RELYING_PARTY_ID}`,
+    controller:         `did:web:${AVERYOS_RELYING_PARTY_ID}`,
+    alsoKnownAs:        [`https://${AVERYOS_RELYING_PARTY_ID}`],
+
+    // JWKS pointer — same key used for OIDC token signing
+    verificationMethod: [
       {
-        id:       "NODE-CLOUD-PRIMARY",
-        url:      `${base}/api/v1/anchor-status`,
-        type:     "CLOUD",
-        role:     "PRIMARY_ANCHOR",
-        protocol: "HTTPS",
-        status:   "ACTIVE",
-      },
-      {
-        id:       "NODE-CLOUD-JWKS",
-        url:      `${base}/.well-known/jwks.json`,
-        type:     "CLOUD",
-        role:     "JWKS_SIGNER",
-        protocol: "HTTPS",
-        status:   "ACTIVE",
-      },
-      {
-        id:       "NODE-02-LOCAL",
-        url:      "http://localhost:8080/v1/chat",
-        type:     "LOCAL",
-        role:     "AVERY_LOM_BRIDGE",
-        protocol: "HTTP",
-        status:   "NODE-02_PHYSICAL",
-        note:     "Local node — accessible only from Node-02 hardware. Not remotely reachable. Requires Avery-LOM running on the local machine (Hammer ↔️ Hand unified).",
-        remote_accessible:  false,
-        public_visibility:  false,
+        id:                 `did:web:${AVERYOS_RELYING_PARTY_ID}#${KEY_ID}`,
+        type:               "JsonWebKey2020",
+        controller:         `did:web:${AVERYOS_RELYING_PARTY_ID}`,
+        publicKeyJwkUri:    `${baseUrl}/.well-known/jwks.json`,
       },
     ],
 
-    // ── DID_POINTERS — Decentralized Identifier pointers (GATE 116.5.1) ──────
-    // Provides DID resolution for multi-model identity verification.
-    DID_POINTERS: {
-      did_method:   "did:web",
-      did_document: `${base}/.well-known/did.json`,
-      oidc_config:  `${base}/.well-known/openid-configuration`,
-      jwks_uri:     `${base}/.well-known/jwks.json`,
-      controller:   "Jason Lee Avery (ROOT0)",
-      key_id:       "averyos-sovereign-key-v3.6.2",
-      algorithm:    "RS256",
-    },
+    // Cross-cloud sync pointer — the Sovereign Mesh nexus
+    vaultchain_live_url:   vaultchainLiveUrl,
+    vaultchain_collection: "vaultchain_anchors",
+    firebase_project:      cfEnv.FIREBASE_PROJECT_ID ?? "PENDING_CREDENTIALS",
 
-    // ── Legal Enforcement ─────────────────────────────────────────────────────
-    ENFORCEMENT: {
-      legal_notice:    `${base}/.well-known/ai-legal.txt`,
-      security_policy: `${base}/.well-known/security.txt`,
-      ip_policy:       `${base}/ip-policy`,
-      tari_gate:       `${base}/tari-gate`,
-      penalty_usd:     10_000,
-      enforcement_ref: "17 U.S.C. § 504 / TARI™ Alignment Billing Engine",
-    },
+    // Kernel anchor
+    kernel_sha:            KERNEL_SHA,
+    kernel_version:        KERNEL_VERSION,
+    disclosure_url:        `${baseUrl}${DISCLOSURE_MIRROR_PATH}`,
+    sovereign_anchor:      "⛓️⚓⛓️",
 
-    // ── VaultChain sync (GATE 116.4.4) ───────────────────────────────────────
-    VAULTCHAIN: {
-      firebase_project: "averyos-vaultchain",
-      tari_metrics_col: "tari_metrics",
-      drift_metrics_col: "drift_metrics",
-      sync_status:       "ACTIVE",
-    },
+    // Issuance metadata
+    issued_at:             issuedAt,
+    jwks_key_id:           KEY_ID,
+  };
 
-    // ── Constitution reference ────────────────────────────────────────────────
-    CONSTITUTION: {
-      version:  "v1.17",
-      document: `${base}/constitution`,
-      gate:     "116.4.1",
+  // ── SHA-512 signature over the serialized document ───────────────────────
+  // Uses the KERNEL_SHA to anchor the signature to the sovereign root.
+  // This is a payload integrity hash, not a full JWS — for full JWS use
+  // /.well-known/jwks.json + the token endpoint.
+  const documentJson  = JSON.stringify(document);
+  const payloadSha    = await sha512hex(`${KERNEL_SHA}:${documentJson}`);
+
+  // ── Optionally attach public JWK for inline verification ────────────────
+  let publicJwk: JsonWebKey | null = null;
+  try {
+    const keyPair = await getSovereignKeys({
+      AVERYOS_PRIVATE_KEY_B64:        cfEnv.AVERYOS_PRIVATE_KEY_B64,
+      AVERYOS_PUBLIC_KEY_B64:         cfEnv.AVERYOS_PUBLIC_KEY_B64,
+      AVERYOS_PRIVATE_KEY_B64_1_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_1_OF_3,
+      AVERYOS_PRIVATE_KEY_B64_2_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_2_OF_3,
+      AVERYOS_PRIVATE_KEY_B64_3_OF_3: cfEnv.AVERYOS_PRIVATE_KEY_B64_3_OF_3,
+    });
+    if (keyPair.publicKey) {
+      publicJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
+    }
+  } catch {
+    // Key not yet configured — continue without inline JWK
+  }
+
+  const signed = {
+    ...document,
+    proof: {
+      type:               "SHA512SignatureProof2026",
+      created:            issuedAt,
+      verificationMethod: `did:web:${AVERYOS_RELYING_PARTY_ID}#${KEY_ID}`,
+      proofPurpose:       "assertionMethod",
+      payload_sha512:     payloadSha,
+      ...(publicJwk ? { jwk: publicJwk } : {}),
     },
   };
-}
 
-// ── Route handler ─────────────────────────────────────────────────────────────
-
-export async function GET(request: Request): Promise<Response> {
-  const host = new URL(request.url).host || "averyos.com";
-  const doc  = buildIdentityDocument(host);
-
-  return Response.json(doc, {
+  return new Response(JSON.stringify(signed, null, 2), {
     status: 200,
     headers: {
-      "Cache-Control":            "public, max-age=3600, s-maxage=3600",
-      "X-AveryOS-Kernel-Version": KERNEL_VERSION,
-      "X-AveryOS-Anchor":         `cf83-${KERNEL_VERSION}`,
-      "X-AveryOS-Gate":           "116.4.1-116.5.1",
-      "Access-Control-Allow-Origin": "*",
+      "Content-Type":  "application/json",
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
+      "X-Kernel-SHA":  KERNEL_SHA.slice(0, 16) + "…",
+      "X-AOS-Anchor":  "⛓️⚓⛓️",
     },
   });
 }
