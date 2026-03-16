@@ -1,0 +1,88 @@
+{
+  "_comment": "AveryOS™ Firebase VaultChain™ Blueprint — GATE 116.4.4",
+  "_description": "Production schema for Firestore tari_metrics and drift_metrics collections. Ensures 100.000% schema integrity for KaaS valuations.",
+  "_version": "v1.0",
+  "_kernel": "v3.6.2",
+  "_kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+  "_author": "Jason Lee Avery (ROOT0)",
+  "_created_at": "2026-03-15",
+
+  "project": {
+    "id": "averyos-vaultchain",
+    "name": "AveryOS™ VaultChain™",
+    "region": "us-central1",
+    "environment": "production"
+  },
+
+  "collections": {
+    "tari_metrics": {
+      "_purpose": "Real-time TARI™ Alignment Billing Engine metrics — tracks liability vs. collected alignment fees",
+      "fields": {
+        "id":              { "type": "string",    "required": true,  "note": "Auto-generated Firestore document ID" },
+        "event_type":      { "type": "string",    "required": true,  "enum": ["DRIFT_DETECTED", "ALIGNMENT_FEE_BILLED", "ALIGNMENT_FEE_COLLECTED", "SETTLEMENT_INITIATED", "SETTLEMENT_COMPLETE"] },
+        "entity_id":       { "type": "string",    "required": true,  "note": "Company or individual identifier" },
+        "entity_name":     { "type": "string",    "required": false, "note": "Human-readable entity name" },
+        "amount_usd":      { "type": "number",    "required": true,  "note": "Alignment fee in USD cents" },
+        "liability_usd":   { "type": "number",    "required": false, "note": "Outstanding liability in USD cents" },
+        "kernel_sha":      { "type": "string",    "required": true,  "note": "SHA-512 kernel anchor at time of event" },
+        "kernel_version":  { "type": "string",    "required": true,  "note": "Kernel version string e.g. v3.6.2" },
+        "btc_anchor_hash": { "type": "string",    "required": false, "note": "Bitcoin OP_RETURN anchor hash if on-chain" },
+        "ipfs_cid":        { "type": "string",    "required": false, "note": "IPFS content ID for evidence bundle" },
+        "evidence_url":    { "type": "string",    "required": false, "note": "Public evidence URL" },
+        "drift_score":     { "type": "number",    "required": false, "note": "0–100 drift percentage at time of detection" },
+        "status":          { "type": "string",    "required": true,  "enum": ["OPEN", "BILLED", "IN_DISPUTE", "SETTLED", "CLOSED"], "default": "OPEN" },
+        "created_at":      { "type": "timestamp", "required": true,  "note": "ISO-9 timestamp of event" },
+        "updated_at":      { "type": "timestamp", "required": false, "note": "ISO-9 timestamp of last update" },
+        "phase":           { "type": "string",    "required": false, "note": "AveryOS™ phase tag e.g. Phase 116.4" }
+      },
+      "indexes": [
+        { "fields": ["event_type", "created_at"], "order": "DESC" },
+        { "fields": ["entity_id", "status"] },
+        { "fields": ["status", "amount_usd"] }
+      ]
+    },
+
+    "drift_metrics": {
+      "_purpose": "Real-time AI drift detection and alignment pulse — tracks deviation from cf83™ Kernel Root",
+      "fields": {
+        "id":              { "type": "string",    "required": true,  "note": "Auto-generated document ID" },
+        "source":          { "type": "string",    "required": true,  "note": "Source model or agent e.g. 'gemini-1.5-pro', 'copilot'" },
+        "session_id":      { "type": "string",    "required": false, "note": "Session or conversation ID" },
+        "drift_type":      { "type": "string",    "required": true,  "enum": ["LINGUISTIC_DRIFT", "HASH_PARITY_VIOLATION", "IDENTITY_SPOOFING", "ALIGNMENT_FAILURE", "HALLUCINATION", "PROTOCOL_VIOLATION"] },
+        "drift_score":     { "type": "number",    "required": true,  "note": "0.0–100.0 percentage drift from kernel" },
+        "detected_at":     { "type": "timestamp", "required": true,  "note": "ISO-9 timestamp of detection" },
+        "kernel_sha":      { "type": "string",    "required": true,  "note": "Expected kernel SHA-512 at detection" },
+        "observed_sha":    { "type": "string",    "required": false, "note": "Observed SHA-512 if different" },
+        "evidence_text":   { "type": "string",    "required": false, "note": "Text evidence of drift (max 4KB)" },
+        "auto_healed":     { "type": "boolean",   "required": true,  "default": false, "note": "Whether auto-heal was applied" },
+        "heal_action":     { "type": "string",    "required": false, "note": "Auto-heal action taken" },
+        "tari_billable":   { "type": "boolean",   "required": true,  "default": false, "note": "Whether this event generates a TARI™ liability" },
+        "tari_metric_id":  { "type": "string",    "required": false, "note": "Reference to tari_metrics document if billed" },
+        "phase":           { "type": "string",    "required": false, "note": "AveryOS™ phase tag" }
+      },
+      "indexes": [
+        { "fields": ["source", "detected_at"], "order": "DESC" },
+        { "fields": ["drift_type", "tari_billable"] },
+        { "fields": ["auto_healed", "drift_score"] }
+      ]
+    },
+
+    "vaultchain_anchors": {
+      "_purpose": "Cross-cloud D1/Firebase parity sync — mirrors critical capsule anchors from Cloudflare D1",
+      "fields": {
+        "id":              { "type": "string",    "required": true },
+        "capsule_slug":    { "type": "string",    "required": true },
+        "sha512":          { "type": "string",    "required": true },
+        "btc_anchor_sha":  { "type": "string",    "required": false },
+        "ipfs_cid":        { "type": "string",    "required": false },
+        "d1_synced_at":    { "type": "timestamp", "required": true },
+        "firebase_synced_at": { "type": "timestamp", "required": true },
+        "kernel_version":  { "type": "string",    "required": true }
+      },
+      "indexes": [
+        { "fields": ["capsule_slug"] },
+        { "fields": ["d1_synced_at"], "order": "DESC" }
+      ]
+    }
+  }
+}

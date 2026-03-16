@@ -17,6 +17,7 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '27 9 * * 3'
+  workflow_dispatch:
 
 jobs:
   eslint:
@@ -49,6 +50,7 @@ jobs:
           --ext .js,.jsx,.ts,.tsx
           --ignore-pattern "functions/"
           --ignore-pattern "VaultEcho/"
+          --ignore-pattern "next-env.d.ts"
           --format @microsoft/eslint-formatter-sarif
           --output-file eslint-results.sarif
         continue-on-error: true

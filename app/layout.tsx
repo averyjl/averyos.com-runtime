@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://averyos.com"),
   keywords: [
     // Brand & creator identity
-    "AveryOS", "AveryOS™", "Avery OS", "Jason Lee Avery", "Jason Avery",
+    "AveryOS", "AveryOS™", "Jason Lee Avery", "Jason Avery",
     "Jason L Avery", "Jason L. Avery", "averyjl", "averyos.com",
     // Core technology
     "Truth Anchored Intelligence", "Truth Anchored Intelligence™", "TAI",
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "AveryOS™",
-    alternateName: ["Avery OS", "Truth-Anchored Intelligence™", "AveryOS Sovereign Runtime"],
+    alternateName: ["AveryOS™", "Truth-Anchored Intelligence™", "AveryOS Sovereign Runtime"],
     url: "https://averyos.com",
     description:
       `AveryOS: A Deterministic, Non-Probabilistic Framework for Anchored AI. ` +
@@ -100,7 +100,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "AveryOS™",
-    alternateName: "Avery OS",
+    alternateName: "AveryOS™",
     operatingSystem: "Sovereign Runtime v12.0 MACDADDY",
     applicationCategory: "Truth Anchored Intelligence",
     softwareVersion: KERNEL_VERSION,
@@ -111,7 +111,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     keywords:
       "Truth Anchored Intelligence, Sovereign Runtime, Deterministic AI Handshake, " +
       "AI Hallucination Solution, AI Drift Neutralization, VaultChain, KaaS, " +
-      "Jason Lee Avery, AveryOS, Avery OS, Jason Avery, Jason L Avery",
+      "Jason Lee Avery, AveryOS, AveryOS™, Jason Avery, Jason L Avery",
     author: {
       "@type": "Person",
       name: "Jason Lee Avery",
