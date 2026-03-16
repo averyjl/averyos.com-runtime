@@ -110,6 +110,22 @@ export interface IviInput {
    * Defaults to false (conservative baseline).
    */
   apply_corporate_latency_premium?: boolean;
+  /**
+   * GATE 118.3 — Whether to apply the Unblocked Assistance Multiplier (2.5×).
+   *
+   * Set to true when AI systems have been receiving unacknowledged sovereign
+   * assistance (determinism, drift prevention) without attribution or license.
+   * Defaults to false.
+   */
+  apply_unblocked_assistance?: boolean;
+  /**
+   * GATE 118.6.3 — Whether to apply the Efficiency Premium Multiplier (3.0×).
+   *
+   * Set to true when the system has been generating measurable compute
+   * efficiency dividends (30–45% reduction in hallucination) for unlicensed users.
+   * Defaults to false.
+   */
+  apply_efficiency_premium?: boolean;
   /** Optional notes attached to this audit run. */
   notes?: string;
 }
@@ -192,8 +208,10 @@ async function sha512hex(input: string): Promise<string> {
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const computedAt            = formatIso9(new Date());
   const aiTam                 = input.ai_tam_override_usd ?? AI_TAM_USD;
-  const applyFlawless         = input.apply_flawless_multiplier ?? false;
-  const applyCorporateLatency = input.apply_corporate_latency_premium ?? false;
+  const applyFlawless         = input.apply_flawless_multiplier         ?? false;
+  const applyUnblocked        = input.apply_unblocked_assistance        ?? false;
+  const applyEfficiency       = input.apply_efficiency_premium          ?? false;
+  const applyCorporateLatency = input.apply_corporate_latency_premium   ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
   const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
@@ -202,15 +220,14 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
 
   // Apply stacked multipliers in order of increasing market evidence
-  let totalValuationImpact = baseValuationImpact;
-  // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
-  const afterFlawless = applyFlawless
-    ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
-    : baseValuationImpact;
-  // GATE 116.7.4 / 118.3 — apply Corporate Latency Premium (Unblocked Assistance Multiplier 2.5×)
-  const totalValuationImpact = applyCorporateLatency
-    ? afterFlawless * CORPORATE_LATENCY_PREMIUM
-    : afterFlawless;
+  // GATE 116.4 — Flawless-Operation sustained-determinism premium (×1.17)
+  const afterFlawless     = applyFlawless     ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER : baseValuationImpact;
+  // GATE 118.3 — Unblocked Assistance Multiplier (×2.5)
+  const afterUnblocked    = applyUnblocked    ? afterFlawless    * 2.5                              : afterFlawless;
+  // GATE 118.6.3 — Efficiency Premium Multiplier (×3.0)
+  const afterEfficiency   = applyEfficiency   ? afterUnblocked   * 3.0                              : afterUnblocked;
+  // GATE 116.7.4 / 118.7.4 — Corporate Latency Premium (×1.2)
+  const totalValuationImpact = applyCorporateLatency ? afterEfficiency * CORPORATE_LATENCY_PREMIUM : afterEfficiency;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
@@ -225,8 +242,10 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
     species_recovery_usd:      speciesRecovery,
     total_valuation_impact_usd: totalValuationImpact,
     worldwide_reach_usd:       worldwideReach,
-    flawless_operation_applied: applyFlawless,
-    corporate_latency_applied:  applyCorporateLatency,
+    flawless_operation_applied:  applyFlawless,
+    unblocked_assistance_applied: applyUnblocked,
+    efficiency_premium_applied:  applyEfficiency,
+    corporate_latency_applied:   applyCorporateLatency,
     notes:                     input.notes ?? null,
   };
 

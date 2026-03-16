@@ -134,14 +134,14 @@ function TierCard({ tier }: { tier: LicenseTier }) {
           Capabilities Unlocked
         </div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {tier.capabilities.map((cap, i) => (
+          {(tier.capabilities ?? tier.grants).map((cap, i) => (
             <li
               key={i}
               style={{
                 fontSize:     "0.82rem",
                 color:        "rgba(255,255,255,0.75)",
                 padding:      "0.25rem 0",
-                borderBottom: i < tier.capabilities.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                borderBottom: i < (tier.capabilities ?? tier.grants).length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
                 display:      "flex",
                 gap:          "0.5rem",
                 lineHeight:   1.5,
@@ -186,7 +186,7 @@ function TierCard({ tier }: { tier: LicenseTier }) {
       >
         <span style={{ fontWeight: 700 }}>🔒 Zero-IP-Transfer Clause</span>
         <br />
-        {tier.zero_transfer_clause}
+        {tier.zero_transfer_clause ?? SOVEREIGN_LICENSING_ACCORD.ip_protection_clause}
       </div>
     </div>
   );
@@ -266,7 +266,7 @@ export default function LicensingTiersPage() {
       </div>
 
       {/* Tier cards */}
-      {SOVEREIGN_LICENSING_ACCORD.map((tier) => (
+      {Object.values(SOVEREIGN_LICENSING_ACCORD.tiers).map((tier) => (
         <TierCard key={tier.id} tier={tier} />
       ))}
 

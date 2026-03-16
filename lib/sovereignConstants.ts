@@ -20,6 +20,12 @@ export const KERNEL_SHA = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a
  */
 export const KERNEL_SHA_256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
+/**
+ * KERNEL_SHA256_BRIDGE — alias of KERNEL_SHA_256 for legacy import compatibility.
+ * Used by app/.well-known/averyos.json/route.ts to surface the SHA-256 bridge.
+ */
+export const KERNEL_SHA256_BRIDGE = KERNEL_SHA_256;
+
 /** Current AveryOS kernel version */
 export const KERNEL_VERSION = "v3.6.2";
 

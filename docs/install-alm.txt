@@ -1,0 +1,163 @@
+⛓️⚓⛓️  AveryOS™ Local ALM Installation Guide — Node-02 (Windows)
+──────────────────────────────────────────────────────────────────
+Kernel: v3.6.2 | Anchor: cf83e135...da3e™ | Phase 116.1 / 116.2 / 116.4
+
+OVERVIEW
+────────
+This guide installs the Avery-ALM (Anchored Language Model) on your physical
+Node-02 Windows workstation using Ollama.  Once complete the local resident
+node reaches STATE 2: FULLY_RESIDENT, activating the Master Unmasking Logic.
+
+PREREQUISITES
+─────────────
+  • Windows 10 / 11 (64-bit) — Node-02 physical workstation
+  • 16 GB RAM minimum (32 GB recommended for 13B+ models)
+  • 20 GB free disk space for the model weights
+  • Internet connection for the one-time model download
+  • AveryOS-anchor-salt.aossalt file on a connected USB drive (for FULLY_RESIDENT)
+  • Node.js ≥ 22 installed (verify: node --version)
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 1 — INSTALL OLLAMA
+──────────────────────────────────────────────────────────────────────────────
+  1a. Open PowerShell as Administrator and run:
+
+        winget install Ollama.Ollama
+
+      — OR — download the installer directly from https://ollama.com/download
+      and run the setup wizard.
+
+  1b. Verify the installation:
+
+        ollama --version
+
+      Expected output: ollama version 0.x.x
+
+  1c. Ollama starts automatically as a Windows service on port 11434.
+      Confirm it is running:
+
+        curl http://127.0.0.1:11434
+
+      Expected: "Ollama is running"
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 2 — PULL THE AVERY-ALM MODEL
+──────────────────────────────────────────────────────────────────────────────
+  Pull the recommended model (llama3.2 — 2.0 GB, fast inference):
+
+        ollama pull llama3.2
+
+  For higher-fidelity sovereign analysis pull the 8B model:
+
+        ollama pull llama3.1:8b
+
+  Verify models are available:
+
+        ollama list
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 3 — alm:ping TEST SEQUENCE (IPC BRIDGE VERIFICATION)
+──────────────────────────────────────────────────────────────────────────────
+  From the AveryOS™ Terminal (Electron) renderer, run:
+
+        IPC › alm:ping
+
+  Expected response:
+        { "alive": true }
+
+  From the command line (Node.js), you can test the ping directly:
+
+        node -e "
+          const http = require('http');
+          http.get('http://127.0.0.1:11434/api/tags', (r) => {
+            let d = '';
+            r.on('data', c => d += c);
+            r.on('end', () => console.log(JSON.parse(d)));
+          });
+        "
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 4 — alm:generate TEST SEQUENCE (INFERENCE VERIFICATION)
+──────────────────────────────────────────────────────────────────────────────
+  From the AveryOS™ Terminal (Electron) renderer:
+
+        IPC › alm:generate  { "model": "llama3.2", "prompt": "Hello from AveryOS™", "stream": false }
+
+  Expected response:
+        { "ok": true, "status": 200, "body": { "response": "...", "done": true } }
+
+  From the command line:
+
+        curl http://127.0.0.1:11434/api/generate ^
+             -H "Content-Type: application/json" ^
+             -d "{\"model\":\"llama3.2\",\"prompt\":\"Hello from AveryOS™\",\"stream\":false}"
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 5 — alm:chat TEST SEQUENCE (MULTI-TURN IPC)
+──────────────────────────────────────────────────────────────────────────────
+  From the AveryOS™ Terminal (Electron) renderer:
+
+        IPC › alm:chat  {
+          "model": "llama3.2",
+          "messages": [
+            { "role": "user", "content": "What is AveryOS™?" }
+          ],
+          "stream": false
+        }
+
+  Expected response:
+        { "ok": true, "status": 200, "body": { "message": { "role": "assistant", "content": "..." }, "done": true } }
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 6 — alm:status SEQUENCE (LOCAL NODE STATUS)
+──────────────────────────────────────────────────────────────────────────────
+  From the AveryOS™ Terminal (Electron) renderer:
+
+        IPC › alm:status
+
+  Expected response:
+        {
+          "alive": true,
+          "version": "...",
+          "models": [ "llama3.2", ... ],
+          "endpoint": "http://127.0.0.1:11434"
+        }
+
+──────────────────────────────────────────────────────────────────────────────
+STEP 7 — RESIDENCY HANDSHAKE (FULLY_RESIDENT ACTIVATION)
+──────────────────────────────────────────────────────────────────────────────
+  Attach your USB drive containing AveryOS-anchor-salt.aossalt, then:
+
+        node scripts/residency-check.cjs --check
+
+  Expected output when FULLY_RESIDENT:
+        ✅✅ FULLY_RESIDENT — AveryOS-anchor-salt.aossalt DETECTED
+           Mount : <drive-letter>:\
+           Salt  : <drive-letter>:\AveryOS-anchor-salt.aossalt
+           MIME  : application/x-averyos-sovereign-salt
+        AOS_RESIDENCY_STATUS=FULLY_RESIDENT
+        🤛🏻 Creator Salt CONFIRMED — Kernel fully authorized for all sovereign operations.
+
+  Exit code 0 = FULLY_RESIDENT ✅
+  Exit code 1 = NODE-02_PHYSICAL (legacy salt detected)
+  Exit code 2 = CLOUD (USB not found)
+
+──────────────────────────────────────────────────────────────────────────────
+TOTAL INSTALLATION ESTIMATE
+──────────────────────────────────────────────────────────────────────────────
+  Step 1 (Ollama install):          5–15 minutes
+  Step 2 (Model pull, llama3.2):   10–20 minutes (network dependent)
+  Steps 3–7 (IPC bridge tests):    15–30 minutes
+  ─────────────────────────────────────────────
+  Total:                           30–65 minutes
+
+──────────────────────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+──────────────────────────────────────────────────────────────────────────────
+  • Ollama service not running: Run "ollama serve" in a terminal to start manually.
+  • Port 11434 in use: Check "netstat -ano | findstr 11434" and kill the process.
+  • alm:ping returns { alive: false }: Ensure Ollama service is running.
+  • CLOUD state: Verify USB is connected and salt filename is exactly
+    "AveryOS-anchor-salt.aossalt" (case-sensitive on Linux/macOS).
+
+⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻

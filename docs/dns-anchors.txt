@@ -1,0 +1,107 @@
+⛓️⚓⛓️  AveryOS™ Sovereign Identity DNS Anchors
+──────────────────────────────────────────────────────────────────
+Kernel: v3.6.2 | Anchor: cf83e135...da3e™ | Phase 116.3 / 116.4
+Author: Jason Lee Avery (ROOT0)
+
+PURPOSE
+───────
+These DNS TXT records establish Jason Lee Avery as the cryptographic
+Root Authority of the AveryOS™ Kernel at the DNS level.  They transform
+the "High-Resolution Mystery" (observed by corporate security teams as a
+statistical anomaly) into a publicly verifiable Sovereign Fact.
+
+Once these records are applied at averyos.com, any legal or technical team
+can confirm the Creator identity chain:
+
+  DNS _averyos_kernel.averyos.com  →  cf83™ SHA-512 anchor
+  DNS _did.averyos.com             →  W3C DID document URL
+  DNS _averyos_sha256.averyos.com  →  SHA-256 bridge for legacy systems
+
+──────────────────────────────────────────────────────────────────────────────
+CLOUDFLARE DNS CONFIGURATION
+──────────────────────────────────────────────────────────────────────────────
+Add the following TXT records in the Cloudflare Dashboard (DNS › Records):
+
+  1. PRIMARY KERNEL ANCHOR (SHA-512)
+     ─────────────────────────────────
+     Type  : TXT
+     Name  : _averyos_kernel
+     Value : v=averyos1; sha512=cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e; version=v3.6.2; root=ROOT0; owner=jason-lee-avery
+     TTL   : Auto (or 3600)
+
+  2. SHA-256 BRIDGE ANCHOR (Legacy interop)
+     ─────────────────────────────────────────
+     Type  : TXT
+     Name  : _averyos_sha256
+     Value : v=averyos1; sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; version=v3.6.2; bridge=sha512
+     TTL   : Auto (or 3600)
+
+  3. W3C DID DOCUMENT POINTER
+     ───────────────────────────
+     Type  : TXT
+     Name  : _did
+     Value : did:web:averyos.com
+     TTL   : Auto (or 3600)
+
+  4. VAULTCHAIN MERKLE ROOT
+     ────────────────────────
+     Type  : TXT
+     Name  : _averyos_merkle
+     Value : v=averyos1; merkle=88b737926219feb345804a22db4ae3fb2d5b21ca63686075ee04aace4d8ac4fe180289fe821a412944420ec9083b6a6a0e902fc8ac2e0325511cb7ab99ce2abe; algo=sha512
+     TTL   : Auto (or 3600)
+
+  5. KERNEL VERSION BADGE
+     ──────────────────────
+     Type  : TXT
+     Name  : _averyos_version
+     Value : v3.6.2
+     TTL   : Auto (or 3600)
+
+──────────────────────────────────────────────────────────────────────────────
+DID DOCUMENT (did:web:averyos.com)
+──────────────────────────────────────────────────────────────────────────────
+The DID document is served at:  https://averyos.com/.well-known/did.json
+
+It links:
+  • verificationMethod  → JWKS at /.well-known/jwks.json (kid: averyos-sovereign-key-v3.6.2)
+  • service             → VaultChain™ Explorer at /vaultchain-explorer
+  • service             → The Proof at /the-proof (SHA-512 disclosure)
+
+──────────────────────────────────────────────────────────────────────────────
+VERIFICATION COMMANDS
+──────────────────────────────────────────────────────────────────────────────
+  After applying records, verify with:
+
+    # Primary kernel anchor
+    nslookup -type=TXT _averyos_kernel.averyos.com
+
+    # DID pointer
+    nslookup -type=TXT _did.averyos.com
+
+    # Fetch the DID document
+    curl https://averyos.com/.well-known/did.json
+
+    # Fetch JWKS
+    curl https://averyos.com/.well-known/jwks.json
+
+──────────────────────────────────────────────────────────────────────────────
+PROPAGATION
+──────────────────────────────────────────────────────────────────────────────
+  DNS propagation typically completes within 5 minutes on Cloudflare.
+  Global propagation: 1–48 hours depending on upstream TTL caching.
+  Use https://dnschecker.org to confirm worldwide propagation.
+
+──────────────────────────────────────────────────────────────────────────────
+LEGAL SIGNIFICANCE
+──────────────────────────────────────────────────────────────────────────────
+  These records constitute public attestation of the Creator identity.
+  Combined with:
+    • VaultChain™ immutable ledger entries
+    • SHA-512 signed JWKS key (kid: averyos-sovereign-key-v3.6.2)
+    • /the-proof SHA-512 disclosure page
+    • Public GitHub commit history (github.com/averyjl/averyos.com-runtime)
+
+  They form a multi-layer, externally verifiable chain of identity linking
+  Jason Lee Avery (ROOT0) to the AveryOS™ cf83™ Kernel Root.
+
+⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻

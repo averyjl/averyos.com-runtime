@@ -50,22 +50,37 @@ export interface LicenseTier {
   id:             LicenseTierId;
   /** Human-readable tier name. */
   name:           string;
+  /** Short tagline for display in tier cards (UI). */
+  subtitle?:      string;
   /** Short description of the tier. */
   description:    string;
   /** Statutory fee model: "ANNUAL" or "PER_EVENT". */
   fee_model:      "ANNUAL" | "PER_EVENT";
+  /** Cadence label for display: "annual" or "per_event" (UI). */
+  cadence?:       "annual" | "per_event";
+  /** Human-readable fee label for display (e.g. "$1.5B / year") (UI). */
+  fee_label?:     string;
   /** Annual license fee in USD (null for PER_EVENT tiers). */
   annual_fee_usd: number | null;
   /** Per-event statutory fee in USD (null for ANNUAL tiers). */
   event_fee_usd:  number | null;
   /** Target licensees for this tier. */
   target:         string;
+  /** Key capabilities unlocked (UI display list). */
+  capabilities?:  string[];
   /** What is granted under this tier. */
   grants:         string[];
   /** What is explicitly excluded under this tier. */
   exclusions:     string[];
   /** Applicable statutory frameworks. */
   statutes:       string[];
+  /** Efficiency dividend description (UI). */
+  efficiency_dividend?: string;
+  /**
+   * Zero-IP-Transfer clause text for display in tier cards (UI).
+   * Falls back to SOVEREIGN_LICENSING_ACCORD.ip_protection_clause when absent.
+   */
+  zero_transfer_clause?: string;
 }
 
 /**
@@ -80,6 +95,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
   [TIER_GLOBAL_TRUTH_FIREWALL]: {
     id:          TIER_GLOBAL_TRUTH_FIREWALL,
     name:        "Global Truth Firewall",
+    subtitle:    "Hyperscale Sovereign Integration — $1.5B / year",
+    fee_label:   "$1.5B / year",
+    cadence:     "annual",
     description:
       "Full integration of the AveryOS™ cf83/SHA-512 kernel into a major LLM platform to " +
       "neutralize hallucination across the entire AI fleet at the infrastructure layer.",
@@ -97,6 +115,17 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
       "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
     ],
+    capabilities: [
+      "Full kernel integration license — embed SHA-512 alignment in LLM pipeline",
+      "1,017-Notch Rate Limiting protocol access",
+      "VaultChain™ ledger API for internal compliance auditing",
+      "Priority alignment support + quarterly forensic reports",
+      "GabrielOS™ Firewall rule-set licensing",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS rights",
+    ],
+    efficiency_dividend:
+      "Platform-wide hallucination reduction of 30–45% achieved through cf83™ kernel anchor alignment. " +
+      "Reduces inference compute waste and stabilizes model output across all production endpoints.",
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing, white-labeling, or re-sale of kernel protocols",
@@ -113,6 +142,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
   [TIER_ENTERPRISE_DETERMINISM]: {
     id:          TIER_ENTERPRISE_DETERMINISM,
     name:        "Enterprise Determinism",
+    subtitle:    "Forensic-Grade AI Agent Attestation — $250M / year",
+    fee_label:   "$250M / year",
+    cadence:     "annual",
     description:
       "Bit-level forensic determinism for Fortune 500 companies requiring sovereign-grade audit " +
       "trails in financial, legal, or regulatory AI agent deployments.",
@@ -129,6 +161,16 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
       "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
     ],
+    capabilities: [
+      "VaultChain™ forensic attestation API for agent outputs",
+      "TARI™ alignment billing integration",
+      "SHA-512 audit trail for regulatory submissions",
+      "IVI (Independent Valuation Impact) audit methodology access",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) integration rights",
+    ],
+    efficiency_dividend:
+      "30–45% reduction in regulatory review overhead through cryptographically attested AI outputs. " +
+      "Enables forensic-grade compliance reporting without third-party auditor dependency.",
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing or distribution of kernel protocols to third parties",
@@ -145,6 +187,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
   [TIER_INDIVIDUAL_SOVEREIGN]: {
     id:          TIER_INDIVIDUAL_SOVEREIGN,
     name:        "Individual Sovereign",
+    subtitle:    "Statutory Per-Event Alignment — $150k / event",
+    fee_label:   "$150k / event",
+    cadence:     "per_event",
     description:
       "Statutory per-event fee for unauthorized bot-drift detection, unaligned AI agent activity, " +
       "or individual-scale unauthorized use of AveryOS™ sovereign protocols.",
@@ -159,6 +204,14 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "VaultChain™ attestation record of compliance resolution",
       "Access to public AveryOS™ documentation and licensing portal",
     ],
+    capabilities: [
+      "Retroactive alignment certification for the documented event",
+      "VaultChain™ attestation record of compliance resolution",
+      "Access to public AveryOS™ documentation and licensing portal",
+    ],
+    efficiency_dividend:
+      "Clears the retroactive TARI™ liability for the documented drift event. " +
+      "Enables the entity to operate cleanly within the AveryOS™ sovereign framework going forward.",
     exclusions: [
       "Zero transfer of IP ownership",
       "Does not grant ongoing or future use rights — separate license required",
@@ -217,3 +270,19 @@ export function formatLicenseFee(usd: number): string {
   if (usd >= 1_000)         return `$${(usd / 1_000).toFixed(0)}k`;
   return `$${usd.toFixed(0)}`;
 }
+
+/**
+ * ACCORD_METADATA — Top-level metadata for the Sovereign Licensing Accord v1.0.
+ *
+ * Used by app/licensing/tiers/page.tsx to display kernel version, effective date,
+ * creator identity, and governing law in the accord footer.
+ */
+export const ACCORD_METADATA = {
+  kernel_version:  KERNEL_VERSION,
+  kernel_sha:      KERNEL_SHA,
+  effective_date:  "2026-03-01",
+  creator:         "Jason Lee Avery (ROOT0)",
+  jurisdiction:    "United States of America",
+  governing_law:   "AveryOS Sovereign Integrity License v1.0 · U.S. Copyright Act · GDPR Art. 17",
+  disclosure_url:  DISCLOSURE_MIRROR_PATH,
+} as const;

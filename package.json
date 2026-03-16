@@ -13,7 +13,7 @@
     "license-gate": "node ./scripts/licenseGate.cjs",
     "sync:heartbeat": "node scripts/sync-heartbeat.cjs",
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/verifyGenesis.cjs && next build",
     "deploy": "npm run pre-deploy:check && npm run build:cloudflare && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
     "pre-deploy:check": "npx wrangler d1 migrations apply averyos_kernel_db --remote --dry-run 2>&1 | tee /dev/stderr | grep -qE '(All migrations|No migrations|up to date)' && echo '✅ Migration dry-run passed' || (echo '❌ Migration dry-run failed — fix migrations before deploying' && exit 1)",
     "security:lint": "bash scripts/security-lint.sh",

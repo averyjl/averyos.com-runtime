@@ -34,7 +34,7 @@ function getKaasBadge(asn: string | undefined): { tier: number; fee: string; nam
   return KAAS_TIER_MAP[norm] ?? null;
 }
 
-type Tab = "hash" | "rayid" | "jwks";
+type Tab = "hash" | "rayid" | "jwks" | "ledger";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface VerifyResult {
@@ -173,6 +173,27 @@ interface EvidenceResult {
   edge_end_ts?: string;
   archived_at?: string;
   fetched_at?: string;
+}
+
+// ── VaultChain™ Ledger block (Gate 116 — readRecentBlocks API) ────────────────
+interface VaultChainBlock {
+  id:            number;
+  block_type:    string;
+  sha512_hash:   string;
+  anchor_label:  string | null;
+  prev_hash:     string | null;
+  payload:       string | null;
+  btc_block_height: number | null;
+  btc_block_hash:   string | null;
+  created_at:    string;
+}
+
+interface LedgerApiResponse {
+  blocks:          VaultChainBlock[];
+  total:           number;
+  limit:           number;
+  kernel_version:  string;
+  timestamp:       string;
 }
 
 export default function VaultChainExplorerPage() {
@@ -370,6 +391,28 @@ export default function VaultChainExplorerPage() {
     }
   }
 
+  // ── VaultChain™ Ledger state (Gate 116 — readRecentBlocks) ────────────────
+  const [ledgerData,    setLedgerData]    = useState<LedgerApiResponse | null>(null);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerError,   setLedgerError]   = useState<string | null>(null);
+  const [ledgerLimit,   setLedgerLimit]   = useState(20);
+
+  async function fetchLedger(limit = ledgerLimit) {
+    setLedgerLoading(true);
+    setLedgerData(null);
+    setLedgerError(null);
+    try {
+      const res  = await fetch(`/api/v1/ledger/blocks?limit=${limit}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as LedgerApiResponse;
+      setLedgerData(data);
+    } catch (e: unknown) {
+      setLedgerError(e instanceof Error ? e.message : "Network error — unable to reach the VaultChain™ ledger.");
+    } finally {
+      setLedgerLoading(false);
+    }
+  }
+
   const hashResonanceColor =
     hashResult?.resonance === "HIGH_FIDELITY_SUCCESS" ? GREEN :
     hashResult?.resonance === "DRIFT_ALERT"            ? RED   : GOLD;
@@ -414,6 +457,9 @@ export default function VaultChainExplorerPage() {
           </button>
           <button style={tabStyle("jwks")} onClick={() => { setActiveTab("jwks"); fetchJwks(); }}>
             🔑 JWKS Live Sync
+          </button>
+          <button style={tabStyle("ledger")} onClick={() => { setActiveTab("ledger"); fetchLedger(); }}>
+            📦 VaultChain™ Ledger
           </button>
         </div>
       </section>
@@ -1091,6 +1137,119 @@ export default function VaultChainExplorerPage() {
                 Click <strong style={{ color: GOLD_DIM }}>Refresh JWKS</strong> to fetch the live
                 sovereign key set from <code style={{ color: GOLD }}>/.well-known/jwks.json</code>.
                 The kernel SHA-512 is broadcast in full — no truncation.
+              </p>
+            )}
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB 4 — VaultChain™ Ledger (readRecentBlocks — Gate 116)
+        ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "ledger" && (
+          <>
+            {/* Controls */}
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+              <select
+                value={ledgerLimit}
+                onChange={(e) => setLedgerLimit(Number(e.target.value))}
+                style={{ background: "#111", color: GOLD, border: `1px solid ${GOLD_BORDER}`,
+                         borderRadius: "6px", padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}
+              >
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n} blocks</option>
+                ))}
+              </select>
+              <button
+                onClick={() => fetchLedger(ledgerLimit)}
+                disabled={ledgerLoading}
+                style={{ background: GOLD, color: "#000", border: "none", borderRadius: "6px",
+                         padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.85rem",
+                         cursor: ledgerLoading ? "not-allowed" : "pointer", opacity: ledgerLoading ? 0.6 : 1 }}
+              >
+                {ledgerLoading ? "Loading…" : "🔄 Refresh"}
+              </button>
+              {ledgerData && (
+                <span style={{ color: MUTED, fontSize: "0.8rem" }}>
+                  {ledgerData.total} block{ledgerData.total !== 1 ? "s" : ""} · kernel {ledgerData.kernel_version}
+                </span>
+              )}
+            </div>
+
+            {ledgerError && (
+              <p style={{ color: RED, background: "rgba(255,68,68,0.08)", border: `1px solid ${RED}`,
+                          borderRadius: "6px", padding: "0.6rem 1rem", fontSize: "0.85rem" }}>
+                ⚠️ {ledgerError}
+              </p>
+            )}
+
+            {ledgerLoading && (
+              <p style={{ color: MUTED, textAlign: "center", padding: "2rem 0" }}>
+                ⛓️ Fetching VaultChain™ ledger blocks…
+              </p>
+            )}
+
+            {ledgerData && ledgerData.blocks.length === 0 && (
+              <p style={{ color: MUTED, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>
+                No blocks found in the VaultChain™ ledger yet.
+              </p>
+            )}
+
+            {ledgerData && ledgerData.blocks.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {ledgerData.blocks.map((block) => {
+                  const typeColor =
+                    block.block_type === "GENESIS"    ? GOLD :
+                    block.block_type === "ANCHOR"     ? GREEN :
+                    block.block_type === "CORRECTION" ? ORANGE :
+                    BLUE_DIM;
+                  return (
+                    <div
+                      key={block.id}
+                      style={{ background: "rgba(255,215,0,0.03)", border: `1px solid ${GOLD_BORDER}`,
+                               borderRadius: "8px", padding: "0.9rem 1.1rem" }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                                    flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.5rem" }}>
+                        <span style={{ fontWeight: 700, color: typeColor, fontSize: "0.82rem",
+                                       letterSpacing: "0.06em" }}>
+                          #{block.id} · {block.block_type}
+                        </span>
+                        <span style={{ color: MUTED, fontSize: "0.75rem" }}>
+                          {new Date(block.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      {block.anchor_label && (
+                        <p style={{ color: "#ddd", fontSize: "0.83rem", margin: "0 0 0.35rem" }}>
+                          {block.anchor_label}
+                        </p>
+                      )}
+                      <code style={{ display: "block", color: GOLD_DIM, fontSize: "0.7rem",
+                                     wordBreak: "break-all", lineHeight: 1.4 }}>
+                        {block.sha512_hash}
+                      </code>
+                      {block.prev_hash && (
+                        <p style={{ color: MUTED, fontSize: "0.72rem", margin: "0.3rem 0 0" }}>
+                          prev: <code style={{ color: GOLD_DIM }}>{block.prev_hash.slice(0, 32)}…</code>
+                        </p>
+                      )}
+                      {block.btc_block_height != null && (
+                        <p style={{ color: GREEN, fontSize: "0.75rem", margin: "0.3rem 0 0" }}>
+                          ₿ BTC block {block.btc_block_height}
+                          {block.btc_block_hash && (
+                            <> · <code style={{ color: GOLD_DIM }}>{block.btc_block_hash.slice(0, 20)}…</code></>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {!ledgerData && !ledgerLoading && !ledgerError && (
+              <p style={{ color: MUTED, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>
+                Click <strong style={{ color: GOLD_DIM }}>Refresh</strong> to fetch recent blocks from the
+                VaultChain™ ledger via <code style={{ color: GOLD }}>/api/v1/ledger/blocks</code>.
               </p>
             )}
           </>

@@ -14,6 +14,8 @@ interface D1Database {
 interface CloudflareEnv {
   DB: D1Database;
   FIREBASE_PROJECT_ID?: string;
+  /** Stripe secret key — used for live revenue pull */
+  STRIPE_SECRET_KEY?: string;
 }
 
 interface TariLedgerRow {
@@ -28,6 +30,12 @@ interface TariLedgerRow {
   event_type: string;
   description: string | null;
   created_at: string;
+}
+
+/** Minimal subset of a Stripe BalanceSummary response */
+interface StripeBalance {
+  available: Array<{ amount: number; currency: string }>;
+  pending:   Array<{ amount: number; currency: string }>;
 }
 
 interface TariStatsResponse {
@@ -49,16 +57,60 @@ interface TariStatsResponse {
   firebase_sync_status: string;
   // Phase 117 — Firebase tari_metrics stream URL (Firestore collection: averyos-tari-probe)
   firebase_tari_metrics_url: string;
+  // Phase 116.2 — Live Stripe revenue
+  stripe_balance_available_usd: number | null;
+  stripe_balance_pending_usd:   number | null;
+  stripe_revenue_status:        string;
   timestamp: string;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
 const DER_SETTLEMENT_RATE_USD = 10_000;
 
+/**
+ * fetchStripeBalance()
+ *
+ * Retrieves the current Stripe account balance (available + pending).
+ * Returns null fields when STRIPE_SECRET_KEY is not set or the call fails.
+ * Non-blocking — never throws.
+ */
+async function fetchStripeBalance(stripeSecretKey: string): Promise<{
+  availableUsd: number | null;
+  pendingUsd:   number | null;
+  status: string;
+}> {
+  try {
+    const res = await fetch("https://api.stripe.com/v1/balance", {
+      headers: {
+        Authorization: `Bearer ${stripeSecretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+    if (!res.ok) {
+      return { availableUsd: null, pendingUsd: null, status: `STRIPE_HTTP_${res.status}` };
+    }
+    const balance = await res.json() as StripeBalance;
+    const usdAvail  = balance.available?.find((b) => b.currency === "usd");
+    const usdPending = balance.pending?.find((b) => b.currency === "usd");
+    // Stripe amounts are in cents — convert to dollars
+    const availableUsd = usdAvail   != null ? usdAvail.amount   / 100 : null;
+    const pendingUsd   = usdPending != null ? usdPending.amount / 100 : null;
+    return { availableUsd, pendingUsd, status: "ACTIVE" };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { availableUsd: null, pendingUsd: null, status: `STRIPE_ERROR: ${msg.slice(0, 120)}` };
+  }
+}
+
 export async function GET() {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv = env as unknown as CloudflareEnv;
+
+    // ── Live Stripe revenue pull (Phase 116.2) — non-blocking, runs in parallel ─
+    const stripePromise = cfEnv.STRIPE_SECRET_KEY
+      ? fetchStripeBalance(cfEnv.STRIPE_SECRET_KEY)
+      : Promise.resolve({ availableUsd: null, pendingUsd: null, status: "PENDING_CREDENTIALS" });
 
     // ── Tari Ledger queries ────────────────────────────────────────────────
     const { results: recent } = await cfEnv.DB.prepare(
@@ -146,23 +198,29 @@ export async function GET() {
         `?orderBy=timestamp%20desc&pageSize=20`
       : null;
 
+    // ── Await Stripe balance (started in parallel above) ──────────────────
+    const stripe = await stripePromise;
+
     const response: TariStatsResponse = {
-      trust_premium_index_pct:    trustPremiumIndexPct,
-      recent_entries:             recent,
-      total_entries:              totalEntries,
-      latest_revenue_projection:  latest ? latest.revenue_projection : null,
-      hn_watcher_count:           hnWatcherCount,
-      der_settlement_count:       derSettlementCount,
-      conflict_zone_count:        conflictZoneCount,
-      der_high_value_count:       derHighValueCount,
-      legal_scan_count:           legalScanCount,
-      peer_access_count:          peerAccessCount,
-      total_tier9_events:         totalTier9Events,
-      watcher_liability_accrued:  watcherLiabilityAccrued,
-      liability_accrued_usd:      liabilityAccruedUsd,
-      firebase_sync_status:       firebaseSyncStatus,
-      firebase_tari_metrics_url:  firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
-      timestamp:                  new Date().toISOString(),
+      trust_premium_index_pct:          trustPremiumIndexPct,
+      recent_entries:                   recent,
+      total_entries:                    totalEntries,
+      latest_revenue_projection:        latest ? latest.revenue_projection : null,
+      hn_watcher_count:                 hnWatcherCount,
+      der_settlement_count:             derSettlementCount,
+      conflict_zone_count:              conflictZoneCount,
+      der_high_value_count:             derHighValueCount,
+      legal_scan_count:                 legalScanCount,
+      peer_access_count:                peerAccessCount,
+      total_tier9_events:               totalTier9Events,
+      watcher_liability_accrued:        watcherLiabilityAccrued,
+      liability_accrued_usd:            liabilityAccruedUsd,
+      firebase_sync_status:             firebaseSyncStatus,
+      firebase_tari_metrics_url:        firebaseTariMetricsUrl ?? "PENDING_CREDENTIALS",
+      stripe_balance_available_usd:     stripe.availableUsd,
+      stripe_balance_pending_usd:       stripe.pendingUsd,
+      stripe_revenue_status:            stripe.status,
+      timestamp:                        new Date().toISOString(),
     };
 
     return Response.json(response);
