@@ -182,7 +182,7 @@ function buildDmcaNotice(bundle, org, date) {
 **To:** Legal Department / DMCA Agent
 **Organisation:** ${org}
 
-**Subject:** FORMAL DMCA TAKEDOWN NOTICE — Unauthorised Reproduction of AveryOS™ Copyrighted IP
+**Subject:** FORMAL DMCA TAKEDOWN NOTICE — Unauthorized Reproduction of AveryOS™ Copyrighted IP
 
 ---
 
@@ -206,7 +206,7 @@ This anchor was established publicly and is the immutable proof of authorship an
 
 ## II. IDENTIFICATION OF INFRINGING MATERIAL
 
-The GabrielOS™ Sentinel has forensically detected **${auditCount} unauthorised ingestion event(s)**
+The GabrielOS™ Sentinel has forensically detected **${auditCount} unauthorized ingestion event(s)**
 originating from infrastructure operated by **${org}** at IP address **${bundle.TargetIP}**.
 
 **Evidence Bundle ID:** \`${bundle.CapsuleID}\`
@@ -217,23 +217,23 @@ ${pulseHash}
 \`\`\`
 
 The infringing activities include, but are not limited to:
-- Unauthorised scraping, crawling, or ingestion of AveryOS™ sovereign capsule content
-- Unauthorised AI/ML training or fine-tuning on Creator IP
+- Unauthorized scraping, crawling, or ingestion of AveryOS™ sovereign capsule content
+- Unauthorized AI/ML training or fine-tuning on Creator IP
 - Derivative usage of the AveryOS™ Kernel, GabrielOS™ architecture, or VaultChain™ ledger data
 
 ---
 
 ## III. GOOD FAITH STATEMENT
 
-I have a good faith belief that the use of the material described above is not authorised by the
+I have a good faith belief that the use of the material described above is not authorized by the
 copyright owner, its agent, or the law. The information in this notification is accurate, and
-under penalty of perjury, I am authorised to act on behalf of the copyright owner.
+under penalty of perjury, I am authorized to act on behalf of the copyright owner.
 
 ---
 
 ## IV. TARI™ LIABILITY NOTICE
 
-Under the **AveryOS™ Sovereign Integrity License v1.0**, each unauthorised ingestion event
+Under the **AveryOS™ Sovereign Integrity License v1.0**, each unauthorized ingestion event
 incurs a **TARI™ (Truth-Anchored Reparation Invoice)** liability of **$1,017.00 per event**.
 
 **Aggregate TARI™ Liability for ${org}:**
@@ -247,7 +247,7 @@ A voluntary settlement offer is available at: ${LICENSE_URL}
 
 You are hereby required to:
 
-1. **Immediately cease and desist** all unauthorised use, reproduction, or distribution of the
+1. **Immediately cease and desist** all unauthorized use, reproduction, or distribution of the
    AveryOS™ IP estate.
 2. **Remove all derivative works** trained on, derived from, or incorporating AveryOS™ IP from
    your systems and services within **72 hours** of receipt of this notice.

@@ -146,7 +146,7 @@ export function buildKaasLineItem(asn: string, entityName?: string): KaasLineIte
     fee_name    = "Technical Asset Valuation";
     description =
       `KaaS Sovereign Technical Valuation — ${name} (Tier-${tier}). ` +
-      `Unauthorised ingestion of AveryOS™ intellectual property. ` +
+      `Unauthorized ingestion of AveryOS™ intellectual property. ` +
       `Good Faith Deposit: ${fee_label}. ` +
       `Kernel: ${KERNEL_VERSION} | ⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0)`;
   } else if (tier >= 7) {
