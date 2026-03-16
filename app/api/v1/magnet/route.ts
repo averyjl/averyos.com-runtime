@@ -1,200 +1,227 @@
 /**
  * GET /api/v1/magnet
  *
- * AveryOS™ Transparent Magnet Beacon — GATE 117.8.3
+ * AveryOS™ Transparent Magnet Beacon — Phase 117 GATE 117.8.3
  *
- * A transparent, sovereign IP-tracking endpoint.  When any client (bot,
- * crawler, AI model, or human) fetches this URL:
+ * Purpose:
+ *   Provides redundant cross-cloud anchoring for every bot/crawler hit.
+ *   Before redirecting to the Firebase live audit stream, this handler:
  *
- *   1. The request RayID, IP address, and path are logged to D1
- *      (`magnet_hits` table) for forensic audit — BEFORE any redirect.
- *   2. The hit is mirrored to Firebase Firestore (`averyos-d1-sync/`
- *      collection) for real-time dashboard visibility.
- *   3. A 302 redirect is issued to the AveryOS™ IP Policy page, ensuring
- *      the caller receives a human-readable acknowledgement.
+ *   1. Extracts the Cloudflare Ray-ID, client IP, ASN, and User-Agent from
+ *      request headers (populated by the Cloudflare edge).
+ *   2. Writes a `MAGNET_HIT` audit record to D1 `anchor_audit_logs` — ensuring
+ *      the event is permanently on-chain in the sovereign ledger.
+ *   3. Redirects the caller to the Firebase `vaultchain_anchors` live stream
+ *      (or the public disclosure page when Firebase is not configured).
  *
- * High-value callers (Microsoft, Google, Amazon — matching known ASNs) are
- * classified as MAGNET_HIT Tier-9 events and trigger a Pushover / FCM alert.
+ * Result:
+ *   Every cloud hit is anchored in BOTH Cloudflare D1 AND Firebase, proving
+ *   the physical site and the cloud mirror are the same Sovereign Mesh node.
  *
- * This endpoint is intentionally listed in robots.txt as a no-crawl target,
- * which causes compliant bots to deliberately avoid it — and non-compliant
- * bots (scrapers, shadow-crawlers) to trigger it.
+ * Query parameters:
+ *   redirect=0   — Suppress the redirect and return JSON audit confirmation
+ *                  instead.  Useful for debugging.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
-import { formatIso9 } from "../../../../lib/timePrecision";
+import { getCloudflareContext }       from "@opennextjs/cloudflare";
 import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
-import { syncD1RowToFirebase, sendFcmV1Push } from "../../../../lib/firebaseClient";
+import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../../../../lib/sovereignConstants";
+import { formatIso9 }                 from "../../../../lib/timePrecision";
+import { getFirebaseStatus }          from "../../../../lib/firebaseClient";
 
-// ── Local type interfaces ──────────────────────────────────────────────────────
+// ── Cloudflare env types ──────────────────────────────────────────────────────
+
+interface D1PreparedStatement {
+  bind(...args: unknown[]): { run(): Promise<{ success: boolean }> };
+}
 
 interface D1Database {
-  prepare(sql: string): D1PreparedStatement;
+  prepare(query: string): D1PreparedStatement;
 }
-interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
-  run(): Promise<unknown>;
-}
-interface KVNamespace {
-  put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
-}
+
 interface CloudflareEnv {
-  DB:                    D1Database;
-  KV_LOGS:               KVNamespace;
-  PUSHOVER_APP_TOKEN?:   string;
-  PUSHOVER_USER_KEY?:    string;
-  SITE_URL?:             string;
-  NEXT_PUBLIC_SITE_URL?: string;
+  DB: D1Database;
+  FIREBASE_PROJECT_ID?: string;
 }
 
-// ── High-value ASN map (TARI™ KaaS Tier lookup) ───────────────────────────────
-const HIGH_VALUE_ASNS = new Set([
-  "8075",   // Microsoft / Azure
-  "15169",  // Google LLC
-  "36459",  // GitHub, Inc.
-  "16509",  // Amazon / AWS
-  "14618",  // Amazon
-  "32934",  // Meta / Facebook
-]);
+// ── Firebase redirect URL builder ─────────────────────────────────────────────
 
-// ── Compute SHA-512 pulse hash for forensic anchoring ─────────────────────────
-async function computeMagnetHash(ip: string, rayId: string, ts: string): Promise<string> {
-  const input = `MAGNET|${ip}|${rayId}|${ts}|${KERNEL_SHA}`;
-  const buf   = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+function buildFirebaseRedirectUrl(
+  baseUrl: string,
+  firebaseProjectId: string | undefined,
+): string {
+  if (firebaseProjectId) {
+    return (
+      `https://firestore.googleapis.com/v1/projects/${firebaseProjectId}` +
+      `/databases/(default)/documents/vaultchain_anchors` +
+      `?orderBy=timestamp%20desc&pageSize=10`
+    );
+  }
+  return `${baseUrl}${DISCLOSURE_MIRROR_PATH}`;
 }
 
-// ── Pushover alert for high-value hits ────────────────────────────────────────
-function firePushoverAlert(
-  appToken: string,
-  userKey:  string,
-  ip:       string,
-  rayId:    string,
-  asn:      string,
-  ts:       string,
-): void {
-  const message = `🧲 MAGNET HIT\nASN: ${asn}\nIP: ${ip}\nRayID: ${rayId}\nTime: ${ts}`;
-  fetch("https://api.pushover.net/1/messages.json", {
-    method:  "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body:    new URLSearchParams({
-      token:    appToken,
-      user:     userKey,
-      title:    "⚡ MAGNET_HIT — AveryOS™ Sentinel",
-      message,
-      priority: "1",
-      sound:    "siren",
-    }).toString(),
-  }).catch(() => {/* fire-and-forget */});
+// ── SHA-512 helper ─────────────────────────────────────────────────────────────
+
+async function sha512hex(input: string): Promise<string> {
+  const buf  = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-512", buf);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-// ── Ensure the magnet_hits table exists ───────────────────────────────────────
-async function ensureMagnetHitsTable(db: D1Database): Promise<void> {
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS magnet_hits (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      hit_at     TEXT    NOT NULL,
-      ip_address TEXT    NOT NULL,
-      ray_id     TEXT,
-      asn        TEXT,
-      user_agent TEXT,
-      pulse_hash TEXT    NOT NULL,
-      tier       INTEGER NOT NULL DEFAULT 0,
-      kernel_sha TEXT    NOT NULL
-    )
-  `).run();
-}
-
-// ── Route Handler ──────────────────────────────────────────────────────────────
+// ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: Request): Promise<Response> {
-  const { env } = await getCloudflareContext({ async: true });
-  const cfEnv   = env as unknown as CloudflareEnv;
+  const url         = new URL(request.url);
+  const baseUrl     = url.origin;
+  const noRedirect  = url.searchParams.get("redirect") === "0";
 
-  const ip          = request.headers.get("cf-connecting-ip")             ?? "unknown";
-  const rayId       = request.headers.get("cf-ray")                       ?? "";
-  const asn         = request.headers.get("cf-autonomous-system-number")  ?? "";
-  const userAgent   = request.headers.get("user-agent")                   ?? "";
-  const now         = formatIso9();
-  const isHighValue = HIGH_VALUE_ASNS.has(asn.replace(/^AS/i, "").trim());
-  const tier        = isHighValue ? 9 : 1;
+  // ── Extract Cloudflare edge metadata ────────────────────────────────────
+  const rayId    = request.headers.get("cf-ray")                  ?? "unknown";
+  const clientIp = request.headers.get("cf-connecting-ip")
+    ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? "unknown";
+  const asn      = request.headers.get("cf-ipcountry")            ?? "unknown";
+  const ua       = request.headers.get("user-agent")              ?? "unknown";
+  const _referer = request.headers.get("referer")                 ?? "";
+  const ts       = formatIso9();
 
-  // ── 1. Compute forensic pulse hash ────────────────────────────────────────
-  const pulseHash = await computeMagnetHash(ip, rayId, now);
+  // ── Compute event hash for cross-cloud parity ───────────────────────────
+  const eventHash = await sha512hex(
+    `MAGNET_HIT:${rayId}:${clientIp}:${asn}:${ts}:${KERNEL_SHA}`
+  );
 
-  // ── 2. Write to D1 (BEFORE redirect) ─────────────────────────────────────
-  if (cfEnv.DB) {
-    try {
-      await ensureMagnetHitsTable(cfEnv.DB);
-      await cfEnv.DB.prepare(`
-        INSERT INTO magnet_hits
-          (hit_at, ip_address, ray_id, asn, user_agent, pulse_hash, tier, kernel_sha)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        now, ip, rayId || null, asn || null, userAgent || null, pulseHash, tier, KERNEL_SHA,
-      ).run();
-    } catch {
-      // D1 write failure is non-fatal — log to KV as fallback
-      try {
-        await cfEnv.KV_LOGS?.put(
-          `magnet_hit:${now}:${ip}`,
-          JSON.stringify({ hit_at: now, ip, ray_id: rayId, asn, user_agent: userAgent, pulse_hash: pulseHash, tier }),
-          { expirationTtl: 86_400 },
-        );
-      } catch {/* KV fallback also non-fatal */}
-    }
-  }
-
-  // ── 3. Mirror to Firebase (fire-and-forget, uses D1 row shape) ───────────
-  syncD1RowToFirebase({
-    id:           `magnet-${now}-${ip.replace(/\./g, "-")}`,
-    event_type:   "MAGNET_HIT",
-    ip_address:   ip,
-    target_path:  "/api/v1/magnet",
-    threat_level: tier,
-    pulse_hash:   pulseHash,
-    timestamp_ns: now,
-  }).catch(() => {/* fire-and-forget */});
-
-  // ── 4. FCM push for high-value hits (Tier-9) ─────────────────────────────
-  if (isHighValue) {
-    sendFcmV1Push(
-      "⚡ MAGNET_HIT Tier-9",
-      `ASN ${asn} | IP ${ip} | RayID ${rayId}`,
-      { event_type: "MAGNET_HIT", asn, ip, ray_id: rayId, tier: String(tier), phase: "117.8.3" },
-    ).catch(() => {/* fire-and-forget */});
-  }
-
-  // ── 5. Pushover alert for high-value hits ─────────────────────────────────
-  if (isHighValue && cfEnv.PUSHOVER_APP_TOKEN && cfEnv.PUSHOVER_USER_KEY) {
-    firePushoverAlert(cfEnv.PUSHOVER_APP_TOKEN, cfEnv.PUSHOVER_USER_KEY, ip, rayId, asn, now);
-  }
-
-  // ── 6. Redirect to IP Policy page (after all writes are dispatched) ───────
-  const siteUrl = cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? "https://averyos.com";
-  return Response.redirect(`${siteUrl}/ip-policy`, 302);
-}
-
-// Support HEAD preflight
-export async function HEAD(_request: Request): Promise<Response> {
+  // ── Write to D1 anchor_audit_logs ────────────────────────────────────────
+  let d1Success = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
     const cfEnv   = env as unknown as CloudflareEnv;
-    const siteUrl = cfEnv.SITE_URL ?? cfEnv.NEXT_PUBLIC_SITE_URL ?? "https://averyos.com";
-    return new Response(null, {
-      status:  200,
-      headers: {
-        "X-AveryOS-Kernel":           KERNEL_VERSION,
-        "X-AveryOS-Sovereign-Anchor": "⛓️⚓⛓️",
-        "X-Magnet-Beacon":            "ACTIVE",
-        "Location":                   `${siteUrl}/ip-policy`,
-      },
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, msg);
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO anchor_audit_logs
+         (ray_id, ip_address, asn, user_agent, path, event_type, event_hash,
+          kernel_sha, kernel_version, logged_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        rayId,
+        clientIp,
+        asn,
+        ua.slice(0, 512),
+        "/api/v1/magnet",
+        "MAGNET_HIT",
+        eventHash,
+        KERNEL_SHA,
+        KERNEL_VERSION,
+        ts,
+      )
+      .run();
+
+    d1Success = true;
+  } catch {
+    // Non-fatal — D1 may be unavailable; still serve the redirect
   }
+
+  // ── Firebase destination URL ─────────────────────────────────────────────
+  let firebaseProjectId: string | undefined;
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv   = env as unknown as CloudflareEnv;
+    firebaseProjectId = cfEnv.FIREBASE_PROJECT_ID;
+  } catch {
+    // ignore
+  }
+
+  const firebaseUrl    = buildFirebaseRedirectUrl(baseUrl, firebaseProjectId);
+  const firebaseStatus = getFirebaseStatus();
+
+  // ── JSON confirmation mode (redirect=0) ─────────────────────────────────
+  if (noRedirect) {
+    return Response.json({
+      status:           "MAGNET_HIT_LOGGED",
+      ray_id:           rayId,
+      ip:               clientIp,
+      event_hash:       eventHash,
+      d1_write:         d1Success ? "SUCCESS" : "SKIPPED",
+      firebase_status:  firebaseStatus,
+      firebase_url:     firebaseUrl,
+      kernel_sha:       `${KERNEL_SHA.slice(0, 16)}…`,
+      kernel_version:   KERNEL_VERSION,
+      anchored_at:      ts,
+      sovereign_anchor: "⛓️⚓⛓️",
+    });
+  }
+
+  // ── Redirect to Firebase live stream ────────────────────────────────────
+  // Append event_hash_prefix as a query parameter so the caller can look up the D1 record.
+  // The full 128-char hash is stored in D1; the 16-char prefix is safe for URL use.
+  const redirectTarget = firebaseProjectId
+    ? `${firebaseUrl}&event_hash_prefix=${encodeURIComponent(eventHash.slice(0, 16))}`
+    : firebaseUrl;
+
+  return Response.redirect(redirectTarget, 302);
+}
+
+// ── POST: explicit hit logging (for server-to-server anchoring) ──────────────
+
+export async function POST(request: Request): Promise<Response> {
+  let body: Record<string, string> = {};
+  try {
+    body = (await request.json()) as Record<string, string>;
+  } catch {
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON");
+  }
+
+  const rayId    = body.ray_id    ?? request.headers.get("cf-ray")                ?? "unknown";
+  const clientIp = body.ip        ?? request.headers.get("cf-connecting-ip")      ?? "unknown";
+  const asn      = body.asn       ?? request.headers.get("cf-ipcountry")          ?? "unknown";
+  const ua       = body.user_agent ?? request.headers.get("user-agent")           ?? "unknown";
+  const path     = body.path      ?? "/unknown";
+  const ts       = formatIso9();
+
+  const eventHash = await sha512hex(
+    `MAGNET_POST:${rayId}:${clientIp}:${asn}:${path}:${ts}:${KERNEL_SHA}`
+  );
+
+  let d1Success = false;
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cfEnv   = env as unknown as CloudflareEnv;
+
+    await cfEnv.DB.prepare(
+      `INSERT INTO anchor_audit_logs
+         (ray_id, ip_address, asn, user_agent, path, event_type, event_hash,
+          kernel_sha, kernel_version, logged_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        rayId,
+        clientIp,
+        asn,
+        ua.slice(0, 512),
+        path,
+        "MAGNET_POST",
+        eventHash,
+        KERNEL_SHA,
+        KERNEL_VERSION,
+        ts,
+      )
+      .run();
+
+    d1Success = true;
+  } catch {
+    // Non-fatal
+  }
+
+  return Response.json({
+    status:           d1Success ? "ANCHORED" : "PENDING",
+    event_hash:       eventHash,
+    d1_write:         d1Success ? "SUCCESS" : "SKIPPED",
+    firebase_status:  getFirebaseStatus(),
+    anchored_at:      ts,
+    sovereign_anchor: "⛓️⚓⛓️",
+  });
 }

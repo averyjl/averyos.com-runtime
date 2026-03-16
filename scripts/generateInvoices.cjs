@@ -51,6 +51,20 @@ const args    = process.argv.slice(2);
  */
 const DRY_RUN = args.includes('--dry-run');
 
+/**
+ * --verify-dollar: Trigger a $1.00 verification test against the live ASN checkout
+ * rail.  Creates a single real Stripe checkout session for $1.00 with
+ * settlement_status: 'Settlement Requested' in the metadata to confirm the
+ * end-to-end billing rail is wired correctly.
+ *
+ * Usage:
+ *   STRIPE_SECRET_KEY=sk_live_... node scripts/generateInvoices.cjs --verify-dollar
+ *   STRIPE_SECRET_KEY=sk_test_... node scripts/generateInvoices.cjs --verify-dollar
+ *
+ * Safety: the $1.00 session is created in TEST mode when sk_test_ key is detected.
+ */
+const VERIFY_DOLLAR = args.includes('--verify-dollar');
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const STRIPE_SECRET_KEY    = process.env.STRIPE_SECRET_KEY;
 const SITE_URL             = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, '');
@@ -1038,6 +1052,65 @@ async function main() {
   const stripe = DRY_RUN ? null : Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
 
   console.log('⛓️⚓⛓️  AveryOS TARI Invoice Generator');
+
+  // ── $1.00 Verification Test ───────────────────────────────────────────────
+  // --verify-dollar: create a single $1.00 Stripe checkout session to confirm
+  // the live billing rail is wired correctly.  Metadata includes
+  // settlement_status: 'Settlement Requested' to match production invoices.
+  if (VERIFY_DOLLAR) {
+    console.log('\n💵  --verify-dollar: running $1.00 ASN checkout rail verification…');
+    const isTestKey = (STRIPE_SECRET_KEY ?? '').startsWith('sk_test_');
+    console.log(`   Stripe key type: ${isTestKey ? 'TEST' : 'LIVE'}`);
+
+    if (DRY_RUN) {
+      console.log('🔍  [DRY RUN] Would create $1.00 verification checkout session with:');
+      console.log('    unit_amount: 100 (cents)');
+      console.log("    metadata.settlement_status: 'Settlement Requested'");
+      console.log("    metadata.capsule_id: 'AveryOS_TARI_VerifyDollar_v1'");
+      console.log("    metadata.kernel_version: v3.6.2");
+      return;
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency:    'usd',
+              product_data: {
+                name:        'AveryOS™ TARI™ $1.00 Rail Verification',
+                description: 'One-dollar checkout rail test — confirms Settlement Requested metadata flow.',
+              },
+              unit_amount: 100, // $1.00 in cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
+        cancel_url:  `${SITE_URL}/licensing`,
+        metadata: {
+          settlement_status: 'Settlement Requested',
+          capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
+          kernel_version:    'v3.6.2',
+          test_mode:         isTestKey ? '1' : '0',
+          rail_verification: '1',
+        },
+      });
+
+      console.log('[VERIFY_DOLLAR] ✅  $1.00 verification session created successfully.');
+      console.log('\n✅  $1.00 verification checkout session created:');
+      console.log(`   Session ID : ${session.id}`);
+      console.log(`   URL        : ${session.url ?? '(no URL — check Stripe dashboard)'}`);
+      console.log(`   Status     : ${session.status}`);
+      console.log("   Metadata   : settlement_status='Settlement Requested'");
+    } catch (err) {
+      logAosError(AOS_ERROR.STRIPE_ERROR, `$1.00 verification failed: ${err.message}`, err);
+      process.exit(1);
+    }
+    return;
+  }
 
   // ── KaaS Valuations Mode — activated when KAAS_VALUATIONS_MODE=1 ─────────
   if (KAAS_VALUATIONS_MODE) {

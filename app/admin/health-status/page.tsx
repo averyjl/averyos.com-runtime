@@ -3,7 +3,7 @@
 /**
  * app/admin/health-status/page.tsx
  *
- * AveryOS™ Private Health Dashboard — GATE 114.8.1
+ * AveryOS™ Private Health Dashboard — GATE 114.8.1 / GATE 116.6.3
  *
  * CreatorLock — gated behind VaultAuth.  Monitors:
  *   • Sovereign Kernel anchor (SHA-512 parity)
@@ -14,6 +14,8 @@
  *   • Worker health (gabriel-gatekeeper, license-bot, sovereign-log-ingress)
  *   • AOSR Summary Retrieval — recent QA run history (GATE 114.5.2)
  *   • VaultSig™ Webhook Activity — recent GitHub App webhook events (GATE 114.8.1)
+ *   • Physical Residency — USB AOS salt handshake status (GATE 114.9.4)
+ *   • ALM Bridge — local Avery-ALM (Ollama) availability (GATE 116.6.3)
  *
  * Each status badge shows Green (ACTIVE) or Red (DEGRADED/OFFLINE).
  * Footer includes ISO-9 timestamp with (Δ [seconds]) precision (GATE 114.5.5).
@@ -118,6 +120,30 @@ interface VaultSigLogPayload {
   error?:   string;
 }
 
+// ── GATE 116.6.3 — Electron IPC bridge type (available only in Electron context) ──
+
+type ResidencyState = "NODE-02_PHYSICAL" | "CLOUD" | "CHECKING";
+
+interface ResidencySaltResult {
+  found:      boolean;
+  state:      ResidencyState;
+  mountPath:  string | null;
+  saltPath:   string | null;
+  previewHex: string | null;
+  mimeType:   string | null;
+}
+
+interface AosTerminalBridge {
+  residencyCheckSalt: () => Promise<ResidencySaltResult>;
+  almPing:            () => Promise<{ alive: boolean }>;
+}
+
+declare global {
+  interface Window {
+    aosTerminal?: AosTerminalBridge;
+  }
+}
+
 // ── Helper: format a 9-digit-precision delta (seconds) since a start timestamp ─
 
 function formatDeltaS(startMs: number): string {
@@ -205,12 +231,16 @@ export default function AdminHealthStatusPage() {
   const [vaultSigEntries, setVaultSigEntries] = useState<VaultSigLogEntry[]>([]);
   const [vaultSigLoading, setVaultSigLoading] = useState(false);
   const [vaultSigError,   setVaultSigError]   = useState<string | null>(null);
+  /** GATE 114.9.4 — Physical Residency (Electron IPC) */
+  const [residencyStatus, setResidencyStatus] = useState<ResidencyState>("CHECKING");
+  /** GATE 116.6.3 — ALM Bridge (Electron IPC — Avery-ALM / Ollama) */
+  const [almBridgeAlive,  setAlmBridgeAlive]  = useState<boolean | null>(null);
 
   const runChecks = useCallback(async () => {
     setLoading(true);
     try {
       // Run all checks in parallel — including VaultSig webhook status (GATE 114.8.1)
-      const [healthRes, anchorRes, jwksRes, vaultSigRes] = await Promise.allSettled([
+      const [healthRes, anchorRes, jwksRes, vaultSigRes, resonanceRes] = await Promise.allSettled([
         fetch("/api/v1/health",          { cache: "no-store" }).then(r => r.json() as Promise<HealthPayload>),
         fetch("/api/v1/anchor-status",   { cache: "no-store" }).then(r => r.json() as Promise<AnchorPayload>),
         fetch("/api/v1/jwks",            { cache: "no-store" }).then(r => r.json() as Promise<JwksPayload>),
@@ -218,18 +248,24 @@ export default function AdminHealthStatusPage() {
         fetch("/api/v1/hooks/vaultsig/status", { cache: "no-store" })
           .then(r => r.ok ? r.json() as Promise<VaultSigPayload> : null)
           .catch(() => null),
+        // GATE 117.8.2 — AOS Trust-List heartbeat via resonance endpoint
+        fetch("/api/v1/resonance", { cache: "no-store" })
+          .then(r => r.ok ? r.json() as Promise<{ status?: string; sha_verified?: boolean }> : null)
+          .catch(() => null),
       ]);
 
-      const health   = healthRes.status   === "fulfilled" ? healthRes.value   : null;
-      const anchor   = anchorRes.status   === "fulfilled" ? anchorRes.value   : null;
-      const jwks     = jwksRes.status     === "fulfilled" ? jwksRes.value     : null;
-      const vSig     = vaultSigRes.status === "fulfilled" ? vaultSigRes.value : null;
+      const health   = healthRes.status    === "fulfilled" ? healthRes.value    : null;
+      const anchor   = anchorRes.status    === "fulfilled" ? anchorRes.value    : null;
+      const jwks     = jwksRes.status      === "fulfilled" ? jwksRes.value      : null;
+      const vSig     = vaultSigRes.status  === "fulfilled" ? vaultSigRes.value  : null;
+      const resonance = resonanceRes.status === "fulfilled" ? resonanceRes.value : null;
 
       const d1Ok   = health?.d1?.includes("CONNECTED") ?? false;
       const kvOk   = health?.kv?.includes("CONNECTED") ?? false;
       const syncOk = anchor?.sync_state === "SOVEREIGN_GLOBAL_SYNCED";
       const jwksOk = Array.isArray(jwks?.keys) && (jwks?.keys?.length ?? 0) > 0;
-      const vaultSigOk = vSig !== null && !("error" in (vSig ?? {}));
+      const vaultSigOk  = vSig !== null && !("error" in (vSig ?? {}));
+      const trustListOk = resonance !== null && resonance.sha_verified === true;
 
       // Kernel SHA parity check — compare displayed prefix against KERNEL_SHA
       const kernelOk = (health?.kernel_version ?? "") === KERNEL_VERSION;
@@ -309,6 +345,18 @@ export default function AdminHealthStatusPage() {
             : "VaultSig webhook status endpoint unreachable — monitor operating in passive mode.",
           alignment: "VaultSig webhook ingestion active — sovereign events received and logged.",
         },
+        // GATE 117.8.2 — AOS Trust-List Heartbeat
+        {
+          label:     "AOS Trust-List Heartbeat",
+          icon:      "🛡️",
+          status:    resonance === null ? ("DEGRADED" as BadgeStatus) : (trustListOk ? "ACTIVE" : "CHECKING"),
+          detail:    trustListOk
+            ? "Resonance layer responding — SHA-512 kernel parity verified — trust-scoring active."
+            : (resonance !== null)
+              ? "Resonance layer reachable but SHA parity unconfirmed — trust-list warming up."
+              : "Resonance endpoint unreachable — AOS Trust-List in passive mode.",
+          alignment: "Trust-List active — authorized AI agent registry operating at 100.000% alignment.",
+        },
       ];
 
       setBadges(next);
@@ -370,6 +418,35 @@ export default function AdminHealthStatusPage() {
     if (!authed) return;
     void fetchVaultSig();
   }, [authed, fetchVaultSig]);
+
+  /** GATE 114.9.4 / GATE 116.6.3 — Poll Electron IPC for residency & ALM bridge status */
+  useEffect(() => {
+    if (!authed) return;
+    if (typeof window === "undefined" || !window.aosTerminal) return;
+
+    const bridge = window.aosTerminal;
+
+    async function pollIpc() {
+      try {
+        const [residency, alm] = await Promise.allSettled([
+          bridge.residencyCheckSalt(),
+          bridge.almPing(),
+        ]);
+        if (residency.status === "fulfilled") {
+          setResidencyStatus(residency.value.state);
+        }
+        if (alm.status === "fulfilled") {
+          setAlmBridgeAlive(alm.value.alive);
+        }
+      } catch {
+        // IPC bridge not available — running in cloud/web context
+      }
+    }
+
+    void pollIpc();
+    const ipcInterval = setInterval(() => void pollIpc(), 15_000);
+    return () => clearInterval(ipcInterval);
+  }, [authed]);
 
   /** GATE 114.5.5 — update footer delta every second */
   useEffect(() => {
@@ -433,6 +510,18 @@ export default function AdminHealthStatusPage() {
             ? "Operating in CLOUD mode — AOS salt USB not detected on local hardware."
             : "Running residency handshake — checking for AOS salt USB…",
           alignment: "Sovereign Residency Handshake active — AOS salt USB bridges cloud and local execution.",
+        }} />
+        {/* GATE 116.6.3 — ALM Bridge Badge: Avery-ALM (Anchored Language Model) IPC status */}
+        <Card badge={{
+          label:     "ALM Bridge (Node-02)",
+          icon:      "🦙",
+          status:    almBridgeAlive === true ? "ACTIVE" : almBridgeAlive === false ? "OFFLINE" : "CHECKING",
+          detail:    almBridgeAlive === true
+            ? "Avery-ALM (Ollama) responding on 127.0.0.1:11434 — local inference ready."
+            : almBridgeAlive === false
+            ? "Avery-ALM offline — run `ollama serve` on Node-02 to activate the ALM bridge."
+            : "Checking ALM bridge… (Electron IPC required)",
+          alignment: "Anchored Language Model bridge active — local sovereign inference on Node-02.",
         }} />
       </div>
 

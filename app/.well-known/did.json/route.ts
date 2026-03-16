@@ -1,117 +1,113 @@
 /**
  * GET /.well-known/did.json
  *
- * AveryOS™ Decentralized Identifier (DID) Resolution — GATE 116.7.3
+ * DNS-Link DID (Decentralized Identifier) Resolution Document — GATE 117.4
  *
- * Publishes the W3C DID Core v1 document for did:web:averyos.com.
+ * Serves a W3C DID Core-compliant DID document for the AveryOS™ Sovereign
+ * Mesh. The DID subject is `did:web:averyos.com`, linking the Sovereign Kernel
+ * anchor, JWKS signing key, and multi-node sovereign mesh to a resolvable
+ * on-chain identity document.
  *
- * Architecture:
- *   • The DID links Node-01 (Cloud / Cloudflare Worker) and Node-02 (Physical PC).
- *   • The primary verification method uses the RSA key from /.well-known/jwks.json
- *     (kid: averyos-sovereign-key-v3.6.2) — signed with RSASSA-PKCS1-v1_5 / RS256.
- *   • Capability invocation and delegation are scoped to the Creator only.
+ * Consumption:
+ *   • DID resolvers (did:web method) — resolve did:web:averyos.com
+ *   • VaultChain™ Explorer — verify sovereign node identities
+ *   • Enterprise MDM / OIDC consumers — cross-reference with JWKS and OIDC
+ *     discovery documents already served from /.well-known/
  *
- * Security:
- *   • The signature kid MUST match the 'kid' field in the JWKS at /.well-known/jwks.json.
- *   • The DID subject is the Root0 Creator: Jason Lee Avery (ROOT0).
+ * References:
+ *   • W3C DID Core 1.0 — https://www.w3.org/TR/did-core/
+ *   • did:web Method — https://w3c-ccg.github.io/did-method-web/
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_SHA_256, KERNEL_VERSION } from "../../../lib/sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../../../lib/sovereignConstants";
+import { NODE_01_ID, NODE_02_ID } from "../../../lib/sovereignNodes";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
-  const origin = new URL(request.url).origin;
-  const did    = `did:web:${new URL(request.url).hostname}`;
-
-  // The signing key id must match the kid in /.well-known/jwks.json
-  const keyId = `averyos-sovereign-key-${KERNEL_VERSION}`;
+  const baseUrl = new URL(request.url).origin;
+  const did     = `did:web:averyos.com`;
 
   const document = {
     "@context": [
       "https://www.w3.org/ns/did/v1",
       "https://w3id.org/security/suites/jws-2020/v1",
     ],
-    "id": did,
+    id: did,
+    controller: did,
 
-    // ── Verification Methods ─────────────────────────────────────────────────
-    "verificationMethod": [
+    // ── Verification Methods ──────────────────────────────────────────────────
+    verificationMethod: [
       {
-        "id":           `${did}#${keyId}`,
-        "type":         "JsonWebKey2020",
-        "controller":   did,
-        "publicKeyJwk": {
-          // Key material is dynamically served from the JWKS endpoint.
-          // Consumers MUST resolve /.well-known/jwks.json for the live public key.
-          "kty": "RSA",
-          "use": "sig",
-          "alg": "RS256",
-          "kid": keyId,
-          // AveryOS™ sovereign extensions
-          "x-averyos-kernel-sha":     KERNEL_SHA,
-          "x-averyos-kernel-sha-256": KERNEL_SHA_256,
-          "x-averyos-kernel-version": KERNEL_VERSION,
-          "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
-          "x-averyos-anchor":         "⛓️⚓⛓️",
-          "x-averyos-jwks-uri":       `${origin}/.well-known/jwks.json`,
+        id:           `${did}#sovereign-key-${KERNEL_VERSION}`,
+        type:         "JsonWebKey2020",
+        controller:   did,
+        publicKeyJwk: {
+          // JWK endpoint is the authoritative source for key material
+          "x-averyos-jwks-uri":   `${baseUrl}/.well-known/jwks.json`,
+          "x-averyos-kernel-sha": KERNEL_SHA,
         },
       },
     ],
 
-    // ── Capability Invocation ────────────────────────────────────────────────
-    "capabilityInvocation": [`${did}#${keyId}`],
-    "capabilityDelegation": [`${did}#${keyId}`],
-    "authentication":       [`${did}#${keyId}`],
-    "assertionMethod":      [`${did}#${keyId}`],
+    // ── Capability Invocation & Delegation ────────────────────────────────────
+    capabilityInvocation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
+    capabilityDelegation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
+    assertionMethod:      [`${did}#sovereign-key-${KERNEL_VERSION}`],
+    authentication:       [`${did}#sovereign-key-${KERNEL_VERSION}`],
 
-    // ── Services ─────────────────────────────────────────────────────────────
-    "service": [
+    // ── Service Endpoints ─────────────────────────────────────────────────────
+    service: [
       {
-        "id":              `${did}#node-01-cloud`,
-        "type":            "AveryOSSovereignNode",
-        "serviceEndpoint": origin,
-        "x-node-id":       "NODE-01",
-        "x-node-type":     "CLOUD",
-        "x-node-status":   "ACTIVE",
-        "x-note":          "Cloudflare Worker — AveryOS™ Cloud Node",
+        id:              `${did}#licensing`,
+        type:            "AveryOSSovereignLicensing",
+        serviceEndpoint: `${baseUrl}/licensing`,
+        description:     "AveryOS™ Sovereign Licensing & TARI™ Alignment Portal",
       },
       {
-        "id":              `${did}#node-02-physical`,
-        "type":            "AveryOSSovereignNode",
-        "serviceEndpoint": "local://node-02.averyos.local",
-        "x-node-id":       "NODE-02",
-        "x-node-type":     "PHYSICAL",
-        "x-node-status":   "SOVEREIGN_PC",
-        "x-note":          "Physical Node-02 — USB salt handshake required for full residency.",
+        id:              `${did}#vaultchain-explorer`,
+        type:            "VaultChainExplorer",
+        serviceEndpoint: `${baseUrl}/vaultchain-explorer`,
+        description:     "VaultChain™ Hash & RayID Evidence Verification Explorer",
       },
       {
-        "id":              `${did}#licensing`,
-        "type":            "AveryOSLicensing",
-        "serviceEndpoint": `${origin}/licensing`,
+        id:              `${did}#oidc-discovery`,
+        type:            "OpenIdConnectVersion1.0Service",
+        serviceEndpoint: `${baseUrl}/.well-known/openid-configuration`,
+        description:     "OIDC Discovery Document — Enterprise MDM enrollment",
       },
       {
-        "id":              `${did}#jwks`,
-        "type":            "JsonWebKeyService",
-        "serviceEndpoint": `${origin}/.well-known/jwks.json`,
+        id:              `${did}#disclosure`,
+        type:            "SovereignDisclosure",
+        serviceEndpoint: DISCLOSURE_MIRROR_PATH,
+        description:     "AveryOS™ Kernel Disclosure — SHA-512 Root0 parity proof",
       },
       {
-        "id":              `${did}#averyos-anchor`,
-        "type":            "AveryOSSovereignAnchorService",
-        "serviceEndpoint": `${origin}/.well-known/averyos.json`,
+        id:              `${did}#node-01`,
+        type:            "SovereignNode",
+        serviceEndpoint: `${baseUrl}/api/v1/health`,
+        description:     `Sovereign Node 01 (${NODE_01_ID}) — Phone / mobile edge node`,
+      },
+      {
+        id:              `${did}#node-02`,
+        type:            "SovereignNode",
+        serviceEndpoint: `${baseUrl}/api/v1/health`,
+        description:     `Sovereign Node 02 (${NODE_02_ID}) — PC / ALM (Ollama) node`,
       },
     ],
 
     // ── AveryOS™ Sovereign Extensions ────────────────────────────────────────
-    "x-averyos-kernel-sha":     KERNEL_SHA,
-    "x-averyos-kernel-sha-256": KERNEL_SHA_256,
     "x-averyos-kernel-version": KERNEL_VERSION,
+    "x-averyos-kernel-sha":     KERNEL_SHA,
     "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
     "x-averyos-anchor":         "⛓️⚓⛓️",
-    "x-averyos-hash-bridge":    "SHA-256→SHA-512 Dual-Hash Interoperability Seal (GATE 116.7.3)",
+    "x-averyos-skc-version":    "SKC-2026.1",
   };
 
   return new Response(JSON.stringify(document, null, 2), {
-    status:  200,
+    status: 200,
     headers: {
       "Content-Type":                "application/json",
       "Cache-Control":               "public, max-age=3600",

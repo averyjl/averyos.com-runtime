@@ -150,14 +150,10 @@ interface TariStatsData {
   watcher_liability_accrued: number;
   total_entries: number;
   timestamp: string;
-  // DriftPulse™ — time-series entries from tari_ledger for chart rendering
-  recent_entries?: Array<{
-    id: number;
-    created_at: string;
-    status: string;
-    revenue_projection: number;
-    event_type: string;
-  }>;
+  /** Phase 117 — Firebase tari_metrics sync status */
+  firebase_sync_status?: string;
+  /** Phase 117 — Live Firebase Firestore stream URL for tari_metrics */
+  firebase_tari_metrics_url?: string;
 }
 
 // KaaS™ live valuation row — sourced from D1 kaas_valuations table
@@ -698,10 +694,66 @@ export default function TariRevenuePage() {
       {/* Liability vs. Collected Chart — top corporate orgs */}
       <LiabilityBarChart chartData={chartData} threshold={TARI_THRESHOLD_USD} />
 
-      {/* DriftPulse™ Chart — Statutory Debt vs. Active Licenses (Gate Recharts DriftPulse) */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <DriftPulseChart data={driftMetrics} />
-      </div>
+      {/* Phase 117 — Firebase tari_metrics Stream Status Panel */}
+      {stats && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #000a20 0%, #001030 100%)",
+            border: `1px solid ${stats.firebase_sync_status === "ACTIVE" ? "rgba(74,222,128,0.4)" : GOLD_BORDER}`,
+            borderRadius: "12px",
+            padding: "0.85rem 1.25rem",
+            marginBottom: "1.5rem",
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+            <div style={{ color: GOLD, fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+              🔥 FIREBASE TARI™ METRICS STREAM — Cross-Cloud Mesh Sync
+            </div>
+            <span
+              style={{
+                padding: "0.2rem 0.6rem",
+                borderRadius: "12px",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                background: stats.firebase_sync_status === "ACTIVE"
+                  ? "rgba(74,222,128,0.15)"
+                  : "rgba(255,215,0,0.1)",
+                border: `1px solid ${stats.firebase_sync_status === "ACTIVE" ? "rgba(74,222,128,0.5)" : GOLD_BORDER}`,
+                color: stats.firebase_sync_status === "ACTIVE" ? "#4ade80" : GOLD,
+              }}
+            >
+              {stats.firebase_sync_status ?? "PENDING"}
+            </span>
+          </div>
+          <p style={{ color: GOLD_DIM, fontSize: "0.72rem", margin: "0 0 0.6rem", lineHeight: 1.6 }}>
+            {stats.firebase_sync_status === "ACTIVE"
+              ? "Firebase Firestore is syncing live TARI™ probe events. The physical site and the cloud mirror are operating as a single Sovereign Mesh."
+              : "Firebase credentials are pending. Once FIREBASE_PROJECT_ID is configured, live tari_metrics will sync to Firestore in real-time."}
+          </p>
+          {stats.firebase_tari_metrics_url && stats.firebase_tari_metrics_url !== "PENDING_CREDENTIALS" && (
+            <a
+              href={stats.firebase_tari_metrics_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#60a5fa",
+                fontSize: "0.68rem",
+                textDecoration: "none",
+                wordBreak: "break-all",
+                display: "block",
+              }}
+            >
+              🔗 {stats.firebase_tari_metrics_url}
+            </a>
+          )}
+          {(!stats.firebase_tari_metrics_url || stats.firebase_tari_metrics_url === "PENDING_CREDENTIALS") && (
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.65rem", fontStyle: "italic" }}>
+              Stream URL available once FIREBASE_PROJECT_ID is configured in Cloudflare secrets.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KaaS Tier Badge Display — Phase 97 Live Liability Visualization */}
       <div

@@ -229,7 +229,7 @@ export default function EnterpriseRegistrationPage() {
                 flag: "🇬🇧",
                 label: "United Kingdom",
                 statute: "CDPA 1988, §§ 22–23",
-                detail: "Secondary infringement by importing AI model weights that constitute unauthorised copies of the AveryOS™ Kernel is actionable under Sections 22 and 23.",
+                detail: "Secondary infringement by importing AI model weights that constitute unauthorized copies of the AveryOS™ Kernel is actionable under Sections 22 and 23.",
               },
               {
                 flag: "🇯🇵",
