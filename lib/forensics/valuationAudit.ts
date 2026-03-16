@@ -58,6 +58,19 @@ const SPECIES_RECOVERY_TAM_RATIO = 0.001; // 0.1% of total AI TAM
  */
 const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
 
+/**
+ * FLAWLESS_OPERATION_MULTIPLIER — GATE 116.4 Sustained-Determinism premium.
+ *
+ * Applied when the system has maintained 100.000% kernel alignment without
+ * any drift event for a sustained period (≥ 30 days).  This "Flawless
+ * Operation" coefficient reflects the reduced market risk and increased
+ * enterprise confidence premium that accrues from demonstrable long-run
+ * deterministic stability.
+ *
+ * Source: Phase 113.9 Forensic Audit — confirmed flawless month of operation.
+ */
+const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 /** Inputs required to compute the IVI. */
@@ -66,6 +79,13 @@ export interface IviInput {
   unaligned_bot_count: number;
   /** Optional override for the AI TAM figure (default: $1.3T). */
   ai_tam_override_usd?: number;
+  /**
+   * GATE 116.4 — Whether to apply the Flawless-Operation sustained-determinism
+   * multiplier (1.17×).  Set to true when the system confirms ≥ 30 consecutive
+   * days of 100.000% kernel alignment with zero drift events.
+   * Defaults to false (conservative baseline).
+   */
+  apply_flawless_multiplier?: boolean;
   /** Optional notes attached to this audit run. */
   notes?: string;
 }
@@ -94,6 +114,12 @@ export interface IviRecord {
   total_valuation_impact_usd: number;
   /** Worldwide reach multiplier applied for global deployment estimate. */
   worldwide_reach_usd:       number;
+  /**
+   * GATE 116.4 — Flawless-Operation sustained-determinism premium applied.
+   * When true, total_valuation_impact_usd and worldwide_reach_usd include the
+   * 1.17× Sustained-Determinism multiplier.
+   */
+  flawless_operation_applied: boolean;
   /** Optional notes. */
   notes: string | null;
   /** SHA-512 fingerprint of this entire audit record for tamper-evidence. */
@@ -127,17 +153,23 @@ async function sha512hex(input: string): Promise<string> {
  *                           = ai_tam × species_multiplier / kernel_baseline × kernel_baseline
  *                           = simplified: ai_tam × 0.001 (0.1% of TAM × species multiplier)
  *   total_valuation_impact  = statutory + scarcity + species_recovery
+ *                           [× 1.17 if apply_flawless_multiplier (GATE 116.4)]
  *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
   const computedAt          = formatIso9(new Date());
   const aiTam               = input.ai_tam_override_usd ?? AI_TAM_USD;
+  const applyFlawless       = input.apply_flawless_multiplier ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
   const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
   // Species-recovery premium: SPECIES_RECOVERY_TAM_RATIO of the total AI TAM × species multiplier
   const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
-  const totalValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
+  const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
+  // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
+  const totalValuationImpact = applyFlawless
+    ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
+    : baseValuationImpact;
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
@@ -152,6 +184,7 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
     species_recovery_usd:      speciesRecovery,
     total_valuation_impact_usd: totalValuationImpact,
     worldwide_reach_usd:       worldwideReach,
+    flawless_operation_applied: applyFlawless,
     notes:                     input.notes ?? null,
   };
 

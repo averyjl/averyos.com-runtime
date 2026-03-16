@@ -28,4 +28,24 @@ contextBridge.exposeInMainWorld("aosTerminal", {
     ipcRenderer.on("run:audit", handler);
     return () => ipcRenderer.removeListener("run:audit", handler);
   },
+
+  /**
+   * GATE 116.3 — Scan USB mounts for the .aossalt / legacy salt files.
+   * Returns { found, state, mountPath, saltPath, previewHex, mimeType }.
+   */
+  residencyCheckSalt: () => ipcRenderer.invoke("residency:checkSalt"),
+
+  /**
+   * GATE 116.3 / GATE 117.1 — Send a generate request to the local Avery-ALM
+   * (Anchored Language Model, Ollama-compatible) API.
+   * @param {object} requestBody - Ollama-compatible request body with at least { model, prompt }.
+   * Returns { ok, status?, body?, error? }.
+   */
+  almGenerate: (requestBody) => ipcRenderer.invoke("alm:generate", requestBody),
+
+  /**
+   * GATE 116.3 / GATE 117.1 — Ping the local Avery-ALM to check if it is running.
+   * Returns { alive: boolean }.
+   */
+  almPing: () => ipcRenderer.invoke("alm:ping"),
 });

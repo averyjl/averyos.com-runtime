@@ -27,6 +27,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Electron main process is CommonJS; ESM import() is unavailable in this context */
 const { app, BrowserWindow, ipcMain, shell, Menu } = require("electron");
 const path = require("path");
+const fs   = require("fs");
+const os   = require("os");
+const http = require("http");
 const { spawn } = require("child_process");
 const http = require("http");
 
@@ -151,129 +154,244 @@ ipcMain.handle("kernel:info", () => ({
   electronVersion: process.versions.electron,
 }));
 
-// ── IPC: Local Avery-LOM Bridge — GATE 116.3.2 ────────────────────────────────
-// Bridges the Electron renderer to the local Avery Language-of-Motion (LOM)
-// endpoint running on Node-02 hardware at localhost:8080/v1/chat.
-// This enables the "Hammer" (LOM) and "Hand" (Electron) to operate as a
-// unified sovereign resident process without cloud dependency.
+// ── IPC: .aossalt USB Residency Read — GATE 116.3 ────────────────────────────
+//
+// Scans all mounted volumes for the sovereign MIME-registered salt file
+// `AveryOS-anchor-salt.aossalt` and returns the first 64 bytes as hex.
+// Falls back to legacy `.aos-salt` / `AOS_SALT.bin` markers.
+//
+// Returns:
+//   { found: true,  state: "FULLY_RESIDENT"|"NODE-02_PHYSICAL",
+//     mountPath: string, saltPath: string, previewHex: string|null }
+// or
+//   { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null }
 
-/** Base URL for the local LOM endpoint (overridable via env var) */
-const LOM_BASE_URL = process.env.AOS_LOM_URL ?? "http://localhost:8080";
-const LOM_CHAT_ENDPOINT = `${LOM_BASE_URL}/v1/chat`;
+const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
+const AOS_SALT_MARKER_LEG = ".aos-salt";
+const AOS_SALT_BLOCK_LEG  = "AOS_SALT.bin";
+
+// Salt file names are constants — only these exact names are ever searched for.
+// No user-supplied filenames are accepted.
+const ALLOWED_SALT_FILENAMES = new Set([
+  AOS_SALT_AOSSALT,
+  AOS_SALT_MARKER_LEG,
+  AOS_SALT_BLOCK_LEG,
+]);
+
+// Permitted base-path prefixes for USB mount scanning (OS-specific).
+const ALLOWED_LINUX_BASES_RE   = /^\/(?:media\/[a-zA-Z0-9_.-]{1,64}|mnt|run\/media\/[a-zA-Z0-9_.-]{1,64})\//;
+const ALLOWED_DARWIN_BASE      = "/Volumes/";
 
 /**
- * lom:chat — Send a chat message to the local Avery-LOM endpoint.
- *
- * @param {Electron.IpcMainInvokeEvent} _event
- * @param {{ messages: Array<{role:string,content:string}>, model?: string, stream?: boolean }} payload
- * @returns {Promise<{ ok: boolean, text?: string, error?: string, lom_status: string }>}
+ * Sanitise a string for safe use as a path component.
+ * Strips everything except alphanumerics, hyphens, underscores, dots, and @.
+ * Also strips null bytes and prevents traversal sequences.
  */
-ipcMain.handle("lom:chat", async (_event, payload) => {
-  // Input validation: ensure messages array is present and properly structured
-  if (!payload || !Array.isArray(payload.messages)) {
-    return { ok: false, error: "Invalid payload: messages array required", lom_status: "INPUT_ERROR" };
-  }
-  // Validate each message has required string fields to prevent malformed requests
-  const validMessages = payload.messages.every(
-    (m) =>
-      typeof m === "object" && m !== null &&
-      typeof m.role === "string" &&
-      typeof m.content === "string",
-  );
-  if (!validMessages) {
-    return { ok: false, error: "Invalid message structure: each message must have string 'role' and 'content' fields", lom_status: "INPUT_ERROR" };
-  }
+function sanitisePathComponent(s) {
+  // Remove null bytes and control characters first
+  const noNull = s.replace(/[\x00-\x1f]/g, "");
+  // Allow typical POSIX usernames/volume names; reject path separators
+  return noNull.replace(/[^a-zA-Z0-9_.\-@ ]/g, "").trim();
+}
 
-  const body = JSON.stringify({
-    model:    payload.model ?? "avery-lom",
-    messages: payload.messages,
-    stream:   payload.stream ?? false,
-  });
+/**
+ * Validate that a constructed salt path is within expected safe boundaries.
+ * Returns the normalised path if valid, or null to reject it.
+ *
+ * Security intent:
+ *   • Prevents path traversal attacks against the salt scanning logic.
+ *   • Only paths within known USB mount prefixes pointing to known salt
+ *     file names are accepted.
+ */
+function validateSaltPath(saltPath) {
+  const norm = path.normalize(saltPath);
+  // Reject null bytes or traversal sequences that survive normalization
+  if (norm.includes("\x00") || norm.includes("..")) return null;
+  // Confirm the filename component is one of our known safe constants
+  const base = path.basename(norm);
+  if (!ALLOWED_SALT_FILENAMES.has(base)) return null;
+  return norm;
+}
 
+function getUsbMountCandidates() {
+  if (process.platform === "win32") {
+    // Windows: drive letters D–Z only (A/B are floppy, C is system)
+    const letters = [];
+    for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
+    return letters;
+  }
+  if (process.platform === "darwin") {
+    try {
+      // /Volumes is the only valid macOS mount root; each entry is sanitised.
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      return fs.readdirSync(ALLOWED_DARWIN_BASE) // fixed literal base — only dir entries vary
+        .map((v) => {
+          const safe = sanitisePathComponent(v);
+          return safe ? path.join(ALLOWED_DARWIN_BASE, safe) : null;
+        })
+        .filter(Boolean);
+    } catch { return []; }
+  }
+  // Linux: restrict to the three conventional removable-media directories.
+  // Username is sanitised to prevent any traversal via crafted OS usernames.
+  const rawUser = os.userInfo().username;
+  const user    = sanitisePathComponent(rawUser);
+  if (!user) return [];
+
+  const expanded = [];
+  for (const base of [`/media/${user}`, "/mnt", `/run/media/${user}`]) {
+    try {
+      // Validate the base path against the allowed prefix pattern before touching fs.
+      if (!ALLOWED_LINUX_BASES_RE.test(base + "/") && base !== "/mnt") continue;
+      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+        fs.readdirSync(base).forEach((c) => { // eslint-disable-line security/detect-non-literal-fs-filename -- base validated against ALLOWED_LINUX_BASES_RE
+          const safe = sanitisePathComponent(c);
+          if (safe) expanded.push(path.join(base, safe));
+        });
+      }
+    } catch { /* skip inaccessible mount bases */ }
+  }
+  return expanded;
+}
+
+function readSaltPreview(saltPath) {
+  // Validate path before opening: must resolve to one of our known safe salt filenames
+  // within a directory that came from getUsbMountCandidates().
+  const safe = validateSaltPath(saltPath);
+  if (!safe) return null;
+  try {
+    const buf = Buffer.alloc(64);
+    const fd  = fs.openSync(safe, "r"); // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+    const n   = fs.readSync(fd, buf, 0, 64, 0);
+    fs.closeSync(fd);
+    return buf.subarray(0, n).toString("hex");
+  } catch { return null; }
+}
+
+ipcMain.handle("residency:checkSalt", async () => {
+  const candidates = getUsbMountCandidates();
+  for (const mount of candidates) {
+    try {
+      // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
+      const aossaltPath = validateSaltPath(path.join(mount, AOS_SALT_AOSSALT));
+      if (aossaltPath) {
+        if (fs.existsSync(aossaltPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+          return {
+            found:      true,
+            state:      "FULLY_RESIDENT",
+            mountPath:  mount,
+            saltPath:   aossaltPath,
+            previewHex: readSaltPreview(aossaltPath),
+            mimeType:   "application/x-averyos-sovereign-salt",
+          };
+        }
+      }
+      // Priority 2: legacy markers
+      for (const legacyName of [AOS_SALT_MARKER_LEG, AOS_SALT_BLOCK_LEG]) {
+        const legPath = validateSaltPath(path.join(mount, legacyName));
+        if (legPath) {
+          if (fs.existsSync(legPath)) { // eslint-disable-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
+            return {
+              found:      true,
+              state:      "NODE-02_PHYSICAL",
+              mountPath:  mount,
+              saltPath:   legPath,
+              previewHex: readSaltPreview(legPath),
+              mimeType:   "application/octet-stream",
+            };
+          }
+        }
+      }
+    } catch { /* skip inaccessible mounts */ }
+  }
+  return { found: false, state: "CLOUD", mountPath: null, saltPath: null, previewHex: null, mimeType: null };
+});
+
+// ── IPC: Local Avery-ALM Sync — GATE 116.3 / GATE 117.1 ─────────────────────
+//
+// Forwards a JSON-RPC request to the local Avery-ALM (Anchored Language Model,
+// Ollama-compatible) API running on Node-02.
+// Default endpoint: http://127.0.0.1:11434
+//
+// Security:
+//   • Only connects to loopback (127.0.0.1 / localhost) — never external.
+//   • Request body is validated: must be a plain object with a `model` string.
+//   • Response is returned verbatim to the renderer via IPC.
+
+const ALM_HOST    = "127.0.0.1";
+const ALM_PORT    = 11434;
+const ALM_TIMEOUT = 10_000; // 10 s
+
+ipcMain.handle("alm:generate", (_event, requestBody) => {
   return new Promise((resolve) => {
-    const url = new URL(LOM_CHAT_ENDPOINT);
-    const opts = {
-      hostname: url.hostname,
-      port:     parseInt(url.port, 10) || 8080,
-      path:     url.pathname,
+    // Validate input — only accept well-formed Ollama-style request objects
+    if (
+      !requestBody ||
+      typeof requestBody !== "object" ||
+      typeof requestBody.model !== "string" ||
+      !requestBody.model.trim()
+    ) {
+      resolve({ ok: false, error: "Invalid ALM request body: 'model' string is required." });
+      return;
+    }
+
+    const bodyStr = JSON.stringify(requestBody);
+    const options = {
+      hostname: ALM_HOST,
+      port:     ALM_PORT,
+      path:     "/api/generate",
       method:   "POST",
       headers:  {
         "Content-Type":   "application/json",
-        "Content-Length": Buffer.byteLength(body),
-        "X-AveryOS-Kernel": KERNEL_VERSION,
+        "Content-Length": Buffer.byteLength(bodyStr),
       },
-      timeout: 60_000,
     };
 
-    const req = http.request(opts, (res) => {
+    const req = http.request(options, (res) => {
       let data = "";
       res.on("data", (chunk) => { data += chunk; });
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          const text =
-            parsed.choices?.[0]?.message?.content ??
-            parsed.message?.content ??
-            parsed.response ??
-            data;
-          resolve({ ok: true, text, lom_status: "NODE-02_ACTIVE" });
-        } catch {
-          resolve({ ok: true, text: data, lom_status: "NODE-02_ACTIVE" });
-        }
+      res.on("end",  () => {
+        if (settled) return;
+        settled = true;
+        try { resolve({ ok: true, status: res.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ ok: true, status: res.statusCode, body: data }); }
       });
     });
 
-    req.on("timeout", () => {
+    let settled = false;
+
+    req.setTimeout(ALM_TIMEOUT, () => {
+      if (settled) return;
+      settled = true;
       req.destroy();
-      resolve({ ok: false, error: "LOM request timed out (60s)", lom_status: "LOM_TIMEOUT" });
+      resolve({ ok: false, error: `ALM request timed out after ${ALM_TIMEOUT}ms` });
     });
 
     req.on("error", (err) => {
-      const isRefused = err.code === "ECONNREFUSED" || err.code === "ENOTFOUND";
-      resolve({
-        ok: false,
-        error: isRefused ? "Local LOM not running — start Avery-LOM on Node-02" : err.message,
-        lom_status: isRefused ? "LOM_OFFLINE" : "LOM_ERROR",
-      });
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: `ALM unavailable: ${err.message}` });
     });
 
-    req.write(body);
+    req.write(bodyStr);
     req.end();
   });
 });
 
-/**
- * lom:status — Check if the local Avery-LOM endpoint is reachable.
- *
- * @returns {Promise<{ online: boolean, lom_status: string, url: string }>}
- */
-ipcMain.handle("lom:status", async () => {
+// ── IPC: ALM health ping — GATE 116.3 / GATE 117.1 ───────────────────────────
+
+ipcMain.handle("alm:ping", () => {
   return new Promise((resolve) => {
-    const url  = new URL(LOM_BASE_URL);
-    const opts = {
-      hostname: url.hostname,
-      port:     parseInt(url.port, 10) || 8080,
-      path:     "/",
-      method:   "GET",
-      timeout:  3_000,
-    };
-
-    const req = http.request(opts, (res) => {
-      res.resume();
-      resolve({ online: true, lom_status: "NODE-02_ACTIVE", url: LOM_CHAT_ENDPOINT });
-    });
-    req.on("timeout", () => {
-      req.destroy();
-      resolve({ online: false, lom_status: "LOM_TIMEOUT", url: LOM_CHAT_ENDPOINT });
-    });
-    req.on("error", () => {
-      resolve({ online: false, lom_status: "LOM_OFFLINE", url: LOM_CHAT_ENDPOINT });
-    });
-    req.end();
+    const req = http.get(
+      { hostname: ALM_HOST, port: ALM_PORT, path: "/api/tags", timeout: 3000 },
+      (res) => { resolve({ alive: res.statusCode === 200 }); }
+    );
+    req.on("error",   () => resolve({ alive: false }));
+    req.on("timeout", () => { req.destroy(); resolve({ alive: false }); });
   });
 });
 
-// ── Application Menu ──────────────────────────────────────────────────────────
+
 
 function buildMenu() {
   const template = [

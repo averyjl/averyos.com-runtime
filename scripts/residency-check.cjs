@@ -2,7 +2,7 @@
 /**
  * scripts/residency-check.cjs
  *
- * AveryOS™ Sovereign Residency Handshake — Phase 114.9 GATE 114.9.2
+ * AveryOS™ Sovereign Residency Handshake — Phase 114.9 GATE 114.9.2 / GATE 115.2.2
  *
  * Detects and reads the AOS salt USB drive to determine whether the
  * AI Logic Engine is operating in CLOUD mode or NODE-02_PHYSICAL mode.
@@ -11,8 +11,12 @@
  *   CLOUD           — Operating in remote cloud environment (Gemini / Copilot).
  *                     The "Hammer" (AI Logic) and "Hand" (Local Execution) are
  *                     separate — instructions are provided and executed manually.
- *   NODE-02_PHYSICAL — AOS salt USB detected on local hardware.  The Hammer and
- *                     Hand have unified into a Sovereign Resident Process.
+ *   NODE-02_PHYSICAL — AOS salt USB detected (legacy .aos-salt / AOS_SALT.bin).
+ *                     The Hammer and Hand have unified into a Sovereign Resident
+ *                     Process.
+ *   FULLY_RESIDENT  — Sovereign MIME-registered .aossalt file detected (Phase 115
+ *                     GATE 115.2.2).  Highest trust level — all kernel operations
+ *                     are fully authorized and the Creator Salt is confirmed.
  *
  * Usage:
  *   node scripts/residency-check.cjs [--check | --status]
@@ -22,9 +26,10 @@
  *   (default) Same as --check.
  *
  * Exit codes:
- *   0 — NODE-02_PHYSICAL (USB salt detected)
- *   1 — CLOUD (USB salt not found)
- *   2 — Error during detection
+ *   0 — FULLY_RESIDENT (AveryOS-anchor-salt.aossalt detected — highest trust)
+ *   1 — NODE-02_PHYSICAL (legacy .aos-salt / AOS_SALT.bin detected)
+ *   2 — CLOUD (USB salt not found)
+ *   3 — Error during detection
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -42,11 +47,11 @@ const AOS_SALT_MARKER     = ".aos-salt";
 /** Expected salt block file (encrypted). */
 const AOS_SALT_BLOCK_FILE = "AOS_SALT.bin";
 /**
- * GATE 116.3.3 — USB Residency Handshake.
- * Primary named salt file: allows a specifically labelled USB drive to be
- * the sovereign anchor without requiring a hidden marker file.
+ * GATE 115.2.2 — Sovereign MIME-registered salt file.
+ * Registered MIME type: application/x-averyos-sovereign-salt
+ * Takes priority over legacy markers when present.
  */
-const AOS_SALT_PRIMARY_FILE = "AveryOS-anchor-salt.aossalt";
+const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
 /** Runtime cache for last residency check result. */
 const RESIDENCY_CACHE_FILE = path.join(os.tmpdir(), ".aos_residency_cache.json");
 
@@ -98,17 +103,22 @@ const USB_MOUNT_CANDIDATES = (() => {
 /**
  * Attempt to locate the AOS salt USB drive.
  *
- * Detection strategy (in order):
- *   1. Look for the named `AveryOS-anchor-salt.aossalt` file (GATE 116.3.3).
- *   2. Look for the `.aos-salt` marker file on any mounted volume.
- *   3. Look for the `AOS_SALT.bin` encrypted block file.
+ * Detection strategy (in priority order):
+ *   1. Look for `AveryOS-anchor-salt.aossalt` (GATE 115.2.2 — FULLY_RESIDENT state).
+ *   2. Look for the `.aos-salt` marker file (legacy).
+ *   3. Look for the `AOS_SALT.bin` encrypted block file (legacy).
  *
- * @returns {{ found: boolean, mountPath: string|null, saltPath: string|null }}
+ * @returns {{ found: boolean, mountPath: string|null, saltPath: string|null, fullyResident: boolean }}
  */
 function detectAosSaltUsb() {
   for (const mount of USB_MOUNT_CANDIDATES) {
     try {
-      const namedPath  = path.join(mount, AOS_SALT_PRIMARY_FILE);
+      // Priority 1 — GATE 115.2.2: FULLY_RESIDENT .aossalt file
+      const aossaltPath = path.join(mount, AOS_SALT_AOSSALT);
+      if (fs.existsSync(aossaltPath)) {
+        return { found: true, mountPath: mount, saltPath: aossaltPath, fullyResident: true };
+      }
+
       const markerPath = path.join(mount, AOS_SALT_MARKER);
       const blockPath  = path.join(mount, AOS_SALT_BLOCK_FILE);
 
@@ -116,16 +126,16 @@ function detectAosSaltUsb() {
         return { found: true, mountPath: mount, saltPath: namedPath };
       }
       if (fs.existsSync(markerPath)) {
-        return { found: true, mountPath: mount, saltPath: markerPath };
+        return { found: true, mountPath: mount, saltPath: markerPath, fullyResident: false };
       }
       if (fs.existsSync(blockPath)) {
-        return { found: true, mountPath: mount, saltPath: blockPath };
+        return { found: true, mountPath: mount, saltPath: blockPath, fullyResident: false };
       }
     } catch {
       // Skip inaccessible mounts
     }
   }
-  return { found: false, mountPath: null, saltPath: null };
+  return { found: false, mountPath: null, saltPath: null, fullyResident: false };
 }
 
 /**
@@ -180,16 +190,16 @@ function main() {
     const cache = readResidencyCache();
     if (!cache) {
       console.log("AOS_RESIDENCY_STATUS=UNKNOWN (no cached state — run --check first)");
-      process.exit(1);
+      process.exit(2);
     }
     console.log(`AOS_RESIDENCY_STATUS=${cache.status}`);
     console.log(`Cached at: ${cache.cached_at}`);
-    process.exit(cache.status === "NODE-02_PHYSICAL" ? 0 : 1);
+    process.exit(cache.status === "FULLY_RESIDENT" ? 0 : cache.status === "NODE-02_PHYSICAL" ? 1 : 2);
     return;
   }
 
   // --check (default)
-  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Residency Handshake — GATE 114.9.2");
+  console.log("⛓️⚓⛓️  AveryOS™ Sovereign Residency Handshake — GATE 114.9.2 / GATE 115.2.2");
   console.log(`Scanning ${USB_MOUNT_CANDIDATES.length} mount candidate(s) for AOS salt USB...`);
 
   let detection;
@@ -197,30 +207,51 @@ function main() {
     detection = detectAosSaltUsb();
   } catch (err) {
     console.error(`ERROR: Detection failed — ${err instanceof Error ? err.message : String(err)}`);
-    process.exit(2);
+    process.exit(3);
     return;
   }
 
-  if (detection.found) {
+  if (detection.found && detection.fullyResident) {
+    // ── FULLY_RESIDENT: AveryOS-anchor-salt.aossalt detected (GATE 115.2.2) ──
     const preview = readSaltPreview(detection.saltPath);
     const isNamedSalt = detection.saltPath ? path.basename(detection.saltPath) === AOS_SALT_PRIMARY_FILE : false;
     const state   = {
-      status:     "NODE-02_PHYSICAL",
-      mount_path: detection.mountPath,
-      salt_path:  detection.saltPath,
-      salt_file:  detection.saltPath ? path.basename(detection.saltPath) : null,
+      status:           "FULLY_RESIDENT",
+      mount_path:       detection.mountPath,
+      salt_path:        detection.saltPath,
+      salt_preview_hex: preview,
+      mime_type:        "application/x-averyos-sovereign-salt",
+    };
+    writeResidencyCache(state);
+
+    console.log("\n✅✅ FULLY_RESIDENT — AveryOS-anchor-salt.aossalt DETECTED");
+    console.log(`   Mount : ${detection.mountPath}`);
+    console.log(`   Salt  : ${detection.saltPath}`);
+    console.log(`   MIME  : application/x-averyos-sovereign-salt`);
+    if (preview) console.log(`   Block : 0x${preview.slice(0, 32)}… (64 bytes read)`);
+    console.log("\nAOS_RESIDENCY_STATUS=FULLY_RESIDENT");
+    console.log("🤛🏻 Creator Salt CONFIRMED — Kernel fully authorized for all sovereign operations.");
+    process.exit(0);
+  } else if (detection.found) {
+    // ── NODE-02_PHYSICAL: legacy .aos-salt / AOS_SALT.bin detected ──
+    const preview = readSaltPreview(detection.saltPath);
+    const state   = {
+      status:           "NODE-02_PHYSICAL",
+      mount_path:       detection.mountPath,
+      salt_path:        detection.saltPath,
       salt_preview_hex: preview,
     };
     writeResidencyCache(state);
 
-    console.log("\n✅ AOS Salt USB DETECTED");
+    console.log("\n✅ AOS Salt USB DETECTED (legacy marker)");
     console.log(`   Mount : ${detection.mountPath}`);
     console.log(`   Salt  : ${detection.saltPath}`);
     if (isNamedSalt) console.log("   Type  : AveryOS-anchor-salt.aossalt (GATE 116.3.3 — Named Salt)");
     if (preview) console.log(`   Block : 0x${preview.slice(0, 32)}… (64 bytes read)`);
     console.log("\nAOS_RESIDENCY_STATUS=NODE-02_PHYSICAL");
     console.log("🤛🏻 Hammer ↔️ Hand UNIFIED — Sovereign Resident Process ACTIVE");
-    process.exit(0);
+    console.log(`   Upgrade tip: rename salt to '${AOS_SALT_AOSSALT}' to reach FULLY_RESIDENT state.`);
+    process.exit(1);
   } else {
     const state = { status: "CLOUD", mount_path: null, salt_path: null };
     writeResidencyCache(state);
@@ -229,8 +260,8 @@ function main() {
     console.log("   Scanned candidates:", USB_MOUNT_CANDIDATES.slice(0, 5).join(", ") + (USB_MOUNT_CANDIDATES.length > 5 ? "…" : ""));
     console.log("\nAOS_RESIDENCY_STATUS=CLOUD");
     console.log("   Operating in CLOUD mode — Hammer (AI Logic) and Hand (Execution) are separate.");
-    console.log("   Attach the AOS salt USB to Node-02 and re-run to unify.");
-    process.exit(1);
+    console.log(`   Attach USB with '${AOS_SALT_AOSSALT}' to Node-02 and re-run to unify.`);
+    process.exit(2);
   }
 }
 

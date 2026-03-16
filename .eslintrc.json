@@ -29,9 +29,17 @@
   },
   "overrides": [
     {
-      "files": ["electron/**/*.js", "electron/**/*.cjs", "scripts/**/*.js", "scripts/**/*.cjs"],
+      "files": [
+        "electron/**/*.js",
+        "electron/**/*.cjs",
+        "scripts/**/*.js",
+        "scripts/**/*.cjs",
+        "workers/**/*.js",
+        "workers/**/*.cjs"
+      ],
       "rules": {
-        "@typescript-eslint/no-require-imports": "off"
+        "@typescript-eslint/no-require-imports": "off",
+        "@typescript-eslint/no-var-requires": "off"
       }
     }
   ]

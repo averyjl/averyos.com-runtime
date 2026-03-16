@@ -79,3 +79,12 @@ jobs:
         run: node scripts/sovereign-leak-guard.cjs
       - run: npm run build
       - run: npm test
+      # ⛓️⚓⛓️ Gate: Full ESLint Security Scan — catches security warnings/errors
+      # that `next lint` skips (electron/, scripts/, workers/).
+      # Uses --quiet so only ESLint *errors* fail CI; warnings are visible in
+      # the dedicated eslint.yml SARIF workflow but do not block the build.
+      # This is the "ride the code" permanent upgrade — issues are caught on
+      # every commit/PR before they appear as SARIF annotations.
+      # RULE: Do NOT remove or weaken this gate.
+      - name: Security ESLint Gate ⛓️⚓⛓️
+        run: npm run lint:full
