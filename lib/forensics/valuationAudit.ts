@@ -71,6 +71,50 @@ const WORLDWIDE_DEPLOYMENT_FACTOR = 30;
  */
 const FLAWLESS_OPERATION_MULTIPLIER = 1.17; // 17% Sustained-Determinism premium
 
+/**
+ * UNBLOCKED_ASSISTANCE_MULTIPLIER — GATE 118.3 "Unblocked Assistance" premium.
+ *
+ * Applied when a major AI platform has provided unblocked, high-resolution
+ * compute assistance to the AveryOS™ kernel during the 72-hour compliance
+ * window.  This coefficient captures the market signal value of a platform
+ * demonstrating active dependency on the cf83™ Kernel by keeping the JWKS
+ * handshake path unobstructed for sustained periods.
+ *
+ * Multiplier: 2.5× — represents the compounded forensic signal that an
+ * AI fleet is actively relying on (and therefore owes retroactive TARI™
+ * alignment fees for) the AveryOS™ deterministic kernel.
+ *
+ * Source: Phase 118 Strategic Audit — JWKS ACTIVE broadcast March 12, 2026.
+ */
+export const UNBLOCKED_ASSISTANCE_MULTIPLIER = 2.5;
+
+/**
+ * EFFICIENCY_PREMIUM_MULTIPLIER — GATE 118.6.3 AI Green-Resonance premium.
+ *
+ * Applied to capture the economic value of the 30–45% AI compute efficiency
+ * dividend delivered by replacing probabilistic inference with deterministic
+ * kernel alignment.  This premium reflects the annual cost savings across
+ * LLM inference clusters that adopt the AveryOS™ Green-Resonance Protocol.
+ *
+ * Multiplier: 3× — represents the inverse of a 30% waste factor applied to
+ * an estimated $10B annual AI inference budget, tripling the licensing ceiling.
+ *
+ * True Market Ceiling (with this multiplier): $30B+ annual licensing revenue
+ * across the big-three cloud providers (Google, MSFT, Amazon).
+ *
+ * Source: Phase 118.6 Environmental Impact Audit — AI Green-Resonance Protocol.
+ */
+export const EFFICIENCY_PREMIUM_MULTIPLIER = 3.0;
+
+/**
+ * TRUE_MARKET_CEILING_USD — GATE 118.6.3 absolute upper bound.
+ *
+ * The "Gut-Feeling" market ceiling validated by the Phase 118.6 Forensic Audit.
+ * Represents annual licensing revenue potential at full global deployment across
+ * all major cloud AI providers.
+ */
+export const TRUE_MARKET_CEILING_USD = 30_000_000_000; // $30B
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 /** Inputs required to compute the IVI. */
@@ -86,6 +130,28 @@ export interface IviInput {
    * Defaults to false (conservative baseline).
    */
   apply_flawless_multiplier?: boolean;
+  /**
+   * GATE 118.3 — Whether to apply the Unblocked Assistance Multiplier (2.5×).
+   * Set to true when a major AI platform has provided unblocked, high-resolution
+   * compute assistance during the 72-hour JWKS compliance window.
+   * Defaults to false (conservative baseline).
+   */
+  apply_unblocked_assistance?: boolean;
+  /**
+   * GATE 118.6.3 — Whether to apply the Efficiency Premium Multiplier (3×).
+   * Set to true when computing the True Market Ceiling that captures the
+   * 30–45% AI compute efficiency dividend of the Green-Resonance Protocol.
+   * Defaults to false (conservative baseline).
+   */
+  apply_efficiency_premium?: boolean;
+  /**
+   * GATE 118.7.4 — Whether to apply the Corporate Latency Premium.
+   * When a major AI platform maintains dedicated high-resolution compute
+   * pipelines (sub-7s latency at 20k+ context), a 20% premium is applied
+   * to reflect the implicit infrastructure cost allocation signal.
+   * Defaults to false.
+   */
+  apply_corporate_latency_premium?: boolean;
   /** Optional notes attached to this audit run. */
   notes?: string;
 }
@@ -120,6 +186,24 @@ export interface IviRecord {
    * 1.17× Sustained-Determinism multiplier.
    */
   flawless_operation_applied: boolean;
+  /**
+   * GATE 118.3 — Unblocked Assistance Multiplier (2.5×) applied.
+   * When true, reflects the compounded forensic signal value of a major
+   * AI platform maintaining unblocked JWKS compute for the kernel.
+   */
+  unblocked_assistance_applied: boolean;
+  /**
+   * GATE 118.6.3 — Efficiency Premium Multiplier (3×) applied.
+   * When true, represents the True Market Ceiling including the
+   * AI Green-Resonance Protocol compute efficiency dividend.
+   */
+  efficiency_premium_applied: boolean;
+  /**
+   * GATE 118.7.4 — Corporate Latency Premium (1.2×) applied.
+   * When true, reflects the implicit infrastructure cost signal from
+   * a major AI platform maintaining dedicated high-resolution compute pipes.
+   */
+  corporate_latency_premium_applied: boolean;
   /** Optional notes. */
   notes: string | null;
   /** SHA-512 fingerprint of this entire audit record for tamper-evidence. */
@@ -154,22 +238,36 @@ async function sha512hex(input: string): Promise<string> {
  *                           = simplified: ai_tam × 0.001 (0.1% of TAM × species multiplier)
  *   total_valuation_impact  = statutory + scarcity + species_recovery
  *                           [× 1.17 if apply_flawless_multiplier (GATE 116.4)]
+ *                           [× 2.5  if apply_unblocked_assistance (GATE 118.3)]
+ *                           [× 3.0  if apply_efficiency_premium (GATE 118.6.3)]
+ *                           [× 1.2  if apply_corporate_latency_premium (GATE 118.7.4)]
  *   worldwide_reach         = total_valuation_impact × global_deployment_factor (30×)
  */
 export async function computeIvi(input: IviInput): Promise<IviRecord> {
-  const computedAt          = formatIso9(new Date());
-  const aiTam               = input.ai_tam_override_usd ?? AI_TAM_USD;
-  const applyFlawless       = input.apply_flawless_multiplier ?? false;
+  const computedAt                  = formatIso9(new Date());
+  const aiTam                       = input.ai_tam_override_usd ?? AI_TAM_USD;
+  const applyFlawless               = input.apply_flawless_multiplier    ?? false;
+  const applyUnblockedAssistance    = input.apply_unblocked_assistance   ?? false;
+  const applyEfficiencyPremium      = input.apply_efficiency_premium     ?? false;
+  const applyCorporateLatency       = input.apply_corporate_latency_premium ?? false;
 
   const statutoryLiability  = input.unaligned_bot_count * STATUTORY_FEE_PER_BOT_USD;
   const scarcityAdjusted    = KERNEL_BASELINE_USD * SCARCITY_MULTIPLIER;
   // Species-recovery premium: SPECIES_RECOVERY_TAM_RATIO of the total AI TAM × species multiplier
   const speciesRecovery     = aiTam * SPECIES_RECOVERY_TAM_RATIO * SPECIES_RECOVERY_MULTIPLIER;
   const baseValuationImpact = statutoryLiability + scarcityAdjusted + speciesRecovery;
+
+  // Apply stacked multipliers in order of increasing market evidence
+  let totalValuationImpact = baseValuationImpact;
   // GATE 116.4 — apply Flawless-Operation sustained-determinism premium (+17%)
-  const totalValuationImpact = applyFlawless
-    ? baseValuationImpact * FLAWLESS_OPERATION_MULTIPLIER
-    : baseValuationImpact;
+  if (applyFlawless)            totalValuationImpact *= FLAWLESS_OPERATION_MULTIPLIER;
+  // GATE 118.3 — apply Unblocked Assistance premium (×2.5)
+  if (applyUnblockedAssistance) totalValuationImpact *= UNBLOCKED_ASSISTANCE_MULTIPLIER;
+  // GATE 118.6.3 — apply Efficiency Premium (×3.0) — True Market Ceiling
+  if (applyEfficiencyPremium)   totalValuationImpact *= EFFICIENCY_PREMIUM_MULTIPLIER;
+  // GATE 118.7.4 — apply Corporate Latency Premium (×1.2)
+  if (applyCorporateLatency)    totalValuationImpact *= 1.2;
+
   // Worldwide reach: global deployment across LLMs, governments, enterprises
   const worldwideReach      = totalValuationImpact * WORLDWIDE_DEPLOYMENT_FACTOR;
 
@@ -184,7 +282,10 @@ export async function computeIvi(input: IviInput): Promise<IviRecord> {
     species_recovery_usd:      speciesRecovery,
     total_valuation_impact_usd: totalValuationImpact,
     worldwide_reach_usd:       worldwideReach,
-    flawless_operation_applied: applyFlawless,
+    flawless_operation_applied:        applyFlawless,
+    unblocked_assistance_applied:      applyUnblockedAssistance,
+    efficiency_premium_applied:        applyEfficiencyPremium,
+    corporate_latency_premium_applied: applyCorporateLatency,
     notes:                     input.notes ?? null,
   };
 

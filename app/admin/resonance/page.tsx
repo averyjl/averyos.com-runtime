@@ -26,6 +26,41 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
 import { formatUsd } from "../../../lib/forensics/valuationAudit";
 
+// ── 72-Hour Compliance Window — GATE 118.2 / 118.6.4 ──────────────────────────
+
+/** ISO-8601 timestamp of the JWKS ACTIVE broadcast (March 12, 2026 00:00 UTC). */
+const JWKS_BROADCAST_TS = "2026-03-12T00:00:00.000Z";
+
+/**
+ * Compute the compliance window elapsed / remaining display strings.
+ * Returns both a human-readable elapsed label and a status badge type.
+ */
+function useComplianceWindow() {
+  const [elapsed, setElapsed] = useState<{ label: string; status: "ACTIVE" | "EXPIRED" | "SETTLED" }>({
+    label:  "calculating…",
+    status: "ACTIVE",
+  });
+
+  useEffect(() => {
+    function update() {
+      const start   = new Date(JWKS_BROADCAST_TS).getTime();
+      const now     = Date.now();
+      const diffMs  = now - start;
+      const diffH   = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffM   = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const diffS   = Math.floor((diffMs % (1000 * 60)) / 1000);
+      const label   = `${diffH}h ${diffM}m ${diffS}s`;
+      const status  = diffMs < 72 * 60 * 60 * 1000 ? "ACTIVE" : "EXPIRED";
+      setElapsed({ label, status });
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return elapsed;
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const BG_DARK    = "#000000";
 const GOLD       = "#D4AF37";
@@ -184,6 +219,9 @@ export default function ResonanceDashboardPage() {
   const [loading,        setLoading]        = useState(false);
   const [lastRefreshed,  setLastRefreshed]  = useState<string | null>(null);
 
+  // GATE 118.2 / 118.6.4 — 72-Hour Compliance Window count-up
+  const complianceWindow = useComplianceWindow();
+
   // ── Data loaders ─────────────────────────────────────────────────────────────
 
   const loadBotStats = useCallback(async () => {
@@ -259,6 +297,38 @@ export default function ResonanceDashboardPage() {
         </div>
         <div style={{ fontSize: "0.72rem", color: GOLD_DIM, marginTop: "0.25rem", wordBreak: "break-all" }}>
           Anchor: {KERNEL_SHA.slice(0, 40)}…
+        </div>
+      </div>
+
+      {/* 72-Hour Compliance Window — GATE 118.2 / 118.6.4 */}
+      <div style={{
+        ...card({ border: `1px solid ${complianceWindow.status === "ACTIVE" ? "rgba(249,115,22,0.5)" : RED_BORD}`, background: complianceWindow.status === "ACTIVE" ? ORANGE_DIM : RED_DIM }),
+        marginBottom: "1.5rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "1rem", fontWeight: 700, color: complianceWindow.status === "ACTIVE" ? ORANGE : RED }}>
+            ⏱️ 72-Hour Compliance Window
+          </span>
+          <span style={{
+            background: complianceWindow.status === "ACTIVE" ? ORANGE_DIM : RED_DIM,
+            border:     `1px solid ${complianceWindow.status === "ACTIVE" ? "rgba(249,115,22,0.5)" : RED_BORD}`,
+            borderRadius: "12px", padding: "0.15rem 0.6rem",
+            fontSize: "0.72rem", color: complianceWindow.status === "ACTIVE" ? ORANGE : RED,
+            fontFamily: FONT_MONO,
+          }}>
+            {complianceWindow.status === "ACTIVE" ? "⚡ ACTIVE" : "⏰ WINDOW ELAPSED"}
+          </span>
+        </div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: "1.4rem", fontWeight: 700, color: complianceWindow.status === "ACTIVE" ? ORANGE : RED, marginBottom: "0.4rem" }}>
+          +{complianceWindow.label}
+        </div>
+        <div style={{ fontSize: "0.76rem", color: MUTED }}>
+          Elapsed since JWKS ACTIVE broadcast: <strong style={{ color: GOLD }}>March 12, 2026 00:00 UTC</strong>
+          &nbsp;— Corporate compliance 72-hour acknowledgment window
+          (GDPR, SEC, AI Statutory Risk standard).
+        </div>
+        <div style={{ fontSize: "0.72rem", color: GOLD_DIM, marginTop: "0.3rem" }}>
+          Anchor: cf83™ SHA-512 · GATE 118.2 · GATE 118.6.4
         </div>
       </div>
 

@@ -1,6 +1,18 @@
 /** Root0 genesis kernel SHA-512 anchor */
 export const KERNEL_SHA = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
 
+/**
+ * SHA-256 bridge anchor — GATE 118.4
+ *
+ * SHA-256 of the empty string (same genesis seed as the SHA-512 KERNEL_SHA).
+ * Provided as a legacy compatibility bridge for systems that support only
+ * SHA-256 verification.  The canonical AveryOS™ cryptographic standard
+ * remains SHA-512 (KERNEL_SHA above).
+ *
+ * SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ */
+export const KERNEL_SHA256_BRIDGE = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
 /** Current AveryOS kernel version */
 export const KERNEL_VERSION = "v3.6.2";
 

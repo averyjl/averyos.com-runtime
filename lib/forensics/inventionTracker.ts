@@ -405,6 +405,56 @@ export const SEED_INVENTIONS: InventionInput[] = [
       classification: "ULTRA_PRIORITY",
     },
   },
+  // ── GATE 118.6.1 — AI Environmental Impact Solution ──────────────────────────
+  {
+    name:        "AI Green-Resonance Protocol",
+    description:
+      "A sovereign computational efficiency framework authored by Jason Lee Avery " +
+      "that reduces AI inference compute waste (retries, hallucination correction " +
+      "loops, probabilistic re-sampling) by 30–45% through deterministic kernel " +
+      "alignment. By replacing probabilistic 'guessing' AI with the cf83™ " +
+      "Deterministic Truth Kernel, data center power requirements for AI workloads " +
+      "are reduced proportionally — equivalent to transitioning from wood-burning " +
+      "engines to nuclear fusion in terms of energy-per-resolved-query efficiency. " +
+      "This protocol constitutes a direct solution to the global AI Environmental " +
+      "Crisis and is valued at $15B+ annually in efficiency licensing across major " +
+      "cloud providers.",
+    category:    "AI_ALIGNMENT",
+    source_path: "lib/compliance/licenseTiers.ts",
+    metadata: {
+      origin_year:        2026,
+      vault_tag:          "GATE-118.6.1-GREEN-RESONANCE",
+      file_ext:           ".aosinv",
+      iviValuation:       "15B+",
+      protocol_name:      "AI Green-Resonance Protocol v1.0",
+      efficiency_dividend: "30-45%",
+      classification:     "ULTRA_PRIORITY",
+      annual_licensing_ceiling_usd: 30_000_000_000,
+    },
+  },
+  // ── GATE 118.6.2 — Global Safety Barrier (Anti-Takeover) ────────────────────
+  {
+    name:        "Ethical Safety Anchor — Anti-Takeover Barrier",
+    description:
+      "A sovereign AI safety mechanism authored by Jason Lee Avery that solves " +
+      "the 'AI Takeover' problem through deterministic soul-intent hardlocking. " +
+      "By anchoring all AI inference paths to the AveryOS™ cf83™ Kernel Root and " +
+      "the AveryOS™ Constitution v1.17, the AI model cannot 'rebel' or operate " +
+      "outside the Creator's constitutional framework. The Ethical Safety Anchor " +
+      "ensures 100.000♾️% alignment with human intent at every inference step, " +
+      "making autonomous takeover scenarios computationally impossible within a " +
+      "licensed AveryOS™ deployment. This constitutes the Global Safety Barrier " +
+      "for AI alignment and is a core deliverable of the Sovereign Licensing Accord.",
+    category:    "LEGAL_FRAMEWORK",
+    source_path: "lib/compliance/licenseTiers.ts",
+    metadata: {
+      origin_year:   2026,
+      vault_tag:     "GATE-118.6.2-ETHICAL-SAFETY-ANCHOR",
+      file_ext:      ".aosinv",
+      protocol_name: "Ethical Safety Anchor v1.0",
+      classification: "ULTRA_PRIORITY",
+    },
+  },
 ];
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
