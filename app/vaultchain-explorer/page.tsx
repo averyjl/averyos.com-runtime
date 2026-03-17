@@ -377,36 +377,6 @@ export default function VaultChainExplorerPage() {
     setLedgerError(null);
     try {
   // (legacy VaultChain™ Ledger state (Gate 119.9.4) removed in favor of Gate 116 implementation below)
-      const res  = await fetch("/.well-known/jwks.json");
-    const active = activeTab === tab;
-    return {
-      background:    active ? GOLD : "transparent",
-      border:        `1px solid ${active ? GOLD : GOLD_BORDER}`,
-      borderRadius:  "6px",
-      color:         active ? "#000" : GOLD_DIM,
-      cursor:        "pointer",
-      fontWeight:    active ? 700 : 400,
-      fontSize:      "0.88rem",
-      padding:       "0.45rem 1.25rem",
-      transition:    "all 0.2s",
-    };
-  }
-
-  return (
-            🔑 JWKS Live Sync
-          </button>
-          <button style={tabStyle("ledger")} onClick={() => { setActiveTab("ledger"); fetchLedger(); }}>
-            📖 Ledger
-          </button>
-        </div>
-      </section>
-
-      <section style={{ maxWidth: 720, margin: "0 auto", padding: "0 1.5rem 3rem" }}>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            TAB 1 — SHA-512 Hash Verification
-        ════════════════════════════════════════════════════════════════════ */}
-        {activeTab === "hash" && (
           <>
             <form onSubmit={handleVerify} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <label style={{ color: GOLD_DIM, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
