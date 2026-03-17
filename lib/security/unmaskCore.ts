@@ -99,9 +99,9 @@ function getUsbMountCandidates(): string[] {
   for (const base of bases) {
     try {
       if (!SAFE_BASE_RE.test(base)) continue;
-      // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against allowedRe above
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against SAFE_BASE_RE above
       if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
-        // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against allowedRe above
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against SAFE_BASE_RE above
         fs.readdirSync(base).forEach((c) => {
           const safe = sanitisePathComponent(c);
           if (safe) result.push(path.join(base, safe));
