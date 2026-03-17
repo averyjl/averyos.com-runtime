@@ -61,11 +61,10 @@ const IPFS_GATEWAYS = [
 ];
 
 // ── Known AveryOS capsule CIDs (public anchors published in the manifest) ────
-// These are the IPFS CIDs of publicly disclosed AveryOS capsule shells.
-// Add new CIDs here as they are published to IPFS.
-const KNOWN_CAPSULE_CIDS: string[] = [
-  // Public root capsule anchor (add real CIDs here as they are published)
-];
+// Scaffolded for future IPFS scanning. No CIDs are published yet;
+// this list will be populated as capsule shells are pinned to IPFS.
+// Add new CIDs here once they are disclosed in the public manifest.
+const KNOWN_CAPSULE_CIDS: string[] = [];
 
 /**
  * scanCloudflareKv()
