@@ -78,8 +78,8 @@ function buildOpReturnPayload(hash: string): string {
  * Broadcast a raw OP_RETURN transaction via the configured Bitcoin API.
  *
  * In production this calls a provider like Blockstream or mempool.space.
- * In simulation mode (no BITCOIN_API_URL set) it returns a deterministic
- * SHA-256 of the payload as a mock TXID — clearly labelled as simulated.
+ * In mock mode (no BITCOIN_API_URL set) it returns a deterministic
+ * SHA-256 of the payload as a mock TXID — clearly labelled as a mock entry.
  */
 async function broadcastOpReturn(
   opReturnData: string,
@@ -93,7 +93,7 @@ async function broadcastOpReturn(
   const rawPayload = opReturnData;
 
   if (!apiUrl) {
-    // Simulation mode — compute deterministic mock TXID from payload hash
+    // Mock mode — compute deterministic mock TXID from payload hash
     const buf = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(`SIMULATED:${rawPayload}:${KERNEL_SHA}`),

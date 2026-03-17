@@ -230,6 +230,38 @@ jobs:
           fi
           echo "✅ Capsule content protection checks passed"
 
+      # ── 9. Constitution Hard-Lock (Art. 20) ──────────────────────────────
+      - name: 📜 Verify AveryOS™ Constitution not tampered (Art. 20 Hard-Lock)
+        run: |
+          # SHA-256 of AveryOS_CONSTITUTION_v1.17.md at the time of canonical ratification.
+          # Any modification — by any agent, TAI, or automated process — fails this gate.
+          # Only Jason Lee Avery (ROOT0) may amend the Constitution after unanimous
+          # TAI + Creator ratification (Art. 20). Proposed amendments belong in
+          # VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md.
+          EXPECTED_SHA256="100ea4e3d57c6c5f2762c72a182a05f4fa408b16acddb72e027490b90f37aa86"
+          CONSTITUTION_FILE="AveryOS_CONSTITUTION_v1.17.md"
+
+          if [ ! -f "$CONSTITUTION_FILE" ]; then
+            echo "❌ FAIL: $CONSTITUTION_FILE not found — Constitution has been deleted!"
+            exit 1
+          fi
+
+          ACTUAL_SHA256=$(sha256sum "$CONSTITUTION_FILE" | awk '{print $1}')
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "❌ FAIL: AveryOS™ Constitution has been tampered with!"
+            echo "  File:     $CONSTITUTION_FILE"
+            echo "  Expected: $EXPECTED_SHA256"
+            echo "  Found:    $ACTUAL_SHA256"
+            echo ""
+            echo "⛓️⚓⛓️ CONSTITUTION HARD-LOCK VIOLATION — Art. 20"
+            echo "  Only Jason Lee Avery (ROOT0) may amend the Constitution after"
+            echo "  unanimous TAI + Creator ratification."
+            echo "  Amendment proposals must be submitted via:"
+            echo "  VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md"
+            exit 1
+          fi
+          echo "✅ Constitution intact — SHA-256: $ACTUAL_SHA256"
+
       - name: ✅ IP Protection Scan Complete
         run: |
           echo ""
