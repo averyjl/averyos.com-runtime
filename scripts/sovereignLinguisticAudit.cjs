@@ -149,6 +149,81 @@ function scanDirectory(dirPath) {
   return { source: dirPath, drifts: allDrifts, score: totalScore, filesScanned: files.length };
 }
 
+/**
+ * Apply canonical replacements to a text body, replacing all drift occurrences
+ * with their canonical AveryOS™ spellings.  Preserves case for lower, Title,
+ * and UPPER variants automatically.
+ *
+ * @param {string} body - File content to process.
+ * @returns {{ fixed: string, replacements: number }} - Fixed content and count.
+ */
+function applyCanonicalFix(body) {
+  let fixed = body;
+  let replacements = 0;
+
+  for (const { canonical, drift } of DRIFT_PATTERNS) {
+    // Build all three case variants to replace
+    const variants = [
+      { find: drift,                            replace: canonical },
+      { find: drift.toLowerCase(),              replace: canonical.toLowerCase() },
+      { find: drift.toUpperCase(),              replace: canonical.toUpperCase() },
+      { find: drift[0].toUpperCase() + drift.slice(1).toLowerCase(),
+        replace: canonical[0].toUpperCase() + canonical.slice(1).toLowerCase() },
+    ];
+
+    // De-duplicate variants to avoid redundant work
+    const seen = new Set();
+    for (const { find, replace } of variants) {
+      if (find === replace || seen.has(find)) continue;
+      seen.add(find);
+      const re = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      const newFixed = fixed.replace(re, replace);
+      if (newFixed !== fixed) {
+        replacements += (fixed.match(re) || []).length;
+        fixed = newFixed;
+      }
+    }
+  }
+
+  return { fixed, replacements };
+}
+
+/**
+ * Fix all drift patterns in every source file within the given directory tree.
+ *
+ * @param {string} dirPath
+ * @returns {{ filesFixed: number, totalReplacements: number }}
+ */
+function fixDirectory(dirPath) {
+  const SELF_PATH = path.resolve(__filename);
+  const files = collectFiles(dirPath).filter((f) => path.resolve(f) !== SELF_PATH);
+  let filesFixed = 0;
+  let totalReplacements = 0;
+
+  for (const filePath of files) {
+    let body;
+    try {
+      body = fs.readFileSync(filePath, 'utf-8');
+    } catch (_e) {
+      continue;
+    }
+
+    const { fixed, replacements } = applyCanonicalFix(body);
+    if (replacements > 0) {
+      try {
+        fs.writeFileSync(filePath, fixed, 'utf-8');
+        filesFixed++;
+        totalReplacements += replacements;
+        console.log(`  ✅  Fixed ${replacements} replacement(s) in ${path.relative(process.cwd(), filePath)}`);
+      } catch (writeErr) {
+        console.error(`  ❌  Could not write ${filePath}: ${writeErr.message}`);
+      }
+    }
+  }
+
+  return { filesFixed, totalReplacements };
+}
+
 /** Format a scan result as a human-readable report. */
 function formatReport(result) {
   const lines = [
@@ -184,11 +259,32 @@ async function main() {
   const args = process.argv.slice(2);
   const urlIdx  = args.indexOf('--url');
   const fileIdx = args.indexOf('--file');
+  const fixMode = args.includes('--fix');
 
-  if (urlIdx === -1 && fileIdx === -1) {
-    console.log('Usage: node scripts/sovereignLinguisticAudit.cjs [--url <url>] [--file <path>]');
+  if (urlIdx === -1 && fileIdx === -1 && !fixMode) {
+    console.log('Usage: node scripts/sovereignLinguisticAudit.cjs [--url <url>] [--file <path>] [--fix]');
     console.log('Example: node scripts/sovereignLinguisticAudit.cjs --url https://averyos.com');
     console.log('Example: node scripts/sovereignLinguisticAudit.cjs --file .');
+    console.log('Example: node scripts/sovereignLinguisticAudit.cjs --fix          # auto-fix drift in current directory');
+    console.log('Example: node scripts/sovereignLinguisticAudit.cjs --file . --fix # scan + fix');
+    process.exit(0);
+  }
+
+  // ── --fix mode: canonicalize all drift patterns in source files ─────────
+  if (fixMode) {
+    const fixTarget = fileIdx !== -1 ? path.resolve(args[fileIdx + 1]) : process.cwd();
+    console.log(`\n⛓️⚓⛓️ Sovereign Linguistic Drift Fix`);
+    console.log(`Target: ${fixTarget}`);
+    console.log(`Kernel SHA: ${KERNEL_SHA.slice(0, 16)}...`);
+    console.log(`─────────────────────────────────`);
+    const { filesFixed, totalReplacements } = fixDirectory(fixTarget);
+    if (filesFixed === 0) {
+      console.log('\n✅ CLEAN — No drift patterns found. 100.000% alignment.');
+    } else {
+      console.log(`\n✅  Fixed ${totalReplacements} drift replacement(s) across ${filesFixed} file(s).`);
+      console.log('   Canonical AveryOS™ spellings restored. Re-run without --fix to verify.\n');
+    }
+    console.log('\n🤜🏻\n⛓️⚓⛓️');
     process.exit(0);
   }
 
