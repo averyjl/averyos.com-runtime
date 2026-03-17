@@ -77,34 +77,38 @@ describe("loadDriftShieldConfig()", () => {
 // ── enforceDriftShield — pass cases ──────────────────────────────────────────
 
 describe("enforceDriftShield() — pass cases", () => {
+  // Disable economic throttle (DRIFT_SHIELD_THROTTLE=0) in all pass tests —
+  // these tests isolate WAF / jitter / entropy behaviour, not rate limiting.
+  const noThrottle = { DRIFT_SHIELD_THROTTLE: "0" } as const;
+
   test("clean request with no headers passes", () => {
-    const outcome = enforceDriftShield(makeRequest());
+    const outcome = enforceDriftShield(makeRequest(), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("pass result carries kernelSha and kernelVersion", () => {
-    const outcome = enforceDriftShield(makeRequest());
+    const outcome = enforceDriftShield(makeRequest(), noThrottle);
     assert.equal(outcome.kernelSha,    KERNEL_SHA);
     assert.equal(outcome.kernelVersion, KERNEL_VERSION);
   });
 
   test("low WAF score (below threshold) passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "50" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "50" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("WAF score exactly at threshold passes (not strictly greater)", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "60" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "60" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("jitter header absent → zero-noise check passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "0" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "0" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("jitter header = '0' passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-averyos-jitter": "0" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-averyos-jitter": "0" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 });
@@ -136,7 +140,7 @@ describe("enforceDriftShield() — block cases", () => {
   });
 
   test("jitter check disabled when zeroNoise=false via env", () => {
-    const env = { DRIFT_SHIELD_ZERO_NOISE: "0" };
+    const env = { DRIFT_SHIELD_ZERO_NOISE: "0", DRIFT_SHIELD_THROTTLE: "0" };
     const outcome = enforceDriftShield(
       makeRequest({ "x-averyos-jitter": "1" }),
       env,
@@ -170,7 +174,7 @@ describe("enforceDriftShield() — block cases", () => {
   });
 
   test("entropy check passes when value meets minimum", () => {
-    const env = { DRIFT_SHIELD_ENTROPY_MIN: "3" };
+    const env = { DRIFT_SHIELD_ENTROPY_MIN: "3", DRIFT_SHIELD_THROTTLE: "0" };
     const outcome = enforceDriftShield(
       makeRequest({ "x-averyos-entropy": "5" }),
       env,
@@ -201,7 +205,7 @@ describe("enforceDriftShield() with custom threshold env", () => {
   test("custom threshold=80: score 70 passes", () => {
     const outcome = enforceDriftShield(
       makeRequest({ "x-waf-score": "70" }),
-      { DRIFT_SHIELD_THRESHOLD: "80" },
+      { DRIFT_SHIELD_THRESHOLD: "80", DRIFT_SHIELD_THROTTLE: "0" },
     );
     assert.equal(outcome.pass, true);
   });
