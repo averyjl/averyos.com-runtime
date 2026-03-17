@@ -113,19 +113,19 @@ interface D1Database {
   prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
-/**
- * VaultChainDB — exported alias for the D1 binding interface, used by API routes.
- */
+/** Exported alias for D1Database — use in route CloudflareEnv interfaces. */
 export type VaultChainDB = D1Database;
 
-/**
- * WriteBlockInput — input shape for the writeBlock() helper.
- */
+/** Input for the general-purpose {@link writeBlock} function. */
 export interface WriteBlockInput {
-  block_type:   "GENESIS" | "RECORD" | "CORRECTION" | "ANCHOR";
+  /** Block type to write (default: "RECORD"). */
+  block_type:   VaultChainBlockType;
+  /** Arbitrary text/JSON payload for this block. */
   payload:      string;
+  /** Optional reference to a related block ID (e.g. for CORRECTION blocks). */
   ref_block_id: number | null;
-  author?:      string;
+  /** Author identifier (default: "ROOT0"). */
+  author:       string;
 }
 
 // ── SHA-512 helper ─────────────────────────────────────────────────────────────
@@ -383,77 +383,57 @@ export async function readRecentBlocks(
  * Count the total number of blocks in the VaultChain™ ledger.
  *
  * @param db  D1 database binding.
- * @returns   Total block count, or 0 if the table does not exist yet.
+ * @returns   Total block count (0 if the table is empty or does not exist yet).
  */
 export async function countBlocks(db: D1Database): Promise<number> {
-  try {
-    const row = await (db
-      .prepare("SELECT COUNT(*) AS cnt FROM vaultchain_ledger")
-      .bind() as unknown as { first<T>(): Promise<T | null> })
-      .first<{ cnt: number }>();
-    return row?.cnt ?? 0;
-  } catch {
-    return 0;
-  }
+  const row = await db
+    .prepare("SELECT COUNT(*) as count FROM vaultchain_ledger")
+    .bind()
+    .first<{ count: number }>();  // bind() required by the D1 fluent API even with no params
+  return row?.count ?? 0;
 }
 
 /**
- * Append a single new block to the VaultChain™ ledger.
+ * Append a generic block to the VaultChain™ ledger.
+ *
+ * This is the general-purpose writer used by the REST API. For strongly-typed
+ * helpers that enforce the specific block-type schema, use {@link appendRecord},
+ * {@link appendCorrection}, {@link appendAnchor}, or {@link bootstrapGenesis}.
  *
  * @param db    D1 database binding.
- * @param input Block data to append.
- * @returns     The new block's auto-incremented id, or null on failure.
+ * @param input Block payload descriptor.
+ * @returns     The auto-incremented ID of the newly inserted block, or null on failure.
  */
 export async function writeBlock(
   db: D1Database,
   input: WriteBlockInput,
 ): Promise<number | null> {
-  await ensureVaultChainTable(db);
-
   const ts       = formatIso9();
   const prevSha  = await latestBlockSha(db);
-  const payloadObj = (() => {
-    try { return JSON.parse(input.payload) as Record<string, unknown>; }
-    // Non-JSON payloads (raw strings, pre-serialised blobs) are intentionally
-    // wrapped in { raw: ... } so the canonical hash still includes the full content.
-    catch { return { raw: input.payload }; }
-  })();
   const canonical = canonicalPayload({
     type:           input.block_type,
-    event:          input.block_type,
     payload:        input.payload,
-    author:         input.author ?? "ROOT0",
+    ref_block_id:   input.ref_block_id,
+    author:         input.author,
     created_at:     ts,
     prev_sha512:    prevSha,
     kernel_version: KERNEL_VERSION,
-    ...(input.ref_block_id !== null ? { ref_id: input.ref_block_id } : {}),
   });
   const blockSha = await sha512Hex(canonical);
 
-  // RECORD type uses the standard vaultchain_ledger schema
-  const event = payloadObj.event
-    ? String(payloadObj.event)
-    : input.block_type;
+  const result = await db.prepare(`
+    INSERT INTO vaultchain_ledger
+      (type, created_at, block_sha512, prev_sha512, kernel_version, payload, corrects_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    input.block_type,    // type
+    ts,                  // created_at
+    blockSha,            // block_sha512
+    prevSha,             // prev_sha512
+    KERNEL_VERSION,      // kernel_version
+    input.payload,       // payload
+    input.ref_block_id,  // corrects_id (null for non-CORRECTION blocks)
+  ).run();
 
-  try {
-    const result = await (db
-      .prepare(
-        `INSERT INTO vaultchain_ledger
-          (type, created_at, block_sha512, prev_sha512, kernel_version, event, payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        input.block_type,
-        ts,
-        blockSha,
-        prevSha,
-        KERNEL_VERSION,
-        event,
-        input.payload,
-      ) as unknown as { run(): Promise<{ meta?: { last_row_id?: number } }> })
-      .run();
-    return result?.meta?.last_row_id ?? null;
-  } catch {
-    return null;
-  }
+  return result.meta?.last_row_id ?? null;
 }
