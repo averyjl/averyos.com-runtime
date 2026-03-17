@@ -423,24 +423,24 @@ export default function VaultChainExplorerPage() {
               <div style={{ marginTop: "1.5rem", background: GOLD_GLOW,
                             border: `1px solid ${GOLD_BORDER}`, borderRadius: "10px",
                             padding: "1.5rem 1.75rem" }}>
-                <div style={badgeStyle(hashResonanceColor)}>{hashResult.resonance}</div>
-                {hashResult.resonance === "HIGH_FIDELITY_SUCCESS" && (
-                  <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr",
-                                gap: "0.5rem 1.5rem", margin: 0 }}>
+  const [ledgerData116,    setLedgerData116]    = useState<LedgerApiResponse | null>(null);
+  const [ledgerLoading116, setLedgerLoading116] = useState(false);
+  const [ledgerError116,   setLedgerError116]   = useState<string | null>(null);
+  const [ledgerLimit116,   setLedgerLimit116]   = useState(20);
                     {([
-                      ["Partner ID",      hashResult.partner_id],
-                      ["Partner Name",    hashResult.partner_name ?? "—"],
-                      ["Email",           hashResult.email],
-                      ["Alignment Type",  hashResult.alignment_type],
+  async function fetchLedger116(limit = ledgerLimit116) {
+    setLedgerLoading116(true);
+    setLedgerData116(null);
+    setLedgerError116(null);
                       ["Status",          hashResult.status],
                       ["Settlement ID",   hashResult.settlement_id ?? "—"],
                       ["TARI™ Reference", hashResult.tari_reference ?? "—"],
                       ["Valid Until",     hashResult.valid_until ?? "No expiry"],
-                      ["Aligned At",      hashResult.aligned_at],
+      setLedgerData116(data);
                       ["Verified At",     hashResult.verified_at],
-                    ] as [string, string | undefined][]).map(([label, value]) => (
+      setLedgerError116(e instanceof Error ? e.message : "Network error — unable to reach the VaultChain™ ledger.");
                       value !== undefined && (
-                        <React.Fragment key={label}>
+      setLedgerLoading116(false);
                           <dt style={{ color: GOLD_DIM, fontSize: "0.8rem",
                                                             whiteSpace: "nowrap" }}>
                             {label}
