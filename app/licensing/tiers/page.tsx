@@ -266,7 +266,7 @@ export default function LicensingTiersPage() {
       </div>
 
       {/* Tier cards */}
-      {Object.values(SOVEREIGN_LICENSING_ACCORD.tiers).map((tier) => (
+      {Object.values(LICENSE_TIERS).map((tier) => (
         <TierCard key={tier.id} tier={tier} />
       ))}
 

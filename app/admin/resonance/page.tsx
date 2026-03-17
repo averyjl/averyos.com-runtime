@@ -25,7 +25,6 @@ import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
-import { useComplianceWindow } from "../../../lib/hooks/useComplianceWindow";
 import { formatUsd } from "../../../lib/forensics/valuationAudit";
 
 // ── GATE 118.2 — 72-Hour Compliance Window constants ──────────────────────────
