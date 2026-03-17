@@ -48,6 +48,17 @@ interface StripeChargeEntry {
   card_brand:   string | null;
 }
 
+/** Shape of a Stripe charge nested inside a PaymentIntent (from expand: charges). */
+interface StripePaymentIntentWithCharges {
+  charges?: {
+    data?: Array<{
+      payment_method_details?: {
+        card?: { brand?: string };
+      };
+    }>;
+  };
+}
+
 interface TariStatsResponse {
   trust_premium_index_pct: number | null;
   recent_entries: TariLedgerRow[];
@@ -172,11 +183,11 @@ export async function GET() {
       : null;
 
     // ── Gate 2 — Live Stripe Revenue Pull ────────────────────────────────────
-    let stripeAvailableUsd: number | null       = null;
-    let stripePendingUsd:   number | null       = null;
-    let stripeRevenueStatus                      = 'PENDING_CREDENTIALS';
-    let stripeRecentCharges: StripeChargeEntry[] = [];
-    let stripeTotalCollectedUsd: number | null   = null;
+    let stripeAvailableUsd: number | null         = null;
+    let stripePendingUsd:   number | null         = null;
+    let stripeRevenueStatus                        = 'PENDING_CREDENTIALS';
+    const stripeRecentCharges: StripeChargeEntry[] = [];
+    let stripeTotalCollectedUsd: number | null     = null;
     if (cfEnv.STRIPE_SECRET_KEY) {
       try {
         const stripe  = new Stripe(cfEnv.STRIPE_SECRET_KEY);
@@ -200,8 +211,8 @@ export async function GET() {
           if (pi.status === 'succeeded') totalCents += pi.amount;
 
           // Extract card brand from the first charge (if available)
-          const charges = (pi as unknown as { charges?: { data?: Array<{ payment_method_details?: { card?: { brand?: string } } }> } }).charges;
-          const cardBrand = charges?.data?.[0]?.payment_method_details?.card?.brand ?? null;
+          const piWithCharges = pi as unknown as StripePaymentIntentWithCharges;
+          const cardBrand = piWithCharges.charges?.data?.[0]?.payment_method_details?.card?.brand ?? null;
 
           stripeRecentCharges.push({
             id:          pi.id.slice(0, 32),

@@ -404,7 +404,8 @@ export async function POST(request: Request) {
       // Gate 4 — VaultChain™ ledger append on TARI™ settlement path
       // Appends an immutable RECORD block so that every compliance checkout
       // is permanently anchored to the sovereign ledger for forensic audit.
-      void appendRecord(cfEnv.DB, "TARI_SETTLEMENT", {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      void appendRecord(cfEnv.DB as unknown as any, "TARI_SETTLEMENT", {
         session_id:      session.id.slice(0, 32),
         bundle_id:       resolvedBundleId.slice(0, 64),
         pricing_tier:    pricingTier,

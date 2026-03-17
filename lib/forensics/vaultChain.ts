@@ -414,6 +414,8 @@ export async function writeBlock(
   const prevSha  = await latestBlockSha(db);
   const payloadObj = (() => {
     try { return JSON.parse(input.payload) as Record<string, unknown>; }
+    // Non-JSON payloads (raw strings, pre-serialised blobs) are intentionally
+    // wrapped in { raw: ... } so the canonical hash still includes the full content.
     catch { return { raw: input.payload }; }
   })();
   const canonical = canonicalPayload({
