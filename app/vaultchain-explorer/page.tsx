@@ -422,28 +422,6 @@ export default function VaultChainExplorerPage() {
   }
 
   return (
-    <main className="page" style={{ background: BG, minHeight: "100vh", color: "#fff" }}>
-      <AnchorBanner />
-
-      {/* ── Hero ── */}
-      <section style={{ textAlign: "center", padding: "3rem 1.5rem 2rem" }}>
-        <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", color: GOLD, marginBottom: "0.5rem" }}>
-          VaultChain™ Explorer
-        </h1>
-        <p style={{ color: GOLD_DIM, fontSize: "1.05rem", maxWidth: 640, margin: "0 auto 1.5rem" }}>
-          Verify alignment certificates and retrieve forensic evidence bundles from the
-          AveryOS™ Sovereign Ledger — anchored to the cf83e135… Kernel Root.
-        </p>
-
-        {/* ── Tabs ── */}
-        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <button style={tabStyle("hash")} onClick={() => setActiveTab("hash")}>
-            ⛓️ Hash Verify
-          </button>
-          <button style={tabStyle("rayid")} onClick={() => setActiveTab("rayid")}>
-            🔍 RayID Evidence
-          </button>
-          <button style={tabStyle("jwks")} onClick={() => { setActiveTab("jwks"); fetchJwks(); }}>
             🔑 JWKS Live Sync
           </button>
           <button style={tabStyle("ledger")} onClick={() => { setActiveTab("ledger"); fetchLedger(); }}>
