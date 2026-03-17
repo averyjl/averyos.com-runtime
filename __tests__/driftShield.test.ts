@@ -20,7 +20,6 @@ import {
   loadDriftShieldConfig,
   enforceDriftShield,
   type DriftShieldConfig,
-  type DriftShieldOutcome,
 } from "../lib/security/driftShield";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 

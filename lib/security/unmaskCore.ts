@@ -95,7 +95,7 @@ function getUsbMountCandidates(): string[] {
   const bases   = [`/media/${user}`, "/mnt", `/run/media/${user}`];
   const result: string[] = [];
   // Allowed base directories for removable media on Linux — validated individually.
-  const SAFE_BASE_RE = /^\/(?:media\/[a-zA-Z0-9_.+-]{1,64}|mnt|run\/media\/[a-zA-Z0-9_.+-]{1,64})$/;
+  const SAFE_BASE_RE = /^\/(?:media\/[a-zA-Z0-9_.,-]{1,64}|mnt|run\/media\/[a-zA-Z0-9_.,-]{1,64})$/;
   for (const base of bases) {
     try {
       if (!SAFE_BASE_RE.test(base)) continue;

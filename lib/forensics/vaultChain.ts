@@ -421,7 +421,7 @@ export async function writeBlock(
     input.payload,
   ).run();
 
-  return result.meta.last_row_id ?? null;
+  return result.meta?.last_row_id ?? null;
 }
 
 /**
