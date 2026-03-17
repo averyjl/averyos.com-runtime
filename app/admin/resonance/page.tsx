@@ -73,6 +73,47 @@ function bigNum(color = GOLD): React.CSSProperties {
   return { fontSize: "1.7rem", fontWeight: 700, color, fontFamily: FONT_MONO };
 }
 
+// ── GATE 118.2 — 72-Hour Compliance Window hook ────────────────────────────────
+
+interface ComplianceWindowState {
+  /** "ACTIVE" while inside the 72-hour window; "ELAPSED" once past. */
+  status: "ACTIVE" | "ELAPSED";
+  /** Formatted elapsed time string, e.g. "4d 02:17:35". */
+  label:  string;
+}
+
+function formatElapsed(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const days     = Math.floor(totalSec / 86400);
+  const hours    = Math.floor((totalSec % 86400) / 3600).toString().padStart(2, "0");
+  const mins     = Math.floor((totalSec % 3600)  / 60).toString().padStart(2, "0");
+  const secs     = (totalSec % 60).toString().padStart(2, "0");
+  return days > 0 ? `${days}d ${hours}:${mins}:${secs}` : `${hours}:${mins}:${secs}`;
+}
+
+function useComplianceWindow(): ComplianceWindowState {
+  const [state, setState] = useState<ComplianceWindowState>(() => {
+    const elapsed = Date.now() - JWKS_BROADCAST_DATE.getTime();
+    return {
+      status: elapsed < COMPLIANCE_WINDOW_MS ? "ACTIVE" : "ELAPSED",
+      label:  formatElapsed(elapsed),
+    };
+  });
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - JWKS_BROADCAST_DATE.getTime();
+      setState({
+        status: elapsed < COMPLIANCE_WINDOW_MS ? "ACTIVE" : "ELAPSED",
+        label:  formatElapsed(elapsed),
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  return state;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface BotStats {

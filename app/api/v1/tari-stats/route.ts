@@ -32,6 +32,33 @@ interface TariLedgerRow {
   created_at: string;
 }
 
+/** A single Stripe charge entry for the historical revenue display. */
+interface StripeChargeEntry {
+  /** Stripe payment intent or charge ID (truncated to 32 chars). */
+  id:           string;
+  /** Amount in USD (converted from cents). */
+  amount_usd:   number;
+  /** Charge status: 'succeeded', 'pending', 'failed'. */
+  status:       string;
+  /** ISO-8601 timestamp of the charge creation. */
+  created_at:   string;
+  /** Customer description or metadata.settlement_status when present. */
+  description:  string | null;
+  /** Payment method brand (e.g. 'visa', 'mastercard'). */
+  card_brand:   string | null;
+}
+
+/** Shape of a Stripe charge nested inside a PaymentIntent (from expand: charges). */
+interface StripePaymentIntentWithCharges {
+  charges?: {
+    data?: Array<{
+      payment_method_details?: {
+        card?: { brand?: string };
+      };
+    }>;
+  };
+}
+
 interface TariStatsResponse {
   trust_premium_index_pct: number | null;
   recent_entries: TariLedgerRow[];
@@ -55,7 +82,9 @@ interface TariStatsResponse {
   stripe_available_usd: number | null;
   stripe_pending_usd:   number | null;
   stripe_revenue_status: string;
-  timestamp: string;
+  // Gate 2.1 — Historical Stripe payment intents / charges list
+  stripe_recent_charges: StripeChargeEntry[];
+  stripe_total_collected_usd: number | null;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
@@ -153,18 +182,47 @@ export async function GET() {
       : null;
 
     // ── Gate 2 — Live Stripe Revenue Pull ────────────────────────────────────
-    let stripeAvailableUsd: number | null = null;
-    let stripePendingUsd:   number | null = null;
-    let stripeRevenueStatus               = 'PENDING_CREDENTIALS';
+    let stripeAvailableUsd: number | null         = null;
+    let stripePendingUsd:   number | null         = null;
+    let stripeRevenueStatus                        = 'PENDING_CREDENTIALS';
+    const stripeRecentCharges: StripeChargeEntry[] = [];
+    let stripeTotalCollectedUsd: number | null     = null;
     if (cfEnv.STRIPE_SECRET_KEY) {
       try {
         const stripe  = new Stripe(cfEnv.STRIPE_SECRET_KEY);
-        const balance = await stripe.balance.retrieve();
-        const avail   = balance.available.find((b) => b.currency === 'usd');
-        const pend    = balance.pending.find((b)   => b.currency === 'usd');
+
+        // Parallel: balance + recent payment intents
+        const [balance, paymentIntents] = await Promise.all([
+          stripe.balance.retrieve(),
+          stripe.paymentIntents.list({ limit: 20, expand: ['data.charges'] }),
+        ]);
+
+        const avail  = balance.available.find((b) => b.currency === 'usd');
+        const pend   = balance.pending.find((b)   => b.currency === 'usd');
         stripeAvailableUsd  = avail ? avail.amount / 100 : 0;
         stripePendingUsd    = pend  ? pend.amount  / 100 : 0;
         stripeRevenueStatus = 'ACTIVE';
+
+        // Build the historical charges list
+        let totalCents = 0;
+        for (const pi of paymentIntents.data) {
+          const amountUsd = pi.amount / 100;
+          if (pi.status === 'succeeded') totalCents += pi.amount;
+
+          // Extract card brand from the first charge (if available)
+          const piWithCharges = pi as unknown as StripePaymentIntentWithCharges;
+          const cardBrand = piWithCharges.charges?.data?.[0]?.payment_method_details?.card?.brand ?? null;
+
+          stripeRecentCharges.push({
+            id:          pi.id.slice(0, 32),
+            amount_usd:  amountUsd,
+            status:      pi.status,
+            created_at:  new Date(pi.created * 1000).toISOString(),
+            description: pi.description ?? (pi.metadata?.settlement_status as string | undefined) ?? null,
+            card_brand:  cardBrand,
+          });
+        }
+        stripeTotalCollectedUsd = totalCents / 100;
       } catch (stripeErr: unknown) {
         stripeRevenueStatus = `ERROR: ${stripeErr instanceof Error ? stripeErr.message : String(stripeErr)}`;
       }
@@ -190,6 +248,8 @@ export async function GET() {
       stripe_available_usd:       stripeAvailableUsd,
       stripe_pending_usd:         stripePendingUsd,
       stripe_revenue_status:      stripeRevenueStatus,
+      stripe_recent_charges:      stripeRecentCharges,
+      stripe_total_collected_usd: stripeTotalCollectedUsd,
     };
 
     return Response.json(response);

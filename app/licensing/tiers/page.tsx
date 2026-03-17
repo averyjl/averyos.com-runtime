@@ -3,8 +3,8 @@ import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
 import FooterBadge from "../../../components/FooterBadge";
 import {
-  SOVEREIGN_LICENSING_ACCORD,
   ACCORD_METADATA,
+  LICENSE_TIERS,
   type LicenseTier,
 } from "../../../lib/compliance/licenseTiers";
 
@@ -134,26 +134,23 @@ function TierCard({ tier }: { tier: LicenseTier }) {
           Capabilities Unlocked
         </div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {(() => {
-            const displayCapabilities = tier.capabilities ?? tier.grants;
-            return displayCapabilities.map((cap, i) => (
-              <li
-                key={i}
-                style={{
-                  fontSize:     "0.82rem",
-                  color:        "rgba(255,255,255,0.75)",
-                  padding:      "0.25rem 0",
-                  borderBottom: i < displayCapabilities.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                  display:      "flex",
-                  gap:          "0.5rem",
-                  lineHeight:   1.5,
-                }}
-              >
-                <span style={{ color: style.accent, flexShrink: 0 }}>✓</span>
-                {cap}
-              </li>
-            ));
-          })()}
+          {(tier.capabilities ?? tier.grants).map((cap, i) => (
+            <li
+              key={i}
+              style={{
+                fontSize:     "0.82rem",
+                color:        "rgba(255,255,255,0.75)",
+                padding:      "0.25rem 0",
+                borderBottom: i < (tier.capabilities ?? tier.grants).length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                display:      "flex",
+                gap:          "0.5rem",
+                lineHeight:   1.5,
+              }}
+            >
+              <span style={{ color: style.accent, flexShrink: 0 }}>✓</span>
+              {cap}
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -269,7 +266,7 @@ export default function LicensingTiersPage() {
       </div>
 
       {/* Tier cards */}
-      {Object.values(SOVEREIGN_LICENSING_ACCORD.tiers).map((tier) => (
+      {Object.values(LICENSE_TIERS).map((tier) => (
         <TierCard key={tier.id} tier={tier} />
       ))}
 
