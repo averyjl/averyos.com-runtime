@@ -88,11 +88,19 @@ function findSourceFiles(dir, base = dir) {
 }
 
 /**
- * Find all existing test files under __tests__/ (excluding generated/).
+ * Find all existing test files under __tests__/ (including generated/).
  * Returns a set of module-base names that are already covered.
+ *
+ * Coverage sources:
+ *   1. Hand-written tests anywhere under __tests__/ (not in generated/).
+ *   2. Auto-generated stubs in __tests__/generated/ — a stub file confirms
+ *      the module has been inventoried and will be filled in incrementally.
+ *      The `.gen.test.ts` suffix is stripped to recover the module base name.
  */
 function findCoveredModules() {
   const covered = new Set();
+
+  // 1. Scan hand-written tests (exclude generated/ to avoid double processing)
   const scanDir = (dir) => {
     if (!fs.existsSync(dir)) return;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -106,6 +114,18 @@ function findCoveredModules() {
     }
   };
   scanDir(TESTS_DIR);
+
+  // 2. Scan generated stubs — strip ".gen.test.ts" to recover the module base name
+  if (fs.existsSync(GEN_DIR)) {
+    for (const entry of fs.readdirSync(GEN_DIR, { withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      if (entry.name.endsWith(".gen.test.ts")) {
+        const base = entry.name.replace(/\.gen\.test\.ts$/, "");
+        covered.add(base.toLowerCase());
+      }
+    }
+  }
+
   return covered;
 }
 
