@@ -376,37 +376,8 @@ export default function VaultChainExplorerPage() {
     setLedgerData(null);
     setLedgerError(null);
     try {
-      const res  = await fetch(`/api/v1/vaultchain-ledger?limit=${limit}`);
-      const data = await res.json() as LedgerResponse;
-      setLedgerData(data);
-    } catch {
-      setLedgerError("Network error — unable to reach the VaultChain™ ledger.");
-    } finally {
-      setLedgerLoading(false);
-    }
-  }
-
-  async function fetchJwks() {
-    setJwksLoading(true);
-    setJwksData(null);
-    setJwksError(null);
-    try {
+  // (legacy VaultChain™ Ledger state (Gate 119.9.4) removed in favor of Gate 116 implementation below)
       const res  = await fetch("/.well-known/jwks.json");
-      const data = await res.json() as Record<string, unknown>;
-      setJwksData(data);
-    } catch {
-      setJwksError("Network error — unable to reach the JWKS endpoint.");
-    } finally {
-      setJwksLoading(false);
-    }
-  }
-
-  const hashResonanceColor =
-    hashResult?.resonance === "HIGH_FIDELITY_SUCCESS" ? GREEN :
-    hashResult?.resonance === "DRIFT_ALERT"            ? RED   : GOLD;
-
-  // ── Tab style helper ───────────────────────────────────────────────────────
-  function tabStyle(tab: Tab): React.CSSProperties {
     const active = activeTab === tab;
     return {
       background:    active ? GOLD : "transparent",
