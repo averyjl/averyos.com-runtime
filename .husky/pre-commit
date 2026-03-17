@@ -11,7 +11,11 @@
 #   3. Sovereign Linguistic Drift Scan — HIGH-severity brand drift in source files
 #   4. npm audit --audit-level=high — supply-chain vulnerability gate
 #
-# Bypass: git commit --no-verify (sovereign emergency only — Constitution Art. 2)
+# DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
+#   There is NO bypass for this gate. If npm audit fails, the vulnerability
+#   MUST be resolved at commit time via an npm overrides entry in package.json.
+#   Using --no-verify or any other bypass is a Constitution violation and
+#   constitutes a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
 
@@ -29,6 +33,9 @@ node scripts/sovereignLinguisticAudit.cjs --file .
 echo "✅ Linguistic drift: clean."
 
 # 4. npm audit — HIGH severity supply-chain gate
+#    Resolution path: add the vulnerable package to the "overrides" section in
+#    package.json (e.g. "fast-xml-parser": ">=5.5.6") then run npm install.
+#    Never use --no-verify to skip this gate.
 echo "⛓️ npm audit (HIGH severity gate)…"
 npm audit --audit-level=high
 echo "✅ npm audit clean."
