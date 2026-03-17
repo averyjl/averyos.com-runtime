@@ -1,0 +1,25 @@
+#!/bin/sh
+# AveryOS™ Sovereign Pre-Push Gate — GATE 116.7
+# ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+#
+# Design-stage upgrade: catches the same classes of ESLint security errors that the
+# GitHub Advanced Security bot looks for — BEFORE the code reaches origin.
+#
+# Why this matters: the GitHub Copilot auto-fix bot watches for CodeQL/ESLint SARIF
+# alerts and "fixes" them by deleting the offending code. This gate stops the root
+# cause — broken code reaching CI and generating SARIF alerts — at push time, so
+# there is nothing for the bot to auto-fix.
+#
+# Gate sequence:
+#   1. Full ESLint scan (all JS/TS, all extensions) — catches security warnings
+#      across app/, lib/, components/, pages/, middleware.ts that `next lint`
+#      misses. Uses --quiet so only *errors* fail; warnings are auditable via
+#      the SARIF workflow but do not block pushes.
+#
+# Bypass: git push --no-verify (sovereign emergency only — Constitution Art. 2)
+
+set -e
+
+echo "⛓️ Pre-push ESLint security gate…"
+npm run lint:full
+echo "✅ ESLint security gate clean."

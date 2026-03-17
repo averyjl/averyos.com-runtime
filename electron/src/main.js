@@ -460,6 +460,50 @@ ipcMain.handle("alm:status", () => {
             const parsed = JSON.parse(data);
             const models = Array.isArray(parsed.models)
               ? parsed.models.map((m) => (typeof m === "object" && m !== null ? (m.name ?? m.model ?? String(m)) : String(m)))
+              : [];
+            // Also fetch /api/version (fire-and-forget — not critical)
+            http.get(
+              { hostname: ALM_HOST, port: ALM_PORT, path: "/api/version", timeout: 2000 },
+              (vRes) => {
+                let vData = "";
+                vRes.on("data", (c) => { vData += c; });
+                vRes.on("end",  () => {
+                  let version = "unknown";
+                  try { version = JSON.parse(vData).version ?? "unknown"; } catch { /* ignore */ }
+                  resolve({ alive: true, version, models, endpoint });
+                });
+              }
+            ).on("error", () => resolve({ alive: true, version: "unknown", models, endpoint }));
+          } catch {
+            resolve({ alive: res.statusCode === 200, version: "unknown", models: [], endpoint });
+          }
+        });
+      }
+    );
+
+    tagsReq.on("error",   () => { if (!settled) { settled = true; resolve({ alive: false, version: null, models: [], endpoint }); } });
+    tagsReq.on("timeout", () => { if (!settled) { settled = true; tagsReq.destroy(); resolve({ alive: false, version: null, models: [], endpoint }); } });
+  });
+});
+
+function buildMenu() {
+  const template = [
+    {
+      label: "AveryOS™",
+      submenu: [
+        { label: `Kernel ${KERNEL_VERSION}`, enabled: false },
+        { type: "separator" },
+        { label: "Open Site", click: () => shell.openExternal(SITE_URL) },
+        { label: "Licensing", click: () => shell.openExternal(`${SITE_URL}/licensing`) },
+        { label: "Alignment Accord", click: () => shell.openExternal(`${SITE_URL}/alignment-accord`) },
+        { type: "separator" },
+        { role: "quit", label: "Quit AveryOS™ Terminal" },
+      ],
+    },
+    {
+      label: "7-Repo Bridge",
+      submenu: [
+        {
           label: "Run SSH Audit",
           accelerator: "CmdOrCtrl+Shift+A",
           click: () => {

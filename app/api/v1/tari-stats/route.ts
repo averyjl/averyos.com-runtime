@@ -111,6 +111,11 @@ export async function GET() {
     let legalScanCount     = 0;
     let peerAccessCount    = 0;
     try {
+      const watcherRow = await cfEnv.DB.prepare(
+        `SELECT
+           SUM(CASE WHEN event_type = 'HN_WATCHER'         THEN 1 ELSE 0 END) AS hn_cnt,
+           SUM(CASE WHEN event_type = 'DER_SETTLEMENT'      THEN 1 ELSE 0 END) AS der_cnt,
+           SUM(CASE WHEN event_type = 'CONFLICT_ZONE_PROBE' THEN 1 ELSE 0 END) AS conflict_cnt,
            SUM(CASE WHEN event_type = 'DER_HIGH_VALUE'      THEN 1 ELSE 0 END) AS high_value_cnt,
            SUM(CASE WHEN event_type = 'LEGAL_SCAN'          THEN 1 ELSE 0 END) AS legal_scan_cnt,
            SUM(CASE WHEN event_type = 'PEER_ACCESS'         THEN 1 ELSE 0 END) AS peer_access_cnt

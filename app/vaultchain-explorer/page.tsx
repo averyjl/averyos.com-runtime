@@ -376,7 +376,88 @@ export default function VaultChainExplorerPage() {
     setLedgerData(null);
     setLedgerError(null);
     try {
-  // (legacy VaultChain™ Ledger state (Gate 119.9.4) removed in favor of Gate 116 implementation below)
+      const res  = await fetch(`/api/v1/vaultchain-ledger?limit=${limit}`);
+      const data = await res.json() as LedgerResponse;
+      setLedgerData(data);
+    } catch {
+      setLedgerError("Network error — unable to reach the VaultChain™ ledger.");
+    } finally {
+      setLedgerLoading(false);
+    }
+  }
+
+  async function fetchJwks() {
+    setJwksLoading(true);
+    setJwksData(null);
+    setJwksError(null);
+    try {
+      const res  = await fetch("/.well-known/jwks.json");
+      const data = await res.json() as Record<string, unknown>;
+      setJwksData(data);
+    } catch {
+      setJwksError("Network error — unable to reach the JWKS endpoint.");
+    } finally {
+      setJwksLoading(false);
+    }
+  }
+
+  const hashResonanceColor =
+    hashResult?.resonance === "HIGH_FIDELITY_SUCCESS" ? GREEN :
+    hashResult?.resonance === "DRIFT_ALERT"            ? RED   : GOLD;
+
+  // ── Tab style helper ───────────────────────────────────────────────────────
+  function tabStyle(tab: Tab): React.CSSProperties {
+    const active = activeTab === tab;
+    return {
+      background:    active ? GOLD : "transparent",
+      border:        `1px solid ${active ? GOLD : GOLD_BORDER}`,
+      borderRadius:  "6px",
+      color:         active ? "#000" : GOLD_DIM,
+      cursor:        "pointer",
+      fontWeight:    active ? 700 : 400,
+      fontSize:      "0.88rem",
+      padding:       "0.45rem 1.25rem",
+      transition:    "all 0.2s",
+    };
+  }
+
+  return (
+    <main className="page" style={{ background: BG, minHeight: "100vh", color: "#fff" }}>
+      <AnchorBanner />
+
+      {/* ── Hero ── */}
+      <section style={{ textAlign: "center", padding: "3rem 1.5rem 2rem" }}>
+        <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", color: GOLD, marginBottom: "0.5rem" }}>
+          VaultChain™ Explorer
+        </h1>
+        <p style={{ color: GOLD_DIM, fontSize: "1.05rem", maxWidth: 640, margin: "0 auto 1.5rem" }}>
+          Verify alignment certificates and retrieve forensic evidence bundles from the
+          AveryOS™ Sovereign Ledger — anchored to the cf83e135… Kernel Root.
+        </p>
+
+        {/* ── Tabs ── */}
+        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <button style={tabStyle("hash")} onClick={() => setActiveTab("hash")}>
+            ⛓️ Hash Verify
+          </button>
+          <button style={tabStyle("rayid")} onClick={() => setActiveTab("rayid")}>
+            🔍 RayID Evidence
+          </button>
+          <button style={tabStyle("jwks")} onClick={() => { setActiveTab("jwks"); fetchJwks(); }}>
+            🔑 JWKS Live Sync
+          </button>
+          <button style={tabStyle("ledger")} onClick={() => { setActiveTab("ledger"); fetchLedger(); }}>
+            📖 Ledger
+          </button>
+        </div>
+      </section>
+
+      <section style={{ maxWidth: 720, margin: "0 auto", padding: "0 1.5rem 3rem" }}>
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB 1 — SHA-512 Hash Verification
+        ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "hash" && (
           <>
             <form onSubmit={handleVerify} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <label style={{ color: GOLD_DIM, fontSize: "0.85rem", letterSpacing: "0.08em" }}>
@@ -423,24 +504,24 @@ export default function VaultChainExplorerPage() {
               <div style={{ marginTop: "1.5rem", background: GOLD_GLOW,
                             border: `1px solid ${GOLD_BORDER}`, borderRadius: "10px",
                             padding: "1.5rem 1.75rem" }}>
-  const [ledgerData116,    setLedgerData116]    = useState<LedgerApiResponse | null>(null);
-  const [ledgerLoading116, setLedgerLoading116] = useState(false);
-  const [ledgerError116,   setLedgerError116]   = useState<string | null>(null);
-  const [ledgerLimit116,   setLedgerLimit116]   = useState(20);
+                <div style={badgeStyle(hashResonanceColor)}>{hashResult.resonance}</div>
+                {hashResult.resonance === "HIGH_FIDELITY_SUCCESS" && (
+                  <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr",
+                                gap: "0.5rem 1.5rem", margin: 0 }}>
                     {([
-  async function fetchLedger116(limit = ledgerLimit116) {
-    setLedgerLoading116(true);
-    setLedgerData116(null);
-    setLedgerError116(null);
+                      ["Partner ID",      hashResult.partner_id],
+                      ["Partner Name",    hashResult.partner_name ?? "—"],
+                      ["Email",           hashResult.email],
+                      ["Alignment Type",  hashResult.alignment_type],
                       ["Status",          hashResult.status],
                       ["Settlement ID",   hashResult.settlement_id ?? "—"],
                       ["TARI™ Reference", hashResult.tari_reference ?? "—"],
                       ["Valid Until",     hashResult.valid_until ?? "No expiry"],
-      setLedgerData116(data);
+                      ["Aligned At",      hashResult.aligned_at],
                       ["Verified At",     hashResult.verified_at],
-      setLedgerError116(e instanceof Error ? e.message : "Network error — unable to reach the VaultChain™ ledger.");
+                    ] as [string, string | undefined][]).map(([label, value]) => (
                       value !== undefined && (
-      setLedgerLoading116(false);
+                        <React.Fragment key={label}>
                           <dt style={{ color: GOLD_DIM, fontSize: "0.8rem",
                                                             whiteSpace: "nowrap" }}>
                             {label}
