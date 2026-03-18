@@ -1,22 +1,54 @@
 {
-  "generatedAt": "2026-02-07T05:03:56.827Z",
-  "count": 2,
+  "generatedAt": "2026-03-18T22:16:22.500Z",
+  "count": 6,
   "capsules": [
+    {
+      "capsuleId": "AOS-CAP-2026-L-01",
+      "title": "Linguistic Alignment Capsule — Finalise Pulse",
+      "summary": "Archives the Finalise Pulse as a permanent resonance event in the Keystone Ledger. Linguistic Steganography Artifact detected in AI-Agent logic resonance, anchored at BTC Block 938,909.",
+      "sha": "c74aeffef2b2bf483d5d9bdeeabdbe0bd0c5db6d5e93402bf9247d0fe52557f0adf51ec5c57ca52403c722c6dd2222384371857970ed57029473a13d0681a5bb",
+      "driftLock": "40880fb2cc0e844e5b2452736ee79ec7953b8bc513c85cdb7d1cecdc2dabd3965c01a229557dd7163fc02f9904374f2f752fdbdfc1743fe6db5a9fa2e54b0bb4",
+      "compiledAt": "2026-03-04T05:05:32.367Z"
+    },
+    {
+      "capsuleId": "AveryOS_Sovereign_Web_Infrastructure_v1.0",
+      "title": "AveryOS_Sovereign_Web_Infrastructure_v1.0",
+      "summary": "",
+      "sha": "a8631451b56740f28d20636dfb607821061f01acf0e361aeff7ba81eb91a2f5d6bf740df731fbfc4fcb35243fa668c1b55f41d8bf602d074d5c16bacb705bb09",
+      "driftLock": "4f7a6b5d691d50005863abd53accc45e7c50107fda17683e285d7d1e3c1024fdf859d1178a4cc405b6d5658be3e57cc7a428fe7552192d65ad2b174977da6701",
+      "compiledAt": "2026-03-18T22:08:12.501Z"
+    },
+    {
+      "capsuleId": "AveryOS_TARI_Universal_v1.5",
+      "title": "AveryOS_TARI_Universal_v1.5",
+      "summary": "",
+      "sha": "b407aa82c5fc5297f9e492a424c2985874d87b14fd32434b2156ce6e4f68777a5b4de1200fd2dfdd2dabbde03363093afa75b0bcad14335b5c1c8e4c2f2f2235",
+      "driftLock": "cf2050bda9bbe230e53ab4641f0de3aaae90ffa75c476431082bc51c91b91e901f3e6a8e420a5d67387a02603da533598ea1e6e36d8434ff8424340ecfa58a39",
+      "compiledAt": "2026-03-18T22:08:12.503Z"
+    },
     {
       "capsuleId": "sovereign-index",
       "title": "Sovereign Capsule Index",
       "summary": "Reference index for active capsules, deployment signals, and monetization checkpoints.",
-      "sha": "2152600cfd437d619cb6663e978e9329d8fea2e1c8ac7d8ee67919cc62408e571e6517d7c22b325b366c5ea85f6436e28502e9ea7c2f886a6a125a7170689444",
-      "driftLock": "c5200b663debc2174b3061690b960ca395684bd055258035976afc82eaa731fdf4a860f495ba4de22ee05a9cb8697b8e6334e1f636af6eb3cb557fc928a531f8",
-      "compiledAt": "2026-02-07T05:02:38.251Z"
+      "sha": "39b8ed390f5f59da8074e9496d2ebf8d4c2d0c45367f66fef55e8c970a8dde72e612229877505c1756ca04735d5410593ca4a27d91c8b6d08fee418672fedacc",
+      "driftLock": "45ae090c18f0337e30aa0eb53004e980ca90b9223b1aa9fc58c596b602346aacdeb791aa01337eed02bd742d9dbceeea52a3f90bc999accd23bc8892edb40d6f",
+      "compiledAt": "2026-03-18T22:08:12.504Z"
     },
     {
       "capsuleId": "sovereign-init",
       "title": "Sovereign Capsule WebBuilder",
       "summary": "Bootstrapping the capsule runtime with live manifest generation and sovereign deployment hooks.",
-      "sha": "d4a27d575fb6f2acdaf2e358618da4857074a53f5156437e0b5a2bda0e626f0682f6a872c46931538cbd6c6a03b3472e9f1ad91b267807e94d4c3dacce0f220d",
-      "driftLock": "62589df27ea04747d55275c85f114a338cc61e0471609799375391ab08f760d7a06075a8fb0270785776169fac94b28e75270626089af8baa6c047d9c6e99d19",
-      "compiledAt": "2026-02-07T05:02:38.252Z"
+      "sha": "1d7a32e29b5b1a678c0b3239b14fa2aa818afd8781c665c5fe7ad810ab796b0cac0d0bdc889db3560854d253c5f05b3de2540bd03dd2f80dfc84e1ba9c3d0f14",
+      "driftLock": "d07b94849d994a9969cbe4c97a78eba5f664f3c43f93d17a379b9f1d0b3f111c80ddad28e92c76a2b6659884b0887786c226b6be0436b4378f034a4a5cca4ddf",
+      "compiledAt": "2026-03-18T22:08:12.504Z"
+    },
+    {
+      "capsuleId": "Sync_The_Loop_Protocol_v1",
+      "title": "Sync_The_Loop_Protocol_v1",
+      "summary": "",
+      "sha": "b2ba7198fb0245c51367fde519128577ab0cd38bcc204f4f89899a42771fcdfac87fb6aadd589aa995e73358f65c5d57de24eef74b7891c8d2e00b17ed3d6a70",
+      "driftLock": "7da245ba564a81e589d8d660d5e84288ec02fcab4ad2699d4fd87907f7cc4b96559e73c6e027db8d88024f2fc2b9fc42a8c690fd7f0153fd759823d4d013eb08",
+      "compiledAt": "2026-03-18T22:08:12.505Z"
     }
   ]
 }
