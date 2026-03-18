@@ -134,6 +134,26 @@ jobs:
           if [ "$FAIL" -eq 1 ]; then exit 1; fi
           echo "✅ All AI policy files present"
 
+      # ── Constitution SHA-256 Integrity Gate (GATE 117.2.1) ───────────────
+      - name: "⚖️ Verify AveryOS Constitution SHA-256 integrity"
+        run: |
+          CONSTITUTION="AveryOS_CONSTITUTION_v1.17.md"
+          EXPECTED_SHA="100ea4e3d57c6c5f2762c72a182a05f4fa408b16acddb72e027490b90f37aa86"
+          if [ ! -f "${CONSTITUTION}" ]; then
+            echo "❌ FAIL: ${CONSTITUTION} is missing."
+            exit 1
+          fi
+          ACTUAL_SHA=$(sha256sum "${CONSTITUTION}" | awk '{print $1}')
+          if [ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]; then
+            echo "❌ CONSTITUTION INTEGRITY VIOLATION — SHA-256 mismatch."
+            echo "   Expected: ${EXPECTED_SHA}"
+            echo "   Actual:   ${ACTUAL_SHA}"
+            echo "   The Constitution is CreatorLocked (ROOT0 — Jason Lee Avery)."
+            echo "   Only Jason Lee Avery may amend the Constitution (Art. 20)."
+            exit 1
+          fi
+          echo "✅ Constitution SHA-256 verified: ${ACTUAL_SHA}"
+
       # ── 6. Submodule SSH gate check ───────────────────────────────────────
       - name: 🔒 Verify submodules use SSH (not public HTTPS)
         run: |

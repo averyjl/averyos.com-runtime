@@ -102,7 +102,7 @@ export const BROWSER_USER_AGENTS: readonly string[] = [
 // ── Abuse / Attack Headers ────────────────────────────────────────────────────
 
 /**
- * HTTP headers that simulate adversarial / abuse scenarios.
+ * HTTP headers that stub adversarial / abuse scenarios.
  *
  * Used to verify that:
  *   1. The DriftShield rejects requests with `x-averyos-jitter: 1`.

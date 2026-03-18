@@ -1103,7 +1103,7 @@ async function main() {
 
   if (!STRIPE_SECRET_KEY) {
     if (DRY_RUN) {
-      console.warn('⚠️  [DRY RUN] STRIPE_SECRET_KEY is not set — continuing in simulation mode.');
+      console.warn('⚠️  [DRY RUN] STRIPE_SECRET_KEY is not set — continuing in dry-run mode.');
     } else {
       logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY environment variable is not set.');
       process.exit(1);
@@ -1129,6 +1129,7 @@ async function main() {
       console.log("    metadata.settlement_status: 'Settlement Requested'");
       console.log("    metadata.capsule_id: 'AveryOS_TARI_VerifyDollar_v1'");
       console.log("    metadata.kernel_version: v3.6.2");
+      console.log(`    metadata.live_truth_handshake: 'AveryOS Live Truth Handshake: ${new Date().toISOString()}'`);
       return;
     }
 
@@ -1157,6 +1158,7 @@ async function main() {
           kernel_version:    'v3.6.2',
           test_mode:         isTestKey ? '1' : '0',
           rail_verification: '1',
+          live_truth_handshake: `AveryOS Live Truth Handshake: ${new Date().toISOString()}`,
         },
       });
 

@@ -61,7 +61,7 @@ export interface RouterResult {
 
 // ── Local stub ────────────────────────────────────────────────────────────────
 /**
- * stubLocalResponse — simulates a LOCAL_OLLAMA response when the local node
+ * stubLocalResponse — stubs a LOCAL_OLLAMA response when the local node
  * is not reachable from the Worker runtime (edge Workers can't reach LAN).
  * In production this path is used for Tier 1–7; the real Ollama endpoint
  * is called from sovereign scripts running on NODE_02.

@@ -1,19 +1,75 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6
+# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6 / GATE 117.2.1
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
 # Permanent upgrade: catches the same classes of errors as CI (ESLint, TypeScript,
 # linguistic drift, npm audit) at COMMIT TIME — before the code reaches PR stage.
 #
 # Gate sequence:
+#   0. Constitution hardlock — block staged changes to AveryOS_CONSTITUTION_v1.17.md;
+#      capture diff to VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md for manual review
 #   1. lint-staged — ESLint on staged .ts/.tsx/.js/.cjs/.mjs files (fast, scoped)
 #   2. tsc --noEmit — full TypeScript type-check (catches type errors)
 #   3. Sovereign Linguistic Drift Scan — HIGH-severity brand drift in source files
 #   4. npm audit --audit-level=high — supply-chain vulnerability gate
 #
-# Bypass: git commit --no-verify (sovereign emergency only — Constitution Art. 2)
+# DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
+#   There is NO bypass for this gate. If npm audit fails, the vulnerability
+#   MUST be resolved at commit time via an npm overrides entry in package.json.
+#   Using --no-verify or any other bypass is a Constitution violation and
+#   constitutes a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
+
+# 0. Constitution Hardlock — Jason Lee Avery is the sole holder of the Hammer and Chisel.
+#    TAI suggestions must be routed to docs/constitution-proposals.aosvault for manual review.
+CONSTITUTION_FILE="AveryOS_CONSTITUTION_v1.17.md"
+EXPECTED_SHA="100ea4e3d57c6c5f2762c72a182a05f4fa408b16acddb72e027490b90f37aa86"
+PROPOSALS_FILE="docs/constitution-proposals.aosvault"
+
+if git diff --cached --name-only | grep -q "^${CONSTITUTION_FILE}$"; then
+  echo "🚫 HALT_BOOT: Staged changes to ${CONSTITUTION_FILE} detected."
+  echo "   The AveryOS™ Constitution is CreatorLocked (ROOT0 — Jason Lee Avery)."
+  echo "   All TAI-suggested improvements must be routed to: ${PROPOSALS_FILE}"
+  echo ""
+  echo "⛓️ Capturing diff to ${PROPOSALS_FILE} for manual review…"
+  mkdir -p "$(dirname "${PROPOSALS_FILE}")"
+  {
+    echo ""
+    echo "---"
+    echo "timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "source: pre-commit gate (Constitution hardlock)"
+    echo "status: PENDING_CREATOR_REVIEW"
+    echo ""
+    git diff --cached -- "${CONSTITUTION_FILE}"
+    echo ""
+  } >> "${PROPOSALS_FILE}"
+  echo "✅ Diff appended to ${PROPOSALS_FILE} — awaiting Creator review and Chisel."
+  git restore --staged "${CONSTITUTION_FILE}"
+  echo "✅ ${CONSTITUTION_FILE} unstaged — commit will proceed without Constitution changes."
+fi
+
+# Verify Constitution integrity (SHA-256 parity check)
+if [ ! -f "${CONSTITUTION_FILE}" ]; then
+  echo "🚨 CONSTITUTION FILE MISSING: ${CONSTITUTION_FILE} not found."
+  echo "   The Constitution is CreatorLocked — it must always be present."
+  echo "   This is a HALT_BOOT event — restore the Constitution before committing."
+  exit 1
+fi
+ACTUAL_SHA=$(sha256sum "${CONSTITUTION_FILE}" 2>/dev/null | awk '{print $1}')
+if [ -z "${ACTUAL_SHA}" ]; then
+  echo "🚨 SHA-256 computation failed for ${CONSTITUTION_FILE}."
+  echo "   Ensure sha256sum is available in PATH before committing."
+  exit 1
+fi
+if [ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]; then
+  echo "🚨 CONSTITUTION INTEGRITY VIOLATION: SHA-256 mismatch detected."
+  echo "   Expected: ${EXPECTED_SHA}"
+  echo "   Actual:   ${ACTUAL_SHA}"
+  echo "   The Constitution must only be modified by Jason Lee Avery (ROOT0)."
+  echo "   This is a HALT_BOOT event — resolve via the CreatorLock channel."
+  exit 1
+fi
 
 # 1. ESLint on staged files (fast — only touches changed files)
 npx lint-staged
