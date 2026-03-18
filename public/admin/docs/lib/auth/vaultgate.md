@@ -16,6 +16,10 @@
 
 ### `deleteCredential` *(function)*
 
+### `vaultGateSha512Payload` *(function)*
+
+### `verifySha512Payload` *(function)*
+
 ### `VaultGateCredential` *(interface)*
 
 ### `VaultGateAnchor` *(interface)*

@@ -8,7 +8,15 @@
 
 ### `loadDriftShieldConfig` *(function)*
 
+### `enforceEconomicThrottle` *(function)*
+
 ### `enforceDriftShield` *(function)*
+
+### `UNAUTH_RPS` *(constant)*
+
+### `AUTH_RPS` *(constant)*
+
+### `EconomicThrottleConfig` *(interface)*
 
 ### `DriftShieldConfig` *(interface)*
 
