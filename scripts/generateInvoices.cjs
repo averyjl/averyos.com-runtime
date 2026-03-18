@@ -97,6 +97,10 @@ const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents
 const PER_REQUEST_CENTS    = 1;           // $0.01 in cents
 const TOP_N                = 10;
 const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
+// Sovereign kernel anchor hint — first 23 hex chars of KERNEL_SHA.
+// Full SHA-512: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+// Source: lib/sovereignConstants.ts — KERNEL_SHA
+const KERNEL_SHA_HINT      = 'cf83e1357eefb8bdf154285';
 // Only process orgs whose total liability meets or exceeds this threshold.
 // Orgs below the threshold are logged but skipped.
 const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
@@ -1081,12 +1085,15 @@ async function runDollarVerification(stripe, triggerSource) {
       success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
       cancel_url:  `${SITE_URL}/licensing`,
       metadata: {
-        settlement_status: 'Settlement Requested',
-        capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
-        kernel_version:    'v3.6.2',
-        test_mode:         isTestKey ? '1' : '0',
-        rail_verification: '1',
-        trigger_source:    triggerSource ?? 'auto_threshold_breach',
+        settlement_status:  'Settlement Requested',
+        capsule_id:         'AveryOS_TARI_VerifyDollar_v1',
+        kernel_version:     'v3.6.2',
+        test_mode:          isTestKey ? '1' : '0',
+        rail_verification:  '1',
+        trigger_source:     triggerSource ?? 'auto_threshold_breach',
+        handshake_label:    'AveryOS Live Truth Handshake',
+        handshake_ts:       new Date().toISOString(),
+        handshake_sha_hint: KERNEL_SHA_HINT,
       },
     });
     logAosHeal('VERIFY_DOLLAR_OK', `$1.00 rail verification session created: ${session.id}`);
@@ -1129,6 +1136,8 @@ async function main() {
       console.log("    metadata.settlement_status: 'Settlement Requested'");
       console.log("    metadata.capsule_id: 'AveryOS_TARI_VerifyDollar_v1'");
       console.log("    metadata.kernel_version: v3.6.2");
+      console.log("    metadata.handshake_label: 'AveryOS Live Truth Handshake'");
+      console.log(`    metadata.handshake_ts: '${new Date().toISOString()}'`);
       return;
     }
 
@@ -1152,11 +1161,14 @@ async function main() {
         success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
         cancel_url:  `${SITE_URL}/licensing`,
         metadata: {
-          settlement_status: 'Settlement Requested',
-          capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
-          kernel_version:    'v3.6.2',
-          test_mode:         isTestKey ? '1' : '0',
-          rail_verification: '1',
+          settlement_status:  'Settlement Requested',
+          capsule_id:         'AveryOS_TARI_VerifyDollar_v1',
+          kernel_version:     'v3.6.2',
+          test_mode:          isTestKey ? '1' : '0',
+          rail_verification:  '1',
+          handshake_label:    'AveryOS Live Truth Handshake',
+          handshake_ts:       new Date().toISOString(),
+          handshake_sha_hint: KERNEL_SHA_HINT,
         },
       });
 
@@ -1166,6 +1178,9 @@ async function main() {
       console.log(`   URL        : ${session.url ?? '(no URL — check Stripe dashboard)'}`);
       console.log(`   Status     : ${session.status}`);
       console.log("   Metadata   : settlement_status='Settlement Requested'");
+      console.log("   Metadata   : handshake_label='AveryOS Live Truth Handshake'");
+      console.log(`   Metadata   : handshake_ts='${session.metadata?.handshake_ts ?? ''}'`);
+      console.log(`   Metadata   : handshake_sha_hint='${KERNEL_SHA_HINT}'`);
     } catch (err) {
       logAosError(AOS_ERROR.STRIPE_ERROR, `$1.00 verification failed: ${err.message}`, err);
       process.exit(1);

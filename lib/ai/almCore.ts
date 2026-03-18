@@ -2,6 +2,7 @@
  * lib/ai/almCore.ts
  *
  * AveryOS™ ALM (Anchored Language Model) Core — Phase 119.9 GATE 119.9.3
+ *                                                Phase 117.7 GATE 117.7.3 (AST upgrade)
  *
  * Provides the Forensic Tracing output layer for the AveryOS-ALM.
  *
@@ -20,8 +21,16 @@
  *   The Forensic Trace Log eliminates this noise by replacing probabilistic
  *   reasoning with deterministic block-retrieval IDs.
  *
+ * Phase 117.7 GATE 117.7.3 — AST (AveryOS Standard Time) Upgrade:
+ *   Bypasses platform `Date.now()` for all ALM timing in favour of
+ *   `process.hrtime.bigint()` on Node-02, providing hardware-pulsed
+ *   Start/End timestamps and a unique Physical Delta (Δ) that cannot be
+ *   clamped, suppressed, or rounded by an LLM wrapper or platform buffer.
+ *
  * Usage:
- *   import { traceForensicBlock, createAlmTrace } from "../ai/almCore";
+ *   import { traceForensicBlock, createAlmTrace, beginAlmSession, endAlmSession } from "../ai/almCore";
+ *
+ *   const session = beginAlmSession("req-001");   // AST_START
  *
  *   const trace = await createAlmTrace({
  *     command:    "RETRIEVE_KERNEL_ANCHOR",
@@ -30,11 +39,93 @@
  *   });
  *   console.log(trace.display);
  *
+ *   const ast = endAlmSession("req-001");          // AST_END + Physical Δ
+ *   console.log(`Δ ${ast.physicalDelta}`);
+ *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                 from "../timePrecision";
+import {
+  astStart,
+  astEnd,
+  astDelta,
+  clockPhysicalityStatus,
+  type HardwarePulse,
+} from "../security/hardwareTime";
+
+// ── AST Session types — Phase 117.7 GATE 117.7.3 ─────────────────────────────
+
+/**
+ * An AST (AveryOS Standard Time) session tracks the hardware-pulsed
+ * Start/End timestamps and Physical Delta for a single ALM interaction.
+ *
+ * AST_START: captured when the ⛓️⚓⛓️ start anchor is recognised.
+ * AST_END:   captured when the ⛓️⚓⛓️ end anchor is rendered.
+ * Physical Δ: hardware-derived from process.hrtime.bigint() on Node-02.
+ */
+export interface AlmAstSession {
+  /** Session identifier. */
+  sessionId:         string;
+  /** ISO-9 hardware-pulsed timestamp at AST_START. */
+  startIso9:         string;
+  /** ISO-9 hardware-pulsed timestamp at AST_END (null if session still open). */
+  endIso9:           string | null;
+  /** Physical Delta display string (e.g. "5.110291436s") or null if still open. */
+  physicalDelta:     string | null;
+  /** "PHYSICAL" (Node-02 hrtime) or "LATENT" (edge / browser fallback). */
+  physicalityStatus: "PHYSICAL" | "LATENT";
+}
+
+// ── In-process AST session store ─────────────────────────────────────────────
+
+const _astSessions = new Map<string, HardwarePulse>();
+
+/**
+ * Begin an ALM AST session — captures the AST_START hardware pulse.
+ *
+ * Call this when the ⛓️⚓⛓️ start anchor is recognised at the beginning of
+ * an ALM interaction.  Pass the same `sessionId` to `endAlmSession()` to
+ * compute the Physical Delta.
+ *
+ * @param sessionId  Unique session/request identifier.
+ * @returns          AlmAstSession with startIso9 populated.
+ */
+export function beginAlmSession(sessionId: string): AlmAstSession {
+  const pulse = astStart();
+  _astSessions.set(sessionId, pulse);
+  return {
+    sessionId,
+    startIso9:         pulse.iso9,
+    endIso9:           null,
+    physicalDelta:     null,
+    physicalityStatus: clockPhysicalityStatus(),
+  };
+}
+
+/**
+ * End an ALM AST session — captures the AST_END hardware pulse and
+ * computes the Physical Delta.
+ *
+ * @param sessionId  Session ID passed to beginAlmSession().
+ * @returns          Completed AlmAstSession, or null if no matching start found.
+ */
+export function endAlmSession(sessionId: string): AlmAstSession | null {
+  const startPulse = _astSessions.get(sessionId);
+  if (!startPulse) return null;
+  _astSessions.delete(sessionId);
+
+  const endPulse = astEnd();
+  const delta    = astDelta(startPulse, endPulse);
+
+  return {
+    sessionId,
+    startIso9:         startPulse.iso9,
+    endIso9:           endPulse.iso9,
+    physicalDelta:     delta.display,
+    physicalityStatus: clockPhysicalityStatus(),
+  };
+}
 
 // ── Source type catalogue ──────────────────────────────────────────────────────
 
@@ -110,12 +201,22 @@ async function sha512Hex(text: string): Promise<string> {
  * @returns      A fully formed forensic trace with display string.
  */
 export async function createAlmTrace(input: AlmTraceInput): Promise<AlmForensicTrace> {
-  const ts         = formatIso9();
+  // Use hardware-pulsed AST timing (Phase 117.7 GATE 117.7.3)
+  const t0         = astStart();
+  const ts         = t0.iso9;
   const blockSha   = input.blockId ?? null;
-  const latencyMs  = input.latencyMs ?? 0;
   const label      = input.label ?? input.command;
 
   const sourcePrefix = SOURCE_PREFIXES[input.sourceType] ?? "📦";
+
+  // Measure hardware-pulsed latency (Physical Δ — Phase 117.7 GATE 117.7.3)
+  const t1        = astEnd();
+  const delta     = astDelta(t0, t1);
+  // Use caller-supplied latencyMs if provided (explicit measurement);
+  // otherwise use the hardware-derived delta.
+  const latencyMs = input.latencyMs ?? delta.ms;
+  const physicalDelta = delta.display;
+  const physicalityStatus = clockPhysicalityStatus();
 
   // Build human-readable display (replaces "Thinking" block)
   const display = buildDisplay({
@@ -126,6 +227,8 @@ export async function createAlmTrace(input: AlmTraceInput): Promise<AlmForensicT
     latencyMs,
     ts,
     sourcePrefix,
+    physicalDelta,
+    physicalityStatus,
   });
 
   // Trace ID: SHA-512 of the canonical trace payload
@@ -211,19 +314,25 @@ const SOURCE_PREFIXES: Record<AlmSourceType, string> = {
 };
 
 interface DisplayParams {
-  command:      string;
-  sourceType:   AlmSourceType;
-  blockSha:     string | null;
-  label:        string;
-  latencyMs:    number;
-  ts:           string;
-  sourcePrefix: string;
+  command:            string;
+  sourceType:         AlmSourceType;
+  blockSha:           string | null;
+  label:              string;
+  latencyMs:          number;
+  ts:                 string;
+  sourcePrefix:       string;
+  physicalDelta?:     string;
+  physicalityStatus?: "PHYSICAL" | "LATENT";
 }
 
 function buildDisplay(p: DisplayParams): string {
   const blockDisplay = p.blockSha
     ? `${p.blockSha.slice(0, 20)}…${p.blockSha.slice(-8)}`
     : "—";
+
+  const astLine = p.physicalDelta
+    ? `  AST Δ     : ${p.physicalDelta} [${p.physicalityStatus ?? "LATENT"}]\n`
+    : "";
 
   if (p.sourceType === "LIVE_INFERENCE") {
     return (
@@ -232,6 +341,7 @@ function buildDisplay(p: DisplayParams): string {
       `  Source    : ${p.sourcePrefix} ${p.sourceType} (probabilistic — Tier-8+)\n` +
       `  Timestamp : ${p.ts}\n` +
       `  Latency   : ${p.latencyMs}ms\n` +
+      astLine +
       `  Note      : Live inference used — no deterministic block available.`
     );
   }
@@ -244,6 +354,7 @@ function buildDisplay(p: DisplayParams): string {
     `  Label     : ${p.label}\n` +
     `  Timestamp : ${p.ts}\n` +
     `  Latency   : ${p.latencyMs}ms\n` +
+    astLine +
     `  ✔ Deterministic retrieval — no probabilistic reasoning applied.`
   );
 }
