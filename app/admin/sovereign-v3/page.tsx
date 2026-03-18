@@ -83,7 +83,7 @@ function statusColor(s: SystemStatus): string {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function SovereignAdminV3() {
-  const { authed, loading: authLoading, error: authError } = useVaultAuth();
+  const { authed, checking: authLoading, authError: authErrorMsg } = useVaultAuth();
 
   // Watchdog panel
   const [watchdog,        setWatchdog]        = useState<WatchdogData | null>(null);
@@ -127,7 +127,7 @@ export default function SovereignAdminV3() {
       const data = await res.json() as WatchdogData;
       setWatchdog(data);
     } catch (err) {
-      setWatchdogError(buildAosUiError(AOS_ERROR.FETCH_FAILED, String(err)));
+      setWatchdogError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
     } finally {
       setWatchdogLoading(false);
     }
@@ -146,7 +146,7 @@ export default function SovereignAdminV3() {
         latest_at:   data.records?.[0]?.created_at   ?? null,
       });
     } catch (err) {
-      setVaultError(buildAosUiError(AOS_ERROR.FETCH_FAILED, String(err)));
+      setVaultError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
     } finally {
       setVaultLoading(false);
     }
@@ -161,7 +161,7 @@ export default function SovereignAdminV3() {
       const data = await res.json() as TariSummary;
       setTari(data);
     } catch (err) {
-      setTariError(buildAosUiError(AOS_ERROR.FETCH_FAILED, String(err)));
+      setTariError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
     } finally {
       setTariLoading(false);
     }
@@ -185,11 +185,11 @@ export default function SovereignAdminV3() {
     );
   }
 
-  if (authError || !authed) {
+  if (authErrorMsg || !authed) {
     return (
       <main style={{ background: BG, minHeight: "100vh", color: WHITE, padding: "2rem" }}>
         <AnchorBanner />
-        <SovereignErrorBanner error={authError ?? buildAosUiError(AOS_ERROR.UNAUTHORIZED, "Not authed")} />
+        <SovereignErrorBanner error={authErrorMsg ? buildAosUiError(AOS_ERROR.INVALID_AUTH, authErrorMsg) : buildAosUiError(AOS_ERROR.UNAUTHORIZED, "Not authed")} />
         <p style={{ marginTop: "1rem" }}>
           <Link href="/admin" style={{ color: GOLD }}>← Admin Home</Link>
         </p>
