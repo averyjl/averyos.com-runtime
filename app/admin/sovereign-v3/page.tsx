@@ -205,10 +205,9 @@ export default function SovereignAdminDashboardV3() {
     try {
       // 1. Health API
       const healthRes = await fetch("/api/v1/health", { credentials: "same-origin" });
-      let health: Record<string, unknown> = {};
-      if (healthRes.ok) {
-        health = (await healthRes.json()) as Record<string, unknown>;
-      }
+      const health: Record<string, unknown> = healthRes.ok
+        ? (await healthRes.json()) as Record<string, unknown>
+        : {};
 
       // 2. Heartbeat probes
       const heartbeat = await Promise.all([
