@@ -1,267 +1,233 @@
 /**
+ * app/api/v1/ledger/bitcoin/route.ts
+ *
  * POST /api/v1/ledger/bitcoin
  *
- * AveryOS™ BTC OP_RETURN Anchor — Phase 117.4 GATE 117.4.4
+ * AveryOS™ BTC OP_RETURN Anchoring API — GATE 116.8.1
  *
- * Pushes the Universal Handshake SHA-512 to the Bitcoin blockchain via
- * OP_RETURN, establishing the "Forever Node" anchor for v3.0 logic.
+ * Anchors a SHA-512 hash to the Bitcoin blockchain via an OP_RETURN
+ * transaction, establishing a "Forever Node" for the most critical
+ * AveryOS™ kernel inventions.
  *
- * The OP_RETURN is constructed as:
- *   OP_RETURN <AveryOS_AOS_v3:cf83e1357…(first 40 hex chars of handshake SHA-512)>
+ * Flow:
+ *   1. Validate request auth (Bearer / VAULT_PASSPHRASE).
+ *   2. Accept `hash` (SHA-512 hex) + optional `label` from request body.
+ *   3. Prefix with "AVERYOS:" and trim to 80 bytes (OP_RETURN limit).
+ *   4. Broadcast via a configured Bitcoin API provider (Blockstream /
+ *      mempool.space or the BITCOIN_API_URL env variable).
+ *   5. Record the TXID + anchor hash in D1 `bitcoin_anchors` table.
+ *   6. Write a ANCHOR block to VaultChain™ ledger.
+ *   7. Return the TXID + VaultChain block height.
  *
- * This permanently anchors the handshake in an immutable, globally
- * verifiable Bitcoin transaction — providing irrefutable proof of
- * In Real Life (IRL) execution at a specific block height.
+ * Environment variables:
+ *   BITCOIN_API_URL     — Custom Bitcoin API base URL (optional).
+ *   BITCOIN_API_KEY     — API key for broadcast endpoint (optional).
+ *   VAULT_PASSPHRASE    — Auth token for this endpoint.
  *
- * Auth: Bearer token matching VAULT_PASSPHRASE.
- *
- * Request body:
- *   {
- *     "handshake_sha512": string   — SHA-512 of the Universal Handshake payload
- *     "phase":            string?  — Phase tag (e.g. "117.4")
- *     "label":            string?  — Human-readable label for the anchor
- *   }
- *
- * Response:
- *   {
- *     "ok":               true,
- *     "op_return_data":   string,    — the raw OP_RETURN hex string
- *     "txid":             string,    — BTC transaction ID (if broadcast)
- *     "block_height":     number,    — current BTC block height at time of anchor
- *     "anchor_sha512":    string,    — SHA-512 of the full anchor payload
- *     "simulated":        boolean,   — true when BITCOIN_API_KEY is not configured
- *     "ts":               string,
- *     "kernel_sha":       string,
- *   }
- *
- * Note on `simulated` field:
- *   This is an API contract field indicating whether the Bitcoin broadcast
- *   was a live transaction (false) or a dry-run stub (true, when
- *   BITCOIN_API_KEY is not configured).  This field name MUST NOT be
- *   renamed — it is part of the stable API contract.
+ * Security: CreatorOnly — only accepts requests with valid VAULT_PASSPHRASE.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 import { formatIso9 } from "../../../../../lib/timePrecision";
-import { safeEqual } from "../../../../../lib/taiLicenseGate";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import { autoTrackAccomplishment } from "../../../../../lib/taiAutoTracker";
 
-// ── Cloudflare env ────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface CloudflareEnv {
+  DB:                  D1Database;
+  VAULT_PASSPHRASE?:   string;
+  BITCOIN_API_URL?:    string;
+  BITCOIN_API_KEY?:    string;
+}
 
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
-  run(): Promise<{ success: boolean }>;
+  run():   Promise<{ success: boolean }>;
+  first(): Promise<unknown>;
 }
 
 interface D1Database {
   prepare(sql: string): D1PreparedStatement;
 }
 
-interface CloudflareEnv {
-  DB?:               D1Database;
-  VAULT_PASSPHRASE?: string;
-  BITCOIN_API_KEY?:  string;
-  SITE_URL?:         string;
-}
+// ── BTC OP_RETURN prefix ──────────────────────────────────────────────────────
 
-// ── BTC block height helper ───────────────────────────────────────────────────
+/** Maximum OP_RETURN data length in bytes (Bitcoin standard). */
+const OP_RETURN_MAX_BYTES = 80;
+
+/** Canonical prefix for all AveryOS™ OP_RETURN anchors. */
+const AOS_PREFIX = "AVERYOS:";
 
 /**
- * Fetch the current BTC block height from the Blockstream REST API.
- * Falls back to -1 on error.
+ * Build the OP_RETURN payload.
+ * Format: `AVERYOS:<first N bytes of hash>`
+ * Total length capped at OP_RETURN_MAX_BYTES bytes.
  */
-async function fetchBtcBlockHeight(): Promise<number> {
-  try {
-    const res = await fetch("https://blockstream.info/api/blocks/tip/height", {
-      headers: { "Accept": "text/plain" },
-    });
-    if (!res.ok) return -1;
-    const text = await res.text();
-    const h    = parseInt(text.trim(), 10);
-    return isNaN(h) ? -1 : h;
-  } catch {
-    return -1;
-  }
+function buildOpReturnPayload(hash: string): string {
+  const maxHash = OP_RETURN_MAX_BYTES - AOS_PREFIX.length;
+  return `${AOS_PREFIX}${hash.slice(0, maxHash)}`;
 }
 
-// ── OP_RETURN data builder ────────────────────────────────────────────────────
+// ── Bitcoin broadcast ──────────────────────────────────────────────────────────
 
 /**
- * Build the OP_RETURN payload string.
+ * Broadcast a raw OP_RETURN transaction via the configured Bitcoin API.
  *
- * Format: AOS_v3:<first-40-chars-of-handshake-sha512>
- * Max size: 80 bytes (Bitcoin OP_RETURN limit).
- * Encoded as hex for broadcast.
+ * In production this calls a provider like Blockstream or mempool.space.
+ * In mock mode (no BITCOIN_API_URL set) it returns a deterministic
+ * SHA-256 of the payload as a mock TXID — clearly labelled as a mock entry.
  */
-function buildOpReturnData(handshakeSha512: string): { hex: string; ascii: string } {
-  const prefix  = "AOS_v3:";
-  const payload = `${prefix}${handshakeSha512.slice(0, 40)}`;
-  // Hex-encode for Bitcoin OP_RETURN
-  const hex     = Array.from(new TextEncoder().encode(payload))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return { hex, ascii: payload };
+async function broadcastOpReturn(
+  opReturnData: string,
+  apiUrl:       string | null,
+  apiKey:       string | null,
+): Promise<{
+  txid:      string;
+  simulated: boolean;
+  rawPayload: string;
+}> {
+  const rawPayload = opReturnData;
+
+  if (!apiUrl) {
+    // Mock mode — compute deterministic mock TXID from payload hash
+    const buf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(`SIMULATED:${rawPayload}:${KERNEL_SHA}`),
+    );
+    const mockTxid = Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    return { txid: mockTxid, simulated: true, rawPayload };
+  }
+
+  // Live broadcast — POST to configured Bitcoin API
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-averyos-kernel": KERNEL_SHA.slice(0, 16),
+  };
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+  const res = await fetch(`${apiUrl}/broadcast`, {
+    method:  "POST",
+    headers,
+    body:    JSON.stringify({ op_return: rawPayload }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Bitcoin API broadcast failed: HTTP ${res.status} — ${body.slice(0, 256)}`,
+    );
+  }
+
+  const json = (await res.json()) as Record<string, unknown>;
+  const txid  = String(json.txid ?? json.tx_hash ?? json.result ?? "");
+  if (!txid) throw new Error("Bitcoin API did not return a TXID");
+
+  return { txid, simulated: false, rawPayload };
 }
 
-// ── SHA-512 helper ────────────────────────────────────────────────────────────
-
-async function sha512hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-// ── Request type ──────────────────────────────────────────────────────────────
-
-interface BtcAnchorRequest {
-  handshake_sha512: string;
-  phase?:           string;
-  label?:           string;
-}
-
-// ── Handler ───────────────────────────────────────────────────────────────────
+// ── POST handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: Request): Promise<Response> {
-  const { env } = getCloudflareContext() as { env: CloudflareEnv };
+  const { env } = await getCloudflareContext({ async: true });
+  const cfEnv = env as unknown as CloudflareEnv;
+  const db  = cfEnv.DB;
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization") ?? "";
-  const token      = authHeader.replace(/^Bearer\s+/i, "").trim();
-  const passphrase = env.VAULT_PASSPHRASE ?? "";
+  const token      = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  const vaultPassphrase = cfEnv.VAULT_PASSPHRASE ?? "";
 
-  if (!passphrase || !safeEqual(token, passphrase)) {
-    return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Vault authentication required.", 401);
+  if (!token || !vaultPassphrase || token !== vaultPassphrase) {
+    return aosErrorResponse(AOS_ERROR.UNAUTHORIZED, "Invalid credentials — CreatorOnly endpoint", 401);
   }
 
-  // ── Parse body ──────────────────────────────────────────────────────────────
-  let body: BtcAnchorRequest;
+  // ── Body ──────────────────────────────────────────────────────────────────
+  let body: Record<string, unknown>;
   try {
-    body = await req.json() as BtcAnchorRequest;
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Invalid JSON body.", 400);
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Invalid JSON body", 400);
   }
 
-  const { handshake_sha512, phase = "117.4", label = "Universal Handshake v3.0" } = body;
+  const hash  = typeof body.hash  === "string" ? body.hash.trim()  : "";
+  const label = typeof body.label === "string" ? body.label.trim() : "KERNEL_ANCHOR";
 
-  if (!handshake_sha512 || typeof handshake_sha512 !== "string" || handshake_sha512.length < 64) {
+  if (!hash || !/^[0-9a-f]{64,128}$/i.test(hash)) {
     return aosErrorResponse(
-      AOS_ERROR.MISSING_FIELD,
-      "handshake_sha512 is required (must be a hex SHA-512 string of at least 64 chars).",
+      AOS_ERROR.INVALID_FIELD,
+      "hash must be a 64–128 character hex string (SHA-256 or SHA-512)",
       400,
     );
   }
 
-  const ts = formatIso9();
+  // ── Build + broadcast ─────────────────────────────────────────────────────
+  const opReturn = buildOpReturnPayload(hash);
+  let txid:      string;
+  let simulated: boolean;
 
-  // ── Build OP_RETURN data ───────────────────────────────────────────────────
-  const { hex: opReturnHex, ascii: opReturnAscii } = buildOpReturnData(handshake_sha512);
-
-  // ── Fetch current BTC block height ────────────────────────────────────────
-  const blockHeight = await fetchBtcBlockHeight();
-
-  // ── Build full anchor payload for SHA-512 ─────────────────────────────────
-  const anchorPayload = JSON.stringify({
-    op_return:     opReturnAscii,
-    handshake_sha: handshake_sha512,
-    block_height:  blockHeight,
-    kernel_sha:    KERNEL_SHA,
-    phase,
-    label,
-    ts,
-  });
-  const anchorSha512 = await sha512hex(anchorPayload);
-
-  // ── Determine if we have a live Bitcoin API key ───────────────────────────
-  const btcApiKey = env.BITCOIN_API_KEY ?? "";
-  const hasBtcKey = btcApiKey.length > 10;
-
-  let txid:      string | null = null;
-  // `simulated` is an API contract field — do NOT rename
-  let simulated  = !hasBtcKey;
-
-  // ── Attempt live broadcast (if API key is configured) ─────────────────────
-  if (hasBtcKey) {
-    try {
-      // Blockstream API broadcast endpoint
-      const broadcastRes = await fetch("https://blockstream.info/api/tx", {
-        method:  "POST",
-        headers: {
-          "Content-Type":  "application/octet-stream",
-          "Authorization": `Bearer ${btcApiKey}`,
-        },
-        // NOTE: A production implementation would construct a signed raw transaction
-        // with OP_RETURN output.  Here we submit the OP_RETURN data string directly
-        // for the Blockstream indexer to anchor — the actual signing would be done
-        // by the Node-02 resident process with the creator's Bitcoin private key.
-        body: opReturnHex,
-      });
-
-      if (broadcastRes.ok) {
-        txid      = (await broadcastRes.text()).trim();
-        simulated = false;
-      } else {
-        console.warn(`[BTC-OP_RETURN] Broadcast returned HTTP ${broadcastRes.status} — falling back to stub mode.`);
-        simulated = true;
-      }
-    } catch (err) {
-      console.warn(
-        "[BTC-OP_RETURN] Broadcast failed:",
-        err instanceof Error ? err.message : String(err),
-        "— falling back to stub mode.",
-      );
-      simulated = true;
-    }
+  try {
+    const result = await broadcastOpReturn(
+      opReturn,
+      cfEnv.BITCOIN_API_URL ?? null,
+      cfEnv.BITCOIN_API_KEY ?? null,
+    );
+    txid      = result.txid;
+    simulated = result.simulated;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return aosErrorResponse(AOS_ERROR.BTC_ANCHOR_FAILED, `BTC broadcast failed: ${msg}`, 502);
   }
 
-  // ── Stub TXID for dry-run mode ─────────────────────────────────────────────
-  if (simulated) {
-    // Deterministic stub TXID derived from the anchor SHA for traceability
-    txid = `stub-${anchorSha512.slice(0, 32)}`;
-  }
+  const anchoredAt = formatIso9();
 
-  // ── Persist to D1 (non-blocking) ──────────────────────────────────────────
-  if (env.DB) {
-    env.DB.prepare(
-      `INSERT INTO btc_op_return_log
-         (op_return_ascii, op_return_hex, txid, block_height,
-          handshake_sha512, anchor_sha512, phase, label,
-          simulated, kernel_sha, kernel_version, anchored_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  // ── Persist to D1 ────────────────────────────────────────────────────────
+  try {
+    await db.prepare(
+      `INSERT OR IGNORE INTO bitcoin_anchors
+         (txid, hash, label, op_return_payload, simulated, anchored_at,
+          kernel_sha, kernel_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      opReturnAscii,
-      opReturnHex,
       txid,
-      blockHeight,
-      handshake_sha512,
-      anchorSha512,
-      phase,
-      label,
+      hash.slice(0, 128),
+      label.slice(0, 128),
+      opReturn,
       simulated ? 1 : 0,
+      anchoredAt,
       KERNEL_SHA,
       KERNEL_VERSION,
-      ts,
-    ).run().catch((err: unknown) => {
-      console.error(
-        "[BTC-OP_RETURN] D1 log write failed:",
-        err instanceof Error ? err.message : String(err),
-      );
-    });
+    ).run();
+  } catch (dbErr) {
+    console.warn("[BTC] D1 log failed:", dbErr instanceof Error ? dbErr.message : String(dbErr));
   }
 
+  // ── TAI accomplishment ────────────────────────────────────────────────────
+  autoTrackAccomplishment(db, {
+    title:       "BTC OP_RETURN Anchor Broadcast",
+    description: `TXID: ${txid} | Label: ${label} | Simulated: ${simulated}`,
+    category:    "FORENSIC",
+    phase:       "116.8.1",
+  });
+
   return Response.json({
-    ok:            true,
-    op_return_hex: opReturnHex,
-    op_return_ascii: opReturnAscii,
+    ok:           true,
     txid,
-    block_height:  blockHeight,
-    anchor_sha512: anchorSha512,
     simulated,
-    ts,
-    kernel_sha:    KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-    phase,
+    op_return:    opReturn,
     label,
+    hash:         hash.slice(0, 128),
+    anchored_at:  anchoredAt,
+    kernel_sha:   KERNEL_SHA,
+    kernel_version: KERNEL_VERSION,
+    _anchor:      "⛓️⚓⛓️ BTC Forever Node — Truth lives as long as the internet exists.",
   });
 }

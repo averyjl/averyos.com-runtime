@@ -1110,7 +1110,7 @@ async function main() {
 
   if (!STRIPE_SECRET_KEY) {
     if (DRY_RUN) {
-      console.warn('⚠️  [DRY RUN] STRIPE_SECRET_KEY is not set — continuing in simulation mode.');
+      console.warn('⚠️  [DRY RUN] STRIPE_SECRET_KEY is not set — continuing in dry-run mode.');
     } else {
       logAosError(AOS_ERROR.VAULT_NOT_CONFIGURED, 'STRIPE_SECRET_KEY environment variable is not set.');
       process.exit(1);
