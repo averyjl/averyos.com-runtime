@@ -157,15 +157,14 @@ async function probeService(
     };
   }
 
-  const t0    = Date.now();
-  let status: HeartbeatService["status"] = "UNKNOWN";
-  let cfRay:  string | null              = null;
+  const t0 = Date.now();
+  let cfRay: string | null = null;
 
   try {
     const res       = await fetch(url, { credentials: "same-origin" });
     const latencyMs = Date.now() - t0;
     cfRay           = res.headers.get("cf-ray");
-    status          = res.ok ? "ONLINE" : "DEGRADED";
+    const status: HeartbeatService["status"] = res.ok ? "ONLINE" : "DEGRADED";
 
     return {
       id, label, icon, status, latencyMs, cfRay,
