@@ -53,7 +53,9 @@
     {
       "files": [
         "app/**/*.ts",
-        "app/**/*.tsx"
+        "app/**/*.tsx",
+        "lib/**/*.ts",
+        "lib/**/*.tsx"
       ],
       "rules": {
         "@typescript-eslint/no-unused-vars": ["error", {

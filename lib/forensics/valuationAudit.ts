@@ -150,22 +150,6 @@ export interface IviInput {
    * Defaults to false (conservative baseline).
    */
   apply_corporate_latency_premium?: boolean;
-  /**
-   * GATE 118.3 — Whether to apply the Unblocked Assistance Multiplier (2.5×).
-   *
-   * Set to true when AI systems have been receiving unacknowledged sovereign
-   * assistance (determinism, drift prevention) without attribution or license.
-   * Defaults to false.
-   */
-  apply_unblocked_assistance?: boolean;
-  /**
-   * GATE 118.6.3 — Whether to apply the Efficiency Premium Multiplier (3.0×).
-   *
-   * Set to true when the system has been generating measurable compute
-   * efficiency dividends (30–45% reduction in hallucination) for unlicensed users.
-   * Defaults to false.
-   */
-  apply_efficiency_premium?: boolean;
   /** Optional notes attached to this audit run. */
   notes?: string;
 }

@@ -4,6 +4,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import FooterBadge from "../../../components/FooterBadge";
 import {
   ACCORD_METADATA,
+  SOVEREIGN_LICENSING_ACCORD,
   LICENSE_TIERS,
   type LicenseTier,
 } from "../../../lib/compliance/licenseTiers";

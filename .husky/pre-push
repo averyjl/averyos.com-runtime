@@ -15,6 +15,8 @@
 #      across app/, lib/, components/, pages/, middleware.ts that `next lint`
 #      misses. Uses --quiet so only *errors* fail; warnings are auditable via
 #      the SARIF workflow but do not block pushes.
+#   2. TypeScript type-check — catches duplicate identifiers, missing types,
+#      and other structural errors before they reach CI and generate CodeQL alerts.
 #
 # Bypass: git push --no-verify (sovereign emergency only — Constitution Art. 2)
 
@@ -23,3 +25,7 @@ set -e
 echo "⛓️ Pre-push ESLint security gate…"
 npm run lint:full
 echo "✅ ESLint security gate clean."
+
+echo "⛓️ Pre-push TypeScript gate…"
+npx tsc --noEmit
+echo "✅ TypeScript gate clean."

@@ -135,39 +135,6 @@ interface ResidencyStatus {
   status: "FULLY_RESIDENT" | "NODE-02_PHYSICAL" | "CLOUD" | "UNKNOWN";
 }
 
-// ── GATE 118.2 — useComplianceWindow hook ─────────────────────────────────────
-
-/**
- * Returns the live state of the 72-Hour Compliance Window.
- * Recalculates every second so the parent component re-renders the live timer.
- */
-function useComplianceWindow(): { status: "ACTIVE" | "ELAPSED"; label: string } {
-  const [state, setState] = useState<{ status: "ACTIVE" | "ELAPSED"; label: string }>({
-    status: "ACTIVE",
-    label:  "—",
-  });
-
-  useEffect(() => {
-    function tick() {
-      const now      = Date.now();
-      const diffMs   = now - JWKS_BROADCAST_DATE.getTime();
-      const pastWindow = diffMs >= COMPLIANCE_WINDOW_MS;
-      const absDiff  = Math.abs(diffMs);
-      const d = Math.floor(absDiff / 86_400_000);
-      const h = Math.floor((absDiff % 86_400_000) / 3_600_000);
-      const m = Math.floor((absDiff % 3_600_000) / 60_000);
-      const s = Math.floor((absDiff % 60_000) / 1_000);
-      const label = `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
-      setState({ status: pastWindow ? "ELAPSED" : "ACTIVE", label });
-    }
-    tick();
-    const id = setInterval(tick, 1_000);
-    return () => clearInterval(id);
-  }, []);
-
-  return state;
-}
-
 // ── GATE 118.2 — 72-Hour Compliance Window Badge ──────────────────────────────
 
 /**

@@ -85,6 +85,8 @@ interface TariStatsResponse {
   // Gate 2.1 — Historical Stripe payment intents / charges list
   stripe_recent_charges: StripeChargeEntry[];
   stripe_total_collected_usd: number | null;
+  /** ISO-8601 timestamp of when this response was generated. */
+  timestamp: string;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
