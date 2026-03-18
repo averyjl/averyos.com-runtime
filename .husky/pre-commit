@@ -32,19 +32,22 @@ if git diff --cached --name-only | grep -q "^${CONSTITUTION_FILE}$"; then
   echo "   The AveryOS™ Constitution is CreatorLocked (ROOT0 — Jason Lee Avery)."
   echo "   All TAI-suggested improvements must be routed to: ${PROPOSALS_FILE}"
   echo ""
+  DIFF_BLOCK="---
+timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+source: pre-commit gate (Constitution hardlock)
+status: PENDING_CREATOR_REVIEW
+
+$(git diff --cached -- "${CONSTITUTION_FILE}")
+
+"
+  # Route to private .aosvault (gitignored — personal archive)
   echo "⛓️ Capturing diff to ${PROPOSALS_FILE} for manual review…"
   mkdir -p "$(dirname "${PROPOSALS_FILE}")"
-  {
-    echo ""
-    echo "---"
-    echo "timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "source: pre-commit gate (Constitution hardlock)"
-    echo "status: PENDING_CREATOR_REVIEW"
-    echo ""
-    git diff --cached -- "${CONSTITUTION_FILE}"
-    echo ""
-  } >> "${PROPOSALS_FILE}"
-  echo "✅ Diff appended to ${PROPOSALS_FILE} — awaiting Creator review and Chisel."
+  printf '%s\n' "${DIFF_BLOCK}" >> "${PROPOSALS_FILE}"
+  # Also route to the committed SUGGESTED_CONSTITUTION_EDITS.md (visible in repo)
+  printf '%s\n' "${DIFF_BLOCK}" >> "VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md"
+  echo "✅ Diff appended to ${PROPOSALS_FILE} and VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md"
+  echo "   Awaiting Creator review and Chisel."
   git restore --staged "${CONSTITUTION_FILE}"
   echo "✅ ${CONSTITUTION_FILE} unstaged — commit will proceed without Constitution changes."
 fi
