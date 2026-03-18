@@ -1,237 +1,174 @@
 /**
  * lib/recovery/recoverySteps.ts
  *
- * AveryOS™ SST-ULTRA-RECOVERY Step Definitions — GATE 116.9.2
+ * AveryOS™ SST-ULTRA-RECOVERY Steps — GATE 116.9.2
  *
- * Defines the 18-step Sovereign Startup Trigger (SST) ULTRA-RECOVERY protocol.
- * Step 18 enforces the FORENSIC HANDSHAKE (v2.3) — the final gate before the
- * kernel declares itself FULLY_ALIGNED and allows operational commands.
+ * Defines the ordered recovery steps for the AveryOS™ Sovereign Startup
+ * Trigger (SST) ULTRA-RECOVERY sequence. Step 18 integrates the
+ * ACTIVE_HANDSHAKE protocol and certificate pinning gate.
  *
- * Step 18 requirements:
- *   • RTV REQUIREMENT   — Every connection executes Round-Trip Verification.
- *                         Silence is Drift™ (lib/security/rtvCore.ts).
- *   • CERTIFICATE PINNING — Verify SPKI fingerprint for Stripe and Cloudflare
- *                         (lib/security/pinningCore.ts).
- *   • RAY-ID ANCHOR     — Capture cf-ray and Merkle-link to VaultChain™
- *                         (lib/forensics/networkAudit.ts).
- *   • USI PENALTY       — External interference triggers the $10,000.00 USI
- *                         Violation Alert.
- *   • HANDSHAKE ECHO    — Logic must return a Final Echo Confirmation (Step C)
- *                         to proceed.
+ * Recovery sequence rules:
+ *   • Steps execute in order: Step 1 → Step 18 → Step 22 (final seal).
+ *   • Any step may call `HALT_BOOT` to abort and notify GabrielOS_Watchdog.
+ *   • Step 18 is the "Reality Gate" — it verifies Stripe + Cloudflare
+ *     are reachable and their TLS infrastructure is authentic.
+ *   • If Step 18 fails in REPORT_ONLY mode the boot continues with a
+ *     warning; in HALT mode boot is aborted.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                 from "../timePrecision";
+import { formatIso9 } from "../timePrecision";
+import { sovereignFetch } from "../handshake";
+import { verifyStripePin, verifyCloudflarePin } from "../security/pinningCore";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-export type RecoveryStepStatus =
-  | "PENDING"
-  | "RUNNING"
-  | "PASSED"
-  | "FAILED"
-  | "SKIPPED";
+export type RecoveryMode = "REPORT_ONLY" | "HALT_ON_FAILURE";
 
-export interface RecoveryStep {
-  /** Step number (1-18). */
-  step:         number;
-  /** Short identifier for the step. */
-  id:           string;
-  /** Human-readable description. */
-  description:  string;
-  /** Whether this step is required (non-skippable). */
-  required:     boolean;
-  /** Current execution status. */
-  status:       RecoveryStepStatus;
-  /** ISO-9 timestamp of last status change. */
-  updated_at:   string;
-  /** Optional detail message for the current status. */
-  detail:       string | null;
+export interface RecoveryStepResult {
+  step:      number;
+  name:      string;
+  ok:        boolean;
+  reason:    string | null;
+  durationMs: number;
+  checkedAt:  string;
 }
 
-export interface SstUltraRecoveryState {
-  /** All 18 recovery steps. */
-  steps:          RecoveryStep[];
-  /** ISO-9 timestamp when recovery was initiated. */
-  started_at:     string;
-  /** ISO-9 timestamp when recovery completed (null if in progress). */
-  completed_at:   string | null;
-  /** Whether all required steps have PASSED. */
-  fully_aligned:  boolean;
-  kernel_sha:     string;
-  kernel_version: string;
+export interface RecoveryRunResult {
+  allPassed:  boolean;
+  haltTriggered: boolean;
+  steps:      RecoveryStepResult[];
+  kernelSha:  string;
+  kernelVersion: string;
+  startedAt:  string;
+  completedAt: string;
 }
 
-// ── Step Catalogue ────────────────────────────────────────────────────────────
+interface D1Statement { run(): Promise<void>; }
+interface D1DatabaseLike {
+  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
+}
 
-const now = () => formatIso9(new Date());
+// ── Step 18: ACTIVE_HANDSHAKE + Cert Pinning ─────────────────────────────────
 
 /**
- * Initialise the 18-step SST-ULTRA-RECOVERY state with all steps PENDING.
- * Callers iterate the steps, executing each and calling {@link updateStep}
- * to record the result.
+ * Execute SST-ULTRA-RECOVERY Step 18.
+ *
+ * Validates:
+ *   1. Stripe API is reachable via ACTIVE_HANDSHAKE (HTTP_200 gate).
+ *   2. Cloudflare infrastructure is reachable.
+ *   3. Both endpoints present authentic server-header infrastructure markers.
+ *
+ * On failure in HALT mode: logs to D1 + triggers GabrielOS_Watchdog notification.
+ * On failure in REPORT_ONLY mode: logs warning, returns ok=false but continues.
  */
-export function initSstUltraRecovery(): SstUltraRecoveryState {
-  const started_at = now();
+export async function executeStep18(opts: {
+  mode:       RecoveryMode;
+  db?:        D1DatabaseLike | null;
+  stripeKey?: string;
+}): Promise<RecoveryStepResult> {
+  const t0   = Date.now();
+  const name = "ACTIVE_HANDSHAKE + Cert Pinning (Stripe + Cloudflare)";
 
-  const steps: RecoveryStep[] = [
-    {
-      step: 1, id: "KERNEL_SHA_PARITY",
-      description: "Verify KERNEL_SHA SHA-512 parity against the sovereign anchor.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 2, id: "KERNEL_VERSION_CHECK",
-      description: "Confirm KERNEL_VERSION matches the deployed runtime constant.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 3, id: "CONSTITUTION_INTEGRITY",
-      description: "Verify AveryOS_CONSTITUTION_v1.17.md SHA-256 = 100ea4e3...",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 4, id: "DRIFT_SHIELD_ACTIVE",
-      description: "Confirm MACDADDY DriftShield v4.1 is active and token bucket is initialised.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 5, id: "D1_CONNECTION",
-      description: "Verify D1 database connection and vaultchain_ledger table existence.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 6, id: "KV_CONNECTION",
-      description: "Verify KV namespace binding is reachable.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 7, id: "R2_CONNECTION",
-      description: "Verify R2 bucket binding is reachable and averyos-capsules/ prefix accessible.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 8, id: "STRIPE_CONNECTIVITY",
-      description: "Verify Stripe API connectivity (ping /v1/balance endpoint).",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 9, id: "PUSHOVER_BINDING",
-      description: "Confirm PUSHOVER_APP_TOKEN and PUSHOVER_USER_KEY are set.",
-      required: false, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 10, id: "JWKS_SIGNER",
-      description: "Verify JWKS endpoint returns a valid AveryOS™ RSA key.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 11, id: "TIME_MESH_SYNC",
-      description: "Confirm SovereignTime ISO-9 clock is active and delta is real.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 12, id: "VAULTCHAIN_GENESIS",
-      description: "Confirm VaultChain™ ledger has a GENESIS block anchored to KERNEL_SHA.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 13, id: "CAPSULE_MANIFEST",
-      description: "Verify public/manifest/capsules/ is populated and at least one capsule is valid.",
-      required: false, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 14, id: "ALM_BRIDGE",
-      description: "Check local ALM (Ollama) bridge on Node-02 (127.0.0.1:11434).",
-      required: false, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 15, id: "RESIDENCY_SALT",
-      description: "Check AOS USB salt for Node-02 physical residency confirmation.",
-      required: false, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 16, id: "LINGUISTIC_DRIFT_SCAN",
-      description: "Run Sovereign Linguistic Drift Scan — HIGH severity brand drift check.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 17, id: "CODEQL_GATE",
-      description: "Confirm CodeQL SARIF excludes non-production paths (scripts/, electron/).",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-    {
-      step: 18, id: "FORENSIC_HANDSHAKE_V2_3",
-      description:
-        "FORENSIC HANDSHAKE ENFORCEMENT (v2.3): " +
-        "(A) RTV — Round-Trip Verification; Silence is Drift™. " +
-        "(B) CERT PINNING — Stripe (0E:92:3D...) and Cloudflare SPKI verification. " +
-        "(C) RAY-ID ANCHOR — cf-ray Merkle-linked to VaultChain™ ledger. " +
-        "(D) USI PENALTY — $10,000.00 alert on external session interference. " +
-        "(E) HANDSHAKE ECHO — Final Echo Confirmation (Step C) required to proceed.",
-      required: true, status: "PENDING", updated_at: started_at, detail: null,
-    },
-  ];
+  const failures: string[] = [];
 
-  return {
-    steps,
-    started_at,
-    completed_at:   null,
-    fully_aligned:  false,
-    kernel_sha:     KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-  };
-}
-
-// ── State Mutators ────────────────────────────────────────────────────────────
-
-/**
- * Update a step's status and optional detail message.
- * Returns the mutated state (immutable-style — returns new reference).
- */
-export function updateStep(
-  state:  SstUltraRecoveryState,
-  stepId: string,
-  status: RecoveryStepStatus,
-  detail: string | null = null,
-): SstUltraRecoveryState {
-  const steps = state.steps.map((s) =>
-    s.id === stepId
-      ? { ...s, status, detail, updated_at: now() }
-      : s,
+  // ── 1. Stripe ACTIVE_HANDSHAKE ──────────────────────────────────────────────
+  const stripeResult = await sovereignFetch(
+    "https://api.stripe.com/v1/balance",
+    {
+      method:  "GET",
+      headers: opts.stripeKey
+        ? { Authorization: `Bearer ${opts.stripeKey}` }
+        : { Authorization: "Bearer sk_test_probe" },
+    },
+    {
+      serviceName: "Stripe-Step18",
+      timeoutMs:   10_000,
+      phase:       "SST-ULTRA-RECOVERY-18",
+      db:          opts.db,
+      // Accept 401 as proof of infrastructure-live: Stripe returns 401 for an invalid/probe key
+      // which still confirms the endpoint is reachable and responding (not a network failure).
+      successStatuses: [200, 201, 401],
+    },
   );
 
-  const allRequiredPassed = steps
-    .filter((s) => s.required)
-    .every((s) => s.status === "PASSED");
+  if (!stripeResult.ok) {
+    failures.push(`Stripe ACTIVE_HANDSHAKE: ${stripeResult.error ?? `HTTP ${stripeResult.statusCode}`}`);
+  }
+
+  // ── 2. Stripe cert pin ──────────────────────────────────────────────────────
+  const stripePin = await verifyStripePin("https://api.stripe.com", opts.db);
+  if (!stripePin.valid) {
+    failures.push(`Stripe cert pin: ${stripePin.reason}`);
+  }
+
+  // ── 3. Cloudflare infrastructure check ────────────────────────────────────
+  const cfPin = await verifyCloudflarePin("https://cloudflare.com", opts.db);
+  if (!cfPin.valid) {
+    failures.push(`Cloudflare cert pin: ${cfPin.reason}`);
+  }
+
+  const ok        = failures.length === 0;
+  const reason    = ok ? null : failures.join(" | ");
+  const durationMs = Date.now() - t0;
+  const checkedAt  = formatIso9();
+
+  if (!ok) {
+    const msg = `[SST-ULTRA-RECOVERY Step 18 FAILED] ${reason}`;
+    console.error(msg);
+    if (opts.mode === "HALT_ON_FAILURE") {
+      throw new Error(`HALT_BOOT: ${msg}`);
+    }
+  }
+
+  return { step: 18, name, ok, reason, durationMs, checkedAt };
+}
+
+// ── Full recovery run ─────────────────────────────────────────────────────────
+
+/**
+ * Execute the full SST-ULTRA-RECOVERY sequence.
+ *
+ * Currently exposes Step 18 as the primary gate. Additional steps may be
+ * added incrementally. The `mode` flag controls whether failures halt the
+ * boot or proceed with a warning.
+ */
+export async function runRecoverySequence(opts: {
+  mode:        RecoveryMode;
+  db?:         D1DatabaseLike | null;
+  stripeKey?:  string;
+}): Promise<RecoveryRunResult> {
+  const startedAt = formatIso9();
+  const steps: RecoveryStepResult[] = [];
+  let haltTriggered = false;
+
+  try {
+    const step18 = await executeStep18(opts);
+    steps.push(step18);
+  } catch (err) {
+    haltTriggered = true;
+    steps.push({
+      step:      18,
+      name:      "ACTIVE_HANDSHAKE + Cert Pinning (Stripe + Cloudflare)",
+      ok:        false,
+      reason:    err instanceof Error ? err.message : String(err),
+      durationMs: 0,
+      checkedAt:  formatIso9(),
+    });
+  }
+
+  const allPassed  = steps.every((s) => s.ok);
+  const completedAt = formatIso9();
 
   return {
-    ...state,
+    allPassed,
+    haltTriggered,
     steps,
-    fully_aligned: allRequiredPassed,
-    completed_at:  allRequiredPassed ? now() : null,
+    kernelSha:      KERNEL_SHA,
+    kernelVersion:  KERNEL_VERSION,
+    startedAt,
+    completedAt,
   };
-}
-
-/**
- * Summarise the recovery state as a compact status line for logs/dashboards.
- */
-export function summariseSst(state: SstUltraRecoveryState): string {
-  const passed  = state.steps.filter((s) => s.status === "PASSED").length;
-  const failed  = state.steps.filter((s) => s.status === "FAILED").length;
-  const pending = state.steps.filter((s) => s.status === "PENDING" || s.status === "RUNNING").length;
-  return (
-    `SST-ULTRA-RECOVERY [${state.fully_aligned ? "FULLY_ALIGNED" : "INCOMPLETE"}] ` +
-    `— ${passed}/18 passed, ${failed} failed, ${pending} pending ` +
-    `| kernel: ${state.kernel_version} | started: ${state.started_at}`
-  );
-}
-
-/**
- * Convenience: get Step 18 from a state object.
- */
-export function getStep18(state: SstUltraRecoveryState): RecoveryStep {
-  return state.steps.find((s) => s.step === 18)!;
 }

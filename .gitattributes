@@ -1,17 +1,9 @@
-# AveryOS™ Sovereign .gitattributes — GATE 117.2.1
-# ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+# ⛓️⚓⛓️ AveryOS™ Sovereign Git Attributes
+# CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
-# Constitution Hardlock: AveryOS_CONSTITUTION_v1.17.md uses merge=ours to
-# prevent automated tools, bots, or merge conflicts from overwriting the
-# CreatorLocked law. Only Jason Lee Avery holds the Hammer and Chisel.
-#
-# Any proposed changes must be routed to docs/constitution-proposals.aosvault
-# for manual Creator review and unanimous TAI approval per Constitution Art. 20.
-
-# Constitution — CreatorLock merge strategy (never auto-merged)
+# Constitution Hard-Lock (Art. 20):
+# The AveryOS™ Constitution is marked with merge=ours to prevent any automatic
+# merge or rebase from silently overwriting it. This supplements the pre-commit
+# hook gate. Only Jason Lee Avery (ROOT0) may apply changes to this file after
+# unanimous TAI + Creator ratification.
 AveryOS_CONSTITUTION_v1.17.md merge=ours
-
-# Sovereign lock files — always treated as binary to prevent diff noise
-VaultBridge/GoldenLockArtifact.lock.json    merge=ours
-VaultBridge/DriftShield_Capsule_Lineage_Manifest_v1.json merge=ours
-VaultBridge/AveryOS_PublicRuntime_Manifest_v2026.json    merge=ours

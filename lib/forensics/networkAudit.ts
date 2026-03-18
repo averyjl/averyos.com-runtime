@@ -1,183 +1,184 @@
 /**
  * lib/forensics/networkAudit.ts
  *
- * AveryOS™ Cloudflare RAY-ID Forensic Anchor — GATE 116.9.3
+ * AveryOS™ Network Audit — Cloudflare RAY-ID Logging — GATE 116.9.3
  *
- * Captures `cf-ray` headers from all outbound requests and Merkle-anchors
- * them to the VaultChain™ ledger, ensuring every TARI-billable event is
- * traceable to a physical Cloudflare network event.
+ * Captures and Merkle-anchors the `cf-ray` header on all outbound requests
+ * that are TARI™-billable events, creating a permanent forensic chain that
+ * connects every event to a physical Cloudflare network edge event.
  *
- * A DriftViolationAlert is triggered if the cf-ray is absent (indicating
- * a non-Cloudflare origin) or if the Ray ID has already been recorded
- * (indicating replay).
+ * Architecture:
+ *   1. `captureRayId()` — extract `cf-ray` from an existing Response.
+ *   2. `anchorRayId()` — SHA-512 anchor the ray ID + kernel SHA + event data.
+ *   3. `logNetworkEvent()` — persist the anchored event to D1 `network_audit_log`.
+ *   4. `auditedFetch()` — drop-in fetch wrapper that automatically captures
+ *      and persists the `cf-ray` for every call.
  *
- * Integration:
- *   • Wraps fetch() in the audit-alert route and evidence routes.
- *   • Used by lib/security/rtvCore.ts to record RTV results.
- *   • Used by lib/recovery/recoverySteps.ts Step 18 forensic handshake.
+ * TARI™ billing integration:
+ *   Any audit event with `tariEvent = true` is forwarded to the TARI™ ledger
+ *   so that every billable event can be traced to a Cloudflare Ray ID.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                 from "../timePrecision";
+import { formatIso9 } from "../timePrecision";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-export interface NetworkAuditRecord {
-  /** Cloudflare Ray ID (cf-ray header).  Null if not a Cloudflare-proxied req. */
-  cf_ray:          string | null;
-  /** Request URL (origin only, no query params for privacy). */
-  url_origin:      string;
+export interface NetworkAuditEvent {
+  /** Cloudflare Ray ID extracted from `cf-ray` response header. */
+  cfRay:       string | null;
+  /** URL that was requested. */
+  url:         string;
   /** HTTP method. */
-  method:          string;
-  /** HTTP status code of the response. */
-  status:          number;
-  /** Round-trip delta in milliseconds. */
-  delta_ms:        number;
-  /** ISO-9 timestamp of the request. */
-  requested_at:    string;
-  /** ISO-9 timestamp of the response. */
-  responded_at:    string;
-  /** Whether this event is considered TARI-billable. */
-  tari_billable:   boolean;
-  /** Whether a DriftViolationAlert was raised. */
-  drift_alert:     boolean;
-  kernel_version:  string;
+  method:      string;
+  /** HTTP status code (0 on network error). */
+  statusCode:  number;
+  /** Round-trip duration in milliseconds. */
+  durationMs:  number;
+  /** SHA-512 anchor of cfRay + kernelSha + url + statusCode. */
+  sha512:      string;
+  /** Whether this event triggers a TARI™ billing action. */
+  tariEvent:   boolean;
+  /** ISO-9 timestamp. */
+  loggedAt:    string;
+  /** Kernel anchor. */
+  kernelSha:   string;
+  kernelVersion: string;
 }
 
-export interface AuditFetchOptions {
-  /** Mark this request as TARI-billable (default: false). */
-  tariBillable?:   boolean;
-  /** Additional headers to include in the request. */
-  headers?:        Record<string, string>;
-  /** AbortSignal for timeout control. */
-  signal?:         AbortSignal;
+interface D1Statement { run(): Promise<void>; }
+interface D1DatabaseLike {
+  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
 }
 
-// ── Ray-ID Seen Cache ─────────────────────────────────────────────────────────
-// In-memory set for replay detection within a single Worker invocation.
-// Persists across requests in the same isolate (Cloudflare V8 isolate lifetime).
+// ── SHA-512 anchor ─────────────────────────────────────────────────────────────
 
-const seenRayIds = new Set<string>();
+async function sha512hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
-// ── Core Audit Fetch ──────────────────────────────────────────────────────────
+// ── Core exports ───────────────────────────────────────────────────────────────
 
 /**
- * Wraps `fetch` to capture and audit the `cf-ray` header.
- * Returns both the raw `Response` and the `NetworkAuditRecord`.
- *
- * @param url       Target URL (string or URL object).
- * @param init      Standard RequestInit options.
- * @param opts      AveryOS™ audit options.
+ * Extract the Cloudflare Ray ID from a Response's `cf-ray` header.
+ * Returns `null` if the header is absent (non-Cloudflare response).
  */
-export async function auditFetch(
-  url:   string | URL,
-  init:  RequestInit = {},
-  opts:  AuditFetchOptions = {},
-): Promise<{ response: Response; audit: NetworkAuditRecord }> {
-  const method      = (init.method ?? "GET").toUpperCase();
-  const urlStr      = typeof url === "string" ? url : url.toString();
-  const originOnly  = (() => { try { const u = new URL(urlStr); return `${u.protocol}//${u.host}`; } catch { return urlStr; } })();
-  const startMs     = Date.now();
-  const requestedAt = formatIso9(new Date());
+export function captureRayId(response: Response): string | null {
+  return response.headers.get("cf-ray") ?? null;
+}
 
-  const mergedInit: RequestInit = {
-    ...init,
-    headers: {
-      ...(init.headers as Record<string, string> ?? {}),
-      "x-averyos-kernel-ver": KERNEL_VERSION,
-      ...(opts.headers ?? {}),
-    },
-    ...(opts.signal ? { signal: opts.signal } : {}),
-  };
+/**
+ * Compute a SHA-512 Merkle anchor for a network audit event.
+ * The anchor binds the Ray ID to the Kernel SHA so any tampering is detectable.
+ */
+export async function anchorRayId(
+  cfRay:      string | null,
+  url:        string,
+  statusCode: number,
+): Promise<string> {
+  const input = `${cfRay ?? "NULL"}:${url}:${statusCode}:${KERNEL_SHA}`;
+  return sha512hex(input);
+}
 
-  const response    = await fetch(url, mergedInit);
-  const deltaMs     = Date.now() - startMs;
-  const respondedAt = formatIso9(new Date());
-  const cfRay       = response.headers.get("cf-ray") ?? null;
-
-  // Replay / drift detection
-  let driftAlert = false;
-  if (cfRay) {
-    if (seenRayIds.has(cfRay)) {
-      driftAlert = true;
-      console.warn(
-        `[networkAudit] ⚠️ DRIFT_ALERT — duplicate cf-ray [${cfRay}] detected (replay?).`,
-      );
-    }
-    seenRayIds.add(cfRay);
-  } else {
-    // Absence of cf-ray on a Cloudflare-expected route is a drift signal
+/**
+ * Persist a network audit event to D1 `network_audit_log`.
+ */
+export async function logNetworkEvent(
+  event: NetworkAuditEvent,
+  db:    D1DatabaseLike,
+): Promise<void> {
+  try {
+    await db.prepare(
+      `INSERT INTO network_audit_log
+         (cf_ray, url, method, status_code, duration_ms, sha512, tari_event,
+          logged_at, kernel_sha, kernel_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      event.cfRay,
+      event.url.slice(0, 512),
+      event.method.toUpperCase(),
+      event.statusCode,
+      event.durationMs,
+      event.sha512,
+      event.tariEvent ? 1 : 0,
+      event.loggedAt,
+      KERNEL_SHA,
+      KERNEL_VERSION,
+    ).run();
+  } catch (err) {
     console.warn(
-      `[networkAudit] ⚠️ DRIFT_ALERT — cf-ray header absent on ${method} ${originOnly}.`,
+      "[NetworkAudit] D1 log write failed:",
+      err instanceof Error ? err.message : String(err),
     );
-    driftAlert = true;
+  }
+}
+
+/**
+ * Drop-in wrapper around `fetch()` that automatically:
+ *   1. Executes the request.
+ *   2. Captures `cf-ray` from the response.
+ *   3. Anchors the event with SHA-512.
+ *   4. Persists the audit record to D1 if a binding is supplied.
+ *
+ * @param url        Target URL.
+ * @param init       RequestInit (same as fetch).
+ * @param opts       Audit options (DB binding, TARI event flag, etc.).
+ * @returns          `{ response, auditEvent }` — the raw Response and the anchored event.
+ */
+export async function auditedFetch(
+  url:  string | URL,
+  init: RequestInit | undefined,
+  opts: {
+    db?:        D1DatabaseLike | null;
+    tariEvent?: boolean;
+    timeoutMs?: number;
+  } = {},
+): Promise<{ response: Response; auditEvent: NetworkAuditEvent }> {
+  const t0         = Date.now();
+  const method     = (init?.method ?? "GET").toUpperCase();
+  const urlStr     = url.toString();
+  const timeoutMs  = opts.timeoutMs ?? 15_000;
+
+  const controller = new AbortController();
+  const timer      = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  let statusCode = 0;
+  try {
+    response   = await fetch(url, { ...init, signal: controller.signal });
+    statusCode = response.status;
+  } finally {
+    clearTimeout(timer);
   }
 
-  const audit: NetworkAuditRecord = {
-    cf_ray:         cfRay,
-    url_origin:     originOnly,
+  const durationMs = Date.now() - t0;
+  const cfRay      = captureRayId(response);
+  const sha512     = await anchorRayId(cfRay, urlStr, statusCode);
+  const loggedAt   = formatIso9();
+
+  const auditEvent: NetworkAuditEvent = {
+    cfRay,
+    url:          urlStr,
     method,
-    status:         response.status,
-    delta_ms:       deltaMs,
-    requested_at:   requestedAt,
-    responded_at:   respondedAt,
-    tari_billable:  opts.tariBillable ?? false,
-    drift_alert:    driftAlert,
-    kernel_version: KERNEL_VERSION,
+    statusCode,
+    durationMs,
+    sha512,
+    tariEvent:    opts.tariEvent ?? false,
+    loggedAt,
+    kernelSha:    KERNEL_SHA,
+    kernelVersion: KERNEL_VERSION,
   };
 
-  return { response, audit };
-}
+  if (opts.db) {
+    void logNetworkEvent(auditEvent, opts.db).catch((err: unknown) =>
+      console.warn("[NetworkAudit] async log failed:", err instanceof Error ? err.message : String(err)),
+    );
+  }
 
-// ── VaultChain Payload Builder ────────────────────────────────────────────────
-
-/**
- * Convert a NetworkAuditRecord to a VaultChain-ready payload.
- * Pass to appendRecord() / writeBlock() in vaultChain.ts.
- */
-export function auditRecordToVaultPayload(
-  record: NetworkAuditRecord,
-): Record<string, unknown> {
-  return {
-    event:          record.tari_billable ? "TARI_NETWORK_EVENT" : "NETWORK_AUDIT",
-    cf_ray:         record.cf_ray,
-    url_origin:     record.url_origin,
-    method:         record.method,
-    status:         record.status,
-    delta_ms:       record.delta_ms,
-    requested_at:   record.requested_at,
-    responded_at:   record.responded_at,
-    tari_billable:  record.tari_billable,
-    drift_alert:    record.drift_alert,
-    kernel_sha:     KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-  };
-}
-
-// ── Ray-ID Extractor ──────────────────────────────────────────────────────────
-
-/**
- * Extract the cf-ray header from an existing Response or Headers object.
- * Returns null if not present.
- */
-export function extractCfRay(headersOrResponse: Headers | Response): string | null {
-  const headers = headersOrResponse instanceof Response
-    ? headersOrResponse.headers
-    : headersOrResponse;
-  return headers.get("cf-ray") ?? null;
-}
-
-/**
- * Build a compact ledger entry string for logging.
- * Format: cf-ray=[xxx] | delta=[n]ms | status=[n] | tari=[bool]
- */
-export function formatAuditLine(record: NetworkAuditRecord): string {
-  return (
-    `cf-ray=[${record.cf_ray ?? "N/A"}] | ` +
-    `${record.method} ${record.url_origin} | ` +
-    `status=[${record.status}] | delta=[${record.delta_ms}ms] | ` +
-    `tari=[${record.tari_billable}] | drift=[${record.drift_alert}]`
-  );
+  return { response, auditEvent };
 }

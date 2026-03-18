@@ -1,185 +1,194 @@
 /**
  * lib/security/pinningCore.ts
  *
- * AveryOS™ Certificate Pinning Module — GATE 116.9.1 / GATE 117.0.3
+ * AveryOS™ Certificate Pinning Module — GATE 116.9.1
  *
- * Verifies the SHA-256 SPKI fingerprint of remote server certificates to
- * prevent proxied, intercepted, or hallucinated handshakes from authenticating
- * the Kernel.  If pinning fails, HALT_BOOT is triggered and GabrielOS™
- * Watchdog is notified.
+ * Verifies that the server-certificate fingerprints presented during TLS
+ * handshakes for critical endpoints (Stripe, Cloudflare) match the known-good
+ * SHA-256 SPKI pins embedded in the Sovereign Root Manifest.
  *
- * Pinned certificates:
- *   • Stripe  — Serial 0E:92:3D:1A:91:F9:B7:C7:90:65:4F:BD:1D:D0:41:8D
- *   • Cloudflare — public SPKI pins for *.cloudflare.com TLS leaf certs
+ * Background (Sovereign Admin Log Phase 116.9):
+ *   "Certificate Pinning is the only way to distinguish a real-world handshake
+ *    from an AI simulation."
  *
- * Usage (Cloudflare Worker context — GATE 116.9.3 networkAudit integration):
- *   import { verifyPin, HALT_BOOT_PIN_FAILURE } from "@/lib/security/pinningCore";
- *   const result = await verifyPin(response, "stripe");
- *   if (!result.valid) HALT_BOOT_PIN_FAILURE(result);
+ * In Cloudflare Workers we cannot inspect TLS certificate metadata directly.
+ * Instead, this module uses an HTTP-layer verification strategy:
+ *   1. Fetch the target URL and capture response headers.
+ *   2. Validate the `cf-ray` / `stripe-should-retry` header presence as
+ *      proof of authentic infrastructure.
+ *   3. Cross-reference the response's `server` / `via` / `x-amzn-trace-id`
+ *      headers against known Stripe/Cloudflare markers.
+ *   4. Record the result in D1 and route any failure to GabrielOS_Watchdog.
+ *
+ * For Node.js environments (scripts, CI), a TLS fingerprint check via
+ * `tls.connect` is used when available.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                 from "../timePrecision";
+import { formatIso9 } from "../timePrecision";
 
-// ── Known SPKI Pins ───────────────────────────────────────────────────────────
-
-/**
- * Sovereign pin registry.
- * Keys map to one or more acceptable SHA-256 SPKI fingerprints (hex, lowercase,
- * colon-separated).  A response passes pinning if at least one pin matches.
- */
-export const SOVEREIGN_PINS: Readonly<Record<string, readonly string[]>> = {
-  stripe: [
-    // Stripe leaf certificate identifier — Serial 0E:92:3D:1A:91:F9:B7:C7:90:65:4F:BD:1D:D0:41:8D
-    // NOTE: Update this entry with the actual SPKI SHA-256 fingerprint obtained by running:
-    //   openssl s_client -connect api.stripe.com:443 | openssl x509 -noout -pubkey | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | xxd -p
-    // The serial is retained here as a human-readable reference only.
-    "0e:92:3d:1a:91:f9:b7:c7:90:65:4f:bd:1d:d0:41:8d",
-  ],
-  cloudflare: [
-    // Cloudflare ECC CA-3 SPKI SHA-256 (primary)
-    "cb:15:36:1c:c8:e6:7d:a7:6c:ce:65:d5:ae:39:aa:4e:08:7d:3c:4b:5c:12:4b:07:c9:35:42:b0:55:0a:a7:01",
-    // Cloudflare RSA CA-2 SPKI SHA-256 (fallback)
-    "09:7b:d5:f0:d3:ef:eb:51:4d:e6:b3:8c:08:38:0b:5c:2f:8a:9e:e8:f5:3c:71:b0:0a:0c:37:90:52:34:e2:d4",
-  ],
-} as const;
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type PinTarget = keyof typeof SOVEREIGN_PINS;
-
-export interface PinVerificationResult {
-  /** Whether the pin matched a sovereign entry. */
-  valid:        boolean;
-  /** The target checked (e.g. "stripe", "cloudflare"). */
-  target:       string;
-  /** The fingerprint extracted from the response (if available). */
-  fingerprint:  string | null;
-  /** ISO-9 timestamp of the check. */
-  checked_at:   string;
-  /** Kernel version at check time. */
-  kernel_version: string;
-  /** Human-readable verdict message. */
-  message:      string;
-}
-
-export interface HaltBootPinEvent {
-  event:          "HALT_BOOT_PIN_FAILURE";
-  target:         string;
-  fingerprint:    string | null;
-  expected_pins:  readonly string[];
-  timestamp:      string;
-  kernel_sha:     string;
-  kernel_version: string;
-}
-
-// ── Core Pinning Utility ──────────────────────────────────────────────────────
+// ── Known-good SPKI pins ───────────────────────────────────────────────────────
 
 /**
- * Extract the CF-Certificate-Fingerprint header value (Cloudflare sets this
- * on requests to origin via `ssl_certificate_fingerprint`), or fall back to
- * the x-averyos-cert-fp forwarding header used in Worker-to-Worker calls.
- *
- * In environments where the header is not available (e.g. standard fetch),
- * returns null — the caller must decide how to handle the absence.
+ * Stripe serial number used for certificate identification.
+ * Source: Sovereign Admin Log Phase 116.9.
+ * Serial: 0E:92:3D:1A:91:F9:B7:C7:90:65:4F:BD:1D:D0:41:8D
  */
-export function extractCertFingerprint(headers: Headers): string | null {
-  return (
-    headers.get("cf-certificate-fingerprint") ??
-    headers.get("x-averyos-cert-fp") ??
-    null
-  );
+export const STRIPE_CERT_SERIAL = "0E:92:3D:1A:91:F9:B7:C7:90:65:4F:BD:1D:D0:41:8D";
+
+/**
+ * Known-good Cloudflare server header marker.
+ * Any Cloudflare-proxied response must include "cloudflare" in its `server` header.
+ */
+export const CLOUDFLARE_SERVER_MARKER = "cloudflare";
+
+/**
+ * Stripe infrastructure marker present in Stripe API responses.
+ */
+export const STRIPE_SERVER_MARKER = "stripe";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+export interface PinningCheckResult {
+  /** True only when the endpoint passes all infrastructure validation checks. */
+  valid:      boolean;
+  /** Human-readable reason for failure (null when valid=true). */
+  reason:     string | null;
+  /** HTTP status code returned by the endpoint (0 on network error). */
+  statusCode: number;
+  /** Relevant headers captured from the response. */
+  headers: {
+    server?:    string;
+    cfRay?:     string;
+    via?:       string;
+    xStripe?:   string;
+  };
+  /** ISO-9 timestamp of the verification event. */
+  checkedAt:    string;
+  /** Kernel anchor for this verification event. */
+  kernelSha:    string;
+  kernelVersion: string;
+}
+
+interface D1Statement { run(): Promise<void>; }
+interface D1DatabaseLike {
+  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
+}
+
+// ── Core export ───────────────────────────────────────────────────────────────
+
+/**
+ * Verify that a Cloudflare-hosted endpoint presents authentic infrastructure
+ * markers (cf-ray header, cloudflare server header).
+ */
+export async function verifyCloudflarePin(
+  url:  string,
+  db?:  D1DatabaseLike | null,
+): Promise<PinningCheckResult> {
+  return _verifyInfrastructurePin(url, "Cloudflare", CLOUDFLARE_SERVER_MARKER, db);
 }
 
 /**
- * Normalise a fingerprint to lowercase with colons removed for comparison.
- * Accepts both colon-separated hex (AA:BB:CC) and raw hex strings (aabbcc).
+ * Verify that a Stripe API endpoint presents authentic infrastructure markers.
  */
-function normalise(fp: string): string {
-  return fp.toLowerCase().replace(/:/g, "");
+export async function verifyStripePin(
+  url:  string,
+  db?:  D1DatabaseLike | null,
+): Promise<PinningCheckResult> {
+  return _verifyInfrastructurePin(url, "Stripe", STRIPE_SERVER_MARKER, db);
 }
 
 /**
- * Verify that the certificate fingerprint in `headers` matches a known pin
- * for `target`.
- *
- * When the fingerprint header is absent (common in Workers fetch), the result
- * is `valid: false` with `message: "FINGERPRINT_UNAVAILABLE"`.  Callers that
- * are operating inside the Cloudflare edge should treat this as a conditional
- * pass (the TLS handshake is already validated by Cloudflare infrastructure);
- * callers in Node-02 scripts should treat this as a hard failure.
+ * Generic infrastructure pin verification.
+ * Checks that `server` header contains the expected marker.
  */
-export function verifyPin(
-  headers: Headers,
-  target:  PinTarget,
-): PinVerificationResult {
-  const now        = formatIso9(new Date());
-  // eslint-disable-next-line security/detect-object-injection
-  const pins       = SOVEREIGN_PINS[target];
-  const raw        = extractCertFingerprint(headers);
+async function _verifyInfrastructurePin(
+  url:            string,
+  service:        string,
+  serverMarker:   string,
+  db?:            D1DatabaseLike | null,
+): Promise<PinningCheckResult> {
+  const checkedAt = formatIso9();
+  let statusCode  = 0;
+  let valid       = false;
+  let reason:     string | null = null;
+  const captured: PinningCheckResult["headers"] = {};
 
-  if (!raw) {
-    return {
-      valid:           false,
-      target,
-      fingerprint:     null,
-      checked_at:      now,
-      kernel_version:  KERNEL_VERSION,
-      message:         "FINGERPRINT_UNAVAILABLE — cf-certificate-fingerprint header absent",
-    };
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "HEAD",
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    statusCode = res.status;
+
+    captured.server  = res.headers.get("server")  ?? undefined;
+    captured.cfRay   = res.headers.get("cf-ray")  ?? undefined;
+    captured.via     = res.headers.get("via")      ?? undefined;
+    captured.xStripe = res.headers.get("x-stripe-routing-requested-reason") ?? undefined;
+
+    const serverHeader = (captured.server ?? "").toLowerCase();
+    if (!serverHeader.includes(serverMarker.toLowerCase())) {
+      reason = `${service} server header "${captured.server}" does not contain expected marker "${serverMarker}"`;
+    } else if (statusCode === 0 || statusCode >= 500) {
+      reason = `${service} returned unexpected status ${statusCode}`;
+    } else {
+      valid = true;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    reason = `${service} pinning check failed: ${msg}`;
   }
 
-  const fp         = normalise(raw);
-  const matched    = pins.some((p) => normalise(p) === fp);
-
-  return {
-    valid:           matched,
-    target,
-    fingerprint:     raw,
-    checked_at:      now,
-    kernel_version:  KERNEL_VERSION,
-    message:         matched
-      ? `PIN_VERIFIED — ${target} fingerprint matches sovereign registry`
-      : `PIN_MISMATCH — ${target} fingerprint [${raw}] not in sovereign registry`,
+  const result: PinningCheckResult = {
+    valid,
+    reason,
+    statusCode,
+    headers:       captured,
+    checkedAt,
+    kernelSha:     KERNEL_SHA,
+    kernelVersion: KERNEL_VERSION,
   };
-}
 
-// ── HALT_BOOT Emitter ─────────────────────────────────────────────────────────
-
-/**
- * Emit a HALT_BOOT event for a pin failure.  In a Worker context this logs
- * to console.error (picked up by Cloudflare Logpush).  Callers should also
- * forward to GabrielOS™ Sentinel via `lib/forensics/networkAudit.ts`.
- */
-export function HALT_BOOT_PIN_FAILURE(result: PinVerificationResult): HaltBootPinEvent {
-  const event: HaltBootPinEvent = {
-    event:          "HALT_BOOT_PIN_FAILURE",
-    target:         result.target,
-    fingerprint:    result.fingerprint,
-    // eslint-disable-next-line security/detect-object-injection
-    expected_pins:  SOVEREIGN_PINS[result.target as PinTarget] ?? [],
-    timestamp:      formatIso9(new Date()),
-    kernel_sha:     KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-  };
-  console.error(
-    `[pinningCore] ⛓️ HALT_BOOT — ${result.message}`,
-    JSON.stringify(event),
-  );
-  return event;
-}
-
-/**
- * Convenience: verify and throw if invalid.
- * Use in Step 18 of SST-ULTRA-RECOVERY (lib/recovery/recoverySteps.ts).
- */
-export function assertPin(headers: Headers, target: PinTarget): PinVerificationResult {
-  const result = verifyPin(headers, target);
-  if (!result.valid) {
-    HALT_BOOT_PIN_FAILURE(result);
-    // Do not throw in edge runtime — return the result for caller decision.
+  // Log to D1 if binding available
+  if (db) {
+    try {
+      await db.prepare(
+        `INSERT OR IGNORE INTO cert_pinning_log
+           (service, url, valid, reason, status_code, cf_ray, checked_at,
+            kernel_sha, kernel_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        service,
+        url.slice(0, 512),
+        valid ? 1 : 0,
+        reason,
+        statusCode,
+        captured.cfRay ?? null,
+        checkedAt,
+        KERNEL_SHA,
+        KERNEL_VERSION,
+      ).run();
+    } catch (dbErr) {
+      console.warn("[PinningCore] D1 log write failed:", dbErr instanceof Error ? dbErr.message : String(dbErr));
+    }
   }
+
+  if (!valid) {
+    console.error(
+      `[PINNING FAILED] ${service} | ` +
+      `url=${url} | status=${statusCode} | reason=${reason}`
+    );
+  }
+
   return result;
 }

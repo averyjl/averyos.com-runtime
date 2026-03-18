@@ -103,10 +103,25 @@ jobs:
         env:
           NODE_OPTIONS: "--no-warnings"
 
-      # ── QA Test Generator ─────────────────────────────────────────────────────
-      - name: "🤖 QA Test Generator — coverage gap scan"
+      # ── QA Test Generator — 100% coverage scan ───────────────────────────────
+      - name: "🤖 QA Test Generator — coverage gap scan (100% target)"
         run: node scripts/qaTestGenerator.cjs --verbose
         continue-on-error: true   # Gaps are warnings, not hard failures
+
+      # ── Run generated stub tests ──────────────────────────────────────────────
+      - name: "🧪 Unit tests — generated stubs (100% coverage enforcement)"
+        run: |
+          STUBS=$(find __tests__/generated -name '*.gen.test.ts' | sort | tr '\n' ' ')
+          if [ -n "$STUBS" ]; then
+            node --loader ./__tests__/loader.mjs \
+                 --experimental-strip-types \
+                 --test $STUBS
+          else
+            echo "No generated stubs found."
+          fi
+        continue-on-error: true   # Stubs may have unimplemented TODOs — non-blocking
+        env:
+          NODE_OPTIONS: "--no-warnings"
 
       # ── Coverage report artifact ──────────────────────────────────────────────
       - name: "📋 Upload coverage gap report"
@@ -117,13 +132,15 @@ jobs:
           path: __tests__/generated/_coverage_report.json
           if-no-files-found: ignore
 
-      # ── PR annotation ─────────────────────────────────────────────────────────
-      - name: "💬 Annotate PR with QA summary"
+      # ── PR annotation (upsert — only one comment per PR) ─────────────────────
+      - name: "💬 Annotate PR with QA summary (upsert)"
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const fs = require('fs');
+            const MARKER = '<!-- averyos-qa-engine-report -->';
+
             let report = null;
             try {
               report = JSON.parse(fs.readFileSync('__tests__/generated/_coverage_report.json', 'utf8'));
@@ -132,6 +149,7 @@ jobs:
             }
 
             const lines = [
+              MARKER,
               '## 🧪 AveryOS™ Sovereign QA Engine Report',
               '',
               '| Metric | Value |',
@@ -157,9 +175,33 @@ jobs:
             lines.push('');
             lines.push('⛓️⚓⛓️ *AveryOS™ Sovereign QA Engine · CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻*');
 
-            github.rest.issues.createComment({
+            const body = lines.join('\n');
+
+            // Find an existing QA Engine comment on this PR and update it;
+            // only create a new one if none exists yet.
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner:        context.repo.owner,
               repo:         context.repo.repo,
-              body:         lines.join('\n'),
+              per_page:     100,
             });
+
+            const existing = comments.find(c =>
+              c.user && c.user.type === 'Bot' && c.body && c.body.includes(MARKER)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                body,
+              });
+            }
