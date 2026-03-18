@@ -19,7 +19,7 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { test, describe, beforeEach, mock } from "node:test";
+import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   haltBoot,
@@ -28,7 +28,6 @@ import {
   hasHalted,
   bubbleUpgrade,
   type HaltBootInput,
-  type HaltBootResult,
   type HaltReason,
 } from "../lib/forensics/watchdog";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";

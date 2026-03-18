@@ -80,6 +80,7 @@ function statusBadge(s: PhysicalityStatus) {
     LATENT:   "◌",
     CHECKING: "⏳",
   };
+  // Safe: `s` is typed as PhysicalityStatus ("PHYSICAL"|"LATENT"|"CHECKING") — keys are a closed, type-checked union.
   // eslint-disable-next-line security/detect-object-injection
   return { color: colors[s], icon: icons[s] };
 }
@@ -197,8 +198,8 @@ export default function SovereignDashboardV3() {
 
       setModules((prev) =>
         prev.map((m) => {
-          let status: PhysicalityStatus = "LATENT";
-          let anchor: string | null = null;
+          let status: PhysicalityStatus;
+          let anchor: string | null;
 
           switch (m.id) {
             case "stripe":
@@ -238,6 +239,9 @@ export default function SovereignDashboardV3() {
               status = res.ok ? "PHYSICAL" : "LATENT";
               anchor = res.ok ? "GabrielOS:pulse-ok" : null;
               break;
+            default:
+              status = "LATENT";
+              anchor = null;
           }
 
           return { ...m, status, anchor, lastChecked: ts };
