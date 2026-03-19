@@ -54,10 +54,7 @@ function microTimestamp() {
 
 /** Ensure the watch directory exists. */
 function ensureWatchDir() {
-  if (!fs.existsSync(WATCH_DIR)) {
-    fs.mkdirSync(WATCH_DIR, { recursive: true });
-    console.log(`📁 Created watch directory: ${WATCH_DIR}`);
-  }
+  fs.mkdirSync(WATCH_DIR, { recursive: true });
 }
 
 /** Build the authenticated remote URL (PAT injected, not logged). */
@@ -142,7 +139,9 @@ fs.watch(WATCH_DIR, { recursive: true }, (eventType, filename) => {
     full,
     setTimeout(() => {
       debounceMap.delete(full);
-      if (!fs.existsSync(full)) return; // deleted — skip
+      let fullExists = false;
+      try { fs.accessSync(full); fullExists = true; } catch {}
+      if (!fullExists) return; // deleted — skip
       console.log(`🔔 Change detected: ${filename} [${eventType}]`);
       syncFiles(full);
     }, 800)

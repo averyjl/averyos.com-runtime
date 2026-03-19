@@ -501,7 +501,8 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
   const sql = `UPDATE anchor_audit_logs SET ${setClauses.join(', ')} WHERE sha512 LIKE '${sha512Prefix}%';`;
 
   try {
-    fs.writeFileSync(tmpSqlPath, sql, 'utf8');
+    const sqlfd = fs.openSync(tmpSqlPath, 'w');
+    try { fs.writeSync(sqlfd, sql); } finally { fs.closeSync(sqlfd); }
     execSync(
       `npx wrangler d1 execute ${DB_NAME} --remote --file "${tmpSqlPath}"`,
       { stdio: 'inherit' },
@@ -530,11 +531,13 @@ async function main() {
   let capsuleJson = null;
 
   if (!sha512 && CAPSULE_PATH) {
-    if (!fs.existsSync(CAPSULE_PATH)) {
+    let capsuleBuf;
+    try {
+      capsuleBuf = fs.readFileSync(CAPSULE_PATH);
+    } catch {
       fail(`Capsule file not found: ${CAPSULE_PATH}`);
       process.exit(2);
     }
-    const capsuleBuf = fs.readFileSync(CAPSULE_PATH);
     sha512       = sha512Hex(capsuleBuf);
     try { capsuleJson = JSON.parse(capsuleBuf.toString('utf8')); } catch {}
     success(`Capsule SHA-512: ${sha512.slice(0, 32)}…`);
