@@ -142,13 +142,11 @@ export async function writeAgentSummary(input: AosrInput): Promise<AosrRecord> {
     typeof process.versions?.node === "string"
   ) {
     try {
-      const { appendFileSync, mkdirSync, existsSync } = await import("fs");
+      const { appendFileSync, mkdirSync } = await import("fs");
       const { join } = await import("path");
       const logPath  = join(process.cwd(), AGENT_SUMMARY_LOG_PATH);
       const logDir   = join(process.cwd(), "logs");
-      if (!existsSync(logDir)) {
-        mkdirSync(logDir, { recursive: true });
-      }
+      mkdirSync(logDir, { recursive: true });
       appendFileSync(logPath, JSON.stringify(record) + "\n", "utf8");
     } catch (err) {
       // Non-fatal — warn but do not throw; edge callers without fs still get record.
