@@ -4,6 +4,7 @@ import AnchorBanner from "../../../components/AnchorBanner";
 import FooterBadge from "../../../components/FooterBadge";
 import {
   ACCORD_METADATA,
+  SOVEREIGN_LICENSING_ACCORD,
   LICENSE_TIERS,
   type LicenseTier,
 } from "../../../lib/compliance/licenseTiers";
@@ -186,7 +187,7 @@ function TierCard({ tier }: { tier: LicenseTier }) {
       >
         <span style={{ fontWeight: 700 }}>🔒 Zero-IP-Transfer Clause</span>
         <br />
-        {tier.zero_transfer_clause}
+        {tier.zero_transfer_clause ?? SOVEREIGN_LICENSING_ACCORD.ip_protection_clause}
       </div>
     </div>
   );

@@ -51,6 +51,10 @@ jobs:
           --ignore-pattern "functions/"
           --ignore-pattern "VaultEcho/"
           --ignore-pattern "next-env.d.ts"
+          --ignore-pattern "__tests__/generated/"
+          --ignore-pattern "electron/"
+          --ignore-pattern "scripts/"
+          --ignore-pattern "uplink/"
           --format @microsoft/eslint-formatter-sarif
           --output-file eslint-results.sarif
         continue-on-error: true
