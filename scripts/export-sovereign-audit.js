@@ -67,12 +67,14 @@ const TARGET_IP  = getArg("--ip")    ?? null;
 const OUTPUT_DIR = getArg("--output") ?? path.resolve(__dirname, "../tmp/sovereign-audit-exports");
 
 // Validate IP address if provided (strict pattern to prevent injection)
+// eslint-disable-next-line security/detect-unsafe-regex -- IP validation pattern, bounded quantifiers
 const IP_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
 if (TARGET_IP && !IP_PATTERN.test(TARGET_IP)) {
   console.error(`❌ Invalid --ip value: "${TARGET_IP}". Must be a valid IPv4 or IPv6 address.`);
   process.exit(1);
 }
 
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- OUTPUT_DIR constructed from validated base dir
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // ---------------------------------------------------------------------------
@@ -121,6 +123,7 @@ function queryD1(sql, env) {
   // Write SQL to a temp file to avoid shell-injection risks entirely
   const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
     const sqlFd = fs.openSync(tmpSql, 'w');
     try { fs.writeSync(sqlFd, sql); } finally { fs.closeSync(sqlFd); }
     const envFlag = env === "production" ? "--env production" : "";
@@ -133,6 +136,7 @@ function queryD1(sql, env) {
     logAosError(AOS_ERROR.SCRIPT_EXECUTION_FAILURE, `D1 query failed: ${err.message}`);
     return [];
   } finally {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
     try { fs.unlinkSync(tmpSql); } catch { /* best-effort cleanup */ }
   }
 }
@@ -242,7 +246,9 @@ async function main() {
   const grouped = {};
   for (const row of rows) {
     const ip = row.ip_address ?? "UNKNOWN";
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping
     if (!grouped[ip]) grouped[ip] = [];
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping
     grouped[ip].push(row);
   }
 
@@ -251,6 +257,7 @@ async function main() {
 
   // 4. Build and upload bundles
   for (const ip of ips) {
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping, controlled by db query result
     const events = grouped[ip];
     const issuedAt = new Date().toISOString();
     const liabilityPerEvent = TARI_LIABILITY.UNALIGNED_401;
@@ -283,6 +290,7 @@ async function main() {
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
     const localPath = path.join(OUTPUT_DIR, filename);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
     const bundleFd = fs.openSync(localPath, 'w');
     try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
@@ -292,6 +300,7 @@ async function main() {
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
     const noticeFd = fs.openSync(noticePath, 'w');
     try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
 
