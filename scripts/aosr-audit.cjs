@@ -300,11 +300,10 @@ function printReport(report) {
 // ── Vault append ───────────────────────────────────────────────────────────────
 function appendToVault(report) {
   try {
-    if (!fs.existsSync(LOGS_DIR)) {
-      fs.mkdirSync(LOGS_DIR, { recursive: true });
-      logAosHeal("aosr-audit.cjs", "Created logs/ directory", { action: "mkdir" });
-    }
-    fs.appendFileSync(VAULT_FILE, JSON.stringify(report) + "\n", "utf8");
+    fs.mkdirSync(LOGS_DIR, { recursive: true });
+    logAosHeal("aosr-audit.cjs", "Created logs/ directory", { action: "mkdir" });
+    const _appendFd = fs.openSync(VAULT_FILE, 'a');
+    try { fs.writeSync(_appendFd, JSON.stringify(report) + "\n"); } finally { fs.closeSync(_appendFd); }
   } catch (err) {
     logAosError(
       AOS_ERROR.D1_WRITE_FAILED,
@@ -317,11 +316,14 @@ function appendToVault(report) {
 
 // ── List mode ─────────────────────────────────────────────────────────────────
 function listReports() {
-  if (!fs.existsSync(VAULT_FILE)) {
+  let _vaultData;
+  try {
+    _vaultData = fs.readFileSync(VAULT_FILE, "utf8");
+  } catch {
     console.log(`${YELLOW}No audit records found in ${VAULT_FILE}${R}`);
     return;
   }
-  const lines = fs.readFileSync(VAULT_FILE, "utf8")
+  const lines = _vaultData
     .split("\n")
     .filter(l => l.trim());
   const recent = lines.slice(-10).reverse();
@@ -345,12 +347,15 @@ function readFile(filePath) {
   const resolved = path.isAbsolute(filePath)
     ? filePath
     : path.join(process.cwd(), filePath);
-  if (!fs.existsSync(resolved)) {
+  let _fileData;
+  try {
+    _fileData = fs.readFileSync(resolved, "utf8");
+  } catch {
     logAosError(AOS_ERROR.NOT_FOUND, "aosr-audit.cjs", `File not found: ${resolved}`, {});
     console.error(`${RED}Error: file not found: ${resolved}${R}`);
     process.exit(2);
   }
-  return fs.readFileSync(resolved, "utf8");
+  return _fileData;
 }
 
 // ── Interactive mode ──────────────────────────────────────────────────────────
@@ -423,11 +428,9 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
-      fs.writeFileSync(
-        path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile),
-        JSON.stringify(report, null, 2),
-        "utf8",
-      );
+      const _outPath = path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile);
+      const _writeFd = fs.openSync(_outPath, 'w');
+      try { fs.writeSync(_writeFd, JSON.stringify(report, null, 2)); } finally { fs.closeSync(_writeFd); }
       console.log(`${DIM}Report written to ${outFile}${R}\n`);
     } catch (err) {
       logAosError(

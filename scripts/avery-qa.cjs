@@ -195,10 +195,12 @@ const CHECKS = [
     severity:    SEVERITY.CRITICAL,
     async run() {
       const file = path.resolve(__dirname, "..", "lib", "sovereignConstants.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/sovereignConstants.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("KERNEL_SHA") && content.includes("KERNEL_VERSION")) {
         return { status: STATUS.PASS };
       }
@@ -215,10 +217,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "..", "lib", "security", "keys.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("getReconstructedSovereignKeys")) {
         return { status: STATUS.PASS };
       }
@@ -233,10 +237,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "..", "lib", "security", "keys.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("getSovereignKeysFromXml")) {
         return { status: STATUS.PASS };
       }
@@ -253,10 +259,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "..", "lib", "auth", "vaultgate.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/auth/vaultgate.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("vaultgate_credentials")) {
         return { status: STATUS.PASS };
       }
@@ -271,10 +279,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "..", "migrations", "0043_vaultgate_table.sql");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "0043_vaultgate_table.sql not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("vaultgate_credentials")) {
         return { status: STATUS.PASS };
       }
@@ -305,7 +315,9 @@ const CHECKS = [
           }
         }
       }
-      if (fs.existsSync(licensingDir)) scan(licensingDir);
+      let licensingDirExists = false;
+      try { fs.accessSync(licensingDir); licensingDirExists = true; } catch {}
+      if (licensingDirExists) scan(licensingDir);
       if (stale.length === 0) return { status: STATUS.PASS };
       return { status: STATUS.FAIL, detail: `Legacy #ffd700 still present in: ${stale.join(", ")}` };
     },
@@ -363,7 +375,9 @@ const CHECKS = [
     severity:    SEVERITY.LOW,
     async run() {
       const file = path.resolve(__dirname, "avery-qa.cjs");
-      if (fs.existsSync(file)) return { status: STATUS.PASS };
+      let fileFound = false;
+      try { fs.accessSync(file); fileFound = true; } catch {}
+      if (fileFound) return { status: STATUS.PASS };
       return { status: STATUS.FAIL, detail: "scripts/avery-qa.cjs not found" };
     },
   },
@@ -377,10 +391,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../lib/queue/logConsumerHandler.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/queue/logConsumerHandler.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("sovereignQueueHandler")) {
         return { status: STATUS.FAIL, detail: "sovereignQueueHandler export not found in logConsumerHandler.ts" };
       }
@@ -395,7 +411,9 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "patchWorkerQueue.cjs");
-      if (!fs.existsSync(file)) {
+      let fileFound = false;
+      try { fs.accessSync(file); fileFound = true; } catch {}
+      if (!fileFound) {
         return { status: STATUS.FAIL, detail: "scripts/patchWorkerQueue.cjs not found" };
       }
       return { status: STATUS.PASS };
@@ -409,10 +427,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/api/v1/jwks/route.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/api/v1/jwks/route.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("KERNEL_SHA.slice(")) {
         return { status: STATUS.FAIL, detail: "KERNEL_SHA is still being truncated in app/api/v1/jwks/route.ts" };
       }
@@ -427,10 +447,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/.well-known/jwks.json/route.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/.well-known/jwks.json/route.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (content.includes("KERNEL_SHA.slice(")) {
         return { status: STATUS.FAIL, detail: "KERNEL_SHA is still being truncated in app/.well-known/jwks.json/route.ts" };
       }
@@ -445,10 +467,12 @@ const CHECKS = [
     severity:    SEVERITY.MEDIUM,
     async run() {
       const file = path.resolve(__dirname, "../app/admin/monetization/page.tsx");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/admin/monetization/page.tsx not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       // Check for the specific STALLED REVENUE TRACKER header text
       if (content.includes("STALLED REVENUE TRACKER")) {
         return { status: STATUS.FAIL, detail: "Revenue log still shows STALLED REVENUE TRACKER — upgrade to LIVE SETTLEMENT READY" };
@@ -467,10 +491,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../lib/security/keys.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/security/keys.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("AVERYOS_PRIVATE_KEY_B64_1_OF_3")) {
         return { status: STATUS.FAIL, detail: "AVERYOS_PRIVATE_KEY_B64_1_OF_3 missing from SovereignEnv" };
       }
@@ -487,10 +513,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/api/v1/kaas/phone-home/route.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/api/v1/kaas/phone-home/route.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("ANCHORED")) {
         return { status: STATUS.FAIL, detail: "phone-home route missing ANCHORED status response" };
       }
@@ -511,10 +539,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/api/v1/alerts/route.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/api/v1/alerts/route.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("INTERNAL")) {
         return { status: STATUS.FAIL, detail: "alerts route missing INTERNAL alert type handling" };
       }
@@ -535,10 +565,12 @@ const CHECKS = [
     severity:    SEVERITY.MEDIUM,
     async run() {
       const file = path.resolve(__dirname, "../app/capsule-store/page.tsx");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/capsule-store/page.tsx not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("QA Engine")) {
         return { status: STATUS.FAIL, detail: "capsule-store page missing QA Engine product" };
       }
@@ -556,10 +588,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../lib/forensics/inventionTracker.ts");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/forensics/inventionTracker.ts not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       const requiredTypes = [".aosinv", ".aoslaw", ".vccaps", ".aosmem", ".aoscsp", ".aosvault", ".avery"];
       const missing = requiredTypes.filter(ext => !content.includes(`"${ext}"`));
       if (missing.length > 0) {
@@ -582,10 +616,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "sovereign-leak-guard.cjs");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "scripts/sovereign-leak-guard.cjs not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("PRIVATE_SOVEREIGN_EXTENSIONS")) {
         return { status: STATUS.FAIL, detail: "PRIVATE_SOVEREIGN_EXTENSIONS not found in sovereign-leak-guard.cjs" };
       }
@@ -606,10 +642,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../.gitignore");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: ".gitignore not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       const requiredPatterns = ["*.aosinv", "*.aoslaw", "*.aoscsp", "*.avery"];
       const missing = requiredPatterns.filter(p => !content.includes(p));
       if (missing.length > 0) {
@@ -628,15 +666,18 @@ const CHECKS = [
       const guardFile   = path.resolve(__dirname, "sovereign-leak-guard.cjs");
       const trackerFile = path.resolve(__dirname, "../lib/forensics/inventionTracker.ts");
 
-      if (!fs.existsSync(guardFile)) {
+      let guardContent;
+      try {
+        guardContent = fs.readFileSync(guardFile, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "scripts/sovereign-leak-guard.cjs not found" };
       }
-      if (!fs.existsSync(trackerFile)) {
+      let trackerContent;
+      try {
+        trackerContent = fs.readFileSync(trackerFile, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "lib/forensics/inventionTracker.ts not found" };
       }
-
-      const guardContent   = fs.readFileSync(guardFile, "utf8");
-      const trackerContent = fs.readFileSync(trackerFile, "utf8");
 
       // Extract private extensions from inventionTracker.ts:
       // Lines with  private: true  preceded by extension: ".xxx" in the same block.
@@ -684,10 +725,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/layout.tsx");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/layout.tsx not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes('"SoftwareApplication"')) {
         return { status: STATUS.FAIL, detail: "SoftwareApplication @type not found in app/layout.tsx" };
       }
@@ -711,10 +754,12 @@ const CHECKS = [
     severity:    SEVERITY.HIGH,
     async run() {
       const file = path.resolve(__dirname, "../app/admin/health-status/page.tsx");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/admin/health-status/page.tsx not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("AOSR")) {
         return { status: STATUS.FAIL, detail: "AOSR Summary Retrieval panel not found in admin health dashboard" };
       }
@@ -732,10 +777,12 @@ const CHECKS = [
     severity:    SEVERITY.MEDIUM,
     async run() {
       const file = path.resolve(__dirname, "../app/health/page.tsx");
-      if (!fs.existsSync(file)) {
+      let content;
+      try {
+        content = fs.readFileSync(file, "utf8");
+      } catch {
         return { status: STATUS.FAIL, detail: "app/health/page.tsx not found" };
       }
-      const content = fs.readFileSync(file, "utf8");
       if (!content.includes("ResonanceBadge")) {
         return { status: STATUS.FAIL, detail: "ResonanceBadge component not found in app/health/page.tsx" };
       }
@@ -760,11 +807,13 @@ const CHECKS = [
 
       const missing = [];
       for (const [label, file] of [["admin health", adminFile], ["public health", publicFile]]) {
-        if (!fs.existsSync(file)) {
+        let content;
+        try {
+          content = fs.readFileSync(file, "utf8");
+        } catch {
           missing.push(`${label}: file not found`);
           continue;
         }
-        const content = fs.readFileSync(file, "utf8");
         // Check for delta display: toFixed(9) or "Δ" with seconds
         if (!content.includes("toFixed(9)") && !content.includes("footerDelta") && !content.includes("PerformanceDeltaFooter")) {
           missing.push(`${label}: no 9-digit delta logic found`);
@@ -891,9 +940,10 @@ async function runQa() {
 
   if (!DRY_RUN) {
     const genDir = path.resolve(__dirname, "..", "__tests__", "generated");
-    if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+    fs.mkdirSync(genDir, { recursive: true });
     const outFile = path.join(genDir, `qa-run-${Date.now()}.json`);
-    fs.writeFileSync(outFile, JSON.stringify(record, null, 2));
+    const _qaFd = fs.openSync(outFile, 'w');
+    try { fs.writeSync(_qaFd, JSON.stringify(record, null, 2)); } finally { fs.closeSync(_qaFd); }
     console.log(`${DIM}Run record saved → ${path.relative(process.cwd(), outFile)}${R}`);
     logAosHeal("QA_COMPLETE", `avery-qa run ${runId}: ${overallStatus.toUpperCase()}`);
   }

@@ -9,7 +9,9 @@ const loadManifest = (filePath) => {
 };
 
 const buildRegistry = () => {
-  if (!fs.existsSync(manifestDir)) {
+  let manifestDirExists = false;
+  try { fs.accessSync(manifestDir); manifestDirExists = true; } catch {}
+  if (!manifestDirExists) {
     console.log("No manifest directory found.");
     return;
   }
@@ -34,7 +36,8 @@ const buildRegistry = () => {
   };
 
   const registryPath = path.join(manifestDir, "index.json");
-  fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+  const _regFd = fs.openSync(registryPath, 'w');
+  try { fs.writeSync(_regFd, JSON.stringify(registry, null, 2)); } finally { fs.closeSync(_regFd); }
   console.log(`Wrote registry with ${registry.count} capsule(s).`);
 };
 

@@ -66,18 +66,18 @@ if (inFile) {
 }
 
 // ── Ensure logs/ dir exists ───────────────────────────────────────────────────
-if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true });
-  logAosHeal("AOSR_SUMMARY", "Created logs/ directory");
-}
+fs.mkdirSync(LOGS_DIR, { recursive: true });
 
 // ── --list: print the 10 most recent summaries ────────────────────────────────
 if (doList) {
-  if (!fs.existsSync(VAULT_FILE)) {
+  let _listData;
+  try {
+    _listData = fs.readFileSync(VAULT_FILE, "utf8");
+  } catch {
     console.log("[AOSR] No summaries yet — vault file does not exist.");
     process.exit(0);
   }
-  const lines = fs.readFileSync(VAULT_FILE, "utf8").trim().split("\n").filter(Boolean);
+  const lines = _listData.trim().split("\n").filter(Boolean);
   const recent = lines.slice(-10);
   console.log(`\n⛓️⚓⛓️  AOSR — 10 Most Recent Summaries (${recent.length}/${lines.length} total)\n`);
   recent.forEach((line, i) => {
@@ -94,11 +94,14 @@ if (doList) {
 
 // ── --export: dump full file to stdout ────────────────────────────────────────
 if (doExport) {
-  if (!fs.existsSync(VAULT_FILE)) {
+  let _exportData;
+  try {
+    _exportData = fs.readFileSync(VAULT_FILE, "utf8");
+  } catch {
     console.log("[AOSR] Vault file is empty — no summaries recorded yet.");
     process.exit(0);
   }
-  const raw = fs.readFileSync(VAULT_FILE, "utf8");
+  const raw = _exportData;
   console.log(`\n⛓️⚓⛓️  AOSR EXPORT — logs/agent_summary.aosvault\n`);
   console.log(raw);
   console.log(`\n🤜🏻\n⛓️⚓⛓️`);
@@ -127,7 +130,8 @@ const record = JSON.stringify({
 });
 
 try {
-  fs.appendFileSync(VAULT_FILE, record + "\n", "utf8");
+  const _appendFd = fs.openSync(VAULT_FILE, 'a');
+  try { fs.writeSync(_appendFd, record + "\n"); } finally { fs.closeSync(_appendFd); }
   logAosHeal("AOSR_SUMMARY_WRITTEN", `Phase ${phase} summary appended → logs/agent_summary.aosvault`);
   console.log(`✅ [AOSR] Summary written — Phase ${phase} · Fingerprint: ${fingerprint}`);
   console.log(`   File: ${path.relative(REPO_ROOT, VAULT_FILE)}`);
