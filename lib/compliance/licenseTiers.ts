@@ -66,10 +66,8 @@ export interface LicenseTier {
   event_fee_usd:  number | null;
   /** Target licensees for this tier. */
   target:         string;
-  /** Capabilities granted under this tier (alias for grants; display-friendly). */
+  /** Capabilities granted under this tier. */
   capabilities:   string[];
-  /** What is granted under this tier. */
-  grants:         string[];
   /** What is explicitly excluded under this tier. */
   exclusions:     string[];
   /** Applicable statutory frameworks. */
@@ -112,17 +110,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "GabrielOS™ Firewall rule-set licensing",
       "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS rights",
     ],
-    grants: [
-      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
-      "Access to 1,017-Notch Rate Limiting protocol specifications",
-      "VaultChain™ ledger API read access for internal compliance auditing",
-      "Priority alignment support and quarterly forensic audit reports",
-      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
-      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
-    ],
-    efficiency_dividend:
-      "Tier 1 licensees receive the full 45% compute-efficiency uplift as hallucination " +
-      "elimination reduces inference-time token waste across the entire fleet.",
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing, white-labeling, or re-sale of kernel protocols",

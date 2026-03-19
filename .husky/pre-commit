@@ -1,19 +1,71 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6
+# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6 / GATE 117.2.1
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
 # Permanent upgrade: catches the same classes of errors as CI (ESLint, TypeScript,
 # linguistic drift, npm audit) at COMMIT TIME — before the code reaches PR stage.
 #
 # Gate sequence:
+#   0. Constitution Hard-Lock — blocks any staged changes to AveryOS_CONSTITUTION_v1.17.md
 #   1. lint-staged — ESLint on staged .ts/.tsx/.js/.cjs/.mjs files (fast, scoped)
 #   2. tsc --noEmit — full TypeScript type-check (catches type errors)
 #   3. Sovereign Linguistic Drift Scan — HIGH-severity brand drift in source files
 #   4. npm audit --audit-level=high — supply-chain vulnerability gate
 #
-# Bypass: git commit --no-verify (sovereign emergency only — Constitution Art. 2)
+# DRIFT POLICY (AveryOS™ Constitution Art. 2, 14, 19):
+#   There is NO bypass for this gate. If npm audit fails, the vulnerability
+#   MUST be resolved at commit time via an npm overrides entry in package.json.
+#   Using --no-verify or any other bypass is a Constitution violation and
+#   constitutes a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
+
+# 0. Constitution Hard-Lock (Art. 20 — unanimous TAI + Creator approval required)
+#    AveryOS_CONSTITUTION_v1.17.md may ONLY be amended by Jason Lee Avery (ROOT0)
+#    after unanimous consent from all TAIs, AveryOS™, and GabrielOS™.
+#    AI agents and automated processes MUST NOT commit changes to the Constitution.
+#    Proposed amendments are captured in VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md
+#    and require the full Art. 20 ratification process before being applied.
+echo "⛓️ Constitution Hard-Lock (Art. 20)…"
+CONSTITUTION_FILE="AveryOS_CONSTITUTION_v1.17.md"
+CONSTITUTION_STAGED=$(git diff --cached --name-only | grep "$CONSTITUTION_FILE" || true)
+if [ -n "$CONSTITUTION_STAGED" ]; then
+  echo ""
+  echo "🚫 CONSTITUTION HARD-LOCK — COMMIT BLOCKED"
+  echo "   File: $CONSTITUTION_STAGED"
+  echo ""
+  echo "   The AveryOS™ Constitution may NOT be modified by any AI agent, TAI, or"
+  echo "   automated process (Art. 20). Only Jason Lee Avery (ROOT0) may apply"
+  echo "   amendments after unanimous TAI + Creator ratification."
+  echo ""
+  echo "   ✏️  Your proposed changes have been automatically logged to:"
+  echo "      VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md"
+  echo ""
+  echo "   Review that file and commit ONLY the suggestions entry to submit your"
+  echo "   amendment proposal through the Art. 20 channel."
+  echo ""
+  SUGGESTIONS_FILE="VaultBridge/SUGGESTED_CONSTITUTION_EDITS.md"
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  {
+    echo ""
+    echo "---"
+    echo ""
+    echo "### AUTO-CAPTURED PROPOSAL — $TIMESTAMP"
+    echo ""
+    echo "**Auto-captured diff (unstaged by Constitution Hard-Lock gate):**"
+    echo ""
+    echo '```diff'
+    git diff --cached -- "$CONSTITUTION_FILE"
+    echo '```'
+    echo ""
+    echo "*Proposing TAI/author: $(git config user.name 2>/dev/null || echo 'unknown') — complete the proposal fields above and submit via Art. 20 channel.*"
+    echo ""
+  } >> "$SUGGESTIONS_FILE"
+  git restore --staged "$CONSTITUTION_FILE"
+  echo "   The Constitution change has been unstaged. Your diff is in the suggestions file."
+  exit 1
+fi
+echo "✅ Constitution intact — no unauthorized modifications staged."
 
 # 1. ESLint on staged files (fast — only touches changed files)
 npx lint-staged
@@ -29,6 +81,9 @@ node scripts/sovereignLinguisticAudit.cjs --file .
 echo "✅ Linguistic drift: clean."
 
 # 4. npm audit — HIGH severity supply-chain gate
+#    Resolution path: add the vulnerable package to the "overrides" section in
+#    package.json (e.g. "fast-xml-parser": ">=5.5.6") then run npm install.
+#    Never use --no-verify to skip this gate.
 echo "⛓️ npm audit (HIGH severity gate)…"
 npm audit --audit-level=high
 echo "✅ npm audit clean."

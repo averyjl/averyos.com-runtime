@@ -1,31 +1,22 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — GATE 116.7
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
-# Design-stage upgrade: catches the same classes of ESLint security errors that the
-# GitHub Advanced Security bot looks for — BEFORE the code reaches origin.
-#
-# Why this matters: the GitHub Copilot auto-fix bot watches for CodeQL/ESLint SARIF
-# alerts and "fixes" them by deleting the offending code. This gate stops the root
-# cause — broken code reaching CI and generating SARIF alerts — at push time, so
-# there is nothing for the bot to auto-fix.
+# Design-Stage Security Gate: runs the full ESLint suite before every push
+# to prevent SARIF alerts from reaching the origin repository and triggering
+# unauthorized bot "fixes" (ref: PR #360 Bot-Corruption Event forensic audit).
 #
 # Gate sequence:
-#   1. Full ESLint scan (all JS/TS, all extensions) — catches security warnings
-#      across app/, lib/, components/, pages/, middleware.ts that `next lint`
-#      misses. Uses --quiet so only *errors* fail; warnings are auditable via
-#      the SARIF workflow but do not block pushes.
-#   2. TypeScript type-check — catches duplicate identifiers, missing types,
-#      and other structural errors before they reach CI and generate CodeQL alerts.
+#   1. npm run lint:full — full ESLint sweep across all TS/JS source files
 #
-# Bypass: git push --no-verify (sovereign emergency only — Constitution Art. 2)
+# DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
+#   There is NO bypass for this gate. If lint fails, the issue MUST be resolved
+#   before pushing. Using --no-verify is a Constitution violation and constitutes
+#   a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
 
-echo "⛓️ Pre-push ESLint security gate…"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Lint Gate — GATE 117.1.4"
+echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
-echo "✅ ESLint security gate clean."
-
-echo "⛓️ Pre-push TypeScript gate…"
-npx tsc --noEmit
-echo "✅ TypeScript gate clean."
+echo "✅ Full lint: clean — push cleared."

@@ -10,6 +10,10 @@
 
 ### `generateForensicAnalysis` *(function)*
 
+### `cacheAveryArchitecture` *(function)*
+
+### `generateWithCache` *(function)*
+
 ### `GEMINI_MODEL_PRO` *(constant)*
 
 ### `GEMINI_MODEL_FLASH` *(constant)*
@@ -29,6 +33,8 @@
 ### `GeminiResponse` *(interface)*
 
 ### `GeminiResult` *(interface)*
+
+### `CachedContentMeta` *(interface)*
 
 ---
 

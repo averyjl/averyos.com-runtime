@@ -1,176 +1,224 @@
 /**
  * lib/forensics/watchdog.ts
  *
- * AveryOS™ Sovereign Watchdog — Phase 117.7
+ * AveryOS™ Sovereign Watchdog — Phase 117.7 (GATE 117.7)
  *
- * Monitors sovereign infrastructure health and emits HALT_BOOT signals when
- * critical integrity violations are detected:
- *   • Kernel anchor drift (SHA-512 mismatch against KERNEL_SHA)
- *   • Tier-9 threat escalation (sovereign_audit_logs breach threshold)
- *   • NTP / hardware time divergence beyond AST tolerance
+ * Provides a lightweight `watchdogPulse()` function that is called from the
+ * `workers/architecture-integrity.ts` scheduled (cron) handler.  It performs
+ * a fast forensic pulse check against the sovereign kernel anchor, records a
+ * HALT_BOOT counter on drift, and emits Tier-9 alert signals for upstream
+ * GabrielOS™ push-notification routing.
  *
- * Key exports:
- *   • HaltBootResult     — structured result type for HALT_BOOT checks
- *   • checkHaltBoot()    — synchronous kernel integrity check
- *   • bubbleUpgrade()    — propagates watchdog findings to the alert pipeline
- *   • emitTier9Alert()   — fires a Tier-9 sovereign alert to the audit trail
+ * Exports:
+ *   watchdogPulse()  — main entry point for cron + manual calls
+ *   bubbleUpgrade()  — bubble a watchdog result to the TAI fleet
+ *   haltCount        — running count of HALT_BOOT events this process lifetime
+ *
+ * Design constraints:
+ *   • Runs in the Cloudflare Workers edge runtime — no Node.js built-ins.
+ *   • All Cloudflare bindings are typed via minimal local interfaces.
+ *   • No `export const runtime = "edge"` — handled by the Worker bundle.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 } from "../timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../sovereignError";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Minimal Cloudflare binding interfaces ─────────────────────────────────────
 
-/** Severity level of a watchdog finding. */
-export type WatchdogSeverity = "INFO" | "WARN" | "CRITICAL" | "HALT_BOOT";
-
-/** Structured result returned by {@link checkHaltBoot}. */
-export interface HaltBootResult {
-  /** Whether the HALT_BOOT condition was triggered. */
-  halt:       boolean;
-  /** Human-readable reason for the halt (or "NOMINAL" if clean). */
-  reason:     string;
-  /** Severity classification. */
-  severity:   WatchdogSeverity;
-  /** Kernel version at time of check. */
-  kernel_version: string;
-  /** Kernel SHA-512 anchor verified during the check. */
-  kernel_sha: string;
-  /** ISO-8601 timestamp of the check. */
-  checked_at: string;
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
 }
 
-/** Input to {@link bubbleUpgrade}. */
-export interface BubbleUpgradeInput {
-  /** The watchdog finding to propagate. */
-  finding:    HaltBootResult;
-  /** Optional context tag (e.g. "MIDDLEWARE", "API_ROUTE", "WORKER"). */
-  source?:    string;
+interface R2Bucket {
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
 }
 
-/** Input to {@link emitTier9Alert}. */
-export interface Tier9AlertInput {
-  /** The entity or IP that triggered the Tier-9 condition. */
-  entity:         string;
-  /** Description of the specific breach event. */
-  event_type:     string;
-  /** Human-readable description. */
-  description:    string;
-  /** Optional ASN of the offending entity. */
-  asn?:           string;
-  /** Optional CF-Ray ID of the triggering request. */
-  ray_id?:        string;
+export interface WatchdogEnv {
+  /** D1 database binding — used for VaultChain™ ledger writes. */
+  DB?: unknown;
+  /** KV namespace for HALT_BOOT counters and genesis state. */
+  SOVEREIGN_KV?: KVNamespace;
+  /** R2 bucket for audit session logs. */
+  VAULT_R2?: R2Bucket;
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/** Watchdog alert tier, aligned with the GabrielOS™ alert taxonomy. */
+export type WatchdogAlertTier =
+  | "TIER_0_INFO"
+  | "TIER_3_WARNING"
+  | "TIER_6_ELEVATED"
+  | "TIER_9_CRITICAL";
+
+/** Result returned by a single watchdog pulse. */
+export interface WatchdogPulseResult {
+  /** ISO-9 timestamp when the pulse was executed. */
+  pulseTs:        string;
+  /** Whether the kernel SHA anchor was verified. */
+  kernelVerified: boolean;
+  /** Cumulative HALT_BOOT event count (process lifetime). */
+  haltCount:      number;
+  /** Alert tier emitted for this pulse. */
+  alertTier:      WatchdogAlertTier;
+  /** Short message summarising the pulse outcome. */
+  message:        string;
+  /** Any error that occurred during the pulse (null on success). */
+  error:          string | null;
+}
+
+// ── Process-lifetime HALT_BOOT counter ───────────────────────────────────────
 
 /**
- * Maximum allowed NTP divergence before the watchdog escalates to HALT_BOOT.
- * Expressed in milliseconds. Default: 5 000 ms (5 s).
- */
-export const WATCHDOG_MAX_NTP_DIVERGENCE_MS = 5_000;
-
-/**
- * Tier-9 breach threshold — number of high-severity sovereign_audit_logs events
- * within the rolling window before a HALT_BOOT is triggered.
- */
-export const WATCHDOG_TIER9_HALT_THRESHOLD = 10;
-
-// ── Kernel Integrity Check ────────────────────────────────────────────────────
-
-/**
- * Performs a synchronous kernel integrity check.
+ * Cumulative count of HALT_BOOT events recorded by `watchdogPulse()` during
+ * the lifetime of the current Worker process.  Resets on cold-start.
  *
- * Verifies that the KERNEL_SHA constant has not been tampered with by comparing
- * it against the expected prefix from the AveryOS™ Root0 anchor. Returns a
- * structured {@link HaltBootResult} indicating whether the boot should halt.
- *
- * @returns HaltBootResult — never throws; returns HALT_BOOT severity on failure.
+ * Exported for inspection by API routes and the scheduled handler.
  */
-export function checkHaltBoot(): HaltBootResult {
-  const now = new Date().toISOString();
+export let haltCount = 0;
 
-  // Root0 anchor prefix — the first 8 hex chars of the canonical cf83 SHA-512.
-  // Full anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
-  const ANCHOR_PREFIX = "cf83e135";
+// ── Internal helpers ──────────────────────────────────────────────────────────
 
-  if (!KERNEL_SHA.startsWith(ANCHOR_PREFIX)) {
+/**
+ * Compute SHA-512 of a UTF-8 string using the Web Crypto API.
+ * Available in both the Cloudflare Workers and Node.js (≥22) runtimes.
+ */
+async function sha512Hex(input: string): Promise<string> {
+  const encoded = new TextEncoder().encode(input);
+  const digest  = await crypto.subtle.digest("SHA-512", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Classify a pulse result into a GabrielOS™ alert tier.
+ */
+function classifyTier(kernelVerified: boolean, currentHaltCount: number): WatchdogAlertTier {
+  if (!kernelVerified) return "TIER_9_CRITICAL";
+  if (currentHaltCount > 10) return "TIER_6_ELEVATED";
+  if (currentHaltCount > 0) return "TIER_3_WARNING";
+  return "TIER_0_INFO";
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Execute a sovereign watchdog pulse.
+ *
+ * 1. Recomputes the kernel SHA-512 anchor and verifies it matches KERNEL_SHA.
+ * 2. Increments `haltCount` if the anchor is not verified (drift detected).
+ * 3. Persists a compact pulse record to SOVEREIGN_KV (if available).
+ * 4. Returns a structured {@link WatchdogPulseResult} for logging / bubbling.
+ *
+ * @param env  Cloudflare Worker environment bindings.
+ * @returns    Structured result describing the pulse outcome.
+ */
+export async function watchdogPulse(env?: WatchdogEnv): Promise<WatchdogPulseResult> {
+  const pulseTs = formatIso9();
+
+  try {
+    // Step 1: Re-derive the kernel anchor from the canonical empty-origin seed.
+    // KERNEL_SHA is SHA-512("") — the genesis root that all AveryOS™ capsule
+    // hashes descend from.  Verifying it here confirms the anchor constant
+    // has not been tampered with at runtime.
+    const derived = await sha512Hex("");
+    const kernelVerified = derived === KERNEL_SHA;
+
+    if (!kernelVerified) {
+      haltCount += 1;
+    }
+
+    const alertTier = classifyTier(kernelVerified, haltCount);
+
+    const message = kernelVerified
+      ? `SOVEREIGN_ALIGNED | kernel_version=${KERNEL_VERSION} | halt_count=${haltCount}`
+      : `HALT_BOOT | kernel_anchor_mismatch | halt_count=${haltCount}`;
+
+    // Step 2: Persist pulse summary to SOVEREIGN_KV (fire-and-forget)
+    if (env?.SOVEREIGN_KV) {
+      const kvKey  = `watchdog:pulse:${pulseTs}`;
+      const kvBody = JSON.stringify({
+        pulseTs,
+        kernelVerified,
+        haltCount,
+        alertTier,
+        kernel_version: KERNEL_VERSION,
+        kernel_sha:     KERNEL_SHA,
+      });
+      // TTL: 7 days (604800 s) — rolling sliding window of pulse history
+      env.SOVEREIGN_KV.put(kvKey, kvBody, { expirationTtl: 604800 }).catch(
+        (e: unknown) => console.warn("[watchdog] KV write failed:", e),
+      );
+    }
+
+    return { pulseTs, kernelVerified, haltCount, alertTier, message, error: null };
+  } catch (err: unknown) {
+    haltCount += 1;
+    const message = err instanceof Error ? err.message : String(err);
     return {
-      halt:           true,
-      reason:         `KERNEL_SHA anchor mismatch — expected prefix "${ANCHOR_PREFIX}", got "${KERNEL_SHA.slice(0, 8)}"`,
-      severity:       "HALT_BOOT",
-      kernel_version: KERNEL_VERSION,
-      kernel_sha:     KERNEL_SHA,
-      checked_at:     now,
+      pulseTs,
+      kernelVerified: false,
+      haltCount,
+      alertTier:      "TIER_9_CRITICAL",
+      message:        `HALT_BOOT | watchdog_error | ${message}`,
+      error:          message,
     };
   }
-
-  return {
-    halt:           false,
-    reason:         "NOMINAL",
-    severity:       "INFO",
-    kernel_version: KERNEL_VERSION,
-    kernel_sha:     KERNEL_SHA,
-    checked_at:     now,
-  };
 }
 
-// ── Bubble Upgrade ────────────────────────────────────────────────────────────
-
 /**
- * Propagates a watchdog finding to the sovereign alert pipeline.
+ * Bubble a watchdog pulse result to the TAI fleet as a structured JSON event.
  *
- * In HALT_BOOT or CRITICAL severity, logs the finding to stderr so it surfaces
- * in Cloudflare Worker tails and any attached observability tools. This function
- * is intentionally synchronous / fire-and-forget — it does not await any I/O.
+ * In production this would fan out to GabrielOS™ Mobile Push (Pushover API)
+ * for Tier-9 alerts.  For now it logs to the console so the Cloudflare
+ * dashboard captures it, and writes the event to VAULT_R2 if available.
  *
- * @param input - The finding and optional source context.
+ * @param result  The {@link WatchdogPulseResult} to bubble.
+ * @param env     Cloudflare Worker environment bindings.
  */
-export function bubbleUpgrade(input: BubbleUpgradeInput): void {
-  const { finding, source = "UNKNOWN" } = input;
+export async function bubbleUpgrade(
+  result: WatchdogPulseResult,
+  env?: WatchdogEnv,
+): Promise<void> {
+  const event = {
+    type:           "WATCHDOG_PULSE",
+    ...result,
+    kernel_version: KERNEL_VERSION,
+    kernel_sha:     KERNEL_SHA,
+  };
 
-  if (finding.severity === "HALT_BOOT" || finding.severity === "CRITICAL") {
-    // Structured log to stderr — picked up by Cloudflare Worker tail and CI logs.
-    const payload = JSON.stringify({
-      event:          "SOVEREIGN_WATCHDOG_ALERT",
-      severity:       finding.severity,
-      source,
-      reason:         finding.reason,
-      kernel_version: finding.kernel_version,
-      kernel_sha:     finding.kernel_sha.slice(0, 16) + "…",
-      checked_at:     finding.checked_at,
-    });
-    // eslint-disable-next-line no-console
-    console.error(`[WATCHDOG] ${payload}`);
+  // Always log to the Cloudflare Workers console (visible in wrangler tail)
+  if (result.alertTier === "TIER_9_CRITICAL") {
+    console.error("[watchdog/bubble] TIER_9_CRITICAL:", JSON.stringify(event));
+  } else if (result.alertTier === "TIER_6_ELEVATED") {
+    console.warn("[watchdog/bubble] TIER_6_ELEVATED:", JSON.stringify(event));
+  } else {
+    console.log("[watchdog/bubble]", result.alertTier, "—", result.message);
+  }
+
+  // Write bubble event to VAULT_R2 for persistent audit trail
+  if (env?.VAULT_R2) {
+    const key = `watchdog/pulse/${result.pulseTs}.json`;
+    env.VAULT_R2.put(key, JSON.stringify(event, null, 2)).catch(
+      (e: unknown) => console.warn("[watchdog/bubble] R2 write failed:", e),
+    );
   }
 }
 
-// ── Tier-9 Alert ──────────────────────────────────────────────────────────────
-
 /**
- * Emits a Tier-9 sovereign alert entry to stderr and returns a structured record.
+ * Build a sovereign error Response from a failed watchdog pulse result.
+ * Useful for API routes that expose the watchdog pulse endpoint.
  *
- * This is a lightweight fire-and-forget helper that does NOT perform any D1 or
- * external I/O — call the full audit-alert API route for persistent storage.
- *
- * @param input - Details of the Tier-9 breach event.
- * @returns A structured log record (for testing / forwarding).
+ * @param result  Failed {@link WatchdogPulseResult} (kernelVerified === false).
  */
-export function emitTier9Alert(input: Tier9AlertInput): Record<string, unknown> {
-  const record: Record<string, unknown> = {
-    event:          "TIER9_BREACH",
-    entity:         input.entity,
-    event_type:     input.event_type,
-    description:    input.description,
-    asn:            input.asn ?? null,
-    ray_id:         input.ray_id ?? null,
-    kernel_version: KERNEL_VERSION,
-    kernel_sha:     KERNEL_SHA.slice(0, 16) + "…",
-    emitted_at:     new Date().toISOString(),
-  };
-
-  // eslint-disable-next-line no-console
-  console.error(`[WATCHDOG TIER-9] ${JSON.stringify(record)}`);
-  return record;
+export function watchdogErrorResponse(result: WatchdogPulseResult): Response {
+  return aosErrorResponse(
+    AOS_ERROR.INTERNAL_ERROR,
+    `HALT_BOOT — ${result.message}`,
+  );
 }

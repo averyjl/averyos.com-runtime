@@ -1407,6 +1407,12 @@ export async function middleware(request: NextRequest) {
   const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   // Phase 97.3 v2 — WebGL entropy header — set by client-side SDK when GPU WebGL context is available
   const webglFp            = request.headers.get('x-averyos-webgl-fp') ?? '';
+  // Gate 5 — Biometric Identity Shield (Phase 116.5.1): timing + navigator fingerprints
+  const timingFp           = request.headers.get('x-averyos-timing-fp') ?? '';
+  const navFp              = request.headers.get('x-averyos-nav-fp') ?? '';
+  const cookieHeader       = request.headers.get('cookie') ?? '';
+  // Derive the host for same-site referer check (use Host header)
+  const hostHeader         = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;

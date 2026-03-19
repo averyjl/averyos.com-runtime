@@ -67,7 +67,7 @@
     "isomorphic-dompurify": "2.36.0",
     "katex": "^0.16.35",
     "marked": "17.0.2",
-    "next": "15.5.13",
+    "next": "16.1.7",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "^3.7.0",

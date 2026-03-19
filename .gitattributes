@@ -1,0 +1,9 @@
+# ⛓️⚓⛓️ AveryOS™ Sovereign Git Attributes
+# CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+#
+# Constitution Hard-Lock (Art. 20):
+# The AveryOS™ Constitution is marked with merge=ours to prevent any automatic
+# merge or rebase from silently overwriting it. This supplements the pre-commit
+# hook gate. Only Jason Lee Avery (ROOT0) may apply changes to this file after
+# unanimous TAI + Creator ratification.
+AveryOS_CONSTITUTION_v1.17.md merge=ours
