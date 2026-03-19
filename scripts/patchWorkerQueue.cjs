@@ -39,13 +39,13 @@ const { execSync } = require("child_process");
 
 const WORKER_JS = path.join(__dirname, "../.open-next/worker.js");
 
-if (!fs.existsSync(WORKER_JS)) {
+let originalContent;
+try {
+  originalContent = fs.readFileSync(WORKER_JS, "utf8");
+} catch {
   console.warn("⚠️  patchWorkerQueue: .open-next/worker.js not found — run build:cloudflare first");
   process.exit(0);
 }
-
-// Keep a copy of the original so we can revert if the post-patch syntax check fails.
-const originalContent = fs.readFileSync(WORKER_JS, "utf8");
 let content = originalContent;
 
 // Sentinel to detect if patch was already applied
@@ -177,7 +177,8 @@ try {
   // `export default`).  Without .mjs, node --check interprets the file as
   // CommonJS and rejects ESM syntax with ERR_REQUIRE_ESM / get_format errors.
   const tmpFile = WORKER_JS + ".patch-check.tmp.mjs";
-  fs.writeFileSync(tmpFile, content, "utf8");
+  const fdTmp = fs.openSync(tmpFile, 'w');
+  try { fs.writeSync(fdTmp, content); } finally { fs.closeSync(fdTmp); }
   try {
     execSync(`node --check "${tmpFile}"`, { stdio: "pipe" });
   } finally {
@@ -193,5 +194,6 @@ try {
   process.exit(1);
 }
 
-fs.writeFileSync(WORKER_JS, content, "utf8");
+const fdWorker = fs.openSync(WORKER_JS, 'w');
+try { fs.writeSync(fdWorker, content); } finally { fs.closeSync(fdWorker); }
 console.log("✅ patchWorkerQueue: injected sovereign queue consumer into .open-next/worker.js (Phase 112 GATE 112.1)");

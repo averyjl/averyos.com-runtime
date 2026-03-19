@@ -27,10 +27,7 @@ function run(cmd) {
 }
 
 // ── Ensure pulse log directory exists ────────────────────────────────────────
-if (!fs.existsSync(PULSE_DIR)) {
-  fs.mkdirSync(PULSE_DIR, { recursive: true });
-  console.log(`📁 Created pulse log directory: ${PULSE_DIR}`);
-}
+fs.mkdirSync(PULSE_DIR, { recursive: true });
 
 // ── Write heartbeat entry ─────────────────────────────────────────────────────
 const ts = new Date().toISOString();
@@ -44,7 +41,8 @@ const entry = {
 
 const filename = `pulse-${ts.replace(/[:.]/g, '-')}.json`;
 const filepath = path.join(PULSE_DIR, filename);
-fs.writeFileSync(filepath, JSON.stringify(entry, null, 2) + '\n');
+const fdPulse = fs.openSync(filepath, 'w');
+try { fs.writeSync(fdPulse, JSON.stringify(entry, null, 2) + '\n'); } finally { fs.closeSync(fdPulse); }
 console.log(`⚓ Sovereign Pulse recorded: ${filename}`);
 
 // ── Commit and push ───────────────────────────────────────────────────────────

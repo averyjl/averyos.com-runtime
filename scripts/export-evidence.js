@@ -218,13 +218,6 @@ function generateSettlementLetter({
     "../docs/legal/Settlement_Letter_Template.md"
   );
 
-  if (!fs.existsSync(templatePath)) {
-    console.warn(
-      `⚠️  Settlement Letter Template not found: ${templatePath} — skipping letter generation.`
-    );
-    return null;
-  }
-
   // Build TARI™ breakdown summary
   const tariBreakdownLines = Object.entries(tariBreakdown)
     .map(([eventType, amount]) => {
@@ -267,7 +260,15 @@ function generateSettlementLetter({
     minimumFractionDigits: 2,
   });
 
-  let letter = fs.readFileSync(templatePath, "utf-8");
+  let letter;
+  try {
+    letter = fs.readFileSync(templatePath, "utf-8");
+  } catch {
+    console.warn(
+      `⚠️  Settlement Letter Template not found: ${templatePath} — skipping letter generation.`
+    );
+    return null;
+  }
 
   letter = letter
     .replaceAll("[PULSE_SHA_512]", pulseHash)
@@ -285,7 +286,8 @@ function generateSettlementLetter({
 
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
   const settlementFilePath = path.join(outputDir, settlementFileName);
-  fs.writeFileSync(settlementFilePath, letter, "utf-8");
+  const fdSettlement = fs.openSync(settlementFilePath, 'w');
+  try { fs.writeSync(fdSettlement, letter); } finally { fs.closeSync(fdSettlement); }
   return settlementFilePath;
 }
 
@@ -463,12 +465,11 @@ async function main() {
   const fileName = `EVIDENCE_BUNDLE_${safeIp}_${safeTs}.aoscap`;
 
   const outputDir = path.resolve(output);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  fs.mkdirSync(outputDir, { recursive: true });
 
   const filePath = path.join(outputDir, fileName);
-  fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), "utf-8");
+  const fdBundle = fs.openSync(filePath, 'w');
+  try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
 
   // 7. Generate Settlement Notice letter from template
   const settlementPath = generateSettlementLetter({

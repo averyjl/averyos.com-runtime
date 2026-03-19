@@ -156,21 +156,21 @@ function main() {
   const logsDir = path.join(enforcementDir, "logs");
 
   [enforcementDir, evidenceDir, noticesDir, logsDir].forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    fs.mkdirSync(dir, { recursive: true });
   });
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
   const bundlePath = path.join(evidenceDir, `${bundle.bundleId}.json`);
-  fs.writeFileSync(bundlePath, JSON.stringify(bundle, null, 2));
+  const fdBundle = fs.openSync(bundlePath, 'w');
+  try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
   const noticePath = path.join(noticesDir, `${notice.noticeId}.json`);
-  fs.writeFileSync(noticePath, JSON.stringify(notice, null, 2));
+  const fdNotice = fs.openSync(noticePath, 'w');
+  try { fs.writeSync(fdNotice, JSON.stringify(notice, null, 2)); } finally { fs.closeSync(fdNotice); }
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
   // Add to enforcement log
@@ -181,11 +181,14 @@ function main() {
   const logPath = path.join(logsDir, "enforcement-log.json");
 
   let events = [];
-  if (fs.existsSync(logPath)) {
+  try {
     events = JSON.parse(fs.readFileSync(logPath, "utf-8"));
+  } catch {
+    events = [];
   }
   events.push(event);
-  fs.writeFileSync(logPath, JSON.stringify(events, null, 2));
+  const fdLog = fs.openSync(logPath, 'w');
+  try { fs.writeSync(fdLog, JSON.stringify(events, null, 2)); } finally { fs.closeSync(fdLog); }
   console.log(`✅ Event added to log: ${event.id}`);
 
   console.log("\n📋 Summary:");
