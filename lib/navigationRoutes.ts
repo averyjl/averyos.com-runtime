@@ -56,8 +56,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
-  // ── Books ───────────────────────────────────────────────────────────────────
-  { path: "/miracle-health-habits", label: "Miracle Health Habits", icon: "📚" },
   // ── Admin (VaultGate-protected) ─────────────────────────────────────────────
   // PERMANENT UPGRADE: Add new admin pages here — NavBar, Sidebar, Drawer, and
   // the /admin dashboard all pick them up automatically from this list.

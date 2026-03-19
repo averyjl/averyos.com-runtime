@@ -67,8 +67,18 @@ const ENTROPY_CANVAS_FP         = 10; // canvas fingerprint present (Phase 82 ha
 // to a non-empty value when a real WebGL context (GPU renderer) is accessible.
 // Bots running in headless/CPU-only environments lack a WebGL GPU renderer string.
 const ENTROPY_WEBGL_FP          = 10; // WebGL entropy signal present (Biometric Shield v2)
-// Total possible score is now 110; threshold unchanged at 50 (easier to meet for real browsers)
+// Gate 5 — Cookie presence: return-visit browsers carry session cookies.
+// Automated scrapers and first-run bots almost never present a cookie header.
+const ENTROPY_COOKIE_PRESENT    = 8;  // Cookie header present (GATE 5 Biometric Shield v3)
+// Gate 5 — Referer/Origin entropy: real in-site navigation carries a matching
+// referer (sec-fetch-site: same-origin or same-site), bots often omit this.
+const ENTROPY_REFERER_SAME_SITE = 8;  // Referer/sec-fetch-site same-origin signal (GATE 5)
+// Total possible score is now 126; threshold unchanged at 50 (easier to meet for real browsers)
 const ENTROPY_BROWSER_THRESHOLD = 50; // minimum score to classify as legitimate browser
+// Gate 5 — High-entropy override threshold for AI-pattern UA override.
+// When a UA matches AI_BOT_PATTERNS but entropy ≥ this value, the visitor is
+// treated as a human developer/tool with a bot-adjacent UA, not a scraper bot.
+const ENTROPY_AI_OVERRIDE_THRESHOLD = 90; // must score very high to override AI UA match
 
 // Full kernel anchor — imported from sovereignConstants for single source of truth
 // Truncated for display purposes - see LICENSE.md for full hash
@@ -1396,6 +1406,12 @@ export async function middleware(request: NextRequest) {
   const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   // Phase 97.3 v2 — WebGL entropy header — set by client-side SDK when GPU WebGL context is available
   const webglFp            = request.headers.get('x-averyos-webgl-fp') ?? '';
+  // Gate 5 — Biometric Identity Shield (Phase 116.5.1): timing + navigator fingerprints
+  const timingFp           = request.headers.get('x-averyos-timing-fp') ?? '';
+  const navFp              = request.headers.get('x-averyos-nav-fp') ?? '';
+  const cookieHeader       = request.headers.get('cookie') ?? '';
+  // Derive the host for same-site referer check (use Host header)
+  const hostHeader         = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -1415,13 +1431,22 @@ export async function middleware(request: NextRequest) {
   if (canvasFp && canvasFp.length >= 8) entropyScore += ENTROPY_CANVAS_FP;
   // +ENTROPY_WEBGL_FP for Phase 97.3 v2 WebGL entropy signal (GPU renderer string present)
   if (webglFp && webglFp.length >= 4) entropyScore += ENTROPY_WEBGL_FP;
+  // Gate 5 — +ENTROPY_COOKIE_PRESENT for Cookie header presence (return-visit browser signal)
+  if (request.headers.has('cookie')) entropyScore += ENTROPY_COOKIE_PRESENT;
+  // Gate 5 — +ENTROPY_REFERER_SAME_SITE for same-origin referral (genuine in-site navigation)
+  if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') entropyScore += ENTROPY_REFERER_SAME_SITE;
   // ─────────────────────────────────────────────────────────────────────────
 
   // Consider it a browser if:
   // - Has browser pattern in UA (even if also has AI pattern, browser wins), OR
   // - Has MIN_BROWSER_HEADERS_THRESHOLD+ headers (fallback for missing UA or mobile browsers), OR
   // - Entropy score ≥ ENTROPY_BROWSER_THRESHOLD (behavioral fingerprint consistent with a real browser)
-  const isBrowser = hasBrowserPattern || browserHeaderCount >= MIN_BROWSER_HEADERS_THRESHOLD || entropyScore >= ENTROPY_BROWSER_THRESHOLD;
+  // Gate 5 — Entropy override for AI-pattern UAs.
+  // If the UA matches AI_BOT_PATTERNS but the entropy score is very high
+  // (ENTROPY_AI_OVERRIDE_THRESHOLD), the visitor is most likely a human
+  // developer using an API/tool with a bot-adjacent User-Agent — not a scraper.
+  const aiPatternOverriddenByEntropy = hasAIPattern && entropyScore >= ENTROPY_AI_OVERRIDE_THRESHOLD;
+  const isBrowser = hasBrowserPattern || browserHeaderCount >= MIN_BROWSER_HEADERS_THRESHOLD || entropyScore >= ENTROPY_BROWSER_THRESHOLD || aiPatternOverriddenByEntropy;
   
   // 3. ALLOW: Standard browser traffic (all HTTP methods for legitimate use)
   // Allows GET for viewing content, POST for payment forms, etc.

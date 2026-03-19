@@ -22,6 +22,13 @@
  *   ANCHOR        — Periodic SHA-512 checkpoint (e.g. per BTC block).
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+ *
+ * GATE 117.2.4 — R2 Mirror Extension:
+ *   appendRecord(), writeBlock(), and bootstrapGenesis() accept an optional
+ *   R2Bucket `mirror` parameter.  When provided, a copy of the block JSON is
+ *   written to R2 under the key:
+ *     averyos-vaultchain/<block_sha512>.json
+ *   This creates a dual-redundant ledger: D1 (relational) + R2 (artifact).
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
@@ -115,6 +122,36 @@ interface D1Database {
 
 /** Exported alias for D1Database — use in route CloudflareEnv interfaces. */
 export type VaultChainDB = D1Database;
+
+// ── R2 Mirror Types (GATE 117.2.4) ────────────────────────────────────────────
+
+/** Minimal R2Bucket interface required for VaultChain™ mirroring. */
+export interface VaultChainR2Bucket {
+  put(key: string, value: string): Promise<void>;
+}
+
+/** R2 key prefix for VaultChain artifact mirrors. */
+export const VAULTCHAIN_R2_PREFIX = "averyos-vaultchain/";
+
+/**
+ * Write a VaultChain block artifact to R2 for dual-redundant storage.
+ * Key format: averyos-vaultchain/<block_sha512>.json
+ *
+ * Non-blocking — errors are logged but do not throw (D1 is the primary store).
+ */
+export async function mirrorBlockToR2(
+  bucket:    VaultChainR2Bucket,
+  blockSha:  string,
+  payload:   Record<string, unknown>,
+): Promise<void> {
+  const key  = `${VAULTCHAIN_R2_PREFIX}${blockSha}.json`;
+  const body = JSON.stringify({ ...payload, r2_mirrored_at: formatIso9() }, null, 2);
+  try {
+    await bucket.put(key, body);
+  } catch (err) {
+    console.warn(`[vaultChain] R2 mirror failed for ${key}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 /** Input for the general-purpose {@link writeBlock} function. */
 export interface WriteBlockInput {
@@ -407,6 +444,7 @@ export async function countBlocks(db: D1Database): Promise<number> {
 export async function writeBlock(
   db: D1Database,
   input: WriteBlockInput,
+  mirror?: VaultChainR2Bucket,
 ): Promise<number | null> {
   const ts       = formatIso9();
   const prevSha  = await latestBlockSha(db);
@@ -435,5 +473,22 @@ export async function writeBlock(
     input.ref_block_id,  // corrects_id (null for non-CORRECTION blocks)
   ).run();
 
-  return result.meta?.last_row_id ?? null;
+  const rowId = result.meta?.last_row_id ?? null;
+
+  // GATE 117.2.4 — mirror to R2 if bucket provided
+  if (mirror) {
+    await mirrorBlockToR2(mirror, blockSha, {
+      id:             rowId,
+      type:           input.block_type,
+      block_sha512:   blockSha,
+      prev_sha512:    prevSha,
+      created_at:     ts,
+      kernel_version: KERNEL_VERSION,
+      payload:        input.payload,
+      ref_block_id:   input.ref_block_id,
+      author:         input.author,
+    });
+  }
+
+  return rowId;
 }

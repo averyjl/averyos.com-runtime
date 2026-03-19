@@ -1,12 +1,24 @@
 /**
  * lib/handshake.ts
  *
- * AveryOS™ Sovereign Connection Handshake Guard
+ * AveryOS™ Sovereign Connection Handshake Guard — Phase 116.8.2
  *
  * Ensures that ALL external service calls (Stripe, Cloudflare APIs, Firebase,
  * any third-party endpoint) receive a confirmed 2xx/3xx response before being
  * considered successful. A non-response, timeout, network error, or 4xx/5xx
  * response is treated as a FAILED connection — never assumed to be success.
+ *
+ * Phase 116.8.2 upgrade — ACTIVE_HANDSHAKE mode:
+ *   Any connection/check/handshake now operates in ACTIVE_HANDSHAKE mode
+ *   (inspired by the SubmitStripeLicense tool pattern). The mode treats the
+ *   connection as a cryptographic event to be verified, not a static declaration:
+ *     • `gate_requirement: HTTP_200` — only confirmed HTTP responses pass.
+ *     • `on_fail: LOG_AND_PROCEED` — non-blocking failures are logged and
+ *       routed to GabrielOS_Watchdog without halting the request.
+ *     • `stripe_telemetry_capture: VERBOSE` — captures headers including
+ *       cf-ray, server, x-stripe-routing.
+ *     • `report_error_codes: [401, 403, 404, 500, 503]` — all error status
+ *       codes are captured and forwarded to the Creator log.
  *
  * Problem addressed (from Sovereign Admin Log Phase 112.7):
  *   "AveryOS when it's trying to connect to things if there's no connection
@@ -53,6 +65,13 @@ export interface HandshakeOpts {
    * Defaults to [301, 302, 307, 308] (redirects = "sovereign infrastructure live").
    */
   successStatuses?: number[];
+  /**
+   * ACTIVE_HANDSHAKE mode (Phase 116.8.2 upgrade).
+   * When true, enables verbose telemetry capture (cf-ray, server, x-stripe headers)
+   * and routes all error codes to the GabrielOS_Watchdog console channel.
+   * Default: true — all handshakes now operate in ACTIVE mode.
+   */
+  activeHandshake?: boolean;
 }
 
 export interface HandshakeResult {
@@ -68,6 +87,18 @@ export interface HandshakeResult {
   durationMs:  number;
   /** Service name for audit logging. */
   serviceName: string;
+  /**
+   * ACTIVE_HANDSHAKE telemetry (Phase 116.8.2).
+   * Captured when activeHandshake=true (the default).
+   */
+  telemetry?: {
+    cfRay:    string | null;
+    server:   string | null;
+    xStripe:  string | null;
+    via:      string | null;
+    /** Whether a 401/403/404/500/503 error code was captured. */
+    errorCodeCaptured: boolean;
+  };
 }
 
 // Minimal D1 binding (avoids importing @cloudflare/workers-types)
@@ -90,6 +121,10 @@ const DEFAULT_SUCCESS_STATUSES = [200, 201, 202, 203, 204, 206, 207, 208,
  * A drop-in wrapper around `fetch()` that enforces the Sovereign Handshake
  * Standard: a successful call MUST receive a confirmed response, not merely
  * an absence of error.
+ *
+ * Phase 116.8.2: operates in ACTIVE_HANDSHAKE mode by default — captures
+ * verbose telemetry headers (cf-ray, server, x-stripe) and routes all
+ * error codes [401, 403, 404, 500, 503] to the GabrielOS_Watchdog channel.
  */
 export async function sovereignFetch(
   url:     string | URL,
@@ -99,11 +134,16 @@ export async function sovereignFetch(
   const timeoutMs      = opts.timeoutMs ?? 15_000;
   const successCodes   = new Set(opts.successStatuses ?? DEFAULT_SUCCESS_STATUSES);
   const phase          = opts.phase ?? "unknown";
+  const activeMode     = opts.activeHandshake !== false; // default true
   const t0             = Date.now();
+
+  // ACTIVE_HANDSHAKE telemetry capture codes (Phase 116.8.2)
+  const TELEMETRY_ERROR_CODES = new Set([401, 403, 404, 500, 503]);
 
   let statusCode = 0;
   let error:    string | null = null;
   let response: Response | null = null;
+  let rawResponse: Response | null = null;
 
   try {
     // AbortController-backed timeout so the call is cancelled — not just ignored.
@@ -117,7 +157,8 @@ export async function sovereignFetch(
       clearTimeout(timer);
     }
 
-    statusCode = raw.status;
+    rawResponse = raw;
+    statusCode  = raw.status;
 
     if (successCodes.has(statusCode)) {
       response = raw;
@@ -139,6 +180,32 @@ export async function sovereignFetch(
 
   const durationMs = Date.now() - t0;
   const ok         = !error && response !== null;
+
+  // ── ACTIVE_HANDSHAKE telemetry capture (Phase 116.8.2) ────────────────────
+  let telemetry: HandshakeResult["telemetry"] | undefined;
+  if (activeMode && rawResponse) {
+    const cfRay   = rawResponse.headers.get("cf-ray");
+    const server  = rawResponse.headers.get("server");
+    const xStripe = rawResponse.headers.get("x-stripe-routing-requested-reason") ??
+                    rawResponse.headers.get("stripe-version");
+    const via     = rawResponse.headers.get("via");
+    telemetry = {
+      cfRay,
+      server,
+      xStripe,
+      via,
+      errorCodeCaptured: TELEMETRY_ERROR_CODES.has(statusCode),
+    };
+
+    // Route captured error codes to GabrielOS_Watchdog channel
+    if (telemetry.errorCodeCaptured) {
+      console.warn(
+        `[ACTIVE_HANDSHAKE|GabrielOS_Watchdog] ${opts.serviceName} | ` +
+        `code=${statusCode} | cf-ray=${cfRay ?? "none"} | ` +
+        `server=${server ?? "none"} | phase=${phase}`
+      );
+    }
+  }
 
   // ── Log to D1 ──────────────────────────────────────────────────────────────
   if (opts.db) {
@@ -176,5 +243,5 @@ export async function sovereignFetch(
     );
   }
 
-  return { ok, statusCode, error, response, durationMs, serviceName: opts.serviceName };
+  return { ok, statusCode, error, response, durationMs, serviceName: opts.serviceName, telemetry };
 }

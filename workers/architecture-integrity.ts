@@ -693,6 +693,8 @@ export default {
    *
    * Executes the full integrity watchdog: D1 vault_ledger query, KV drift
    * check, live Bitcoin heartbeat fetch, and R2 "Double-Hash" session log.
+   * Also runs the sovereign `watchdogPulse()` for kernel-anchor parity
+   * verification and Tier-9 alert bubbling.
    * All work is wrapped in ctx.waitUntil() so Cloudflare keeps the Worker
    * alive until the R2 write completes even after the cron event resolves.
    */
@@ -700,7 +702,20 @@ export default {
     // event.scheduledTime is milliseconds since epoch (Unix ms timestamp)
     const triggerTs = new Date(event.scheduledTime).toISOString();
     console.log(`[watchdog] cron triggered: ${event.cron} at ${triggerTs}`);
+
+    // Primary integrity watchdog (D1 + KV + Bitcoin + R2)
     ctx.waitUntil(runWatchdog(env, triggerTs));
+
+    // Sovereign watchdog pulse — kernel-anchor parity + Tier-9 alert bubbling
+    const { watchdogPulse, bubbleUpgrade } = await import("../lib/forensics/watchdog");
+    const pulseEnv = {
+      DB:           env.DB,
+      SOVEREIGN_KV: env.AVERY_KV as { get(k: string): Promise<string | null>; put(k: string, v: string, o?: { expirationTtl?: number }): Promise<void> },
+      VAULT_R2:     env.VAULT_R2 as { put(k: string, v: string | ArrayBuffer | ReadableStream): Promise<unknown> },
+    };
+    ctx.waitUntil(
+      watchdogPulse(pulseEnv).then((result) => bubbleUpgrade(result, pulseEnv)),
+    );
   },
 } satisfies {
   fetch(request: Request, env: Env): Promise<Response>;

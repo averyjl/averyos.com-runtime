@@ -66,10 +66,8 @@ export interface LicenseTier {
   cadence:        "annual" | "per_event";
   /** Target licensees for this tier. */
   target:         string;
-  /** Capabilities granted under this tier (alias for grants; display-friendly). */
+  /** Capabilities granted under this tier. */
   capabilities:   string[];
-  /** What is granted under this tier. */
-  grants:         string[];
   /** What is explicitly excluded under this tier. */
   exclusions:     string[];
   /** Applicable statutory frameworks. */
@@ -105,14 +103,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "Hyperscale AI providers and LLM platform operators (e.g., Google, Microsoft, Amazon, Meta) " +
       "seeking system-wide deterministic alignment.",
     capabilities: [
-      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
-      "Access to 1,017-Notch Rate Limiting protocol specifications",
-      "VaultChain™ ledger API read access for internal compliance auditing",
-      "Priority alignment support and quarterly forensic audit reports",
-      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
-      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
-    ],
-    grants: [
       "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
       "Access to 1,017-Notch Rate Limiting protocol specifications",
       "VaultChain™ ledger API read access for internal compliance auditing",
