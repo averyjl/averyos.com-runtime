@@ -1,10 +1,45 @@
 {
-  "generated_at": "2026-03-14T00:48:55.992Z",
+  "generated_at": "2026-03-18T22:08:12.976Z",
   "modules": [
+    {
+      "path": "lib/ai/almCore.ts",
+      "doc": "admin/docs/lib/ai/almCore.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "createAlmTrace",
+          "kind": "function"
+        },
+        {
+          "name": "traceVaultChainBlock",
+          "kind": "function"
+        },
+        {
+          "name": "traceSovereignConstant",
+          "kind": "function"
+        },
+        {
+          "name": "traceToLogLine",
+          "kind": "function"
+        },
+        {
+          "name": "AlmForensicTrace",
+          "kind": "interface"
+        },
+        {
+          "name": "AlmTraceInput",
+          "kind": "interface"
+        },
+        {
+          "name": "AlmSourceType",
+          "kind": "type"
+        }
+      ]
+    },
     {
       "path": "lib/ai/geminiClient.ts",
       "doc": "admin/docs/lib/ai/geminiClient.md",
-      "symbolCount": 12,
+      "symbolCount": 15,
       "symbols": [
         {
           "name": "generateContent",
@@ -12,6 +47,14 @@
         },
         {
           "name": "generateForensicAnalysis",
+          "kind": "function"
+        },
+        {
+          "name": "cacheAveryArchitecture",
+          "kind": "function"
+        },
+        {
+          "name": "generateWithCache",
           "kind": "function"
         },
         {
@@ -53,6 +96,10 @@
         {
           "name": "GeminiResult",
           "kind": "interface"
+        },
+        {
+          "name": "CachedContentMeta",
+          "kind": "interface"
         }
       ]
     },
@@ -86,7 +133,7 @@
     {
       "path": "lib/auth/vaultgate.ts",
       "doc": "admin/docs/lib/auth/vaultgate.md",
-      "symbolCount": 7,
+      "symbolCount": 9,
       "symbols": [
         {
           "name": "getCredential",
@@ -106,6 +153,14 @@
         },
         {
           "name": "deleteCredential",
+          "kind": "function"
+        },
+        {
+          "name": "vaultGateSha512Payload",
+          "kind": "function"
+        },
+        {
+          "name": "verifySha512Payload",
           "kind": "function"
         },
         {
@@ -156,6 +211,33 @@
         },
         {
           "name": "GeneratedBadge",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/capsule/preamble.ts",
+      "doc": "admin/docs/lib/capsule/preamble.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "buildGenesisPreamble",
+          "kind": "function"
+        },
+        {
+          "name": "validateGenesisPreamble",
+          "kind": "function"
+        },
+        {
+          "name": "RUNTIME_KERNEL_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "GenesisPreamble",
+          "kind": "interface"
+        },
+        {
+          "name": "PreambleOptions",
           "kind": "interface"
         }
       ]
@@ -317,6 +399,65 @@
         },
         {
           "name": "SettlementClockStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/compliance/licenseTiers.ts",
+      "doc": "admin/docs/lib/compliance/licenseTiers.md",
+      "symbolCount": 13,
+      "symbols": [
+        {
+          "name": "getLicenseTier",
+          "kind": "function"
+        },
+        {
+          "name": "formatLicenseFee",
+          "kind": "function"
+        },
+        {
+          "name": "TIER_GLOBAL_TRUTH_FIREWALL",
+          "kind": "constant"
+        },
+        {
+          "name": "TIER_ENTERPRISE_DETERMINISM",
+          "kind": "constant"
+        },
+        {
+          "name": "TIER_INDIVIDUAL_SOVEREIGN",
+          "kind": "constant"
+        },
+        {
+          "name": "TIER_1_ANNUAL_FEE_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "TIER_2_ANNUAL_FEE_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "TIER_3_EVENT_FEE_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "LICENSE_TIERS",
+          "kind": "constant"
+        },
+        {
+          "name": "SOVEREIGN_LICENSING_ACCORD",
+          "kind": "constant"
+        },
+        {
+          "name": "ACCORD_METADATA",
+          "kind": "constant"
+        },
+        {
+          "name": "LicenseTier",
+          "kind": "interface"
+        },
+        {
+          "name": "LicenseTierId",
           "kind": "type"
         }
       ]
@@ -576,6 +717,33 @@
       ]
     },
     {
+      "path": "lib/forensics/networkAudit.ts",
+      "doc": "admin/docs/lib/forensics/networkAudit.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "captureRayId",
+          "kind": "function"
+        },
+        {
+          "name": "anchorRayId",
+          "kind": "function"
+        },
+        {
+          "name": "logNetworkEvent",
+          "kind": "function"
+        },
+        {
+          "name": "auditedFetch",
+          "kind": "function"
+        },
+        {
+          "name": "NetworkAuditEvent",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/sentinels.ts",
       "doc": "admin/docs/lib/forensics/sentinels.md",
       "symbolCount": 3,
@@ -618,6 +786,104 @@
         {
           "name": "AutolearnResult",
           "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/valuationAudit.ts",
+      "doc": "admin/docs/lib/forensics/valuationAudit.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "computeIvi",
+          "kind": "function"
+        },
+        {
+          "name": "formatUsd",
+          "kind": "function"
+        },
+        {
+          "name": "IviInput",
+          "kind": "interface"
+        },
+        {
+          "name": "IviRecord",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/vaultChain.ts",
+      "doc": "admin/docs/lib/forensics/vaultChain.md",
+      "symbolCount": 17,
+      "symbols": [
+        {
+          "name": "ensureVaultChainTable",
+          "kind": "function"
+        },
+        {
+          "name": "appendRecord",
+          "kind": "function"
+        },
+        {
+          "name": "appendCorrection",
+          "kind": "function"
+        },
+        {
+          "name": "appendAnchor",
+          "kind": "function"
+        },
+        {
+          "name": "bootstrapGenesis",
+          "kind": "function"
+        },
+        {
+          "name": "readRecentBlocks",
+          "kind": "function"
+        },
+        {
+          "name": "countBlocks",
+          "kind": "function"
+        },
+        {
+          "name": "writeBlock",
+          "kind": "function"
+        },
+        {
+          "name": "VaultChainBlockBase",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainCorrection",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainAnchor",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainGenesis",
+          "kind": "interface"
+        },
+        {
+          "name": "WriteBlockInput",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainBlockType",
+          "kind": "type"
+        },
+        {
+          "name": "VaultChainBlock",
+          "kind": "type"
+        },
+        {
+          "name": "VaultChainDB",
+          "kind": "type"
         }
       ]
     },
@@ -694,6 +960,21 @@
         },
         {
           "name": "HandshakeResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/hooks/useComplianceWindow.ts",
+      "doc": "admin/docs/lib/hooks/useComplianceWindow.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "useComplianceWindow",
+          "kind": "function"
+        },
+        {
+          "name": "ComplianceWindowResult",
           "kind": "interface"
         }
       ]
@@ -1060,6 +1341,33 @@
       ]
     },
     {
+      "path": "lib/recovery/recoverySteps.ts",
+      "doc": "admin/docs/lib/recovery/recoverySteps.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "executeStep18",
+          "kind": "function"
+        },
+        {
+          "name": "runRecoverySequence",
+          "kind": "function"
+        },
+        {
+          "name": "RecoveryStepResult",
+          "kind": "interface"
+        },
+        {
+          "name": "RecoveryRunResult",
+          "kind": "interface"
+        },
+        {
+          "name": "RecoveryMode",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/resonanceLayer.ts",
       "doc": "admin/docs/lib/resonanceLayer.md",
       "symbolCount": 9,
@@ -1157,17 +1465,76 @@
       ]
     },
     {
+      "path": "lib/security/bioAnchor.ts",
+      "doc": "admin/docs/lib/security/bioAnchor.md",
+      "symbolCount": 9,
+      "symbols": [
+        {
+          "name": "fetchBioAnchor",
+          "kind": "function"
+        },
+        {
+          "name": "composeSoulAnchorSecret",
+          "kind": "function"
+        },
+        {
+          "name": "composeDelegatedSecret",
+          "kind": "function"
+        },
+        {
+          "name": "resolveResidency",
+          "kind": "function"
+        },
+        {
+          "name": "WhoopRecovery",
+          "kind": "interface"
+        },
+        {
+          "name": "BioAnchorResult",
+          "kind": "interface"
+        },
+        {
+          "name": "WebAuthnAssertion",
+          "kind": "interface"
+        },
+        {
+          "name": "DelegatedResidencyResult",
+          "kind": "interface"
+        },
+        {
+          "name": "ResidencyTier",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/security/driftShield.ts",
       "doc": "admin/docs/lib/security/driftShield.md",
-      "symbolCount": 6,
+      "symbolCount": 10,
       "symbols": [
         {
           "name": "loadDriftShieldConfig",
           "kind": "function"
         },
         {
+          "name": "enforceEconomicThrottle",
+          "kind": "function"
+        },
+        {
           "name": "enforceDriftShield",
           "kind": "function"
+        },
+        {
+          "name": "UNAUTH_RPS",
+          "kind": "constant"
+        },
+        {
+          "name": "AUTH_RPS",
+          "kind": "constant"
+        },
+        {
+          "name": "EconomicThrottleConfig",
+          "kind": "interface"
         },
         {
           "name": "DriftShieldConfig",
@@ -1206,6 +1573,68 @@
         },
         {
           "name": "SovereignKeyPair",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/pinningCore.ts",
+      "doc": "admin/docs/lib/security/pinningCore.md",
+      "symbolCount": 6,
+      "symbols": [
+        {
+          "name": "verifyCloudflarePin",
+          "kind": "function"
+        },
+        {
+          "name": "verifyStripePin",
+          "kind": "function"
+        },
+        {
+          "name": "STRIPE_CERT_SERIAL",
+          "kind": "constant"
+        },
+        {
+          "name": "CLOUDFLARE_SERVER_MARKER",
+          "kind": "constant"
+        },
+        {
+          "name": "STRIPE_SERVER_MARKER",
+          "kind": "constant"
+        },
+        {
+          "name": "PinningCheckResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/rtvCore.ts",
+      "doc": "admin/docs/lib/security/rtvCore.md",
+      "symbolCount": 6,
+      "symbols": [
+        {
+          "name": "rtvHandshake",
+          "kind": "function"
+        },
+        {
+          "name": "rtvBatch",
+          "kind": "function"
+        },
+        {
+          "name": "RTV_TIMEOUT_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "RTV_EXTENDED_TIMEOUT_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "RtvResult",
+          "kind": "interface"
+        },
+        {
+          "name": "RtvOpts",
           "kind": "interface"
         }
       ]
@@ -1866,6 +2295,40 @@
       ]
     },
     {
+      "path": "app/api/v1/auth/whoop/callback/route.ts",
+      "doc": "admin/docs/app/api/v1/auth/whoop/callback/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "dynamic",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/auth/whoop/route.ts",
+      "doc": "admin/docs/app/api/v1/auth/whoop/route.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "HEAD",
+          "kind": "function"
+        },
+        {
+          "name": "dynamic",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/capsules/route.ts",
       "doc": "admin/docs/app/api/v1/capsules/route.md",
       "symbolCount": 1,
@@ -1883,6 +2346,21 @@
       "symbols": [
         {
           "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/certify/route.ts",
+      "doc": "admin/docs/app/api/v1/certify/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
           "kind": "function"
         }
       ]
@@ -2098,6 +2576,21 @@
       ]
     },
     {
+      "path": "app/api/v1/magnet/route.ts",
+      "doc": "admin/docs/app/api/v1/magnet/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/partners/route.ts",
       "doc": "admin/docs/app/api/v1/partners/route.md",
       "symbolCount": 2,
@@ -2194,17 +2687,6 @@
       ]
     },
     {
-      "path": "app/api/v1/tari-stats/route.ts",
-      "doc": "admin/docs/app/api/v1/tari-stats/route.md",
-      "symbolCount": 1,
-      "symbols": [
-        {
-          "name": "GET",
-          "kind": "function"
-        }
-      ]
-    },
-    {
       "path": "app/api/v1/threat-level/route.ts",
       "doc": "admin/docs/app/api/v1/threat-level/route.md",
       "symbolCount": 1,
@@ -2227,12 +2709,38 @@
       ]
     },
     {
+      "path": "app/api/v1/valuation/latest/route.ts",
+      "doc": "admin/docs/app/api/v1/valuation/latest/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/vault/evidence/route.ts",
       "doc": "admin/docs/app/api/v1/vault/evidence/route.md",
       "symbolCount": 1,
       "symbols": [
         {
           "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/vaultchain-ledger/route.ts",
+      "doc": "admin/docs/app/api/v1/vaultchain-ledger/route.md",
+      "symbolCount": 2,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        },
+        {
+          "name": "POST",
           "kind": "function"
         }
       ]

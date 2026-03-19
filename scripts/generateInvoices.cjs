@@ -1129,6 +1129,7 @@ async function main() {
       console.log("    metadata.settlement_status: 'Settlement Requested'");
       console.log("    metadata.capsule_id: 'AveryOS_TARI_VerifyDollar_v1'");
       console.log("    metadata.kernel_version: v3.6.2");
+      console.log(`    metadata.live_truth_handshake: 'AveryOS Live Truth Handshake: ${new Date().toISOString()}'`);
       return;
     }
 
@@ -1157,6 +1158,7 @@ async function main() {
           kernel_version:    'v3.6.2',
           test_mode:         isTestKey ? '1' : '0',
           rail_verification: '1',
+          live_truth_handshake: `AveryOS Live Truth Handshake: ${new Date().toISOString()}`,
         },
       });
 
