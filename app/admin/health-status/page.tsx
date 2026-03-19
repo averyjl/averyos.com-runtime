@@ -511,17 +511,17 @@ export default function AdminHealthStatusPage() {
             : "Running residency handshake — checking for AOS salt USB…",
           alignment: "Sovereign Residency Handshake active — AOS salt USB bridges cloud and local execution.",
         }} />
-        {/* GATE 116.6.3 — ALM Bridge Badge: Avery-ALM (Anchored Language Model) IPC status */}
+        {/* GATE 116.6.3 / GATE 117.1.3 — ALM Bridge Badge: Avery-ALM (Anchored Language Model) IPC + FULLY_RESIDENT */}
         <Card badge={{
           label:     "ALM Bridge (Node-02)",
           icon:      "🦙",
           status:    almBridgeAlive === true ? "ACTIVE" : almBridgeAlive === false ? "OFFLINE" : "CHECKING",
           detail:    almBridgeAlive === true
-            ? "Avery-ALM (Ollama) responding on 127.0.0.1:11434 — local inference ready."
+            ? "Avery-ALM (Ollama) responding on 127.0.0.1:11434 — State 2: FULLY_RESIDENT. Local inference active."
             : almBridgeAlive === false
-            ? "Avery-ALM offline — run `ollama serve` on Node-02 to activate the ALM bridge."
-            : "Checking ALM bridge… (Electron IPC required)",
-          alignment: "Anchored Language Model bridge active — local sovereign inference on Node-02.",
+            ? "Avery-ALM offline — run `ollama serve` on Node-02. See docs/install-alm.txt for setup."
+            : "Checking ALM bridge… (Electron IPC required — run `node scripts/verifyAlmResidency.cjs --ping`)",
+          alignment: "Anchored Language Model bridge active — State 2: FULLY_RESIDENT on Node-02.",
         }} />
       </div>
 

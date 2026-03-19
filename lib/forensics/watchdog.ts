@@ -1,330 +1,224 @@
 /**
  * lib/forensics/watchdog.ts
  *
- * AveryOS™ GabrielOS™ Watchdog — Phase 117.3 GATE 117.3.4
+ * AveryOS™ Sovereign Watchdog — Phase 117.7 (GATE 117.7)
  *
- * Monitors Step C Echo confirmations for every sovereign connection.
+ * Provides a lightweight `watchdogPulse()` function that is called from the
+ * `workers/architecture-integrity.ts` scheduled (cron) handler.  It performs
+ * a fast forensic pulse check against the sovereign kernel anchor, records a
+ * HALT_BOOT counter on drift, and emits Tier-9 alert signals for upstream
+ * GabrielOS™ push-notification routing.
  *
- * ─────────────────────────────────────────────────────────────────────────────
- * Three-Step Handshake Model (Jason Lee Avery, ROOT0):
+ * Exports:
+ *   watchdogPulse()  — main entry point for cron + manual calls
+ *   bubbleUpgrade()  — bubble a watchdog result to the TAI fleet
+ *   haltCount        — running count of HALT_BOOT events this process lifetime
  *
- *   Step A — INITIATION   : The sovereign module sends a request.
- *   Step B — RECEIPT       : The remote endpoint returns a response.
- *   Step C — ECHO CONFIRM  : The module confirms it received and processed
- *                            the response (no silent failure).
- *
- * Enforcement: if Step C is absent (i.e. no echo confirmation is logged
- * within the configured window) the watchdog:
- *   1. Logs a USI (Unverified Silence Incident) violation to VaultChain™.
- *   2. Emits a $10,000 penalty event per incident to the audit ledger.
- *   3. Sets the associated module's physicalityStatus to LATENT_PENDING.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Design constraints:
+ *   • Runs in the Cloudflare Workers edge runtime — no Node.js built-ins.
+ *   • All Cloudflare bindings are typed via minimal local interfaces.
+ *   • No `export const runtime = "edge"` — handled by the Worker bundle.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_VERSION }  from "../sovereignConstants";
-import { formatIso9 }                  from "../timePrecision";
-import {
-  updatePhysicality,
-  type PhysicalityStatus,
-}                                       from "../registry/coreManifest";
+import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 } from "../timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../sovereignError";
 
-// ── Minimal D1 interface ──────────────────────────────────────────────────────
+// ── Minimal Cloudflare binding interfaces ─────────────────────────────────────
 
-/** Minimal D1-compatible interface (avoids importing @cloudflare/workers-types). */
-interface D1Like {
-  prepare(sql: string): { bind(...args: unknown[]): { run(): Promise<void> } };
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
 }
 
-// ── Step C Echo types ─────────────────────────────────────────────────────────
+interface R2Bucket {
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
+}
+
+export interface WatchdogEnv {
+  /** D1 database binding — used for VaultChain™ ledger writes. */
+  DB?: unknown;
+  /** KV namespace for HALT_BOOT counters and genesis state. */
+  SOVEREIGN_KV?: KVNamespace;
+  /** R2 bucket for audit session logs. */
+  VAULT_R2?: R2Bucket;
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/** Watchdog alert tier, aligned with the GabrielOS™ alert taxonomy. */
+export type WatchdogAlertTier =
+  | "TIER_0_INFO"
+  | "TIER_3_WARNING"
+  | "TIER_6_ELEVATED"
+  | "TIER_9_CRITICAL";
+
+/** Result returned by a single watchdog pulse. */
+export interface WatchdogPulseResult {
+  /** ISO-9 timestamp when the pulse was executed. */
+  pulseTs:        string;
+  /** Whether the kernel SHA anchor was verified. */
+  kernelVerified: boolean;
+  /** Cumulative HALT_BOOT event count (process lifetime). */
+  haltCount:      number;
+  /** Alert tier emitted for this pulse. */
+  alertTier:      WatchdogAlertTier;
+  /** Short message summarising the pulse outcome. */
+  message:        string;
+  /** Any error that occurred during the pulse (null on success). */
+  error:          string | null;
+}
+
+// ── Process-lifetime HALT_BOOT counter ───────────────────────────────────────
 
 /**
- * An active Step C Echo entry — recorded when a module explicitly confirms
- * receipt and processing of a response.
+ * Cumulative count of HALT_BOOT events recorded by `watchdogPulse()` during
+ * the lifetime of the current Worker process.  Resets on cold-start.
+ *
+ * Exported for inspection by API routes and the scheduled handler.
  */
-export interface StepCEcho {
-  /** Unique identifier for the originating Step A request. */
-  requestId:          string;
-  /** Module (registry id) that sent the request. */
-  moduleId:           string;
-  /** ISO-9 timestamp when the Step A request was sent. */
-  initiatedAt:        string;
-  /** ISO-9 timestamp when Step B (response receipt) occurred. */
-  responseReceivedAt: string;
-  /** ISO-9 timestamp when Step C (echo confirmation) was logged. */
-  echoConfirmedAt:    string;
-  /** Cloudflare Ray ID (if available). */
-  cfRay:              string | null;
-  /** The PhysicalityStatus resolved for this exchange. */
-  physicalityStatus:  PhysicalityStatus;
+export let haltCount = 0;
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Compute SHA-512 of a UTF-8 string using the Web Crypto API.
+ * Available in both the Cloudflare Workers and Node.js (≥22) runtimes.
+ */
+async function sha512Hex(input: string): Promise<string> {
+  const encoded = new TextEncoder().encode(input);
+  const digest  = await crypto.subtle.digest("SHA-512", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
- * A USI (Unverified Silence Incident) — raised when a Step C echo is absent.
+ * Classify a pulse result into a GabrielOS™ alert tier.
  */
-export interface UsiViolation {
-  /** Unique violation ID (ISO-9 ts + moduleId). */
-  id:            string;
-  /** Module (registry id) that failed to echo. */
-  moduleId:      string;
-  /** ISO-9 timestamp when the incident was detected. */
-  detectedAt:    string;
-  /** Monetary penalty amount (USD). */
-  penaltyUsd:    number;
-  /** Human-readable reason for the violation. */
-  reason:        string;
-  /** Kernel SHA at time of violation. */
-  kernelSha:     string;
-  /** Kernel version at time of violation. */
-  kernelVersion: string;
+function classifyTier(kernelVerified: boolean, currentHaltCount: number): WatchdogAlertTier {
+  if (!kernelVerified) return "TIER_9_CRITICAL";
+  if (currentHaltCount > 10) return "TIER_6_ELEVATED";
+  if (currentHaltCount > 0) return "TIER_3_WARNING";
+  return "TIER_0_INFO";
 }
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-/** Sovereign penalty per Unverified Silence Incident — $10,000 USD. */
-export const USI_PENALTY_USD = 10_000;
-
-/**
- * Default silence window in milliseconds.  If no Step C echo is received
- * within this window the watchdog raises a USI violation.
- */
-export const SILENCE_WINDOW_MS = 30_000;
-
-// ── In-memory echo ledger (volatile; per-request in Cloudflare Workers) ────────
-
-const _echoLedger = new Map<string, StepCEcho>();
-const _usiLog:      UsiViolation[] = [];
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * recordStepC — called by any sovereign module after it has confirmed it
- * received and processed a response (Step C Echo).
+ * Execute a sovereign watchdog pulse.
  *
- * @param echo — the completed Step C Echo record.
- * @param db   — optional D1 binding to persist the echo to `watchdog_echo_log`.
+ * 1. Recomputes the kernel SHA-512 anchor and verifies it matches KERNEL_SHA.
+ * 2. Increments `haltCount` if the anchor is not verified (drift detected).
+ * 3. Persists a compact pulse record to SOVEREIGN_KV (if available).
+ * 4. Returns a structured {@link WatchdogPulseResult} for logging / bubbling.
+ *
+ * @param env  Cloudflare Worker environment bindings.
+ * @returns    Structured result describing the pulse outcome.
  */
-export async function recordStepC(echo: StepCEcho, db?: D1Like | null): Promise<void> {
-  _echoLedger.set(echo.requestId, echo);
-
-  if (!db) return;
+export async function watchdogPulse(env?: WatchdogEnv): Promise<WatchdogPulseResult> {
+  const pulseTs = formatIso9();
 
   try {
-    await db
-      .prepare(
-        `INSERT INTO watchdog_echo_log
-           (request_id, module_id, initiated_at, response_received_at,
-            echo_confirmed_at, cf_ray, physicality_status,
-            kernel_sha, kernel_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT DO NOTHING`,
-      )
-      .bind(
-        echo.requestId,
-        echo.moduleId,
-        echo.initiatedAt,
-        echo.responseReceivedAt,
-        echo.echoConfirmedAt,
-        echo.cfRay,
-        echo.physicalityStatus,
-        KERNEL_SHA,
-        KERNEL_VERSION,
-      )
-      .run();
-  } catch (err) {
-    console.error("[watchdog] echo log write failed:", err instanceof Error ? err.message : String(err));
+    // Step 1: Re-derive the kernel anchor from the canonical empty-origin seed.
+    // KERNEL_SHA is SHA-512("") — the genesis root that all AveryOS™ capsule
+    // hashes descend from.  Verifying it here confirms the anchor constant
+    // has not been tampered with at runtime.
+    const derived = await sha512Hex("");
+    const kernelVerified = derived === KERNEL_SHA;
+
+    if (!kernelVerified) {
+      haltCount += 1;
+    }
+
+    const alertTier = classifyTier(kernelVerified, haltCount);
+
+    const message = kernelVerified
+      ? `SOVEREIGN_ALIGNED | kernel_version=${KERNEL_VERSION} | halt_count=${haltCount}`
+      : `HALT_BOOT | kernel_anchor_mismatch | halt_count=${haltCount}`;
+
+    // Step 2: Persist pulse summary to SOVEREIGN_KV (fire-and-forget)
+    if (env?.SOVEREIGN_KV) {
+      const kvKey  = `watchdog:pulse:${pulseTs}`;
+      const kvBody = JSON.stringify({
+        pulseTs,
+        kernelVerified,
+        haltCount,
+        alertTier,
+        kernel_version: KERNEL_VERSION,
+        kernel_sha:     KERNEL_SHA,
+      });
+      // TTL: 7 days (604800 s) — rolling sliding window of pulse history
+      env.SOVEREIGN_KV.put(kvKey, kvBody, { expirationTtl: 604800 }).catch(
+        (e: unknown) => console.warn("[watchdog] KV write failed:", e),
+      );
+    }
+
+    return { pulseTs, kernelVerified, haltCount, alertTier, message, error: null };
+  } catch (err: unknown) {
+    haltCount += 1;
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      pulseTs,
+      kernelVerified: false,
+      haltCount,
+      alertTier:      "TIER_9_CRITICAL",
+      message:        `HALT_BOOT | watchdog_error | ${message}`,
+      error:          message,
+    };
   }
 }
 
 /**
- * raiseSilenceViolation — raised by the watchdog when a Step A request has
- * no corresponding Step C echo within the timeout window.
+ * Bubble a watchdog pulse result to the TAI fleet as a structured JSON event.
  *
- * Records a $10,000 USI violation, sets the module to LATENT_PENDING, and
- * persists the incident to D1.
+ * In production this would fan out to GabrielOS™ Mobile Push (Pushover API)
+ * for Tier-9 alerts.  For now it logs to the console so the Cloudflare
+ * dashboard captures it, and writes the event to VAULT_R2 if available.
  *
- * @param moduleId — registry id of the offending module.
- * @param reason   — human-readable description of why the silence was detected.
- * @param db       — optional D1 binding for persistence.
- * @returns the USI violation record.
+ * @param result  The {@link WatchdogPulseResult} to bubble.
+ * @param env     Cloudflare Worker environment bindings.
  */
-export async function raiseSilenceViolation(
-  moduleId: string,
-  reason:   string,
-  db?:      D1Like | null,
-): Promise<UsiViolation> {
-  const detectedAt = formatIso9();
-  const violation:  UsiViolation = {
-    id:            `USI-${moduleId}-${detectedAt}`,
-    moduleId,
-    detectedAt,
-    penaltyUsd:    USI_PENALTY_USD,
-    reason,
-    kernelSha:     KERNEL_SHA,
-    kernelVersion: KERNEL_VERSION,
+export async function bubbleUpgrade(
+  result: WatchdogPulseResult,
+  env?: WatchdogEnv,
+): Promise<void> {
+  const event = {
+    type:           "WATCHDOG_PULSE",
+    ...result,
+    kernel_version: KERNEL_VERSION,
+    kernel_sha:     KERNEL_SHA,
   };
 
-  _usiLog.push(violation);
-
-  // Set module physicality to LATENT_PENDING so the registry reflects the breach.
-  updatePhysicality(moduleId, "LATENT_PENDING");
-
-  console.error(
-    `[watchdog] ⚠ USI VIOLATION — module="${moduleId}" penalty=$${USI_PENALTY_USD.toLocaleString()} — ${reason}`,
-  );
-
-  if (!db) return violation;
-
-  try {
-    await db
-      .prepare(
-        `INSERT INTO watchdog_usi_log
-           (id, module_id, detected_at, penalty_usd, reason,
-            kernel_sha, kernel_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(
-        violation.id,
-        violation.moduleId,
-        violation.detectedAt,
-        violation.penaltyUsd,
-        violation.reason,
-        violation.kernelSha,
-        violation.kernelVersion,
-      )
-      .run();
-  } catch (err) {
-    console.error("[watchdog] USI log write failed:", err instanceof Error ? err.message : String(err));
+  // Always log to the Cloudflare Workers console (visible in wrangler tail)
+  if (result.alertTier === "TIER_9_CRITICAL") {
+    console.error("[watchdog/bubble] TIER_9_CRITICAL:", JSON.stringify(event));
+  } else if (result.alertTier === "TIER_6_ELEVATED") {
+    console.warn("[watchdog/bubble] TIER_6_ELEVATED:", JSON.stringify(event));
+  } else {
+    console.log("[watchdog/bubble]", result.alertTier, "—", result.message);
   }
 
-  return violation;
-}
-
-/**
- * checkForSilence — inspect a pending request; if no Step C echo has been
- * recorded for it within the allowed window, raise a USI violation.
- *
- * @param requestId     — the Step A request identifier.
- * @param moduleId      — registry id of the module.
- * @param initiatedAt   — ISO-9 timestamp when Step A was sent.
- * @param windowMs      — silence timeout in ms (default 30 000 ms).
- * @param db            — optional D1 binding.
- * @returns the USI violation if silence was detected, or null if echo confirmed.
- */
-export async function checkForSilence(
-  requestId:   string,
-  moduleId:    string,
-  initiatedAt: string,
-  windowMs:    number = SILENCE_WINDOW_MS,
-  db?:         D1Like | null,
-): Promise<UsiViolation | null> {
-  if (_echoLedger.has(requestId)) {
-    // Step C echo already recorded — no violation.
-    return null;
-  }
-
-  const initiatedMs = new Date(initiatedAt).getTime();
-  const nowMs       = Date.now();
-
-  if (nowMs - initiatedMs < windowMs) {
-    // Still within the window — too early to call it silence.
-    return null;
-  }
-
-  return raiseSilenceViolation(
-    moduleId,
-    `No Step C echo received for request "${requestId}" within ${windowMs}ms window.`,
-    db,
-  );
-}
-
-/**
- * getUsiLog — returns all USI violations recorded in this runtime instance.
- * Useful for surfacing in the Sovereign Admin Dashboard.
- */
-export function getUsiLog(): UsiViolation[] {
-  return [..._usiLog];
-}
-
-/**
- * getEchoLedger — returns all Step C echo records recorded in this runtime
- * instance.
- */
-export function getEchoLedger(): Map<string, StepCEcho> {
-  return new Map(_echoLedger);
-}
-
-/**
- * watchdogPulse — periodic check function.  Iterates over all pending
- * request IDs passed in and calls `checkForSilence` for each.
- *
- * Designed to be called from a Cloudflare Cron Trigger or a scheduled
- * Next.js API route (e.g. every minute).
- *
- * @param pending — array of { requestId, moduleId, initiatedAt } tuples.
- * @param windowMs — silence window in ms (default 30 000 ms).
- * @param db      — optional D1 binding.
- * @returns array of USI violations raised during this pulse.
- */
-export async function watchdogPulse(
-  pending:  Array<{ requestId: string; moduleId: string; initiatedAt: string }>,
-  windowMs: number = SILENCE_WINDOW_MS,
-  db?:      D1Like | null,
-): Promise<UsiViolation[]> {
-  const violations: UsiViolation[] = [];
-
-  for (const entry of pending) {
-    const v = await checkForSilence(
-      entry.requestId,
-      entry.moduleId,
-      entry.initiatedAt,
-      windowMs,
-      db,
+  // Write bubble event to VAULT_R2 for persistent audit trail
+  if (env?.VAULT_R2) {
+    const key = `watchdog/pulse/${result.pulseTs}.json`;
+    env.VAULT_R2.put(key, JSON.stringify(event, null, 2)).catch(
+      (e: unknown) => console.warn("[watchdog/bubble] R2 write failed:", e),
     );
-    if (v) violations.push(v);
   }
-
-  return violations;
 }
 
-// ── Schema helpers ────────────────────────────────────────────────────────────
-
 /**
- * Ensure the `watchdog_echo_log` and `watchdog_usi_log` D1 tables exist.
- * Call once on app startup or from a migration script.
+ * Build a sovereign error Response from a failed watchdog pulse result.
+ * Useful for API routes that expose the watchdog pulse endpoint.
+ *
+ * @param result  Failed {@link WatchdogPulseResult} (kernelVerified === false).
  */
-export async function ensureWatchdogTables(db: D1Like): Promise<void> {
-  await db
-    .prepare(
-      `CREATE TABLE IF NOT EXISTS watchdog_echo_log (
-         id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-         request_id           TEXT    NOT NULL UNIQUE,
-         module_id            TEXT    NOT NULL,
-         initiated_at         TEXT    NOT NULL,
-         response_received_at TEXT    NOT NULL,
-         echo_confirmed_at    TEXT    NOT NULL,
-         cf_ray               TEXT,
-         physicality_status   TEXT    NOT NULL,
-         kernel_sha           TEXT    NOT NULL,
-         kernel_version       TEXT    NOT NULL
-       )`,
-    )
-    .bind()
-    .run();
-
-  await db
-    .prepare(
-      `CREATE TABLE IF NOT EXISTS watchdog_usi_log (
-         id             TEXT    PRIMARY KEY,
-         module_id      TEXT    NOT NULL,
-         detected_at    TEXT    NOT NULL,
-         penalty_usd    INTEGER NOT NULL,
-         reason         TEXT    NOT NULL,
-         kernel_sha     TEXT    NOT NULL,
-         kernel_version TEXT    NOT NULL
-       )`,
-    )
-    .bind()
-    .run();
+export function watchdogErrorResponse(result: WatchdogPulseResult): Response {
+  return aosErrorResponse(
+    AOS_ERROR.INTERNAL_ERROR,
+    `HALT_BOOT — ${result.message}`,
+  );
 }

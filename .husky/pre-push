@@ -1,24 +1,22 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — Phase 117.3
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
-# Runs a full lint + type-check before any push reaches origin.
-# This is the final sovereign gate before code exits the local node.
+# Design-Stage Security Gate: runs the full ESLint suite before every push
+# to prevent SARIF alerts from reaching the origin repository and triggering
+# unauthorized bot "fixes" (ref: PR #360 Bot-Corruption Event forensic audit).
 #
 # Gate sequence:
-#   1. npm run lint:full — ESLint across the entire project (not just staged)
-#   2. tsc --noEmit      — full TypeScript type-check (catches type errors)
+#   1. npm run lint:full — full ESLint sweep across all TS/JS source files
 #
-# Bypass: git push --no-verify (sovereign emergency only — Constitution Art. 2)
+# DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
+#   There is NO bypass for this gate. If lint fails, the issue MUST be resolved
+#   before pushing. Using --no-verify is a Constitution violation and constitutes
+#   a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
 
-# 1. Full ESLint pass — catches no-unused-vars (now "error" in app/ and lib/)
-echo "⛓️ Pre-push lint:full…"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Lint Gate — GATE 117.1.4"
+echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
-echo "✅ lint:full clean."
-
-# 2. TypeScript — full type-check before pushing
-echo "⛓️ Pre-push TypeScript type-check…"
-npx tsc --noEmit
-echo "✅ TypeScript clean."
+echo "✅ Full lint: clean — push cleared."

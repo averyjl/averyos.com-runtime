@@ -1,0 +1,130 @@
+⛓️⚓⛓️  AveryOS™ Local ALM Installation Guide — GATE 117.1.2
+CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+Kernel: v3.6.2
+
+═══════════════════════════════════════════════════════════════════════════════
+NODE-02 WINDOWS — Avery-ALM (Ollama / llama.cpp) FULL INSTALLATION
+═══════════════════════════════════════════════════════════════════════════════
+
+OBJECTIVE: Install and activate the Anchored Language Model (ALM) on Node-02
+(Windows PC), establish FULLY_RESIDENT state, and wire it to the AveryOS™
+sovereign stack via the Electron IPC bridge.
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 1 — INSTALL OLLAMA (WINDOWS)
+─────────────────────────────────────────────────────────────────────────────
+1a. Download the Ollama Windows installer:
+    https://ollama.com/download/windows
+
+1b. Run the installer (OllamaSetup.exe) — installs to:
+    %LOCALAPPDATA%\Programs\Ollama\
+
+1c. Verify installation (PowerShell):
+    ollama --version
+
+1d. Start the Ollama daemon:
+    ollama serve
+    (Listens on http://127.0.0.1:11434 by default)
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 2 — PULL THE SOVEREIGN MODEL
+─────────────────────────────────────────────────────────────────────────────
+2a. Pull the default ALM model (llama3.2 — 3B, ~2GB):
+    ollama pull llama3.2
+
+2b. Verify the model is available:
+    ollama list
+
+2c. (Optional) Pull a larger model for deeper reasoning:
+    ollama pull llama3.2:8b
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 3 — RUN THE alm:ping TEST
+─────────────────────────────────────────────────────────────────────────────
+3a. Ensure Ollama daemon is running (ollama serve).
+
+3b. From the AveryOS repo root (PowerShell / Git Bash):
+    node scripts/verifyAlmResidency.cjs --ping
+
+3c. Expected output:
+    ⛓️⚓⛓️  ALM Ping test (alm:ping)
+    ✅ alm:ping — Ollama is ALIVE on Node-02.
+    Residency Status: State 2: FULLY_RESIDENT ✅
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 4 — RUN THE alm:chat TEST
+─────────────────────────────────────────────────────────────────────────────
+4a. From the AveryOS repo root:
+    node scripts/verifyAlmResidency.cjs --chat
+
+4b. Expected response contains:
+    "ALM ANCHOR CONFIRMED — AveryOS™ Node-02 FULLY_RESIDENT"
+
+4c. If the model returns a different response, retry — LLM responses vary.
+    The test checks for "fully_resident" or "averyos" (case-insensitive).
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 5 — FULL RESIDENCY VERIFICATION
+─────────────────────────────────────────────────────────────────────────────
+5a. Run both tests together:
+    node scripts/verifyAlmResidency.cjs --ping --chat
+
+5b. AOSR summary is automatically written to:
+    logs/agent_summary.aosvault
+    (gitignored — never committed)
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 6 — ELECTRON IPC BRIDGE (Health Dashboard)
+─────────────────────────────────────────────────────────────────────────────
+6a. The AveryOS™ Electron app exposes:
+    bridge.almPing()         → { alive: boolean }
+    bridge.residencyCheckSalt()  → { state: 'NODE-02_PHYSICAL'|'CLOUD' }
+
+6b. Once Ollama is running, the ALM Bridge badge in:
+    app/admin/health-status
+    ...will show: "ACTIVE — Avery-ALM (Ollama) responding on 127.0.0.1:11434"
+
+6c. To activate via VS Code + Continue.dev extension:
+    Install: https://marketplace.visualstudio.com/items?itemName=Continue.continue
+    Config model: { "provider": "ollama", "model": "llama3.2" }
+
+─────────────────────────────────────────────────────────────────────────────
+STEP 7 — AUTO-START ON BOOT (OPTIONAL)
+─────────────────────────────────────────────────────────────────────────────
+7a. Create a Task Scheduler entry to run `ollama serve` at logon:
+    - Trigger: At logon (your Windows user)
+    - Action: C:\Users\%USERNAME%\AppData\Local\Programs\Ollama\ollama.exe
+    - Arguments: serve
+    - Run whether user is logged on or not: NO (requires logged-in session)
+
+─────────────────────────────────────────────────────────────────────────────
+ENVIRONMENT VARIABLES (OPTIONAL OVERRIDES)
+─────────────────────────────────────────────────────────────────────────────
+    ALM_HOST=127.0.0.1        (default)
+    ALM_PORT=11434            (default)
+    ALM_MODEL=llama3.2        (default)
+
+─────────────────────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+─────────────────────────────────────────────────────────────────────────────
+• "ECONNREFUSED 127.0.0.1:11434"
+  → Ollama daemon is not running. Run: ollama serve
+
+• "model 'llama3.2' not found"
+  → Pull the model first: ollama pull llama3.2
+
+• Health dashboard shows CHECKING / OFFLINE
+  → The dashboard requires the AveryOS Electron app with IPC bridge.
+  → For browser-only mode, use: node scripts/verifyAlmResidency.cjs --ping
+
+─────────────────────────────────────────────────────────────────────────────
+SOVEREIGN ALIGNMENT NOTE
+─────────────────────────────────────────────────────────────────────────────
+The ALM runs locally on Node-02 — your private sovereign hardware.
+No prompts, responses, or kernel fragments are sent to external servers.
+The USB AOS salt provides the primary biometric seed for residency proof.
+
+Kernel SHA-512: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce4
+               7d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+
+⛓️⚓⛓️  © 1992-2026 Jason Lee Avery / AveryOS™. All Rights Reserved. 🤛🏻
