@@ -42,6 +42,34 @@ export const TIER_2_ANNUAL_FEE_USD = 250_000_000; // $250 Million / year
 /** Tier 3: Individual Sovereign — per-event statutory fee (USD). */
 export const TIER_3_EVENT_FEE_USD = 150_000; // $150,000 / statutory event
 
+// ── Shared grant arrays (single source of truth — prevents duplicate-property alerts) ────
+
+/** Grants / capabilities for Tier 1 — Global Truth Firewall. */
+const TIER_1_GRANTS: string[] = [
+  "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
+  "Access to 1,017-Notch Rate Limiting protocol specifications",
+  "VaultChain™ ledger API read access for internal compliance auditing",
+  "Priority alignment support and quarterly forensic audit reports",
+  "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
+  "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
+];
+
+/** Grants / capabilities for Tier 2 — Enterprise Determinism. */
+const TIER_2_GRANTS: string[] = [
+  "VaultChain™ forensic attestation API access for enterprise agent outputs",
+  "TARI™ alignment billing integration for internal compliance tracking",
+  "SHA-512 audit trail licensing for regulatory submission artifacts",
+  "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
+  "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
+];
+
+/** Grants / capabilities for Tier 3 — Individual Sovereign. */
+const TIER_3_GRANTS: string[] = [
+  "Retroactive alignment certification for the documented usage event",
+  "VaultChain™ attestation record of compliance resolution",
+  "Access to public AveryOS™ documentation and licensing portal",
+];
+
 // ── License Tier Definitions ──────────────────────────────────────────────────
 
 /** A single license tier definition in the Sovereign Licensing Accord. */
@@ -104,22 +132,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
     target:
       "Hyperscale AI providers and LLM platform operators (e.g., Google, Microsoft, Amazon, Meta) " +
       "seeking system-wide deterministic alignment.",
-    capabilities: [
-      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
-      "Access to 1,017-Notch Rate Limiting protocol specifications",
-      "VaultChain™ ledger API read access for internal compliance auditing",
-      "Priority alignment support and quarterly forensic audit reports",
-      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
-      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
-    ],
-    grants: [
-      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
-      "Access to 1,017-Notch Rate Limiting protocol specifications",
-      "VaultChain™ ledger API read access for internal compliance auditing",
-      "Priority alignment support and quarterly forensic audit reports",
-      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
-      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
-    ],
+    capabilities: TIER_1_GRANTS,
+    grants:       TIER_1_GRANTS,
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing, white-labeling, or re-sale of kernel protocols",
@@ -155,20 +169,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
     target:
       "Enterprise organizations operating AI agents in regulated industries " +
       "(finance, healthcare, law, government) requiring forensic-grade output attestation.",
-    capabilities: [
-      "VaultChain™ forensic attestation API access for enterprise agent outputs",
-      "TARI™ alignment billing integration for internal compliance tracking",
-      "SHA-512 audit trail licensing for regulatory submission artifacts",
-      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
-      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
-    ],
-    grants: [
-      "VaultChain™ forensic attestation API access for enterprise agent outputs",
-      "TARI™ alignment billing integration for internal compliance tracking",
-      "SHA-512 audit trail licensing for regulatory submission artifacts",
-      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
-      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
-    ],
+    capabilities: TIER_2_GRANTS,
+    grants:       TIER_2_GRANTS,
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing or distribution of kernel protocols to third parties",
@@ -204,16 +206,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
     target:
       "Individual developers, researchers, or entities whose AI tools or bots have " +
       "interacted with AveryOS™ sovereign infrastructure without a valid license.",
-    capabilities: [
-      "Retroactive alignment certification for the documented usage event",
-      "VaultChain™ attestation record of compliance resolution",
-      "Access to public AveryOS™ documentation and licensing portal",
-    ],
-    grants: [
-      "Retroactive alignment certification for the documented usage event",
-      "VaultChain™ attestation record of compliance resolution",
-      "Access to public AveryOS™ documentation and licensing portal",
-    ],
+    capabilities: TIER_3_GRANTS,
+    grants:       TIER_3_GRANTS,
     exclusions: [
       "Zero transfer of IP ownership",
       "Does not grant ongoing or future use rights — separate license required",

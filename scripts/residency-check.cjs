@@ -39,6 +39,7 @@
 const fs   = require("fs");
 const path = require("path");
 const os   = require("os");
+const tmp  = require("tmp");
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -52,8 +53,9 @@ const AOS_SALT_BLOCK_FILE = "AOS_SALT.bin";
  * Takes priority over legacy markers when present.
  */
 const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
-/** Runtime cache for last residency check result. */
-const RESIDENCY_CACHE_FILE = path.join(os.tmpdir(), ".aos_residency_cache.json");
+/** Runtime cache for last residency check result — stored in a secure tmp file. */
+const _residencyCacheFile = tmp.fileSync({ prefix: 'aos_residency_', postfix: '.json', keep: true });
+const RESIDENCY_CACHE_FILE = _residencyCacheFile.name;
 
 /** Common USB mount points across platforms. */
 const USB_MOUNT_CANDIDATES = (() => {

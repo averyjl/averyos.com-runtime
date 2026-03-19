@@ -55,6 +55,7 @@ const crypto = require('crypto');
 const https  = require('https');
 const http   = require('http');
 const net    = require('net');
+const tmp    = require('tmp');
 const { execSync } = require('child_process');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
@@ -492,8 +493,9 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
     return;
   }
 
-  // Write SQL to a temp file to avoid shell-injection from string interpolation
-  const tmpSqlPath = path.join(require('os').tmpdir(), `aos_onchain_${Date.now()}.sql`);
+  // Write SQL to a secure temp file (tmp.fileSync: unique, restricted permissions, auto-cleanup)
+  const tmpObj    = tmp.fileSync({ prefix: 'aos_onchain_', postfix: '.sql', keep: false });
+  const tmpSqlPath = tmpObj.name;
   const sha512Prefix = sha512.slice(0, 16);
   const setClauses = [];
   if (btcTxid) setClauses.push(`btc_anchor_sha = '${btcTxid}'`);
@@ -513,7 +515,7 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
     logAosError(AOS_ERROR.DB_QUERY_FAILED, `D1 update failed: ${err.message}`, err);
     warn('D1 update failed — record not updated. Run manually if needed.');
   } finally {
-    try { fs.unlinkSync(tmpSqlPath); } catch { /* best-effort cleanup */ }
+    try { tmpObj.removeCallback(); } catch { /* best-effort cleanup */ }
   }
 }
 
