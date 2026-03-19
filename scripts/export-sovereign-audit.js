@@ -121,7 +121,8 @@ function queryD1(sql, env) {
   // Write SQL to a temp file to avoid shell-injection risks entirely
   const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
   try {
-    fs.writeFileSync(tmpSql, sql, "utf8");
+    const sqlFd = fs.openSync(tmpSql, 'w');
+    try { fs.writeSync(sqlFd, sql); } finally { fs.closeSync(sqlFd); }
     const envFlag = env === "production" ? "--env production" : "";
     const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --file "${tmpSql}" --json`;
     const stdout = execSync(cmd, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -282,7 +283,8 @@ async function main() {
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
     const localPath = path.join(OUTPUT_DIR, filename);
-    fs.writeFileSync(localPath, JSON.stringify(bundle, null, 2), "utf8");
+    const bundleFd = fs.openSync(localPath, 'w');
+    try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
     console.log(`      Events: ${events.length} | Liability: $${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
     console.log(`      Hash: ${bundleHash.slice(0, 32)}...`);
@@ -290,7 +292,8 @@ async function main() {
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
-    fs.writeFileSync(noticePath, noticeMd, "utf8");
+    const noticeFd = fs.openSync(noticePath, 'w');
+    try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
 
     // Upload to R2
     const r2Key = `${capsuleId}.aoscap`;

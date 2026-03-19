@@ -5,8 +5,11 @@ const ts = new Date().toISOString().replace(/[:.]/g, "-");
 const baseDir = path.join(process.cwd(), "capsule_logs", `mesh-proof-kit-${ts}`);
 
 fs.mkdirSync(baseDir, { recursive: true });
-fs.writeFileSync(path.join(baseDir, "README.txt"), "MeshProofKit v1 evidence folder\n");
-fs.writeFileSync(path.join(baseDir, "witness-checklist.txt"), "- Capture VaultSig\n- Capture session timestamp\n");
-fs.writeFileSync(path.join(baseDir, "broadcast-notes.txt"), "Mesh declaration notes go here.\n");
+const fd1 = fs.openSync(path.join(baseDir, "README.txt"), 'w');
+try { fs.writeSync(fd1, "MeshProofKit v1 evidence folder\n"); } finally { fs.closeSync(fd1); }
+const fd2 = fs.openSync(path.join(baseDir, "witness-checklist.txt"), 'w');
+try { fs.writeSync(fd2, "- Capture VaultSig\n- Capture session timestamp\n"); } finally { fs.closeSync(fd2); }
+const fd3 = fs.openSync(path.join(baseDir, "broadcast-notes.txt"), 'w');
+try { fs.writeSync(fd3, "Mesh declaration notes go here.\n"); } finally { fs.closeSync(fd3); }
 
 console.log(`Generated MeshProofKit at ${baseDir}`);

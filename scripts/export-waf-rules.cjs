@@ -172,8 +172,10 @@ function main() {
   const hclPath  = path.join(outputDir, 'sovereign_waf_rules.tf');
 
   try {
-    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf8');
-    fs.writeFileSync(hclPath,  buildTerraformHcl(SOVEREIGN_WAF_RULES), 'utf8');
+    const wafJsonFd = fs.openSync(jsonPath, 'w');
+    try { fs.writeSync(wafJsonFd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(wafJsonFd); }
+    const wafHclFd = fs.openSync(hclPath, 'w');
+    try { fs.writeSync(wafHclFd, buildTerraformHcl(SOVEREIGN_WAF_RULES)); } finally { fs.closeSync(wafHclFd); }
     logAosHeal('WAF_EXPORT_COMPLETE', `Exported ${SOVEREIGN_WAF_RULES.length} WAF rules → ${jsonPath}`);
     console.log(`✅ Exported ${SOVEREIGN_WAF_RULES.length} WAF rules → ${jsonPath}`);
     console.log(`✅ Terraform HCL → ${hclPath}`);

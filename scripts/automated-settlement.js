@@ -235,7 +235,8 @@ function writeNotice(eventId, noticeText) {
   const filename = `demand-${eventId}-${Date.now()}.txt`;
   const filePath = path.join(OUTPUT_DIR, filename);
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
-  fs.writeFileSync(filePath, sealed, 'utf8');
+  const settleFd = fs.openSync(filePath, 'w');
+  try { fs.writeSync(settleFd, sealed); } finally { fs.closeSync(settleFd); }
   return { filePath, seal };
 }
 
@@ -330,7 +331,8 @@ async function runSweep() {
       console.log(`[settlement] 💳 Stripe invoice created: ${checkoutUrl}`);
       // Append checkout URL to the notice file
       try {
-        fs.appendFileSync(filePath, `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`);
+        const checkoutFd = fs.openSync(filePath, 'a');
+        try { fs.writeSync(checkoutFd, `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`); } finally { fs.closeSync(checkoutFd); }
       } catch (err) {
         logAosError(AOS_ERROR.WRITE_ERROR, `Failed to append checkout URL to notice: ${err.message}`, err);
       }
