@@ -126,13 +126,15 @@ function findCoveredModules() {
   scanDir(TESTS_DIR);
 
   // 2. Scan generated stubs — strip ".gen.test.ts" to recover the module base name
-  if (fs.existsSync(GEN_DIR)) {
-    for (const entry of fs.readdirSync(GEN_DIR, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      if (entry.name.endsWith(".gen.test.ts")) {
-        const base = entry.name.replace(/\.gen\.test\.ts$/, "");
-        covered.add(base.toLowerCase());
-      }
+  let genDirEntries = [];
+  try {
+    genDirEntries = fs.readdirSync(GEN_DIR, { withFileTypes: true });
+  } catch { /* GEN_DIR not yet created — skip */ }
+  for (const entry of genDirEntries) {
+    if (!entry.isFile()) continue;
+    if (entry.name.endsWith(".gen.test.ts")) {
+      const base = entry.name.replace(/\.gen\.test\.ts$/, "");
+      covered.add(base.toLowerCase());
     }
   }
 
