@@ -49,11 +49,12 @@ interface CloudflareEnv {
 export async function GET() {
   try {
     // ── 1. Try KV live cache first ───────────────────────────────────────────
-    let cachedSnapshot: {
+    type RegistrySnapshot = {
       generatedAt: string;
       count: number;
       capsules: ReturnType<typeof listRegistryCapsules>;
-    } | null = null;
+    };
+    let cachedSnapshot: RegistrySnapshot | null = null;
 
     try {
       // getCloudflareContext is a no-op outside the Workers runtime; wrap in
@@ -65,7 +66,7 @@ export async function GET() {
       if (cfEnv?.SOVEREIGN_KV) {
         const raw = await cfEnv.SOVEREIGN_KV.get("capsule:registry:snapshot");
         if (raw) {
-          cachedSnapshot = JSON.parse(raw) as typeof cachedSnapshot;
+          cachedSnapshot = JSON.parse(raw) as RegistrySnapshot;
         }
       }
     } catch {
