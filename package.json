@@ -72,7 +72,7 @@
     "react-dom": "19.0.0",
     "recharts": "^3.7.0",
     "stripe": "20.4.0",
-    "tmp": "^0.2.3"
+    "tmp": "^0.2.5"
   },
   "devDependencies": {
     "@types/node": "22.13.5",
