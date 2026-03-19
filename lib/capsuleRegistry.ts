@@ -26,10 +26,13 @@ const registryPath = path.join(
 );
 
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
-  if (!fs.existsSync(registryPath)) {
+  let raw: string;
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    raw = fs.readFileSync(registryPath, "utf-8");
+  } catch {
     return null;
   }
-  const raw = fs.readFileSync(registryPath, "utf-8");
   return JSON.parse(raw) as CapsuleRegistry;
 };
 

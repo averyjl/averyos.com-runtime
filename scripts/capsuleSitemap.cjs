@@ -68,8 +68,8 @@ const buildRobotsTxt = () => {
 
 const writeOutputs = (sitemapXml) => {
   fs.mkdirSync(outputDir, { recursive: true });
-  const _sitemapFd = fs.openSync(path.join(outputDir, "sitemap.xml"), 'w');
-  try { fs.writeSync(_sitemapFd, sitemapXml); } finally { fs.closeSync(_sitemapFd); }
+  const sitemapFd = fs.openSync(path.join(outputDir, "sitemap.xml"), 'w');
+  try { fs.writeSync(sitemapFd, sitemapXml); } finally { fs.closeSync(sitemapFd); }
   // NOTE: public/robots.txt is intentionally NOT written here.
   // app/robots.ts handles dynamic per-subdomain robots.txt via the Next.js
   // Metadata API. Writing a static public/robots.txt would shadow the dynamic

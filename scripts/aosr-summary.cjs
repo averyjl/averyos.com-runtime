@@ -70,14 +70,14 @@ fs.mkdirSync(LOGS_DIR, { recursive: true });
 
 // ── --list: print the 10 most recent summaries ────────────────────────────────
 if (doList) {
-  let _listData;
+  let listData;
   try {
-    _listData = fs.readFileSync(VAULT_FILE, "utf8");
+    listData = fs.readFileSync(VAULT_FILE, "utf8");
   } catch {
     console.log("[AOSR] No summaries yet — vault file does not exist.");
     process.exit(0);
   }
-  const lines = _listData.trim().split("\n").filter(Boolean);
+  const lines = listData.trim().split("\n").filter(Boolean);
   const recent = lines.slice(-10);
   console.log(`\n⛓️⚓⛓️  AOSR — 10 Most Recent Summaries (${recent.length}/${lines.length} total)\n`);
   recent.forEach((line, i) => {
@@ -94,14 +94,14 @@ if (doList) {
 
 // ── --export: dump full file to stdout ────────────────────────────────────────
 if (doExport) {
-  let _exportData;
+  let exportData;
   try {
-    _exportData = fs.readFileSync(VAULT_FILE, "utf8");
+    exportData = fs.readFileSync(VAULT_FILE, "utf8");
   } catch {
     console.log("[AOSR] Vault file is empty — no summaries recorded yet.");
     process.exit(0);
   }
-  const raw = _exportData;
+  const raw = exportData;
   console.log(`\n⛓️⚓⛓️  AOSR EXPORT — logs/agent_summary.aosvault\n`);
   console.log(raw);
   console.log(`\n🤜🏻\n⛓️⚓⛓️`);
@@ -130,8 +130,8 @@ const record = JSON.stringify({
 });
 
 try {
-  const _appendFd = fs.openSync(VAULT_FILE, 'a');
-  try { fs.writeSync(_appendFd, record + "\n"); } finally { fs.closeSync(_appendFd); }
+  const appendFd = fs.openSync(VAULT_FILE, 'a');
+  try { fs.writeSync(appendFd, record + "\n"); } finally { fs.closeSync(appendFd); }
   logAosHeal("AOSR_SUMMARY_WRITTEN", `Phase ${phase} summary appended → logs/agent_summary.aosvault`);
   console.log(`✅ [AOSR] Summary written — Phase ${phase} · Fingerprint: ${fingerprint}`);
   console.log(`   File: ${path.relative(REPO_ROOT, VAULT_FILE)}`);

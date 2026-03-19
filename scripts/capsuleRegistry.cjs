@@ -36,8 +36,8 @@ const buildRegistry = () => {
   };
 
   const registryPath = path.join(manifestDir, "index.json");
-  const _regFd = fs.openSync(registryPath, 'w');
-  try { fs.writeSync(_regFd, JSON.stringify(registry, null, 2)); } finally { fs.closeSync(_regFd); }
+  const registryFd = fs.openSync(registryPath, 'w');
+  try { fs.writeSync(registryFd, JSON.stringify(registry, null, 2)); } finally { fs.closeSync(registryFd); }
   console.log(`Wrote registry with ${registry.count} capsule(s).`);
 };
 

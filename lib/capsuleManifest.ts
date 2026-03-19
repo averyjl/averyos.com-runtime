@@ -66,26 +66,31 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
     return null;
   }
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (!manifestPath.startsWith(manifestDir + path.sep)) {
     // Resolved path escapes the manifest directory; treat as not found
     return null;
   }
 
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  if (!fs.existsSync(manifestPath)) {
+  let raw: string;
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    raw = fs.readFileSync(manifestPath, "utf-8");
+  } catch {
     return null;
   }
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const raw = fs.readFileSync(manifestPath, "utf-8");
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
 };
 
 export const listCapsuleIds = (): string[] => {
-  if (!fs.existsSync(manifestDir)) {
+  let files: string[];
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    files = fs.readdirSync(manifestDir);
+  } catch {
     return [];
   }
-  return fs
-    .readdirSync(manifestDir)
+  return files
     .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
     .map((fileName) => fileName.replace(/\.json$/, ""))
     .sort((a, b) => a.localeCompare(b));

@@ -155,8 +155,8 @@ function loadState() {
 /** @param {Record<string, string>} state */
 function saveState(state) {
   if (!DRY_RUN) {
-    const _stateFd = fs.openSync(STATE_FILE, 'w');
-    try { fs.writeSync(_stateFd, JSON.stringify(state, null, 2)); } finally { fs.closeSync(_stateFd); }
+    const stateFd = fs.openSync(STATE_FILE, 'w');
+    try { fs.writeSync(stateFd, JSON.stringify(state, null, 2)); } finally { fs.closeSync(stateFd); }
   }
 }
 
@@ -250,8 +250,8 @@ function logDriftEvent(policy, result, newHash) {
     kernelSha:        KERNEL_SHA.slice(0, 16) + '…',
   });
 
-  const _driftFd = fs.openSync(DRIFT_LOG_FILE, 'w');
-  try { fs.writeSync(_driftFd, JSON.stringify(events, null, 2)); } finally { fs.closeSync(_driftFd); }
+  const driftFd = fs.openSync(DRIFT_LOG_FILE, 'w');
+  try { fs.writeSync(driftFd, JSON.stringify(events, null, 2)); } finally { fs.closeSync(driftFd); }
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────

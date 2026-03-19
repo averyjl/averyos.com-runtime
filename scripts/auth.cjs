@@ -56,9 +56,9 @@ function main() {
   try {
     existing = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"));
   } catch { /* file doesn't exist yet */ }
-  const _lockFd = fs.openSync(SOVEREIGN_LOCK_PATH, 'w');
+  const lockFd = fs.openSync(SOVEREIGN_LOCK_PATH, 'w');
   try {
-    fs.writeSync(_lockFd, JSON.stringify({
+    fs.writeSync(lockFd, JSON.stringify({
       ...existing,
       locked: true,
       node: `${os.hostname()} (${os.platform()}/${os.arch()})`,
@@ -68,7 +68,7 @@ function main() {
       last_auth_at: new Date().toISOString(),
     }, null, 2));
   } finally {
-    fs.closeSync(_lockFd);
+    fs.closeSync(lockFd);
   }
 
   console.log("✅ Sovereign Authentication Successful. Node Physically Locked.");

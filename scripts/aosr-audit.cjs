@@ -302,8 +302,8 @@ function appendToVault(report) {
   try {
     fs.mkdirSync(LOGS_DIR, { recursive: true });
     logAosHeal("aosr-audit.cjs", "Created logs/ directory", { action: "mkdir" });
-    const _appendFd = fs.openSync(VAULT_FILE, 'a');
-    try { fs.writeSync(_appendFd, JSON.stringify(report) + "\n"); } finally { fs.closeSync(_appendFd); }
+    const appendFd = fs.openSync(VAULT_FILE, 'a');
+    try { fs.writeSync(appendFd, JSON.stringify(report) + "\n"); } finally { fs.closeSync(appendFd); }
   } catch (err) {
     logAosError(
       AOS_ERROR.D1_WRITE_FAILED,
@@ -316,14 +316,14 @@ function appendToVault(report) {
 
 // ── List mode ─────────────────────────────────────────────────────────────────
 function listReports() {
-  let _vaultData;
+  let vaultData;
   try {
-    _vaultData = fs.readFileSync(VAULT_FILE, "utf8");
+    vaultData = fs.readFileSync(VAULT_FILE, "utf8");
   } catch {
     console.log(`${YELLOW}No audit records found in ${VAULT_FILE}${R}`);
     return;
   }
-  const lines = _vaultData
+  const lines = vaultData
     .split("\n")
     .filter(l => l.trim());
   const recent = lines.slice(-10).reverse();
@@ -347,15 +347,15 @@ function readFile(filePath) {
   const resolved = path.isAbsolute(filePath)
     ? filePath
     : path.join(process.cwd(), filePath);
-  let _fileData;
+  let fileData;
   try {
-    _fileData = fs.readFileSync(resolved, "utf8");
+    fileData = fs.readFileSync(resolved, "utf8");
   } catch {
     logAosError(AOS_ERROR.NOT_FOUND, "aosr-audit.cjs", `File not found: ${resolved}`, {});
     console.error(`${RED}Error: file not found: ${resolved}${R}`);
     process.exit(2);
   }
-  return _fileData;
+  return fileData;
 }
 
 // ── Interactive mode ──────────────────────────────────────────────────────────
@@ -428,9 +428,9 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
-      const _outPath = path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile);
-      const _writeFd = fs.openSync(_outPath, 'w');
-      try { fs.writeSync(_writeFd, JSON.stringify(report, null, 2)); } finally { fs.closeSync(_writeFd); }
+      const outPath = path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile);
+      const writeFd = fs.openSync(outPath, 'w');
+      try { fs.writeSync(writeFd, JSON.stringify(report, null, 2)); } finally { fs.closeSync(writeFd); }
       console.log(`${DIM}Report written to ${outFile}${R}\n`);
     } catch (err) {
       logAosError(

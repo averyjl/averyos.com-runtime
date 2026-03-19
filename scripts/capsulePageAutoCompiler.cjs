@@ -62,8 +62,8 @@ const compileCapsule = ({ id, filePath }) => {
   };
 
   const manifestPath = path.join(manifestDir, `${id}.json`);
-  const _capFd = fs.openSync(manifestPath, 'w');
-  try { fs.writeSync(_capFd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(_capFd); }
+  const manifestFd = fs.openSync(manifestPath, 'w');
+  try { fs.writeSync(manifestFd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(manifestFd); }
 
   return manifest;
 };

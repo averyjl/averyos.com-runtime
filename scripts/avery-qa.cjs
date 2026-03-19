@@ -942,8 +942,8 @@ async function runQa() {
     const genDir = path.resolve(__dirname, "..", "__tests__", "generated");
     fs.mkdirSync(genDir, { recursive: true });
     const outFile = path.join(genDir, `qa-run-${Date.now()}.json`);
-    const _qaFd = fs.openSync(outFile, 'w');
-    try { fs.writeSync(_qaFd, JSON.stringify(record, null, 2)); } finally { fs.closeSync(_qaFd); }
+    const qaFd = fs.openSync(outFile, 'w');
+    try { fs.writeSync(qaFd, JSON.stringify(record, null, 2)); } finally { fs.closeSync(qaFd); }
     console.log(`${DIM}Run record saved → ${path.relative(process.cwd(), outFile)}${R}`);
     logAosHeal("QA_COMPLETE", `avery-qa run ${runId}: ${overallStatus.toUpperCase()}`);
   }
