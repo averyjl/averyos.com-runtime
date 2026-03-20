@@ -62,6 +62,7 @@ const SITE_URL = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, 
 const CREATOR_NAME  = process.env.CREATOR_NAME  ?? 'Jason Lee Avery';
 const CREATOR_EMAIL = process.env.CREATOR_EMAIL ?? 'truth@averyworld.com';
 const OUTPUT_DIR    = process.env.OUTPUT_DIR    ?? path.join(process.cwd(), 'vault', 'takedowns');
+const OUTPUT_DIR_RESOLVED = path.resolve(OUTPUT_DIR);
 
 const TARI_USD = 10_000;
 const TARI_CENTS = TARI_USD * 100;
@@ -72,6 +73,29 @@ const isDryRun = process.argv.includes('--dry-run');
 const isOnce   = process.argv.includes('--once');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Validates that a resolved file path is within the allowed base directory.
+ * Throws if the path escapes the base (path traversal guard).
+ * @param {string} resolvedBase - The resolved base directory (from path.resolve)
+ * @param {string} targetPath   - The target path to validate
+ */
+function assertSafePath(resolvedBase, targetPath) {
+  const resolved = path.resolve(targetPath);
+  const base = path.resolve(resolvedBase);
+  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
+    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
+  }
+}
+
+/**
+ * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
+ * before it is used in a filename or written to disk.
+ * Allows: alphanumeric, dot, hyphen, underscore, colon, forward-slash
+ */
+function sanitizeNetworkSegment(value) {
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:/-]/g, "_");
+}
 
 /** SHA-512 hex of a UTF-8 string */
 function sha512(str) {
@@ -233,10 +257,12 @@ function writeNotice(eventId, noticeText) {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const seal     = sha512(noticeText + KERNEL_SHA);
-  const filename = `demand-${eventId}-${Date.now()}.txt`;
+  const safeEventId = sanitizeNetworkSegment(String(eventId));
+  const filename = `demand-${safeEventId}-${Date.now()}.txt`;
   const filePath = path.join(OUTPUT_DIR, filename);
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
+  assertSafePath(OUTPUT_DIR_RESOLVED, filePath);
   const settleFd = fs.openSync(filePath, 'w');
   try { fs.writeSync(settleFd, sealed); } finally { fs.closeSync(settleFd); }
   return { filePath, seal };
@@ -334,6 +360,7 @@ async function runSweep() {
       // Append checkout URL to the notice file
       try {
         // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
+        assertSafePath(OUTPUT_DIR_RESOLVED, filePath);
         const checkoutFd = fs.openSync(filePath, 'a');
         try { fs.writeSync(checkoutFd, `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`); } finally { fs.closeSync(checkoutFd); }
       } catch (err) {

@@ -36,6 +36,32 @@ const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
 
 // ---------------------------------------------------------------------------
+// Path & network-data security helpers (COMMAND 2 & 3)
+// ---------------------------------------------------------------------------
+/**
+ * Validates that a resolved file path is within the allowed base directory.
+ * Throws if the path escapes the base (path traversal guard).
+ * @param {string} resolvedBase - The resolved base directory (from path.resolve)
+ * @param {string} targetPath   - The target path to validate
+ */
+function assertSafePath(resolvedBase, targetPath) {
+  const resolved = path.resolve(targetPath);
+  const base = path.resolve(resolvedBase);
+  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
+    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
+  }
+}
+
+/**
+ * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
+ * before it is used in a filename or written to disk.
+ * Allows: alphanumeric, dot, hyphen, underscore, colon, forward-slash
+ */
+function sanitizeNetworkSegment(value) {
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:/-]/g, "_");
+}
+
+// ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
 // ---------------------------------------------------------------------------
 const KERNEL_SHA =
@@ -65,6 +91,7 @@ function getArg(flag) {
 const ENV        = getArg("--env")    ?? "production";
 const TARGET_IP  = getArg("--ip")    ?? null;
 const OUTPUT_DIR = getArg("--output") ?? path.resolve(__dirname, "../tmp/sovereign-audit-exports");
+const OUTPUT_DIR_RESOLVED = path.resolve(OUTPUT_DIR);
 
 // Validate IP address if provided (strict pattern to prevent injection)
 // eslint-disable-next-line security/detect-unsafe-regex -- IP validation pattern, bounded quantifiers
@@ -124,6 +151,7 @@ function queryD1(sql, env) {
   const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
+    assertSafePath(OUTPUT_DIR_RESOLVED, tmpSql);
     const sqlFd = fs.openSync(tmpSql, 'w');
     try { fs.writeSync(sqlFd, sql); } finally { fs.closeSync(sqlFd); }
     const envFlag = env === "production" ? "--env production" : "";
@@ -262,7 +290,7 @@ async function main() {
     const issuedAt = new Date().toISOString();
     const liabilityPerEvent = TARI_LIABILITY.UNALIGNED_401;
     const totalLiabilityUsd = events.length * liabilityPerEvent;
-    const capsuleId = `EVIDENCE_BUNDLE_${ip.replace(/[.:]/g, "_")}_${Date.now()}`;
+    const capsuleId = `EVIDENCE_BUNDLE_${sanitizeNetworkSegment(ip).replace(/[.:]/g, "_")}_${Date.now()}`;
 
     // Sign the bundle
     const bundlePayload = JSON.stringify({
@@ -291,6 +319,7 @@ async function main() {
     const filename = `${capsuleId}.aoscap`;
     const localPath = path.join(OUTPUT_DIR, filename);
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
+    assertSafePath(OUTPUT_DIR_RESOLVED, localPath);
     const bundleFd = fs.openSync(localPath, 'w');
     try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
@@ -301,6 +330,7 @@ async function main() {
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
+    assertSafePath(OUTPUT_DIR_RESOLVED, noticePath);
     const noticeFd = fs.openSync(noticePath, 'w');
     try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
 

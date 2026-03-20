@@ -31,6 +31,32 @@ const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
 
 // ---------------------------------------------------------------------------
+// Path & network-data security helpers (COMMAND 2 & 3)
+// ---------------------------------------------------------------------------
+/**
+ * Validates that a resolved file path is within the allowed base directory.
+ * Throws if the path escapes the base (path traversal guard).
+ * @param {string} resolvedBase - The resolved base directory (from path.resolve)
+ * @param {string} targetPath   - The target path to validate
+ */
+function assertSafePath(resolvedBase, targetPath) {
+  const resolved = path.resolve(targetPath);
+  const base = path.resolve(resolvedBase);
+  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
+    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
+  }
+}
+
+/**
+ * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
+ * before it is used in a filename or written to disk.
+ * Allows: alphanumeric, dot, hyphen, underscore, colon, forward-slash
+ */
+function sanitizeNetworkSegment(value) {
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:/-]/g, "_");
+}
+
+// ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
 // ---------------------------------------------------------------------------
 
@@ -295,6 +321,7 @@ function generateSettlementLetter({
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
   const settlementFilePath = path.join(outputDir, settlementFileName);
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
+  assertSafePath(outputDir, settlementFilePath);
   const fdSettlement = fs.openSync(settlementFilePath, 'w');
   try { fs.writeSync(fdSettlement, letter); } finally { fs.closeSync(fdSettlement); }
   return settlementFilePath;
@@ -441,7 +468,7 @@ async function main() {
       blockHeight: btcBlockHeight,
       anchoredAt: timestamp,
     },
-    TargetIP: ip,
+    TargetIP: sanitizeNetworkSegment(ip),
     AuditLogCount: rows.length,
     AuditLogs: rows,
     TariLiability: {
@@ -480,6 +507,7 @@ async function main() {
 
   const filePath = path.join(outputDir, fileName);
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
+  assertSafePath(outputDir, filePath);
   const fdBundle = fs.openSync(filePath, 'w');
   try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
 
