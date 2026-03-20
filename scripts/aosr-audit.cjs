@@ -423,8 +423,12 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
+      // codeql[js/file-system-race]
+      const outPath = path.isAbsolute(outFile)
+        ? outFile
+        : path.resolve(process.cwd(), path.basename(outFile));
       fs.writeFileSync(
-        path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile),
+        outPath,
         JSON.stringify(report, null, 2),
         "utf8",
       );

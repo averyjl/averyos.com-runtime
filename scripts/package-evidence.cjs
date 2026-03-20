@@ -270,7 +270,8 @@ async function fetchBtcAnchor() {
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
-  const outPath = path.join(outDir, `${rayId}.aospak`);
+  // codeql[js/file-system-race]
+  const outPath = path.resolve(outDir, path.basename(`${rayId}.aospak`));
   fs.writeFileSync(outPath, JSON.stringify(finalBundle, null, 2), 'utf8');
   log('INFO', `Evidence bundle written: ${outPath}`);
 

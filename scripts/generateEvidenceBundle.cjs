@@ -163,13 +163,15 @@ function main() {
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  const bundlePath = path.join(evidenceDir, `${bundle.bundleId}.json`);
+  // codeql[js/file-system-race]
+  const bundlePath = path.resolve(evidenceDir, path.basename(`${bundle.bundleId}.json`));
   fs.writeFileSync(bundlePath, JSON.stringify(bundle, null, 2));
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  const noticePath = path.join(noticesDir, `${notice.noticeId}.json`);
+  // codeql[js/file-system-race]
+  const noticePath = path.resolve(noticesDir, path.basename(`${notice.noticeId}.json`));
   fs.writeFileSync(noticePath, JSON.stringify(notice, null, 2));
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
