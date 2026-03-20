@@ -41,7 +41,7 @@ const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sove
  */
 function assertSafePath(resolvedBase, targetPath) {
   const resolved = path.resolve(targetPath);
-  const base = path.resolve(resolvedBase);
+  const base = path.resolve(resolvedBase).replace(/[/\\]+$/, "");
   if (!resolved.startsWith(base + path.sep) && resolved !== base) {
     throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
   }
