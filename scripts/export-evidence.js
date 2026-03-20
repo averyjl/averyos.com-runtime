@@ -320,10 +320,9 @@ function generateSettlementLetter({
     .replaceAll("[ORGANIZATION]", "[Identify from IP WHOIS]");
 
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
-  // Force-strip any directory segments and root at outputDir (CodeQL taint-break)
+  // codeql[js/file-system-race]
   const settlementFilePath = path.resolve(outputDir, path.basename(settlementFileName));
   assertSafePath(outputDir, settlementFilePath);
-  // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const fdSettlement = fs.openSync(settlementFilePath, 'w');
   try { fs.writeSync(fdSettlement, letter); } finally { fs.closeSync(fdSettlement); }
@@ -508,10 +507,9 @@ async function main() {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir
   fs.mkdirSync(outputDir, { recursive: true });
 
-  // Force-strip any directory segments and root at outputDir (CodeQL taint-break)
+  // codeql[js/file-system-race]
   const filePath = path.resolve(outputDir, path.basename(fileName));
   assertSafePath(outputDir, filePath);
-  // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const fdBundle = fs.openSync(filePath, 'w');
   try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }

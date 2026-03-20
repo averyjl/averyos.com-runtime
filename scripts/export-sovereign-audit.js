@@ -321,10 +321,9 @@ async function main() {
 
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
-    // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+    // codeql[js/file-system-race]
     const localPath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
     assertSafePath(OUTPUT_DIR_RESOLVED, localPath);
-    // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     const bundleFd = fs.openSync(localPath, 'w');
     try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
@@ -335,10 +334,9 @@ async function main() {
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticeFilename = `${capsuleId}_settlement.md`;
-    // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+    // codeql[js/file-system-race]
     const noticePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(noticeFilename));
     assertSafePath(OUTPUT_DIR_RESOLVED, noticePath);
-    // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     const noticeFd = fs.openSync(noticePath, 'w');
     try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }

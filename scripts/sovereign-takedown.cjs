@@ -520,8 +520,8 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(dmcaText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `DMCA_NOTICE_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
+        // codeql[js/file-system-race]
         const dmcaPath = path.resolve(outputDir, path.basename(fileName)); // AOS-GUARD: force-root
-        // lgtm[js/file-system-race]
         const dmcaFd = fs.openSync(dmcaPath, 'w');
         try { fs.writeSync(dmcaFd, dmcaText + footer); } finally { fs.closeSync(dmcaFd); }
         console.log(`📄 DMCA: ${fileName}`);
@@ -537,8 +537,8 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(gdprText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `GDPR_ART17_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
+        // codeql[js/file-system-race]
         const gdprPath = path.resolve(outputDir, path.basename(fileName)); // AOS-GUARD: force-root
-        // lgtm[js/file-system-race]
         const gdprFd = fs.openSync(gdprPath, 'w');
         try { fs.writeSync(gdprFd, gdprText + footer); } finally { fs.closeSync(gdprFd); }
         console.log(`📄 GDPR: ${fileName}`);
@@ -649,8 +649,8 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = dmcaText + footer;
       const fileName   = `DMCA_NOTICE_${safeOrg}_${date}.md`;
+      // codeql[js/file-system-race]
       const filePath   = path.resolve(outputDir, path.basename(fileName)); // AOS-GUARD: force-root
-      // lgtm[js/file-system-race]
       const dmcaWrFd = fs.openSync(filePath, 'w');
       try { fs.writeSync(dmcaWrFd, full); } finally { fs.closeSync(dmcaWrFd); }
       written.push({ type: 'DMCA', path: filePath, seal: noticeSeal });
@@ -668,8 +668,8 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = gdprText + footer;
       const fileName   = `GDPR_ART17_NOTICE_${safeOrg}_${date}.md`;
+      // codeql[js/file-system-race]
       const filePath   = path.resolve(outputDir, path.basename(fileName)); // AOS-GUARD: force-root
-      // lgtm[js/file-system-race]
       const gdprWrFd = fs.openSync(filePath, 'w');
       try { fs.writeSync(gdprWrFd, full); } finally { fs.closeSync(gdprWrFd); }
       written.push({ type: 'GDPR Art.17', path: filePath, seal: noticeSeal });

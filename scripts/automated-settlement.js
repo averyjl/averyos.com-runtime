@@ -260,11 +260,10 @@ function writeNotice(eventId, noticeText) {
   const seal     = sha512(noticeText + KERNEL_SHA);
   const safeEventId = sanitizeNetworkSegment(String(eventId));
   const filename = `demand-${safeEventId}-${Date.now()}.txt`;
-  // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+  // codeql[js/file-system-race]
   const filePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
   assertSafePath(OUTPUT_DIR_RESOLVED, filePath);
-  // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const settleFd = fs.openSync(filePath, 'w');
   try { fs.writeSync(settleFd, sealed); } finally { fs.closeSync(settleFd); }
@@ -363,12 +362,11 @@ async function runSweep() {
       // Append checkout URL to the notice file
       try {
         // Sanitize network-sourced URL: strip any non-standard chars before writing to disk
-        // lgtm[js/http-to-file-access] - URL is regex-sanitized before write
+        // codeql[js/http-to-file-access]
         const safeCheckoutUrl = String(checkoutUrl).replace(/[^a-zA-Z0-9-._:/]/g, '_');
-        // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+        // codeql[js/file-system-race]
         const safeFilePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filePath));
         assertSafePath(OUTPUT_DIR_RESOLVED, safeFilePath);
-        // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
         // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
         const checkoutFd = fs.openSync(safeFilePath, 'a');
         try { fs.writeSync(checkoutFd, `\nSTRIPE CHECKOUT : ${safeCheckoutUrl}\n`); } finally { fs.closeSync(checkoutFd); }
