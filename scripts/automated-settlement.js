@@ -91,10 +91,11 @@ function assertSafePath(resolvedBase, targetPath) {
 /**
  * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
  * before it is used in a filename or written to disk.
- * Allows: alphanumeric, dot, hyphen, underscore, colon, forward-slash
+ * Allows: alphanumeric, dot, hyphen, underscore, colon.
+ * Forward-slash is intentionally excluded to prevent path traversal in filenames.
  */
 function sanitizeNetworkSegment(value) {
-  return String(value ?? "").replace(/[^a-zA-Z0-9._:/-]/g, "_");
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:-]/g, "_");
 }
 
 /** SHA-512 hex of a UTF-8 string */

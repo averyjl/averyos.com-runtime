@@ -55,10 +55,11 @@ function assertSafePath(resolvedBase, targetPath) {
 /**
  * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
  * before it is used in a filename or written to disk.
- * Allows: alphanumeric, dot, hyphen, underscore, colon, forward-slash
+ * Allows: alphanumeric, dot, hyphen, underscore, colon.
+ * Forward-slash is intentionally excluded to prevent path traversal in filenames.
  */
 function sanitizeNetworkSegment(value) {
-  return String(value ?? "").replace(/[^a-zA-Z0-9._:/-]/g, "_");
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:-]/g, "_");
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +291,8 @@ async function main() {
     const issuedAt = new Date().toISOString();
     const liabilityPerEvent = TARI_LIABILITY.UNALIGNED_401;
     const totalLiabilityUsd = events.length * liabilityPerEvent;
+    // sanitizeNetworkSegment strips all non-alphanumeric chars except . _ : - ;
+    // then replace remaining dots/colons with _ for a clean filename segment.
     const capsuleId = `EVIDENCE_BUNDLE_${sanitizeNetworkSegment(ip).replace(/[.:]/g, "_")}_${Date.now()}`;
 
     // Sign the bundle
