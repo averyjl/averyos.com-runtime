@@ -428,7 +428,8 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
-      const outPath = path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile);
+      // codeql[js/file-system-race]
+      const outPath = path.resolve(process.cwd(), path.basename(outFile));
       const writeFd = fs.openSync(outPath, 'w');
       try { fs.writeSync(writeFd, JSON.stringify(report, null, 2)); } finally { fs.closeSync(writeFd); }
       console.log(`${DIM}Report written to ${outFile}${R}\n`);

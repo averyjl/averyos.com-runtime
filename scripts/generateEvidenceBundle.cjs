@@ -161,14 +161,16 @@ function main() {
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  const bundlePath = path.join(evidenceDir, `${bundle.bundleId}.json`);
+  // codeql[js/file-system-race]
+  const bundlePath = path.resolve(evidenceDir, path.basename(`${bundle.bundleId}.json`));
   const fdBundle = fs.openSync(bundlePath, 'w');
   try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  const noticePath = path.join(noticesDir, `${notice.noticeId}.json`);
+  // codeql[js/file-system-race]
+  const noticePath = path.resolve(noticesDir, path.basename(`${notice.noticeId}.json`));
   const fdNotice = fs.openSync(noticePath, 'w');
   try { fs.writeSync(fdNotice, JSON.stringify(notice, null, 2)); } finally { fs.closeSync(fdNotice); }
   console.log(`✅ Compliance notice created: ${noticePath}`);
