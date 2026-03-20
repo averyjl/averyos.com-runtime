@@ -25,8 +25,14 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+// Each call receives a unique RFC 5737 TEST-NET IP so tests don't share the
+// module-level Economic Throttle token bucket (GATE 114.6.3).
+let _testIpSeq = 0;
 function makeRequest(headers: Record<string, string> = {}): Request {
-  return new Request("https://averyos.com/api/v1/test", { headers });
+  const ip = `192.0.2.${(_testIpSeq++ % 253) + 1}`;
+  return new Request("https://averyos.com/api/v1/test", {
+    headers: { "cf-connecting-ip": ip, ...headers },
+  });
 }
 
 // ── loadDriftShieldConfig ─────────────────────────────────────────────────────
