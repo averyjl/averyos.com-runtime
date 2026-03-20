@@ -32,6 +32,8 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/tari-gate", label: "TARI Portal", icon: "💰" },
   { path: "/partners", label: "Partners", icon: "🤝" },
   { path: "/compatibility", label: "Compatibility", icon: "🔗" },
+  // ── Trust & transparency ────────────────────────────────────────────────────
+  { path: "/sovereign-transparency", label: "Sovereign Transparency", icon: "🛡️" },
   // ── Vault & forensics ───────────────────────────────────────────────────────
   { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },

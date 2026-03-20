@@ -320,9 +320,11 @@ async function main() {
 
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
-    const localPath = path.join(OUTPUT_DIR, filename);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
+    // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+    const localPath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
     assertSafePath(OUTPUT_DIR_RESOLVED, localPath);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
+    // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
     const bundleFd = fs.openSync(localPath, 'w');
     try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
@@ -331,9 +333,12 @@ async function main() {
 
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
-    const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized capsule id
+    const noticeFilename = `${capsuleId}_settlement.md`;
+    // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
+    const noticePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(noticeFilename));
     assertSafePath(OUTPUT_DIR_RESOLVED, noticePath);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
+    // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
     const noticeFd = fs.openSync(noticePath, 'w');
     try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
 
