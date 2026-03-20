@@ -264,8 +264,8 @@ function writeNotice(eventId, noticeText) {
   const filePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
   assertSafePath(OUTPUT_DIR_RESOLVED, filePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const settleFd = fs.openSync(filePath, 'w');
   try { fs.writeSync(settleFd, sealed); } finally { fs.closeSync(settleFd); }
   return { filePath, seal };
@@ -368,8 +368,8 @@ async function runSweep() {
         // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
         const safeFilePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filePath));
         assertSafePath(OUTPUT_DIR_RESOLVED, safeFilePath);
-        // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
         // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
         const checkoutFd = fs.openSync(safeFilePath, 'a');
         try { fs.writeSync(checkoutFd, `\nSTRIPE CHECKOUT : ${safeCheckoutUrl}\n`); } finally { fs.closeSync(checkoutFd); }
       } catch (err) {

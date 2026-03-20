@@ -323,8 +323,8 @@ function generateSettlementLetter({
   // Force-strip any directory segments and root at outputDir (CodeQL taint-break)
   const settlementFilePath = path.resolve(outputDir, path.basename(settlementFileName));
   assertSafePath(outputDir, settlementFilePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const fdSettlement = fs.openSync(settlementFilePath, 'w');
   try { fs.writeSync(fdSettlement, letter); } finally { fs.closeSync(fdSettlement); }
   return settlementFilePath;
@@ -511,8 +511,8 @@ async function main() {
   // Force-strip any directory segments and root at outputDir (CodeQL taint-break)
   const filePath = path.resolve(outputDir, path.basename(fileName));
   assertSafePath(outputDir, filePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
   const fdBundle = fs.openSync(filePath, 'w');
   try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
 

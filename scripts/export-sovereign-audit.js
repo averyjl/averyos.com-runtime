@@ -153,6 +153,7 @@ function queryD1(sql, env) {
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
     assertSafePath(OUTPUT_DIR_RESOLVED, tmpSql);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
     const sqlFd = fs.openSync(tmpSql, 'w');
     try { fs.writeSync(sqlFd, sql); } finally { fs.closeSync(sqlFd); }
     const envFlag = env === "production" ? "--env production" : "";
@@ -323,8 +324,8 @@ async function main() {
     // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
     const localPath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
     assertSafePath(OUTPUT_DIR_RESOLVED, localPath);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     const bundleFd = fs.openSync(localPath, 'w');
     try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
@@ -337,8 +338,8 @@ async function main() {
     // Force-strip any directory segments and root at OUTPUT_DIR_RESOLVED (CodeQL taint-break)
     const noticePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(noticeFilename));
     assertSafePath(OUTPUT_DIR_RESOLVED, noticePath);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     // lgtm[js/file-system-race] - Path is force-rooted via path.basename and verified by assertSafePath
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
     const noticeFd = fs.openSync(noticePath, 'w');
     try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
 
