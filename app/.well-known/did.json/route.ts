@@ -122,6 +122,7 @@ export async function GET(request: Request): Promise<Response> {
     // ── AveryOS™ Sovereign Extensions ────────────────────────────────────────
     "x-averyos-kernel-version": KERNEL_VERSION,
     "x-averyos-kernel-sha":     KERNEL_SHA,
+    "x-averyos-constitution":   "https://averyos.com/AveryOS_CONSTITUTION_v1.17.md",
     "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
     "x-averyos-anchor":         "⛓️⚓⛓️",
     "x-averyos-skc-version":    "SKC-2026.1",

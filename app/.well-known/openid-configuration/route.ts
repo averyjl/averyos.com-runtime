@@ -75,8 +75,9 @@ export async function GET(request: Request): Promise<Response> {
     token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"],
 
     // AveryOS™ sovereign extensions
-    averyos_kernel_sha:         KERNEL_SHA.slice(0, 32) + "…",
+    averyos_kernel_sha:         KERNEL_SHA,
     averyos_kernel_version:     KERNEL_VERSION,
+    averyos_constitution:       "https://averyos.com/AveryOS_CONSTITUTION_v1.17.md",
     averyos_enterprise_contact: `${baseUrl}/licensing/enterprise`,
     averyos_kaas_endpoint:      `${baseUrl}/api/v1/kaas/settle`,
     averyos_registry:           `${baseUrl}/registry`,
