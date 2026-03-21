@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-18T22:08:12.976Z",
+  "generated_at": "2026-03-21T19:32:05.170Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -463,6 +463,29 @@
       ]
     },
     {
+      "path": "lib/constants/protocol.ts",
+      "doc": "admin/docs/lib/constants/protocol.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "THE_PROTOCOL",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_COMPONENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_VERSION",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_DISPLAY_LABEL",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "lib/enforcementTypes.ts",
       "doc": "admin/docs/lib/enforcementTypes.md",
       "symbolCount": 3,
@@ -790,6 +813,45 @@
       ]
     },
     {
+      "path": "lib/forensics/timeMesh.ts",
+      "doc": "admin/docs/lib/forensics/timeMesh.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "capturePulse",
+          "kind": "function"
+        },
+        {
+          "name": "openTimeMesh",
+          "kind": "function"
+        },
+        {
+          "name": "closeTimeMesh",
+          "kind": "function"
+        },
+        {
+          "name": "formatDelta",
+          "kind": "function"
+        },
+        {
+          "name": "timeMeshToVaultPayload",
+          "kind": "function"
+        },
+        {
+          "name": "formatSovereignFooter",
+          "kind": "function"
+        },
+        {
+          "name": "TimeMeshPulse",
+          "kind": "interface"
+        },
+        {
+          "name": "TimeMeshSession",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/valuationAudit.ts",
       "doc": "admin/docs/lib/forensics/valuationAudit.md",
       "symbolCount": 4,
@@ -815,8 +877,12 @@
     {
       "path": "lib/forensics/vaultChain.ts",
       "doc": "admin/docs/lib/forensics/vaultChain.md",
-      "symbolCount": 17,
+      "symbolCount": 20,
       "symbols": [
+        {
+          "name": "mirrorBlockToR2",
+          "kind": "function"
+        },
         {
           "name": "ensureVaultChainTable",
           "kind": "function"
@@ -850,6 +916,10 @@
           "kind": "function"
         },
         {
+          "name": "VAULTCHAIN_R2_PREFIX",
+          "kind": "constant"
+        },
+        {
           "name": "VaultChainBlockBase",
           "kind": "interface"
         },
@@ -867,6 +937,10 @@
         },
         {
           "name": "VaultChainGenesis",
+          "kind": "interface"
+        },
+        {
+          "name": "VaultChainR2Bucket",
           "kind": "interface"
         },
         {
@@ -902,6 +976,81 @@
         },
         {
           "name": "VitalityStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/watchdog.ts",
+      "doc": "admin/docs/lib/forensics/watchdog.md",
+      "symbolCount": 17,
+      "symbols": [
+        {
+          "name": "recordStepC",
+          "kind": "function"
+        },
+        {
+          "name": "raiseSilenceViolation",
+          "kind": "function"
+        },
+        {
+          "name": "checkForSilence",
+          "kind": "function"
+        },
+        {
+          "name": "getEchoLedger",
+          "kind": "function"
+        },
+        {
+          "name": "getUsiLog",
+          "kind": "function"
+        },
+        {
+          "name": "watchdogPulse",
+          "kind": "function"
+        },
+        {
+          "name": "kernelAnchorPulse",
+          "kind": "function"
+        },
+        {
+          "name": "bubbleUpgrade",
+          "kind": "function"
+        },
+        {
+          "name": "watchdogErrorResponse",
+          "kind": "function"
+        },
+        {
+          "name": "USI_PENALTY_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "SILENCE_WINDOW_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "WatchdogEnv",
+          "kind": "interface"
+        },
+        {
+          "name": "WatchdogPulseResult",
+          "kind": "interface"
+        },
+        {
+          "name": "StepCEcho",
+          "kind": "interface"
+        },
+        {
+          "name": "UsiViolation",
+          "kind": "interface"
+        },
+        {
+          "name": "PendingRequest",
+          "kind": "interface"
+        },
+        {
+          "name": "WatchdogAlertTier",
           "kind": "type"
         }
       ]
@@ -1368,6 +1517,53 @@
       ]
     },
     {
+      "path": "lib/registry/coreManifest.ts",
+      "doc": "admin/docs/lib/registry/coreManifest.md",
+      "symbolCount": 10,
+      "symbols": [
+        {
+          "name": "getDisplayStatus",
+          "kind": "function"
+        },
+        {
+          "name": "getModule",
+          "kind": "function"
+        },
+        {
+          "name": "getModulesByStatus",
+          "kind": "function"
+        },
+        {
+          "name": "updatePhysicality",
+          "kind": "function"
+        },
+        {
+          "name": "getRegistrySnapshot",
+          "kind": "function"
+        },
+        {
+          "name": "CORE_MANIFEST",
+          "kind": "constant"
+        },
+        {
+          "name": "SovereignModule",
+          "kind": "interface"
+        },
+        {
+          "name": "RegistrySnapshot",
+          "kind": "interface"
+        },
+        {
+          "name": "PhysicalityStatus",
+          "kind": "type"
+        },
+        {
+          "name": "VerificationPath",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/resonanceLayer.ts",
       "doc": "admin/docs/lib/resonanceLayer.md",
       "symbolCount": 9,
@@ -1578,6 +1774,33 @@
       ]
     },
     {
+      "path": "lib/security/pathSanitizer.ts",
+      "doc": "admin/docs/lib/security/pathSanitizer.md",
+      "symbolCount": 5,
+      "symbols": [
+        {
+          "name": "resolveSafePath",
+          "kind": "function"
+        },
+        {
+          "name": "resolveSafeFilePath",
+          "kind": "function"
+        },
+        {
+          "name": "SAFE_CAPSULE_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_CONTENT_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_LOGS_ROOT",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "lib/security/pinningCore.ts",
       "doc": "admin/docs/lib/security/pinningCore.md",
       "symbolCount": 6,
@@ -1635,6 +1858,29 @@
         },
         {
           "name": "RtvOpts",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/sovereignFetch.ts",
+      "doc": "admin/docs/lib/security/sovereignFetch.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "universalFetch",
+          "kind": "function"
+        },
+        {
+          "name": "ensureSovereignFetchLog",
+          "kind": "function"
+        },
+        {
+          "name": "UniversalFetchOpts",
+          "kind": "interface"
+        },
+        {
+          "name": "UniversalFetchResult",
           "kind": "interface"
         }
       ]
@@ -2627,6 +2873,17 @@
         },
         {
           "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/registry/snapshot/route.ts",
+      "doc": "admin/docs/app/api/v1/registry/snapshot/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
           "kind": "function"
         }
       ]
