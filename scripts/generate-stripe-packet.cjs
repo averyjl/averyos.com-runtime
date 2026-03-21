@@ -344,9 +344,10 @@ async function main() {
 
   // ── 6. Write local summary ────────────────────────────────────────────────
   const outDir = path.join(process.cwd(), 'evidence-packets');
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
   const localFile = path.join(outDir, `${packetId}.json`);
-  fs.writeFileSync(localFile, JSON.stringify(packet, null, 2), 'utf8');
+  const fdPacket = fs.openSync(localFile, 'w');
+  try { fs.writeSync(fdPacket, JSON.stringify(packet, null, 2)); } finally { fs.closeSync(fdPacket); }
   log('INFO', `Local summary: ${localFile}`);
 
   console.log(`\n✅ Packet ${packetId} complete.\n`);

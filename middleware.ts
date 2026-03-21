@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { classifyDerRequest, BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
+import { BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
 import { syncD1RowToFirebase } from './lib/firebaseClient';
 import {
   isGeminiCreditExhausted,
@@ -708,9 +708,8 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
 }
 
 // ── Phase 88 — UsageCreditWatch constants ────────────────────────────────────
-// Monthly Gemini credit ceiling in USD. If accumulated spend in KV_LOGS exceeds
-// this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
-const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+// Monthly Gemini credit ceiling in USD — reserved for future intelligence router upgrade.
+// const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
 
 // ── Phase 92.5 — Cadence Prediction Shield ────────────────────────────────────
 // Tracks the time between requests from the same IP address.
@@ -1406,12 +1405,6 @@ export async function middleware(request: NextRequest) {
   const canvasFp           = request.headers.get('x-averyos-canvas-fp') ?? '';
   // Phase 97.3 v2 — WebGL entropy header — set by client-side SDK when GPU WebGL context is available
   const webglFp            = request.headers.get('x-averyos-webgl-fp') ?? '';
-  // Gate 5 — Biometric Identity Shield (Phase 116.5.1): timing + navigator fingerprints
-  const timingFp           = request.headers.get('x-averyos-timing-fp') ?? '';
-  const navFp              = request.headers.get('x-averyos-nav-fp') ?? '';
-  const cookieHeader       = request.headers.get('cookie') ?? '';
-  // Derive the host for same-site referer check (use Host header)
-  const hostHeader         = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;

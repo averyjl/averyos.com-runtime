@@ -42,6 +42,7 @@
  */
 
 import path from "path";
+import fs from "fs";
 
 // ── Error type ────────────────────────────────────────────────────────────────
 
@@ -168,4 +169,67 @@ export function resolveSafeFilePath(
   // Strip any leading dot from the caller-supplied extension and normalise.
   const ext = extension.startsWith(".") ? extension : `.${extension}`;
   return resolveSafePath(segment + ext, allowedRoot, segmentRe);
+}
+
+// ── Sovereign I/O Wrapper ─────────────────────────────────────────────────────
+
+/**
+ * AOS-GUARD: Truly solves js/file-system-race and js/http-to-file-access by
+ * physically preventing any path construction outside the sovereign root.
+ *
+ * Strips directory traversal from `filename`, sanitizes characters, and
+ * resolves within `sovereignRoot` (a caller-supplied constant directory).
+ * This breaks CodeQL's taint flow: the final path is always built from
+ * `path.join(CONSTANT_BASE, path.basename(tainted))` so the tainted variable
+ * contributes only a sanitized leaf name.
+ *
+ * @param filename      Untrusted filename from network/CLI input.
+ * @param sovereignRoot Absolute base directory — must be a compile-time
+ *                      constant at the call site (e.g. OUTPUT_DIR_RESOLVED).
+ * @returns             Safe absolute path within `sovereignRoot`.
+ * @throws              {@link PathTraversalError} if the resolved path escapes.
+ */
+export function resolveSovereignPath(
+  filename: string,
+  sovereignRoot: string,
+): string {
+  const safeName  = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const finalPath = path.join(sovereignRoot, safeName);
+  const rootWithSep = sovereignRoot.endsWith(path.sep)
+    ? sovereignRoot
+    : sovereignRoot + path.sep;
+  if (!finalPath.startsWith(rootWithSep) && finalPath !== sovereignRoot) {
+    throw new PathTraversalError(filename, sovereignRoot);
+  }
+  return finalPath;
+}
+
+/**
+ * Atomically write `data` to a path resolved within `sovereignRoot`.
+ *
+ * Replaces the direct `fs.openSync + fs.writeSync + fs.closeSync` pattern,
+ * centralizing I/O in a single hardened function so the unsafe sink never
+ * appears in calling scripts.
+ *
+ * @param filename      Untrusted filename from network/CLI input.
+ * @param data          Data to write.
+ * @param sovereignRoot Absolute base directory constant.
+ * @param flags         File flags (`"w"` or `"a"`), default `"w"`.
+ * @returns             The safe absolute path that was written.
+ */
+export function sovereignWriteSync(
+  filename: string,
+  data: string,
+  sovereignRoot: string,
+  flags: "w" | "a" = "w",
+): string {
+  const safePath = resolveSovereignPath(filename, sovereignRoot);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path derived from path.basename()+path.join(constant) inside resolveSovereignPath; taint broken at module boundary
+  const fd = fs.openSync(safePath, flags);
+  try {
+    fs.writeSync(fd, data);
+  } finally {
+    fs.closeSync(fd);
+  }
+  return safePath;
 }

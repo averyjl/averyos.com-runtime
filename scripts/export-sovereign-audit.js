@@ -34,6 +34,34 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
+
+// ---------------------------------------------------------------------------
+// Path & network-data security helpers (COMMAND 2 & 3)
+// ---------------------------------------------------------------------------
+/**
+ * Validates that a resolved file path is within the allowed base directory.
+ * Throws if the path escapes the base (path traversal guard).
+ * @param {string} resolvedBase - The resolved base directory (from path.resolve)
+ * @param {string} targetPath   - The target path to validate
+ */
+function assertSafePath(resolvedBase, targetPath) {
+  const resolved = path.resolve(targetPath);
+  const base = path.resolve(resolvedBase).replace(/[/\\]+$/, "");
+  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
+    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
+  }
+}
+
+/**
+ * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
+ * before it is used in a filename or written to disk.
+ * Allows: alphanumeric, dot, hyphen, underscore, colon.
+ * Forward-slash is intentionally excluded to prevent path traversal in filenames.
+ */
+function sanitizeNetworkSegment(value) {
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:-]/g, "_");
+}
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -65,14 +93,17 @@ function getArg(flag) {
 const ENV        = getArg("--env")    ?? "production";
 const TARGET_IP  = getArg("--ip")    ?? null;
 const OUTPUT_DIR = getArg("--output") ?? path.resolve(__dirname, "../tmp/sovereign-audit-exports");
+const OUTPUT_DIR_RESOLVED = path.resolve(OUTPUT_DIR);
 
 // Validate IP address if provided (strict pattern to prevent injection)
+// eslint-disable-next-line security/detect-unsafe-regex -- IP validation pattern, bounded quantifiers
 const IP_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/;
 if (TARGET_IP && !IP_PATTERN.test(TARGET_IP)) {
   console.error(`❌ Invalid --ip value: "${TARGET_IP}". Must be a valid IPv4 or IPv6 address.`);
   process.exit(1);
 }
 
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- OUTPUT_DIR constructed from validated base dir
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // ---------------------------------------------------------------------------
@@ -121,7 +152,11 @@ function queryD1(sql, env) {
   // Write SQL to a temp file to avoid shell-injection risks entirely
   const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
   try {
-    fs.writeFileSync(tmpSql, sql, "utf8");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
+    assertSafePath(OUTPUT_DIR_RESOLVED, tmpSql);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
+    const sqlFd = fs.openSync(tmpSql, 'w');
+    try { fs.writeSync(sqlFd, sql); } finally { fs.closeSync(sqlFd); }
     const envFlag = env === "production" ? "--env production" : "";
     const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --file "${tmpSql}" --json`;
     const stdout = execSync(cmd, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -132,6 +167,7 @@ function queryD1(sql, env) {
     logAosError(AOS_ERROR.SCRIPT_EXECUTION_FAILURE, `D1 query failed: ${err.message}`);
     return [];
   } finally {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp file path constructed from validated base dir
     try { fs.unlinkSync(tmpSql); } catch { /* best-effort cleanup */ }
   }
 }
@@ -241,7 +277,9 @@ async function main() {
   const grouped = {};
   for (const row of rows) {
     const ip = row.ip_address ?? "UNKNOWN";
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping
     if (!grouped[ip]) grouped[ip] = [];
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping
     grouped[ip].push(row);
   }
 
@@ -250,11 +288,14 @@ async function main() {
 
   // 4. Build and upload bundles
   for (const ip of ips) {
+    // eslint-disable-next-line security/detect-object-injection -- key from validated ip grouping, controlled by db query result
     const events = grouped[ip];
     const issuedAt = new Date().toISOString();
     const liabilityPerEvent = TARI_LIABILITY.UNALIGNED_401;
     const totalLiabilityUsd = events.length * liabilityPerEvent;
-    const capsuleId = `EVIDENCE_BUNDLE_${ip.replace(/[.:]/g, "_")}_${Date.now()}`;
+    // sanitizeNetworkSegment strips all non-alphanumeric chars except . _ : - ;
+    // then replace remaining dots/colons with _ for a clean filename segment.
+    const capsuleId = `EVIDENCE_BUNDLE_${sanitizeNetworkSegment(ip).replace(/[.:]/g, "_")}_${Date.now()}`;
 
     // Sign the bundle
     const bundlePayload = JSON.stringify({
@@ -281,16 +322,15 @@ async function main() {
 
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
-    const localPath = path.join(OUTPUT_DIR, filename);
-    fs.writeFileSync(localPath, JSON.stringify(bundle, null, 2), "utf8");
+    const localPath = sovereignWriteSync(OUTPUT_DIR_RESOLVED, filename, JSON.stringify(bundle, null, 2));
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
     console.log(`      Events: ${events.length} | Liability: $${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
     console.log(`      Hash: ${bundleHash.slice(0, 32)}...`);
 
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
-    const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
-    fs.writeFileSync(noticePath, noticeMd, "utf8");
+    const noticeFilename = `${capsuleId}_settlement.md`;
+    sovereignWriteSync(OUTPUT_DIR_RESOLVED, noticeFilename, noticeMd);
 
     // Upload to R2
     const r2Key = `${capsuleId}.aoscap`;

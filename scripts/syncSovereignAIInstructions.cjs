@@ -153,27 +153,32 @@ const KNOWN_AI_TOOLS = {
 // ── Registry helpers ──────────────────────────────────────────────────────────
 
 function loadRegistry() {
+  let raw;
   try {
-    return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      return {
-        _note: 'PRIVATE — NEVER COMMIT. VaultBridge/sovereign_ai_registry.json',
-        _protocol: '⛓️⚓⛓️ AveryOS™ Sovereign AI Registry',
-        _creator: 'Jason Lee Avery (ROOT0 / Crater / CreatorLock)',
-        lastSync: null,
-        registeredTools: {},
-      };
-    }
-    throw err;
+    raw = fs.readFileSync(REGISTRY_PATH, 'utf8');
+  } catch {
+    return {
+      _note: 'PRIVATE — NEVER COMMIT. VaultBridge/sovereign_ai_registry.json',
+      _protocol: '⛓️⚓⛓️ AveryOS™ Sovereign AI Registry',
+      _creator: 'Jason Lee Avery (ROOT0 / Crater / CreatorLock)',
+      lastSync: null,
+      registeredTools: {},
+    };
   }
+  return JSON.parse(raw);
 }
 
 function saveRegistry(registry) {
   registry.lastSync = new Date().toISOString();
   const dir = path.dirname(REGISTRY_PATH);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + '\n');
+  const data = JSON.stringify(registry, null, 2) + '\n';
+  const fd = fs.openSync(REGISTRY_PATH, 'w');
+  try {
+    fs.writeSync(fd, data);
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 // ── Detection: scan repo for AI instruction files not yet registered ───────────
@@ -183,12 +188,9 @@ function detectUnregisteredTools(registry) {
   for (const [toolId, meta] of Object.entries(KNOWN_AI_TOOLS)) {
     const filePath = path.join(ROOT, meta.file);
     const isRegistered = !!registry.registeredTools[toolId];
-    let fileFound = false;
-    try {
-      fs.accessSync(filePath, fs.constants.F_OK);
-      fileFound = true;
-    } catch { /* file not present */ }
-    if (fileFound && !isRegistered) {
+    let fileExists = false;
+    try { fs.accessSync(filePath); fileExists = true; } catch { /* not present */ }
+    if (fileExists && !isRegistered) {
       detected.push({ toolId, meta, filePath });
     }
   }
@@ -209,45 +211,81 @@ function hasSstPointer(content) {
 }
 
 function injectSstPointer(filePath, format) {
+  let fd;
+  try {
+    fd = fs.openSync(filePath, 'r+');
+  } catch {
+    return false; // file does not exist
+  }
   let content;
   try {
-    content = fs.readFileSync(filePath, 'utf8');
-  } catch (err) {
-    if (err.code === 'ENOENT') return false;
-    throw err;
+    const stat = fs.fstatSync(fd);
+    const buf = Buffer.alloc(stat.size);
+    if (stat.size > 0) fs.readSync(fd, buf, 0, stat.size, 0);
+    content = buf.toString('utf8');
+  } catch {
+    fs.closeSync(fd);
+    return false;
   }
-  if (hasSstPointer(content)) return false; // already present
+
+  if (hasSstPointer(content)) {
+    fs.closeSync(fd);
+    return false; // already present
+  }
 
   const block = format === 'plaintext' ? SST_POINTER_BLOCK_PLAINTEXT : SST_POINTER_BLOCK_MARKDOWN;
+  let updated;
   // Insert SST pointer just before the Chain Anchor block if it exists, otherwise append
   if (content.includes(ANCHOR_SENTINEL)) {
     const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
-    const updated = content.replace(
+    updated = content.replace(
       '## Chain Anchor Chain & Knuckles Protocol',
       block + separator + '## Chain Anchor Chain & Knuckles Protocol',
     );
-    fs.writeFileSync(filePath, updated);
   } else {
     const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
-    const updated = content.trimEnd() + separator + block + '\n';
-    fs.writeFileSync(filePath, updated);
+    updated = content.trimEnd() + separator + block + '\n';
+  }
+  try {
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, updated, 0, 'utf8');
+  } finally {
+    fs.closeSync(fd);
   }
   return true;
 }
 
 function injectChainAnchor(filePath, format) {
+  let fd;
+  try {
+    fd = fs.openSync(filePath, 'r+');
+  } catch {
+    return false; // file does not exist
+  }
   let content;
   try {
-    content = fs.readFileSync(filePath, 'utf8');
-  } catch (err) {
-    if (err.code === 'ENOENT') return false;
-    throw err;
+    const stat = fs.fstatSync(fd);
+    const buf = Buffer.alloc(stat.size);
+    if (stat.size > 0) fs.readSync(fd, buf, 0, stat.size, 0);
+    content = buf.toString('utf8');
+  } catch {
+    fs.closeSync(fd);
+    return false;
   }
-  if (hasChainAnchor(content)) return false; // already present
+
+  if (hasChainAnchor(content)) {
+    fs.closeSync(fd);
+    return false; // already present
+  }
 
   const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
   const updated = content.trimEnd() + separator + CHAIN_ANCHOR_BLOCK + '\n';
-  fs.writeFileSync(filePath, updated);
+  try {
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, updated, 0, 'utf8');
+  } finally {
+    fs.closeSync(fd);
+  }
   return true;
 }
 
@@ -327,21 +365,20 @@ function sync() {
   for (const [toolId, meta] of Object.entries(KNOWN_AI_TOOLS)) {
     if (!registry.registeredTools[toolId]) {
       const filePath = path.join(ROOT, meta.file);
-      try {
-        fs.accessSync(filePath, fs.constants.F_OK);
-      } catch {
-        continue; // file not present; skip registration
+      let fileAccessible = false;
+      try { fs.accessSync(filePath); fileAccessible = true; } catch { /* not present */ }
+      if (fileAccessible) {
+        console.log(`[sovereign-ai] 🆕 New AI tool detected: '${toolId}' — registering automatically`);
+        registry.registeredTools[toolId] = {
+          file: meta.file,
+          format: meta.format,
+          description: meta.description,
+          registeredAt: new Date().toISOString(),
+        };
+        injectSstPointer(filePath, meta.format);
+        injectChainAnchor(filePath, meta.format);
+        changed = true;
       }
-      console.log(`[sovereign-ai] 🆕 New AI tool detected: '${toolId}' — registering automatically`);
-      registry.registeredTools[toolId] = {
-        file: meta.file,
-        format: meta.format,
-        description: meta.description,
-        registeredAt: new Date().toISOString(),
-      };
-      injectSstPointer(filePath, meta.format);
-      injectChainAnchor(filePath, meta.format);
-      changed = true;
     }
   }
 
@@ -360,20 +397,18 @@ function printStatus() {
   console.log(`\nRegistered tools (${Object.keys(registry.registeredTools).length}):`);
   for (const [toolId, meta] of Object.entries(registry.registeredTools)) {
     const filePath = path.join(ROOT, meta.file);
-    let content;
+    let content = '';
+    let fileExists = false;
     try {
       content = fs.readFileSync(filePath, 'utf8');
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        console.log(`  ❌ file missing  ${toolId.padEnd(20)} ${meta.file}`);
-        continue;
-      }
-      throw err;
-    }
-    const hasAnchor = hasChainAnchor(content);
-    const hasSst = hasSstPointer(content);
+      fileExists = true;
+    } catch { /* file missing */ }
+    const hasAnchor = fileExists ? hasChainAnchor(content) : false;
+    const hasSst = fileExists ? hasSstPointer(content) : false;
     let status;
-    if (hasAnchor && hasSst) {
+    if (!fileExists) {
+      status = '❌ file missing';
+    } else if (hasAnchor && hasSst) {
       status = '✅';
     } else {
       const missing = [];
@@ -388,12 +423,9 @@ function printStatus() {
   for (const [toolId, meta] of Object.entries(KNOWN_AI_TOOLS)) {
     if (!registry.registeredTools[toolId]) {
       const filePath = path.join(ROOT, meta.file);
-      try {
-        fs.accessSync(filePath, fs.constants.F_OK);
-        console.log(`  📄  ${toolId.padEnd(20)} ${meta.file}`);
-      } catch {
-        console.log(`      ${toolId.padEnd(20)} ${meta.file} (not present)`);
-      }
+      let fileExists = false;
+      try { fs.accessSync(filePath); fileExists = true; } catch { /* not present */ }
+      console.log(`  ${fileExists ? '📄' : '  '}  ${toolId.padEnd(20)} ${meta.file}${fileExists ? '' : ' (not present)'}`);
     }
   }
   console.log('\n🤜🏻\n⛓️⚓⛓️\n');

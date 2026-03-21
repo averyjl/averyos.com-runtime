@@ -9,6 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // Generate SHA-512 hash
 function generateSha512(content) {
@@ -156,21 +157,17 @@ function main() {
   const logsDir = path.join(enforcementDir, "logs");
 
   [enforcementDir, evidenceDir, noticesDir, logsDir].forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    fs.mkdirSync(dir, { recursive: true });
   });
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  const bundlePath = path.join(evidenceDir, `${bundle.bundleId}.json`);
-  fs.writeFileSync(bundlePath, JSON.stringify(bundle, null, 2));
+  const bundlePath = sovereignWriteSync(evidenceDir, `${bundle.bundleId}.json`, JSON.stringify(bundle, null, 2));
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  const noticePath = path.join(noticesDir, `${notice.noticeId}.json`);
-  fs.writeFileSync(noticePath, JSON.stringify(notice, null, 2));
+  const noticePath = sovereignWriteSync(noticesDir, `${notice.noticeId}.json`, JSON.stringify(notice, null, 2));
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
   // Add to enforcement log
@@ -181,11 +178,14 @@ function main() {
   const logPath = path.join(logsDir, "enforcement-log.json");
 
   let events = [];
-  if (fs.existsSync(logPath)) {
+  try {
     events = JSON.parse(fs.readFileSync(logPath, "utf-8"));
+  } catch {
+    events = [];
   }
   events.push(event);
-  fs.writeFileSync(logPath, JSON.stringify(events, null, 2));
+  const fdLog = fs.openSync(logPath, 'w');
+  try { fs.writeSync(fdLog, JSON.stringify(events, null, 2)); } finally { fs.closeSync(fdLog); }
   console.log(`✅ Event added to log: ${event.id}`);
 
   console.log("\n📋 Summary:");

@@ -54,8 +54,12 @@ function findConflictedFiles() {
   const cliPaths = process.argv.slice(2).filter(a => !a.startsWith('--'));
   if (cliPaths.length > 0) {
     return cliPaths.filter(p => {
-      if (!fs.existsSync(p)) { console.warn(`[AOS] Skipping missing path: ${p}`); return false; }
-      const content = fs.readFileSync(p, 'utf8');
+      let content;
+      try {
+        content = fs.readFileSync(p, 'utf8');
+      } catch {
+        console.warn(`[AOS] Skipping missing path: ${p}`); return false;
+      }
       return CONFLICT_START.test(content);
     });
   }
@@ -200,7 +204,12 @@ async function openSovereignReviewIssue(filePath, error) {
 // ── Main resolution loop ──────────────────────────────────────────────────────
 
 async function resolveFile(filePath) {
-  const content   = fs.readFileSync(filePath, 'utf8');
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return { resolved: 0, skipped: 0 };
+  }
   const conflicts = parseConflicts(content);
   if (conflicts.length === 0) return { resolved: 0, skipped: 0 };
 
@@ -237,7 +246,8 @@ async function resolveFile(filePath) {
   }
 
   if (!DRY_RUN && resolved > 0) {
-    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
+    const wfd = fs.openSync(filePath, 'w');
+    try { fs.writeSync(wfd, lines.join('\n')); } finally { fs.closeSync(wfd); }
     console.log(`[AOS] ✓ Wrote resolved file: ${filePath}`);
   }
 

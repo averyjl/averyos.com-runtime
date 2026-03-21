@@ -70,8 +70,13 @@ function verbose(msg) { if (VERBOSE) console.log(`${MUTED}[QA-GEN]${RESET} ${msg
  */
 function findSourceFiles(dir, base = dir) {
   const results = [];
-  if (!fs.existsSync(dir)) return results;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  let _findEntries;
+  try {
+    _findEntries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return results;
+  }
+  for (const entry of _findEntries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...findSourceFiles(full, base));
@@ -102,8 +107,13 @@ function findCoveredModules() {
 
   // 1. Scan hand-written tests (exclude generated/ to avoid double processing)
   const scanDir = (dir) => {
-    if (!fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    let _scanEntries;
+    try {
+      _scanEntries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of _scanEntries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory() && entry.name !== "generated") {
         scanDir(full);
@@ -116,13 +126,15 @@ function findCoveredModules() {
   scanDir(TESTS_DIR);
 
   // 2. Scan generated stubs — strip ".gen.test.ts" to recover the module base name
-  if (fs.existsSync(GEN_DIR)) {
-    for (const entry of fs.readdirSync(GEN_DIR, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      if (entry.name.endsWith(".gen.test.ts")) {
-        const base = entry.name.replace(/\.gen\.test\.ts$/, "");
-        covered.add(base.toLowerCase());
-      }
+  let genDirEntries = [];
+  try {
+    genDirEntries = fs.readdirSync(GEN_DIR, { withFileTypes: true });
+  } catch { /* GEN_DIR not yet created — skip */ }
+  for (const entry of genDirEntries) {
+    if (!entry.isFile()) continue;
+    if (entry.name.endsWith(".gen.test.ts")) {
+      const base = entry.name.replace(/\.gen\.test\.ts$/, "");
+      covered.add(base.toLowerCase());
     }
   }
 
@@ -254,7 +266,7 @@ function computeGeneratedSha512(entries) {
 function main() {
   log("AveryOS™ QA Test Generator v1.0 — scanning source files…");
 
-  if (!DRY_RUN && !fs.existsSync(GEN_DIR)) {
+  if (!DRY_RUN) {
     fs.mkdirSync(GEN_DIR, { recursive: true });
   }
 
@@ -318,12 +330,17 @@ function main() {
 
     if (DRY_RUN) {
       log(`[DRY-RUN] Would write: ${path.relative(ROOT, outPath)}`);
-    } else if (FORCE || !fs.existsSync(outPath)) {
-      fs.writeFileSync(outPath, skeleton, "utf8");
+    } else if (FORCE) {
+      const fd = fs.openSync(outPath, 'w');
+      try { fs.writeSync(fd, skeleton); } finally { fs.closeSync(fd); }
       ok(`Wrote: ${path.relative(ROOT, outPath)}`);
       generatedCount++;
     } else {
-      verbose(`SKIP (exists): ${path.relative(ROOT, outPath)}`);
+      let fd;
+      try { fd = fs.openSync(outPath, 'wx'); } catch { continue; }
+      try { fs.writeSync(fd, skeleton); } finally { fs.closeSync(fd); }
+      ok(`Wrote: ${path.relative(ROOT, outPath)}`);
+      generatedCount++;
     }
   }
 
@@ -333,7 +350,8 @@ function main() {
   // Write coverage report
   if (!DRY_RUN) {
     const reportPath = path.join(GEN_DIR, "_coverage_report.json");
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf8");
+    const rfd = fs.openSync(reportPath, 'w');
+    try { fs.writeSync(rfd, JSON.stringify(report, null, 2)); } finally { fs.closeSync(rfd); }
     ok(`Coverage report: ${path.relative(ROOT, reportPath)}`);
   }
 
@@ -426,8 +444,8 @@ function runKeyTokenGuard() {
       const bn = path.basename(rel);
       if (alreadyIgnored(bn)) continue;
       if (!DRY_RUN) {
-        fs.appendFileSync(GITIGNORE_PATH,
-          `\n# Auto-detected by qa:generate — key/token file with key material\n${bn}\n`, "utf8");
+        const afd = fs.openSync(GITIGNORE_PATH, 'a');
+        try { fs.writeSync(afd, `\n# Auto-detected by qa:generate — key/token file with key material\n${bn}\n`); } finally { fs.closeSync(afd); }
         autoAddedCount++;
         console.log(`${GREEN_CODE}[QA-GUARD]${RESET_CODE} Auto-added to .gitignore: ${bn}`);
       } else {

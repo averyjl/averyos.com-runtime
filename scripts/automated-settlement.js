@@ -44,6 +44,7 @@ const https   = require('https');
 const crypto  = require('crypto');
 
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ const SITE_URL = (process.env.SITE_URL ?? 'https://averyos.com').replace(/\/$/, 
 const CREATOR_NAME  = process.env.CREATOR_NAME  ?? 'Jason Lee Avery';
 const CREATOR_EMAIL = process.env.CREATOR_EMAIL ?? 'truth@averyworld.com';
 const OUTPUT_DIR    = process.env.OUTPUT_DIR    ?? path.join(process.cwd(), 'vault', 'takedowns');
+const OUTPUT_DIR_RESOLVED = path.resolve(OUTPUT_DIR);
 
 const TARI_USD = 10_000;
 const TARI_CENTS = TARI_USD * 100;
@@ -72,6 +74,17 @@ const isDryRun = process.argv.includes('--dry-run');
 const isOnce   = process.argv.includes('--once');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+/**
+ * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
+ * before it is used in a filename or written to disk.
+ * Allows: alphanumeric, dot, hyphen, underscore, colon.
+ * Forward-slash is intentionally excluded to prevent path traversal in filenames.
+ */
+function sanitizeNetworkSegment(value) {
+  return String(value ?? "").replace(/[^a-zA-Z0-9._:-]/g, "_");
+}
 
 /** SHA-512 hex of a UTF-8 string */
 function sha512(str) {
@@ -230,12 +243,13 @@ ${CREATOR_EMAIL}
 
 /** Write a notice to the output directory and return the file path */
 function writeNotice(eventId, noticeText) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir + sanitized segment
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const seal     = sha512(noticeText + KERNEL_SHA);
-  const filename = `demand-${eventId}-${Date.now()}.txt`;
-  const filePath = path.join(OUTPUT_DIR, filename);
+  const safeEventId = sanitizeNetworkSegment(String(eventId));
+  const filename = `demand-${safeEventId}-${Date.now()}.txt`;
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
-  fs.writeFileSync(filePath, sealed, 'utf8');
+  const filePath = sovereignWriteSync(OUTPUT_DIR_RESOLVED, filename, sealed);
   return { filePath, seal };
 }
 
@@ -330,7 +344,9 @@ async function runSweep() {
       console.log(`[settlement] 💳 Stripe invoice created: ${checkoutUrl}`);
       // Append checkout URL to the notice file
       try {
-        fs.appendFileSync(filePath, `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`);
+        // Sanitize network-sourced URL: strip any non-standard chars before writing to disk
+        const safeCheckoutUrl = String(checkoutUrl).replace(/[^a-zA-Z0-9-._:/]/g, '_');
+        sovereignWriteSync(OUTPUT_DIR_RESOLVED, filePath, `\nSTRIPE CHECKOUT : ${safeCheckoutUrl}\n`, 'a');
       } catch (err) {
         logAosError(AOS_ERROR.WRITE_ERROR, `Failed to append checkout URL to notice: ${err.message}`, err);
       }

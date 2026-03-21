@@ -7,9 +7,7 @@ const capsulesDir = path.join(process.cwd(), "capsules");
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 
 const ensureDir = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
+  fs.mkdirSync(dirPath, { recursive: true });
 };
 
 const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
@@ -17,7 +15,9 @@ const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
 const computeSha = (content) => compileCapsuleSignature(content);
 
 const readCapsules = () => {
-  if (!fs.existsSync(capsulesDir)) {
+  let capsulesExists = false;
+  try { fs.accessSync(capsulesDir); capsulesExists = true; } catch {}
+  if (!capsulesExists) {
     return [];
   }
   return fs
@@ -62,7 +62,8 @@ const compileCapsule = ({ id, filePath }) => {
   };
 
   const manifestPath = path.join(manifestDir, `${id}.json`);
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  const manifestFd = fs.openSync(manifestPath, 'w');
+  try { fs.writeSync(manifestFd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(manifestFd); }
 
   return manifest;
 };

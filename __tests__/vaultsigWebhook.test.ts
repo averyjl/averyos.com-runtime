@@ -37,6 +37,7 @@ describe("VaultSig webhook route files — existence and structure", () => {
     const routePath = join(ROOT, "app/api/v1/hooks/vaultsig/route.ts");
     let content: string;
     try {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
       content = readFileSync(routePath, "utf8");
     } catch {
       assert.fail(`VaultSig main webhook route file not found: ${routePath}`);
@@ -56,6 +57,7 @@ describe("VaultSig webhook route files — existence and structure", () => {
     const routePath = join(ROOT, "app/api/v1/hooks/vaultsig/success/route.ts");
     let content: string;
     try {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
       content = readFileSync(routePath, "utf8");
     } catch {
       assert.fail(`VaultSig success route file not found: ${routePath}`);
@@ -68,6 +70,7 @@ describe("VaultSig webhook route files — existence and structure", () => {
     const routePath = join(ROOT, "app/api/v1/hooks/vaultsig/setup/route.ts");
     let content: string;
     try {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
       content = readFileSync(routePath, "utf8");
     } catch {
       assert.fail(`VaultSig setup route file not found: ${routePath}`);
@@ -118,6 +121,7 @@ describe("Capsule content protection invariants", () => {
 
   test("capsule upload route requires VAULT_PASSPHRASE authentication", () => {
     const routePath = join(ROOT, "app/api/v1/capsules/upload/route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("VAULT_PASSPHRASE") && content.includes("safeEqual"),
@@ -127,6 +131,7 @@ describe("Capsule content protection invariants", () => {
 
   test("capsule download route requires a valid purchase token", () => {
     const routePath = join(ROOT, "app/api/v1/capsules/[capsuleId]/download/route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("download_token") || content.includes("token"),
@@ -136,6 +141,7 @@ describe("Capsule content protection invariants", () => {
 
   test("public capsule listing route does NOT expose file_key", () => {
     const routePath = join(ROOT, "app/api/v1/capsules/route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(routePath, "utf8");
     // The public SELECT must not include file_key — it should only expose safe fields
     // Check the SELECT that feeds the public response (status = 'ACTIVE' query)
@@ -163,6 +169,7 @@ describe("JWKS route triple-part key passthrough — GATE 111.6.1", () => {
 
   test("app/api/v1/jwks/route.ts passes all triple-part keys to getSovereignKeys", () => {
     const routePath = join(ROOT, "app/api/v1/jwks/route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("AVERYOS_PRIVATE_KEY_B64_1_OF_3"),
@@ -180,6 +187,7 @@ describe("JWKS route triple-part key passthrough — GATE 111.6.1", () => {
 
   test("app/.well-known/jwks.json/route.ts also passes triple-part keys", () => {
     const routePath = join(ROOT, "app/.well-known/jwks.json/route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("AVERYOS_PRIVATE_KEY_B64_1_OF_3"),
@@ -195,6 +203,7 @@ describe("SovereignEnv interface completeness — GATE 111.6.3", () => {
 
   test("lib/security/keys.ts interface includes all UPPERCASE triple-part key fields", () => {
     const keysPath = join(ROOT, "lib/security/keys.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(keysPath, "utf8");
     // All three UPPERCASE parts must be declared in the interface
     assert.ok(
@@ -213,6 +222,7 @@ describe("SovereignEnv interface completeness — GATE 111.6.3", () => {
 
   test("resolvePrivateKeyB64 checks UPPERCASE before lowercase (precedence guarantee)", () => {
     const keysPath = join(ROOT, "lib/security/keys.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = readFileSync(keysPath, "utf8");
     // The expression pattern: (env.AVERYOS_... ?? env.averyos_...) ensures UPPERCASE wins
     const uppercaseBeforeLowercase =

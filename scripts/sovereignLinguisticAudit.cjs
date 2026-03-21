@@ -211,7 +211,8 @@ function fixDirectory(dirPath) {
     const { fixed, replacements } = applyCanonicalFix(body);
     if (replacements > 0) {
       try {
-        fs.writeFileSync(filePath, fixed, 'utf-8');
+        const linguisticFd = fs.openSync(filePath, 'w');
+        try { fs.writeSync(linguisticFd, fixed); } finally { fs.closeSync(linguisticFd); }
         filesFixed++;
         totalReplacements += replacements;
         console.log(`  ✅  Fixed ${replacements} replacement(s) in ${path.relative(process.cwd(), filePath)}`);

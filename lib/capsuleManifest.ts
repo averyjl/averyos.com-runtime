@@ -66,26 +66,32 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
     return null;
   }
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (!manifestPath.startsWith(manifestDir + path.sep)) {
     // Resolved path escapes the manifest directory; treat as not found
     return null;
   }
 
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const raw = fs.readFileSync(manifestPath, "utf-8");
+  let raw: string;
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    raw = fs.readFileSync(manifestPath, "utf-8");
+  } catch {
+    return null;
+  }
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
 };
 
 export const listCapsuleIds = (): string[] => {
+  let files: string[];
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    return fs
-      .readdirSync(manifestDir)
-      .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
-      .map((fileName) => fileName.replace(/\.json$/, ""))
-      .sort((a, b) => a.localeCompare(b));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw err;
+    files = fs.readdirSync(manifestDir);
+  } catch {
+    return [];
   }
+  return files
+    .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
+    .map((fileName) => fileName.replace(/\.json$/, ""))
+    .sort((a, b) => a.localeCompare(b));
 };

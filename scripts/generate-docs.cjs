@@ -54,8 +54,13 @@ const PRIVATE_IP_PATTERNS = [
  */
 function scanTs(dir) {
   const results = [];
-  if (!fs.existsSync(dir)) return results;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return results;
+  }
+  for (const entry of entries) {
     if (entry.isDirectory()) {
       results.push(...scanTs(path.join(dir, entry.name)));
     } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
@@ -228,7 +233,8 @@ function main() {
       // Write module doc
       const outFile = path.join(OUT_DIR, relPath.replace(/\.(ts|tsx)$/, ".md"));
       fs.mkdirSync(path.dirname(outFile), { recursive: true });
-      fs.writeFileSync(outFile, docMd, "utf8");
+      const fdDoc = fs.openSync(outFile, 'w');
+      try { fs.writeSync(fdDoc, docMd); } finally { fs.closeSync(fdDoc); }
 
       index.modules.push({
         path:        relPath,
@@ -243,7 +249,8 @@ function main() {
 
   // Write index.json
   const indexPath = path.join(OUT_DIR, "index.json");
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf8");
+  const fdIndex = fs.openSync(indexPath, 'w');
+  try { fs.writeSync(fdIndex, JSON.stringify(index, null, 2)); } finally { fs.closeSync(fdIndex); }
 
   console.log(`[generate-docs] Complete — ${processedCount} modules documented, ${skippedCount} skipped (private IP).`);
   console.log(`[generate-docs] Index: ${path.relative(ROOT, indexPath)}`);

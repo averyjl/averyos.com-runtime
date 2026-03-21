@@ -26,14 +26,14 @@ const registryPath = path.join(
 );
 
 export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+  let raw: string;
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const raw = fs.readFileSync(registryPath, "utf-8");
-    return JSON.parse(raw) as CapsuleRegistry;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw err;
+    raw = fs.readFileSync(registryPath, "utf-8");
+  } catch {
+    return null;
   }
+  return JSON.parse(raw) as CapsuleRegistry;
 };
 
 export const listRegistryCapsules = (): CapsuleRegistryItem[] => {

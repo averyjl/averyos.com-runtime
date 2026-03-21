@@ -35,6 +35,7 @@ const path = require('path');
 // Promises in a CJS context where await is unavailable at the top level.
 const crypto = require('crypto');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ---------------------------------------------------------------------------
 // Sovereign constants
@@ -86,13 +87,11 @@ function parseArgs() {
  */
 function loadBundle(bundlePath) {
   const resolved = path.resolve(bundlePath);
-  if (!fs.existsSync(resolved)) {
-    throw new Error(`Bundle file not found: ${resolved}`);
-  }
   let raw;
   try {
     raw = fs.readFileSync(resolved, 'utf-8');
   } catch (err) {
+    if (err.code === 'ENOENT') throw new Error(`Bundle file not found: ${resolved}`);
     throw new Error(`Cannot read bundle file: ${err.message}`);
   }
   let bundle;
@@ -477,9 +476,7 @@ async function runD1Mode({ org, type, output, limit }) {
 
   // ── Create output directory ───────────────────────────────────────────────
   const outputDir = path.resolve(output);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  fs.mkdirSync(outputDir, { recursive: true });
 
   const timestamp = formatIso9();
   const date      = timestamp.slice(0, 10);
@@ -524,7 +521,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(dmcaText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `DMCA_NOTICE_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        fs.writeFileSync(path.join(outputDir, fileName), dmcaText + footer, 'utf-8');
+        const dmcaPath = sovereignWriteSync(outputDir, fileName, dmcaText + footer);
         console.log(`📄 DMCA: ${fileName}`);
         totalGenerated++;
       } catch (err) {
@@ -538,7 +535,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(gdprText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `GDPR_ART17_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        fs.writeFileSync(path.join(outputDir, fileName), gdprText + footer, 'utf-8');
+        const gdprPath = sovereignWriteSync(outputDir, fileName, gdprText + footer);
         console.log(`📄 GDPR: ${fileName}`);
         totalGenerated++;
       } catch (err) {
@@ -628,9 +625,7 @@ function main() {
   // Create output directory
   const outputDir = path.resolve(output);
   try {
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    fs.mkdirSync(outputDir, { recursive: true });
   } catch (err) {
     logAosError(AOS_ERROR.INTERNAL_ERROR, `Cannot create output directory: ${err.message}`, err);
     process.exit(1);
@@ -649,8 +644,7 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = dmcaText + footer;
       const fileName   = `DMCA_NOTICE_${safeOrg}_${date}.md`;
-      const filePath   = path.join(outputDir, fileName);
-      fs.writeFileSync(filePath, full, 'utf-8');
+      const filePath   = sovereignWriteSync(outputDir, fileName, full);
       written.push({ type: 'DMCA', path: filePath, seal: noticeSeal });
       console.log(`📄 DMCA notice written: ${filePath}`);
     } catch (err) {
@@ -666,8 +660,7 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = gdprText + footer;
       const fileName   = `GDPR_ART17_NOTICE_${safeOrg}_${date}.md`;
-      const filePath   = path.join(outputDir, fileName);
-      fs.writeFileSync(filePath, full, 'utf-8');
+      const filePath   = sovereignWriteSync(outputDir, fileName, full);
       written.push({ type: 'GDPR Art.17', path: filePath, seal: noticeSeal });
       console.log(`📄 GDPR Art.17 notice written: ${filePath}`);
     } catch (err) {
