@@ -1,7 +1,9 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
+import {
+  sovereignWriteSync,
+  sovereignReadSync,
+} from "../../lib/security/pathSanitizer";
 
 type VaultChainPushRequest = {
   capsule: string;
@@ -28,24 +30,15 @@ type PushLog = {
   timestamp: string;
 };
 
-const pushLogPath = path.join(process.cwd(), "capsule_logs", "vaultchain_push.json");
+const PUSH_LOG_FILENAME = "vaultchain_push.json";
 const GLYPH_LOCK = "🤛🏻";
 
 const readPushLog = (): PushLog[] => {
-  if (!fs.existsSync(pushLogPath)) {
-    return [];
-  }
-  try {
-    return JSON.parse(fs.readFileSync(pushLogPath, "utf8")) as PushLog[];
-  } catch (error) {
-    console.error("Error reading push log file:", error);
-    return [];
-  }
+  return sovereignReadSync<PushLog[]>(PUSH_LOG_FILENAME, []);
 };
 
 const writePushLog = (logs: PushLog[]): void => {
-  fs.mkdirSync(path.dirname(pushLogPath), { recursive: true });
-  fs.writeFileSync(pushLogPath, JSON.stringify(logs, null, 2));
+  sovereignWriteSync(PUSH_LOG_FILENAME, logs);
 };
 
 const validateGlyphToday = (glyph: string): boolean => {
