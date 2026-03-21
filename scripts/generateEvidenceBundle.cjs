@@ -9,6 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // Generate SHA-512 hash
 function generateSha512(content) {
@@ -161,18 +162,12 @@ function main() {
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  // codeql[js/file-system-race]
-  const bundlePath = path.resolve(evidenceDir, path.basename(`${bundle.bundleId}.json`));
-  const fdBundle = fs.openSync(bundlePath, 'w');
-  try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
+  const bundlePath = sovereignWriteSync(evidenceDir, `${bundle.bundleId}.json`, JSON.stringify(bundle, null, 2));
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  // codeql[js/file-system-race]
-  const noticePath = path.resolve(noticesDir, path.basename(`${notice.noticeId}.json`));
-  const fdNotice = fs.openSync(noticePath, 'w');
-  try { fs.writeSync(fdNotice, JSON.stringify(notice, null, 2)); } finally { fs.closeSync(fdNotice); }
+  const noticePath = sovereignWriteSync(noticesDir, `${notice.noticeId}.json`, JSON.stringify(notice, null, 2));
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
   // Add to enforcement log

@@ -44,6 +44,7 @@ const https   = require('https');
 const crypto  = require('crypto');
 
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -75,19 +76,6 @@ const isOnce   = process.argv.includes('--once');
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a resolved file path is within the allowed base directory.
- * Throws if the path escapes the base (path traversal guard).
- * @param {string} resolvedBase - The resolved base directory (from path.resolve)
- * @param {string} targetPath   - The target path to validate
- */
-function assertSafePath(resolvedBase, targetPath) {
-  const resolved = path.resolve(targetPath);
-  const base = path.resolve(resolvedBase).replace(/[/\\]+$/, '');
-  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
-    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
-  }
-}
-
 /**
  * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
  * before it is used in a filename or written to disk.
@@ -260,13 +248,8 @@ function writeNotice(eventId, noticeText) {
   const seal     = sha512(noticeText + KERNEL_SHA);
   const safeEventId = sanitizeNetworkSegment(String(eventId));
   const filename = `demand-${safeEventId}-${Date.now()}.txt`;
-  // codeql[js/file-system-race]
-  const filePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
-  assertSafePath(OUTPUT_DIR_RESOLVED, filePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-  const settleFd = fs.openSync(filePath, 'w');
-  try { fs.writeSync(settleFd, sealed); } finally { fs.closeSync(settleFd); }
+  const filePath = sovereignWriteSync(OUTPUT_DIR_RESOLVED, filename, sealed);
   return { filePath, seal };
 }
 
@@ -362,14 +345,8 @@ async function runSweep() {
       // Append checkout URL to the notice file
       try {
         // Sanitize network-sourced URL: strip any non-standard chars before writing to disk
-        // codeql[js/http-to-file-access]
         const safeCheckoutUrl = String(checkoutUrl).replace(/[^a-zA-Z0-9-._:/]/g, '_');
-        // codeql[js/file-system-race]
-        const safeFilePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filePath));
-        assertSafePath(OUTPUT_DIR_RESOLVED, safeFilePath);
-        // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-        const checkoutFd = fs.openSync(safeFilePath, 'a');
-        try { fs.writeSync(checkoutFd, `\nSTRIPE CHECKOUT : ${safeCheckoutUrl}\n`); } finally { fs.closeSync(checkoutFd); }
+        sovereignWriteSync(OUTPUT_DIR_RESOLVED, filePath, `\nSTRIPE CHECKOUT : ${safeCheckoutUrl}\n`, 'a');
       } catch (err) {
         logAosError(AOS_ERROR.WRITE_ERROR, `Failed to append checkout URL to notice: ${err.message}`, err);
       }

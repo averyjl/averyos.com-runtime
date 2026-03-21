@@ -34,6 +34,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ---------------------------------------------------------------------------
 // Path & network-data security helpers (COMMAND 2 & 3)
@@ -321,12 +322,7 @@ async function main() {
 
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
-    // codeql[js/file-system-race]
-    const localPath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(filename));
-    assertSafePath(OUTPUT_DIR_RESOLVED, localPath);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-    const bundleFd = fs.openSync(localPath, 'w');
-    try { fs.writeSync(bundleFd, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(bundleFd); }
+    const localPath = sovereignWriteSync(OUTPUT_DIR_RESOLVED, filename, JSON.stringify(bundle, null, 2));
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
     console.log(`      Events: ${events.length} | Liability: $${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
     console.log(`      Hash: ${bundleHash.slice(0, 32)}...`);
@@ -334,12 +330,7 @@ async function main() {
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticeFilename = `${capsuleId}_settlement.md`;
-    // codeql[js/file-system-race]
-    const noticePath = path.resolve(OUTPUT_DIR_RESOLVED, path.basename(noticeFilename));
-    assertSafePath(OUTPUT_DIR_RESOLVED, noticePath);
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-    const noticeFd = fs.openSync(noticePath, 'w');
-    try { fs.writeSync(noticeFd, noticeMd); } finally { fs.closeSync(noticeFd); }
+    sovereignWriteSync(OUTPUT_DIR_RESOLVED, noticeFilename, noticeMd);
 
     // Upload to R2
     const r2Key = `${capsuleId}.aoscap`;

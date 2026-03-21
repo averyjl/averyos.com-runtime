@@ -30,6 +30,7 @@ const crypto = require('crypto');
 const fs     = require('fs');
 const https  = require('https');
 const path   = require('path');
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ── Sovereign Kernel Anchor ───────────────────────────────────────────────────
 const KERNEL_SHA     = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
@@ -268,10 +269,7 @@ async function fetchBtcAnchor() {
 
   // 6. Write .aospak file
   fs.mkdirSync(outDir, { recursive: true });
-  // codeql[js/file-system-race]
-  const outPath = path.resolve(outDir, path.basename(`${rayId}.aospak`));
-  const fdPak = fs.openSync(outPath, 'w');
-  try { fs.writeSync(fdPak, JSON.stringify(finalBundle, null, 2)); } finally { fs.closeSync(fdPak); }
+  const outPath = sovereignWriteSync(outDir, `${rayId}.aospak`, JSON.stringify(finalBundle, null, 2));
   log('INFO', `Evidence bundle written: ${outPath}`);
 
   console.log('\n⛓️⚓⛓️  Evidence package complete.');

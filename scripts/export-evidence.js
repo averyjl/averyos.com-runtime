@@ -29,24 +29,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Import the CJS Sovereign Error Logger from the same scripts/ directory
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
 
 // ---------------------------------------------------------------------------
 // Path & network-data security helpers (COMMAND 2 & 3)
 // ---------------------------------------------------------------------------
-/**
- * Validates that a resolved file path is within the allowed base directory.
- * Throws if the path escapes the base (path traversal guard).
- * @param {string} resolvedBase - The resolved base directory (from path.resolve)
- * @param {string} targetPath   - The target path to validate
- */
-function assertSafePath(resolvedBase, targetPath) {
-  const resolved = path.resolve(targetPath);
-  const base = path.resolve(resolvedBase).replace(/[/\\]+$/, "");
-  if (!resolved.startsWith(base + path.sep) && resolved !== base) {
-    throw new Error(`[AveryOS™ Path Guard] Path traversal rejected: "${resolved}" is outside "${base}"`);
-  }
-}
-
 /**
  * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
  * before it is used in a filename or written to disk.
@@ -320,12 +307,7 @@ function generateSettlementLetter({
     .replaceAll("[ORGANIZATION]", "[Identify from IP WHOIS]");
 
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
-  // codeql[js/file-system-race]
-  const settlementFilePath = path.resolve(outputDir, path.basename(settlementFileName));
-  assertSafePath(outputDir, settlementFilePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-  const fdSettlement = fs.openSync(settlementFilePath, 'w');
-  try { fs.writeSync(fdSettlement, letter); } finally { fs.closeSync(fdSettlement); }
+  const settlementFilePath = sovereignWriteSync(outputDir, settlementFileName, letter);
   return settlementFilePath;
 }
 
@@ -507,12 +489,7 @@ async function main() {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir
   fs.mkdirSync(outputDir, { recursive: true });
 
-  // codeql[js/file-system-race]
-  const filePath = path.resolve(outputDir, path.basename(fileName));
-  assertSafePath(outputDir, filePath);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path force-rooted via path.basename + assertSafePath
-  const fdBundle = fs.openSync(filePath, 'w');
-  try { fs.writeSync(fdBundle, JSON.stringify(bundle, null, 2)); } finally { fs.closeSync(fdBundle); }
+  const filePath = sovereignWriteSync(outputDir, fileName, JSON.stringify(bundle, null, 2));
 
   // 7. Generate Settlement Notice letter from template
   const settlementPath = generateSettlementLetter({
