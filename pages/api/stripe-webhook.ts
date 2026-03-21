@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
 import Stripe from "stripe";
+import {
+  sovereignWriteSync,
+  sovereignReadSync,
+} from "../../lib/security/pathSanitizer";
 
 export const config = {
   api: {
@@ -9,8 +11,7 @@ export const config = {
   },
 };
 
-const LEDGER_PATH = path.join(process.cwd(), "capsule_logs", "vaultchain_revenue_ledger.json");
-const GRANTS_DIR = path.join(process.cwd(), "capsule_logs", "sovereign_grants");
+const LEDGER_FILENAME = "vaultchain_revenue_ledger.json";
 
 /** Read raw request body as a Buffer for Stripe signature verification. */
 function getRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -33,19 +34,9 @@ type LedgerEntry = {
 };
 
 function appendLedger(entry: LedgerEntry): void {
-  const logDir = path.dirname(LEDGER_PATH);
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  let ledger: LedgerEntry[] = [];
-  if (fs.existsSync(LEDGER_PATH)) {
-    try {
-      ledger = JSON.parse(fs.readFileSync(LEDGER_PATH, "utf8"));
-      if (!Array.isArray(ledger)) ledger = [];
-    } catch {
-      ledger = [];
-    }
-  }
+  const ledger = sovereignReadSync<LedgerEntry[]>(LEDGER_FILENAME, []);
   ledger.push(entry);
-  fs.writeFileSync(LEDGER_PATH, JSON.stringify(ledger, null, 2));
+  sovereignWriteSync(LEDGER_FILENAME, ledger);
 }
 
 /**
@@ -53,13 +44,11 @@ function appendLedger(entry: LedgerEntry): void {
  * The Lighthouse Bridge checks this directory to stop returning 402s for
  * the duration of the license.
  *
- * @returns the grant file path (relative to cwd)
+ * @returns the grant filename written inside vault_storage/
  */
 function writeSovereignGrant(nodeId: string, sessionId: string): string {
-  if (!fs.existsSync(GRANTS_DIR)) fs.mkdirSync(GRANTS_DIR, { recursive: true });
   const safeNodeId = nodeId.replace(/[^a-zA-Z0-9_\-]/g, "_");
   const fileName = `grant_${safeNodeId}.json`;
-  const filePath = path.join(GRANTS_DIR, fileName);
   const grant = {
     nodeId,
     sessionId,
@@ -68,9 +57,8 @@ function writeSovereignGrant(nodeId: string, sessionId: string): string {
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     status: "active",
   };
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  fs.writeFileSync(filePath, JSON.stringify(grant, null, 2));
-  return path.relative(process.cwd(), filePath);
+  sovereignWriteSync(fileName, grant);
+  return fileName;
 }
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
