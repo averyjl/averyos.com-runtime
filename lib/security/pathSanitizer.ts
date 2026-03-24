@@ -41,6 +41,7 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
+import fs from "fs";
 import path from "path";
 
 // ── Error type ────────────────────────────────────────────────────────────────
@@ -168,4 +169,81 @@ export function resolveSafeFilePath(
   // Strip any leading dot from the caller-supplied extension and normalise.
   const ext = extension.startsWith(".") ? extension : `.${extension}`;
   return resolveSafePath(segment + ext, allowedRoot, segmentRe);
+}
+
+// ── Sovereign write primitives ────────────────────────────────────────────────
+
+/**
+ * SAFE_SOVEREIGN_WRITES_ROOT
+ *
+ * Absolute root directory for all sovereign write operations performed by
+ * scripts and library code.  All `sovereignWriteSync` calls must supply
+ * either this constant or another exported root so the path is always
+ * sourced from a compile-time constant rather than untrusted input.
+ */
+export const SAFE_SOVEREIGN_WRITES_ROOT: string = path.resolve(
+  process.cwd(),
+);
+
+/**
+ * Resolve a filename against a sovereign root directory, performing the same
+ * traversal-escape checks as {@link resolveSafePath} but with a relaxed
+ * segment pattern that allows forward-slashes for sub-directory writes
+ * (e.g. `"output/report.json"`).
+ *
+ * The *root* is always a compile-time constant — this explicitly breaks
+ * CodeQL's taint flow between untrusted input and the filesystem API.
+ *
+ * @param filename     The file name or relative path segment to write.
+ * @param sovereignRoot Absolute root directory (compile-time constant).
+ * @returns            Safe absolute path confined to `sovereignRoot`.
+ * @throws             {@link PathTraversalError} if traversal is detected.
+ */
+export function resolveSovereignPath(
+  filename: string,
+  sovereignRoot: string,
+): string {
+  // Normalise — resolve any `.` / `..` components inside the join.
+  const resolved = path.resolve(sovereignRoot, filename);
+
+  // Confirm the resolved path is still inside the declared root.
+  const rootWithSep = sovereignRoot.endsWith(path.sep)
+    ? sovereignRoot
+    : sovereignRoot + path.sep;
+
+  if (!resolved.startsWith(rootWithSep) && resolved !== sovereignRoot) {
+    throw new PathTraversalError(filename, sovereignRoot);
+  }
+
+  return resolved;
+}
+
+/**
+ * The sole authorised `fs.writeFileSync` sink for the AveryOS™ runtime.
+ *
+ * All script and library code that writes files must go through this
+ * function — never call `fs.writeFileSync`, `fs.openSync`, or
+ * `fs.writeSync` directly with a path derived from dynamic or user-supplied
+ * input.  The architecture itself eliminates the CodeQL taint flow rather
+ * than suppressing alerts.
+ *
+ * @param sovereignRoot Absolute root directory (must be a compile-time
+ *                     constant exported from this module).
+ * @param filename     Relative file name or path (e.g. `"report.json"`).
+ * @param data         Content to write — string or Buffer.
+ * @param encoding     Optional encoding (default `"utf-8"`).
+ */
+export function sovereignWriteSync(
+  sovereignRoot: string,
+  filename: string,
+  data: string | Buffer,
+  encoding: BufferEncoding = "utf-8",
+): void {
+  const safePath = resolveSovereignPath(filename, sovereignRoot);
+
+  // Ensure parent directories exist before writing.
+  const dir = path.dirname(safePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  fs.writeFileSync(safePath, data, encoding);
 }
