@@ -176,10 +176,12 @@ export function resolveSafeFilePath(
 /**
  * SAFE_SOVEREIGN_WRITES_ROOT
  *
- * Absolute root directory for all sovereign write operations performed by
- * scripts and library code.  All `sovereignWriteSync` calls must supply
- * either this constant or another exported root so the path is always
- * sourced from a compile-time constant rather than untrusted input.
+ * Project root resolved at module load time from `process.cwd()`.
+ * Note: this value is determined at runtime (when the module is first
+ * imported), not at compile time.  Always prefer narrower, purpose-specific
+ * roots (e.g. {@link SAFE_LOGS_ROOT}) where possible.  This broad root is
+ * exported as a convenience fallback for scripts that must write to multiple
+ * locations within the project tree.
  */
 export const SAFE_SOVEREIGN_WRITES_ROOT: string = path.resolve(
   process.cwd(),
