@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-21T19:32:05.170Z",
+  "generated_at": "2026-03-24T23:04:54.480Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -1776,7 +1776,7 @@
     {
       "path": "lib/security/pathSanitizer.ts",
       "doc": "admin/docs/lib/security/pathSanitizer.md",
-      "symbolCount": 5,
+      "symbolCount": 8,
       "symbols": [
         {
           "name": "resolveSafePath",
@@ -1784,6 +1784,14 @@
         },
         {
           "name": "resolveSafeFilePath",
+          "kind": "function"
+        },
+        {
+          "name": "resolveSovereignPath",
+          "kind": "function"
+        },
+        {
+          "name": "sovereignWriteSync",
           "kind": "function"
         },
         {
@@ -1796,6 +1804,10 @@
         },
         {
           "name": "SAFE_LOGS_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_SOVEREIGN_WRITES_ROOT",
           "kind": "constant"
         }
       ]
