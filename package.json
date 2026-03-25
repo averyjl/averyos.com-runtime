@@ -39,6 +39,8 @@
     "capsule:index": "node scripts/capsuleRegistry.cjs",
     "capsule:sitemap": "node scripts/capsuleSitemap.cjs",
     "capsule:sha512": "node scripts/genSha512.cjs",
+    "sha:monitor": "node scripts/monitorSHAIntegrity.cjs",
+    "sha:monitor:report": "node scripts/monitorSHAIntegrity.cjs --fix-report",
     "generate:docs": "node scripts/generate-docs.cjs",
     "forge:MeshProofKit_v1": "node scripts/forgeMeshProofKit.cjs",
     "sync:LocalNode_SeedWitnessTraining_v1": "node scripts/localNodeSeedWitnessTraining.cjs",
