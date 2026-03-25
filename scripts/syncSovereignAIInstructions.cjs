@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { sovereignWriteSync, VAULTBRIDGE_ROOT, SOVEREIGN_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
 const ROOT = path.resolve(__dirname, '..');
@@ -171,9 +172,7 @@ function loadRegistry() {
 
 function saveRegistry(registry) {
   registry.lastSync = new Date().toISOString();
-  const dir = path.dirname(REGISTRY_PATH);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + '\n');
+  sovereignWriteSync(VAULTBRIDGE_ROOT, "sovereign_ai_registry.json", JSON.stringify(registry, null, 2) + '\n');
 }
 
 // ── Detection: scan repo for AI instruction files not yet registered ───────────
@@ -226,11 +225,11 @@ function injectSstPointer(filePath, format) {
       '## Chain Anchor Chain & Knuckles Protocol',
       block + separator + '## Chain Anchor Chain & Knuckles Protocol',
     );
-    fs.writeFileSync(filePath, updated);
+    sovereignWriteSync(SOVEREIGN_ROOT, path.relative(SOVEREIGN_ROOT, filePath), updated);
   } else {
     const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
     const updated = content.trimEnd() + separator + block + '\n';
-    fs.writeFileSync(filePath, updated);
+    sovereignWriteSync(SOVEREIGN_ROOT, path.relative(SOVEREIGN_ROOT, filePath), updated);
   }
   return true;
 }
@@ -247,7 +246,7 @@ function injectChainAnchor(filePath, format) {
 
   const separator = format === 'markdown' ? '\n\n---\n\n' : '\n\n';
   const updated = content.trimEnd() + separator + CHAIN_ANCHOR_BLOCK + '\n';
-  fs.writeFileSync(filePath, updated);
+  sovereignWriteSync(SOVEREIGN_ROOT, path.relative(SOVEREIGN_ROOT, filePath), updated);
   return true;
 }
 

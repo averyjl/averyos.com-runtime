@@ -25,11 +25,12 @@
 
 const fs   = require("fs");
 const path = require("path");
+const { sovereignWriteSync, DOCS_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const ROOT     = path.resolve(__dirname, "..");
-const OUT_DIR  = path.join(ROOT, "public", "admin", "docs");
+const OUT_DIR  = DOCS_ROOT;
 const SRC_DIRS = [
   "lib",
   "app/api",
@@ -227,8 +228,8 @@ function main() {
 
       // Write module doc
       const outFile = path.join(OUT_DIR, relPath.replace(/\.(ts|tsx)$/, ".md"));
-      fs.mkdirSync(path.dirname(outFile), { recursive: true });
-      fs.writeFileSync(outFile, docMd, "utf8");
+      const outRelative = relPath.replace(/\.(ts|tsx)$/, ".md");
+      sovereignWriteSync(OUT_DIR, outRelative, docMd);
 
       index.modules.push({
         path:        relPath,
@@ -243,7 +244,7 @@ function main() {
 
   // Write index.json
   const indexPath = path.join(OUT_DIR, "index.json");
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), "utf8");
+  sovereignWriteSync(OUT_DIR, "index.json", JSON.stringify(index, null, 2));
 
   console.log(`[generate-docs] Complete — ${processedCount} modules documented, ${skippedCount} skipped (private IP).`);
   console.log(`[generate-docs] Index: ${path.relative(ROOT, indexPath)}`);
