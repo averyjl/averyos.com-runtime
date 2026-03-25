@@ -435,32 +435,56 @@ ipcMain.handle("alm:chat", (_event, payload) => {
   });
 });
 
-// ── IPC: ALM status — GATE 119.9.2 — detailed model list + health ─────────────
+// ── IPC: ALM node status — GATE 116.2.3 / GATE 116.3.2 ──────────────────────
+//
+// Returns a rich status object for the local Avery-ALM node:
+//   { alive, version, models, endpoint }
+//
+// Combines a /api/tags probe (for model list) with a /api/version probe.
 
 ipcMain.handle("alm:status", () => {
   return new Promise((resolve) => {
-    const req = http.get(
-      { hostname: ALM_HOST, port: ALM_PORT, path: "/api/tags", timeout: 5000 },
+    const endpoint = `http://${ALM_HOST}:${ALM_PORT}`;
+    let settled = false;
+
+    // Probe /api/tags to get available models + confirm the node is alive
+    const tagsReq = http.get(
+      { hostname: ALM_HOST, port: ALM_PORT, path: "/api/tags", timeout: 3000 },
       (res) => {
         let data = "";
         res.on("data", (chunk) => { data += chunk; });
         res.on("end",  () => {
+          if (settled) return;
+          settled = true;
           try {
             const parsed = JSON.parse(data);
-            resolve({ alive: true, status: "LOCAL_OLLAMA_ACTIVE", models: parsed.models ?? [],
-                      host: `${ALM_HOST}:${ALM_PORT}`, kernel_version: KERNEL_VERSION });
+            const models = Array.isArray(parsed.models)
+              ? parsed.models.map((m) => (typeof m === "object" && m !== null ? (m.name ?? m.model ?? String(m)) : String(m)))
+              : [];
+            // Also fetch /api/version (fire-and-forget — not critical)
+            http.get(
+              { hostname: ALM_HOST, port: ALM_PORT, path: "/api/version", timeout: 2000 },
+              (vRes) => {
+                let vData = "";
+                vRes.on("data", (c) => { vData += c; });
+                vRes.on("end",  () => {
+                  let version = "unknown";
+                  try { version = JSON.parse(vData).version ?? "unknown"; } catch { /* ignore */ }
+                  resolve({ alive: true, version, models, endpoint });
+                });
+              }
+            ).on("error", () => resolve({ alive: true, version: "unknown", models, endpoint }));
           } catch {
-            resolve({ alive: true, status: "LOCAL_OLLAMA_ACTIVE", models: [], host: `${ALM_HOST}:${ALM_PORT}` });
+            resolve({ alive: res.statusCode === 200, version: "unknown", models: [], endpoint });
           }
         });
       }
     );
-    req.on("error",   () => resolve({ alive: false, status: "ALM_OFFLINE",   models: [], host: `${ALM_HOST}:${ALM_PORT}` }));
-    req.on("timeout", () => { req.destroy(); resolve({ alive: false, status: "ALM_TIMEOUT", models: [], host: `${ALM_HOST}:${ALM_PORT}` }); });
+
+    tagsReq.on("error",   () => { if (!settled) { settled = true; resolve({ alive: false, version: null, models: [], endpoint }); } });
+    tagsReq.on("timeout", () => { if (!settled) { settled = true; tagsReq.destroy(); resolve({ alive: false, version: null, models: [], endpoint }); } });
   });
 });
-
-
 
 function buildMenu() {
   const template = [

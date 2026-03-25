@@ -20,14 +20,31 @@ import {
   loadDriftShieldConfig,
   enforceDriftShield,
   type DriftShieldConfig,
-  type DriftShieldOutcome,
 } from "../lib/security/driftShield";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+/**
+ * Sequential IP counter — ensures every call to makeRequest() produces a
+ * unique source IP in the RFC 5737 TEST-NET-1 range (192.0.2.x).
+ *
+ * Root cause of the 7 test failures without this: `_throttleMap` in
+ * lib/security/driftShield.ts is a module-level singleton with a 1 req/sec
+ * unauthenticated bucket.  Without unique IPs every test shares the
+ * `unauth:unknown` bucket and tests 3–7+ are throttled after the first call
+ * consumes the single available token.
+ *
+ * Fix: each makeRequest() call increments `_testIpSeq` so every test gets a
+ * fresh per-IP bucket, eliminating cross-test interference.
+ */
+let _testIpSeq = 0;
+
 function makeRequest(headers: Record<string, string> = {}): Request {
-  return new Request("https://averyos.com/api/v1/test", { headers });
+  const ip = `192.0.2.${(_testIpSeq++ % 254) + 1}`;
+  return new Request("https://averyos.com/api/v1/test", {
+    headers: { "cf-connecting-ip": ip, ...headers },
+  });
 }
 
 // ── loadDriftShieldConfig ─────────────────────────────────────────────────────
@@ -77,34 +94,38 @@ describe("loadDriftShieldConfig()", () => {
 // ── enforceDriftShield — pass cases ──────────────────────────────────────────
 
 describe("enforceDriftShield() — pass cases", () => {
+  // Disable economic throttle (DRIFT_SHIELD_THROTTLE=0) in all pass tests —
+  // these tests isolate WAF / jitter / entropy behaviour, not rate limiting.
+  const noThrottle = { DRIFT_SHIELD_THROTTLE: "0" } as const;
+
   test("clean request with no headers passes", () => {
-    const outcome = enforceDriftShield(makeRequest());
+    const outcome = enforceDriftShield(makeRequest(), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("pass result carries kernelSha and kernelVersion", () => {
-    const outcome = enforceDriftShield(makeRequest());
+    const outcome = enforceDriftShield(makeRequest(), noThrottle);
     assert.equal(outcome.kernelSha,    KERNEL_SHA);
     assert.equal(outcome.kernelVersion, KERNEL_VERSION);
   });
 
   test("low WAF score (below threshold) passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "50" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "50" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("WAF score exactly at threshold passes (not strictly greater)", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "60" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "60" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("jitter header absent → zero-noise check passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "0" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-waf-score": "0" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 
   test("jitter header = '0' passes", () => {
-    const outcome = enforceDriftShield(makeRequest({ "x-averyos-jitter": "0" }));
+    const outcome = enforceDriftShield(makeRequest({ "x-averyos-jitter": "0" }), noThrottle);
     assert.equal(outcome.pass, true);
   });
 });
@@ -136,7 +157,7 @@ describe("enforceDriftShield() — block cases", () => {
   });
 
   test("jitter check disabled when zeroNoise=false via env", () => {
-    const env = { DRIFT_SHIELD_ZERO_NOISE: "0" };
+    const env = { DRIFT_SHIELD_ZERO_NOISE: "0", DRIFT_SHIELD_THROTTLE: "0" };
     const outcome = enforceDriftShield(
       makeRequest({ "x-averyos-jitter": "1" }),
       env,
@@ -170,7 +191,7 @@ describe("enforceDriftShield() — block cases", () => {
   });
 
   test("entropy check passes when value meets minimum", () => {
-    const env = { DRIFT_SHIELD_ENTROPY_MIN: "3" };
+    const env = { DRIFT_SHIELD_ENTROPY_MIN: "3", DRIFT_SHIELD_THROTTLE: "0" };
     const outcome = enforceDriftShield(
       makeRequest({ "x-averyos-entropy": "5" }),
       env,
@@ -201,7 +222,7 @@ describe("enforceDriftShield() with custom threshold env", () => {
   test("custom threshold=80: score 70 passes", () => {
     const outcome = enforceDriftShield(
       makeRequest({ "x-waf-score": "70" }),
-      { DRIFT_SHIELD_THRESHOLD: "80" },
+      { DRIFT_SHIELD_THRESHOLD: "80", DRIFT_SHIELD_THROTTLE: "0" },
     );
     assert.equal(outcome.pass, true);
   });
