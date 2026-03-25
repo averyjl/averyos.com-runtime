@@ -3,10 +3,11 @@
 /**
  * app/miracle-health-habits/page.tsx
  *
- * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1
+ * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1 / GATE 123.6.3
  *
  * Establishes a Physical-to-Digital Bridge for Jason Lee Avery's book.
- * Links Author identity to retail nodes on Amazon, Apple, and Barnes & Noble.
+ * Links Author identity to retail nodes on Amazon, Apple, Barnes & Noble,
+ * Google Books, and nobis.biz.
  * Includes JSON-LD SoftwareApplication schema for SEO identity anchoring.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
@@ -47,6 +48,20 @@ const RETAIL_LINKS = [
     url: "https://www.barnesandnoble.com/s/Miracle+Health+Habits+Jason+Avery",
     description: "Available at Barnes & Noble — in-store and online.",
     color: "#006600",
+  },
+  {
+    platform: "Google Books",
+    icon: "🔍",
+    url: "https://books.google.com/books?q=Miracle+Health+Habits+Jason+Avery",
+    description: "Available on Google Books — search, preview, and read digitally.",
+    color: "#4285F4",
+  },
+  {
+    platform: "nobis.biz",
+    icon: "⚓",
+    url: "https://nobis.biz",
+    description: "Available via nobis.biz — sovereign distribution node.",
+    color: "#ffd700",
   },
 ];
 

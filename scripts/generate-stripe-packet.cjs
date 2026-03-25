@@ -37,6 +37,7 @@ const https  = require('https');
 const fs     = require('fs');
 const path   = require('path');
 const { logAosError, logAosHeal } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync, EVIDENCE_PACKETS_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Sovereign Kernel Anchor ───────────────────────────────────────────────────
 const KERNEL_SHA     = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
@@ -343,10 +344,9 @@ async function main() {
   }
 
   // ── 6. Write local summary ────────────────────────────────────────────────
-  const outDir = path.join(process.cwd(), 'evidence-packets');
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  const localFile = path.join(outDir, `${packetId}.json`);
-  fs.writeFileSync(localFile, JSON.stringify(packet, null, 2), 'utf8');
+  const localFileName = `${packetId}.json`;
+  const localFile = path.join(EVIDENCE_PACKETS_ROOT, localFileName);
+  sovereignWriteSync(EVIDENCE_PACKETS_ROOT, localFileName, JSON.stringify(packet, null, 2));
   log('INFO', `Local summary: ${localFile}`);
 
   console.log(`\n✅ Packet ${packetId} complete.\n`);

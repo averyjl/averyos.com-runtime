@@ -9,6 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { sovereignWriteSync, ENFORCEMENT_EVIDENCE_ROOT, ENFORCEMENT_NOTICES_ROOT, ENFORCEMENT_LOGS_ROOT } = require("./lib/sovereignIO.cjs");
 
 // Generate SHA-512 hash
 function generateSha512(content) {
@@ -163,16 +164,16 @@ function main() {
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  // codeql[js/file-system-race]
-  const bundlePath = path.resolve(evidenceDir, path.basename(`${bundle.bundleId}.json`));
-  fs.writeFileSync(bundlePath, JSON.stringify(bundle, null, 2));
+  const bundleFileName = `${bundle.bundleId}.json`;
+  const bundlePath = path.join(ENFORCEMENT_EVIDENCE_ROOT, bundleFileName);
+  sovereignWriteSync(ENFORCEMENT_EVIDENCE_ROOT, bundleFileName, JSON.stringify(bundle, null, 2));
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  // codeql[js/file-system-race]
-  const noticePath = path.resolve(noticesDir, path.basename(`${notice.noticeId}.json`));
-  fs.writeFileSync(noticePath, JSON.stringify(notice, null, 2));
+  const noticeFileName = `${notice.noticeId}.json`;
+  const noticePath = path.join(ENFORCEMENT_NOTICES_ROOT, noticeFileName);
+  sovereignWriteSync(ENFORCEMENT_NOTICES_ROOT, noticeFileName, JSON.stringify(notice, null, 2));
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
   // Add to enforcement log
@@ -180,14 +181,14 @@ function main() {
     ...options,
     stripeProductId: options.stripeProductId || `prod_${capsuleId}`,
   });
-  const logPath = path.join(logsDir, "enforcement-log.json");
+  const logPath = path.join(ENFORCEMENT_LOGS_ROOT, "enforcement-log.json");
 
   let events = [];
   if (fs.existsSync(logPath)) {
     events = JSON.parse(fs.readFileSync(logPath, "utf-8"));
   }
   events.push(event);
-  fs.writeFileSync(logPath, JSON.stringify(events, null, 2));
+  sovereignWriteSync(ENFORCEMENT_LOGS_ROOT, "enforcement-log.json", JSON.stringify(events, null, 2));
   console.log(`✅ Event added to log: ${event.id}`);
 
   console.log("\n📋 Summary:");

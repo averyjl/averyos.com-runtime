@@ -29,6 +29,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Import the CJS Sovereign Error Logger from the same scripts/ directory
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync, OUTPUT_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -284,8 +285,8 @@ function generateSettlementLetter({
     .replaceAll("[ORGANIZATION]", "[Identify from IP WHOIS]");
 
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
-  const settlementFilePath = path.join(outputDir, settlementFileName);
-  fs.writeFileSync(settlementFilePath, letter, "utf-8");
+  const settlementFilePath = path.join(OUTPUT_ROOT, settlementFileName);
+  sovereignWriteSync(OUTPUT_ROOT, settlementFileName, letter);
   return settlementFilePath;
 }
 
@@ -462,13 +463,8 @@ async function main() {
     .slice(0, 18);
   const fileName = `EVIDENCE_BUNDLE_${safeIp}_${safeTs}.aoscap`;
 
-  const outputDir = path.resolve(output);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  const filePath = path.join(outputDir, fileName);
-  fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), "utf-8");
+  const filePath = path.join(OUTPUT_ROOT, fileName);
+  sovereignWriteSync(OUTPUT_ROOT, fileName, JSON.stringify(bundle, null, 2));
 
   // 7. Generate Settlement Notice letter from template
   const settlementPath = generateSettlementLetter({
@@ -480,7 +476,7 @@ async function main() {
     pulseHash,
     timestamp,
     btcBlockHeight,
-    outputDir,
+    outputDir: OUTPUT_ROOT,
     safeIp,
   });
 
