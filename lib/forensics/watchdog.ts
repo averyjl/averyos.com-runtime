@@ -74,12 +74,251 @@ export interface WatchdogPulseResult {
 // ── Process-lifetime HALT_BOOT counter ───────────────────────────────────────
 
 /**
- * Cumulative count of HALT_BOOT events recorded by `watchdogPulse()` during
+ * Cumulative count of HALT_BOOT events recorded by `kernelAnchorPulse()` during
  * the lifetime of the current Worker process.  Resets on cold-start.
  *
  * Exported for inspection by API routes and the scheduled handler.
  */
 export let haltCount = 0;
+
+// ── USI (Uninstructed Silence Investigation) system ──────────────────────────
+
+/** Penalty amount (USD) assessed per USI violation. */
+export const USI_PENALTY_USD = 10_000;
+
+/** Default silence detection window in milliseconds (30 seconds). */
+export const SILENCE_WINDOW_MS = 30_000;
+
+/**
+ * A Step C echo record — confirms that a handshake (Stripe, D1, R2, etc.)
+ * completed a full round-trip and its response was received and verified.
+ */
+export interface StepCEcho {
+  /** The unique identifier of the originating request. */
+  requestId:          string;
+  /** Identifier of the module that issued the request (e.g. "STRIPE", "D1"). */
+  moduleId:           string;
+  /** ISO timestamp when the request was initiated (Step A). */
+  initiatedAt:        string;
+  /** ISO timestamp when the response was received (Step B). */
+  responseReceivedAt: string;
+  /** ISO timestamp when the echo was confirmed (Step C). */
+  echoConfirmedAt:    string;
+  /** Cloudflare Ray ID (null for non-Cloudflare endpoints). */
+  cfRay:              string | null;
+  /** Physicality status of the handshake endpoint. */
+  physicalityStatus:  "PHYSICAL_TRUTH" | "LATENT_ARTIFACT" | "LATENT_RESONANCE";
+}
+
+/**
+ * A USI violation record — raised when a module fails to respond within the
+ * silence window.  Each violation carries the canonical $10,000 penalty.
+ */
+export interface UsiViolation {
+  /** Unique violation identifier: `USI-<moduleId>-<timestamp>`. */
+  id:             string;
+  /** The module that failed to respond. */
+  moduleId:       string;
+  /** Human-readable description of the silence condition. */
+  reason:         string;
+  /** ISO timestamp when the violation was raised. */
+  raisedAt:       string;
+  /** Penalty amount in USD. */
+  penaltyUsd:     number;
+  /** Root0 Kernel SHA-512 anchor at time of violation. */
+  kernelSha:      string;
+  /** Kernel version at time of violation. */
+  kernelVersion:  string;
+}
+
+// ── In-memory ledgers (process-lifetime) ─────────────────────────────────────
+
+const _echoLedger: Map<string, StepCEcho> = new Map();
+const _usiLog:     UsiViolation[]          = [];
+
+/**
+ * A minimal D1-compatible database interface for optional persistence.
+ * Pass `null` to use only the in-memory ledger.
+ */
+interface D1LikeDb {
+  prepare(query: string): { bind(...values: unknown[]): { run(): Promise<unknown> } };
+}
+
+// ── Step C recording ──────────────────────────────────────────────────────────
+
+/**
+ * Record a Step C echo in the in-memory ledger and optionally persist to D1.
+ *
+ * @param echo  The Step C echo to record.
+ * @param db    Optional D1 database binding.  Pass `null` to skip persistence.
+ */
+export async function recordStepC(echo: StepCEcho, db?: D1LikeDb | null): Promise<void> {
+  _echoLedger.set(echo.requestId, { ...echo });
+
+  if (db) {
+    try {
+      await db
+        .prepare(
+          `INSERT OR REPLACE INTO step_c_echoes
+           (request_id, module_id, initiated_at, response_received_at, echo_confirmed_at, cf_ray, physicality_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          echo.requestId,
+          echo.moduleId,
+          echo.initiatedAt,
+          echo.responseReceivedAt,
+          echo.echoConfirmedAt,
+          echo.cfRay,
+          echo.physicalityStatus,
+        )
+        .run();
+    } catch (err) {
+      console.warn("[watchdog/recordStepC] D1 write failed:", err);
+    }
+  }
+}
+
+// ── USI violation ─────────────────────────────────────────────────────────────
+
+/**
+ * Raise a USI violation for a module that has gone silent.
+ *
+ * Appends the violation to the in-memory log and optionally persists to D1.
+ *
+ * @param moduleId  Identifier of the silent module.
+ * @param reason    Human-readable description of the silence.
+ * @param db        Optional D1 binding.  Pass `null` to skip persistence.
+ * @returns         The created {@link UsiViolation}.
+ */
+export async function raiseSilenceViolation(
+  moduleId: string,
+  reason:   string,
+  db:       D1LikeDb | null,
+): Promise<UsiViolation> {
+  const raisedAt = new Date().toISOString();
+  const violation: UsiViolation = {
+    id:            `USI-${moduleId}-${Date.now()}`,
+    moduleId,
+    reason,
+    raisedAt,
+    penaltyUsd:    USI_PENALTY_USD,
+    kernelSha:     KERNEL_SHA,
+    kernelVersion: KERNEL_VERSION,
+  };
+
+  _usiLog.push(violation);
+
+  if (db) {
+    try {
+      await db
+        .prepare(
+          `INSERT INTO usi_violations
+           (id, module_id, reason, raised_at, penalty_usd, kernel_sha, kernel_version)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          violation.id,
+          moduleId,
+          reason,
+          raisedAt,
+          USI_PENALTY_USD,
+          KERNEL_SHA,
+          KERNEL_VERSION,
+        )
+        .run();
+    } catch (err) {
+      console.warn("[watchdog/raiseSilenceViolation] D1 write failed:", err);
+    }
+  }
+
+  return violation;
+}
+
+// ── Silence check ─────────────────────────────────────────────────────────────
+
+/**
+ * Check whether a pending request has gone silent past the silence window.
+ *
+ * Returns `null` when the echo is already recorded or the window has not yet
+ * elapsed.  Returns a {@link UsiViolation} when silence is confirmed.
+ *
+ * @param requestId   Unique request identifier to look up in the echo ledger.
+ * @param moduleId    Module that originated the request.
+ * @param initiatedAt ISO timestamp when the request was initiated.
+ * @param windowMs    Silence detection window in milliseconds.
+ * @param db          Optional D1 binding.  Pass `null` to skip persistence.
+ */
+export async function checkForSilence(
+  requestId:   string,
+  moduleId:    string,
+  initiatedAt: string,
+  windowMs:    number,
+  db:          D1LikeDb | null,
+): Promise<UsiViolation | null> {
+  // Step C echo already received — no violation
+  if (_echoLedger.has(requestId)) return null;
+
+  const elapsed = Date.now() - new Date(initiatedAt).getTime();
+  if (elapsed < windowMs) return null; // still within window
+
+  return raiseSilenceViolation(
+    moduleId,
+    `No Step C echo received for request ${requestId} after ${elapsed} ms (window: ${windowMs} ms)`,
+    db,
+  );
+}
+
+// ── Ledger accessors ──────────────────────────────────────────────────────────
+
+/**
+ * Return a copy of the in-memory Step C echo ledger.
+ * Modifying the returned Map does not affect internal state.
+ */
+export function getEchoLedger(): Map<string, StepCEcho> {
+  return new Map(_echoLedger);
+}
+
+/**
+ * Return a copy of the in-memory USI violation log.
+ * Modifying the returned array does not affect internal state.
+ */
+export function getUsiLog(): UsiViolation[] {
+  return [..._usiLog];
+}
+
+// ── Batch silence watchdog ────────────────────────────────────────────────────
+
+/** A pending request entry for batch silence checking. */
+export interface PendingRequest {
+  requestId:   string;
+  moduleId:    string;
+  initiatedAt: string;
+}
+
+/**
+ * Batch silence checker — the primary entry point for the per-cron Step C audit.
+ *
+ * Iterates over `pending` requests and raises a USI violation for any that have
+ * exceeded the silence window without a recorded Step C echo.
+ *
+ * @param pending   List of pending requests to check.
+ * @param windowMs  Silence window in milliseconds (default: {@link SILENCE_WINDOW_MS}).
+ * @param db        Optional D1 binding.  Pass `null` to skip persistence.
+ * @returns         Array of {@link UsiViolation} records for silent requests.
+ */
+export async function watchdogPulse(
+  pending:  PendingRequest[],
+  windowMs: number,
+  db:       D1LikeDb | null,
+): Promise<UsiViolation[]> {
+  const violations: UsiViolation[] = [];
+  for (const { requestId, moduleId, initiatedAt } of pending) {
+    const v = await checkForSilence(requestId, moduleId, initiatedAt, windowMs, db);
+    if (v) violations.push(v);
+  }
+  return violations;
+}
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -108,17 +347,20 @@ function classifyTier(kernelVerified: boolean, currentHaltCount: number): Watchd
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Execute a sovereign watchdog pulse.
+ * Execute a sovereign kernel-anchor pulse.
  *
  * 1. Recomputes the kernel SHA-512 anchor and verifies it matches KERNEL_SHA.
  * 2. Increments `haltCount` if the anchor is not verified (drift detected).
  * 3. Persists a compact pulse record to SOVEREIGN_KV (if available).
  * 4. Returns a structured {@link WatchdogPulseResult} for logging / bubbling.
  *
+ * Previously named `watchdogPulse` — use {@link watchdogPulse} for the batch
+ * Step C silence checker.
+ *
  * @param env  Cloudflare Worker environment bindings.
  * @returns    Structured result describing the pulse outcome.
  */
-export async function watchdogPulse(env?: WatchdogEnv): Promise<WatchdogPulseResult> {
+export async function kernelAnchorPulse(env?: WatchdogEnv): Promise<WatchdogPulseResult> {
   const pulseTs = formatIso9();
 
   try {

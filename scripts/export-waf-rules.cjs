@@ -25,6 +25,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const { logAosError, logAosHeal } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync, OUTPUT_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Sovereign WAF Gate Rules ──────────────────────────────────────────────────
 // These rules mirror the logic in middleware.ts + lib/security/wafLogic.ts.
@@ -168,12 +169,12 @@ function main() {
       '⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0) 🤛🏻',
   };
 
-  const jsonPath = path.join(outputDir, 'sovereign_waf_rules.json');
-  const hclPath  = path.join(outputDir, 'sovereign_waf_rules.tf');
+  const jsonPath = path.join(OUTPUT_ROOT, 'sovereign_waf_rules.json');
+  const hclPath  = path.join(OUTPUT_ROOT, 'sovereign_waf_rules.tf');
 
   try {
-    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf8');
-    fs.writeFileSync(hclPath,  buildTerraformHcl(SOVEREIGN_WAF_RULES), 'utf8');
+    sovereignWriteSync(OUTPUT_ROOT, 'sovereign_waf_rules.json', JSON.stringify(manifest, null, 2));
+    sovereignWriteSync(OUTPUT_ROOT, 'sovereign_waf_rules.tf',  buildTerraformHcl(SOVEREIGN_WAF_RULES));
     logAosHeal('WAF_EXPORT_COMPLETE', `Exported ${SOVEREIGN_WAF_RULES.length} WAF rules → ${jsonPath}`);
     console.log(`✅ Exported ${SOVEREIGN_WAF_RULES.length} WAF rules → ${jsonPath}`);
     console.log(`✅ Terraform HCL → ${hclPath}`);

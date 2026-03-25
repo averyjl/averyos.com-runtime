@@ -135,14 +135,14 @@ function TierCard({ tier }: { tier: LicenseTier }) {
           Capabilities Unlocked
         </div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {(tier.capabilities ?? tier.grants).map((cap, i) => (
+          {tier.capabilities.map((cap, i) => (
             <li
               key={i}
               style={{
                 fontSize:     "0.82rem",
                 color:        "rgba(255,255,255,0.75)",
                 padding:      "0.25rem 0",
-                borderBottom: i < (tier.capabilities ?? tier.grants).length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                borderBottom: i < tier.capabilities.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
                 display:      "flex",
                 gap:          "0.5rem",
                 lineHeight:   1.5,

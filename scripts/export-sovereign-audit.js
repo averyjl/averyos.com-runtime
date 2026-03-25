@@ -34,6 +34,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync, OUTPUT_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -119,9 +120,10 @@ async function sha512(text) {
 function queryD1(sql, env) {
   logAosHeal("D1_QUERY", `Executing: ${sql.slice(0, 80)}...`);
   // Write SQL to a temp file to avoid shell-injection risks entirely
-  const tmpSql = path.join(OUTPUT_DIR, `_query_${Date.now()}.sql`);
+  const tmpSqlName = `_query_${Date.now()}.sql`;
+  const tmpSql = path.join(OUTPUT_ROOT, tmpSqlName);
   try {
-    fs.writeFileSync(tmpSql, sql, "utf8");
+    sovereignWriteSync(OUTPUT_ROOT, tmpSqlName, sql);
     const envFlag = env === "production" ? "--env production" : "";
     const cmd = `npx wrangler d1 execute ${D1_DATABASE_NAME} ${envFlag} --file "${tmpSql}" --json`;
     const stdout = execSync(cmd, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -281,16 +283,17 @@ async function main() {
 
     // Write local .aoscap file
     const filename = `${capsuleId}.aoscap`;
-    const localPath = path.join(OUTPUT_DIR, filename);
-    fs.writeFileSync(localPath, JSON.stringify(bundle, null, 2), "utf8");
+    const localPath = path.join(OUTPUT_ROOT, filename);
+    sovereignWriteSync(OUTPUT_ROOT, filename, JSON.stringify(bundle, null, 2));
     console.log(`\n   ✅ [${ip}] Bundle: ${filename}`);
     console.log(`      Events: ${events.length} | Liability: $${totalLiabilityUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
     console.log(`      Hash: ${bundleHash.slice(0, 32)}...`);
 
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
-    const noticePath = path.join(OUTPUT_DIR, `${capsuleId}_settlement.md`);
-    fs.writeFileSync(noticePath, noticeMd, "utf8");
+    const noticeFileName = `${capsuleId}_settlement.md`;
+    const noticePath = path.join(OUTPUT_ROOT, noticeFileName);
+    sovereignWriteSync(OUTPUT_ROOT, noticeFileName, noticeMd);
 
     // Upload to R2
     const r2Key = `${capsuleId}.aoscap`;

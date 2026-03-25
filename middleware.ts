@@ -128,10 +128,10 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Fonts
   "font-src 'self' https://fonts.gstatic.com",
-  // Images: self + data URIs + Stripe + Cloudflare
-  "img-src 'self' data: https://stripe.com https://*.stripe.com https://cloudflare.com",
-  // Fetch/XHR: self + Stripe + Firebase + Pushover
-  "connect-src 'self' https://api.stripe.com https://hooks.stripe.com https://firestore.googleapis.com https://fcm.googleapis.com https://api.pushover.net",
+  // Images: self + data URIs + Stripe + Cloudflare + nobis.biz (Bio-Optimization Genesis)
+  "img-src 'self' data: https://stripe.com https://*.stripe.com https://cloudflare.com https://nobis.biz",
+  // Fetch/XHR: self + Stripe + Firebase + Pushover + nobis.biz (Bio-Optimization Genesis)
+  "connect-src 'self' https://api.stripe.com https://hooks.stripe.com https://firestore.googleapis.com https://fcm.googleapis.com https://api.pushover.net https://nobis.biz",
   // Frames: Stripe hosted pages only
   "frame-src https://js.stripe.com https://hooks.stripe.com",
   // Block all object/embed/media by default

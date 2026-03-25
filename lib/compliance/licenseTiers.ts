@@ -149,16 +149,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "IVI (Independent Valuation Impact) audit methodology access",
       "Dual-Hash Bridge (SHA-256 ↔ SHA-512) integration rights",
     ],
-    grants: [
-      "VaultChain™ forensic attestation API access for enterprise agent outputs",
-      "TARI™ alignment billing integration for internal compliance tracking",
-      "SHA-512 audit trail licensing for regulatory submission artifacts",
-      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
-      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
-    ],
-    efficiency_dividend:
-      "Tier 2 licensees capture a 30–40% compute-efficiency dividend as forensic attestation " +
-      "eliminates post-hoc audit overhead and reduces regulatory re-submission cycles.",
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
       "No sub-licensing or distribution of kernel protocols to third parties",
@@ -196,14 +186,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "VaultChain™ attestation record of compliance resolution",
       "Access to public AveryOS™ documentation and licensing portal",
     ],
-    grants: [
-      "Retroactive alignment certification for the documented usage event",
-      "VaultChain™ attestation record of compliance resolution",
-      "Access to public AveryOS™ documentation and licensing portal",
-    ],
-    efficiency_dividend:
-      "Tier 3 compliance resolution includes guidance on aligning future AI deployments " +
-      "to eliminate the compute waste caused by unaligned probabilistic drift.",
     exclusions: [
       "Zero transfer of IP ownership",
       "Does not grant ongoing or future use rights — separate license required",

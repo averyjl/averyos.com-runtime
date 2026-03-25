@@ -25,8 +25,26 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+/**
+ * Sequential IP counter — ensures every call to makeRequest() produces a
+ * unique source IP in the RFC 5737 TEST-NET-1 range (192.0.2.x).
+ *
+ * Root cause of the 7 test failures without this: `_throttleMap` in
+ * lib/security/driftShield.ts is a module-level singleton with a 1 req/sec
+ * unauthenticated bucket.  Without unique IPs every test shares the
+ * `unauth:unknown` bucket and tests 3–7+ are throttled after the first call
+ * consumes the single available token.
+ *
+ * Fix: each makeRequest() call increments `_testIpSeq` so every test gets a
+ * fresh per-IP bucket, eliminating cross-test interference.
+ */
+let _testIpSeq = 0;
+
 function makeRequest(headers: Record<string, string> = {}): Request {
-  return new Request("https://averyos.com/api/v1/test", { headers });
+  const ip = `192.0.2.${(_testIpSeq++ % 254) + 1}`;
+  return new Request("https://averyos.com/api/v1/test", {
+    headers: { "cf-connecting-ip": ip, ...headers },
+  });
 }
 
 // ── loadDriftShieldConfig ─────────────────────────────────────────────────────

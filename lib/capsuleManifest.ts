@@ -72,21 +72,20 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
   }
 
   // eslint-disable-next-line security/detect-non-literal-fs-filename
-  if (!fs.existsSync(manifestPath)) {
-    return null;
-  }
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const raw = fs.readFileSync(manifestPath, "utf-8");
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
 };
 
 export const listCapsuleIds = (): string[] => {
-  if (!fs.existsSync(manifestDir)) {
-    return [];
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    return fs
+      .readdirSync(manifestDir)
+      .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
+      .map((fileName) => fileName.replace(/\.json$/, ""))
+      .sort((a, b) => a.localeCompare(b));
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw err;
   }
-  return fs
-    .readdirSync(manifestDir)
-    .filter((fileName) => fileName.endsWith(".json") && fileName !== "index.json")
-    .map((fileName) => fileName.replace(/\.json$/, ""))
-    .sort((a, b) => a.localeCompare(b));
 };

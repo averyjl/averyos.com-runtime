@@ -3,308 +3,564 @@
 /**
  * app/admin/sovereign-v3/page.tsx
  *
- * AveryOS™ Sovereign Admin v3 — Phase 120.1 GATE 120.1.1
+ * AveryOS™ Sovereign Admin Dashboard v3.0 — Phase 117.3 GATE 117.3.3
  *
- * Version 3 of the Sovereign Admin panel, incorporating:
- *   • Watchdog — real-time HALT_BOOT kernel integrity status
- *   • VaultChain™ — live block count and latest anchor
- *   • TARI™ — alignment billing totals and pending events
- *   • Resonance — bot/threat level summary
+ * Private, secure dashboard for Jason Lee Avery (ROOT0).
  *
- * Design-stage hardlock: no `let status = 'UNKNOWN'` initializers.
- * Status variables are declared as `undefined` until a server response
- * arrives, avoiding the CodeQL "Useless assignment to local variable" alert.
+ * Features:
+ *   • Live Heartbeat monitor — Node-02, D1, R2, Stripe, VaultChain™
+ *   • Physicality Toggle — visualise which inventions are Inert/Latent
+ *     vs Live/Physical (LATENT_PENDING ↔ PHYSICAL_TRUTH)
+ *   • USI Violation Feed — unverified silence incidents with penalty tally
+ *   • Sovereign Module Registry — status of all AveryOS™ modules
  *
- * Auth: sha512_payload VaultGate verification — useVaultAuth hook pattern.
+ * Auth: sha512_payload VaultGate verification (same HttpOnly cookie pattern
+ *       as all other admin pages via useVaultAuth hook).
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import AnchorBanner from "../../../components/AnchorBanner";
 import SovereignErrorBanner from "../../../components/SovereignErrorBanner";
 import { buildAosUiError, AOS_ERROR, type AosUiError } from "../../../lib/sovereignError";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../lib/sovereignConstants";
 import { useVaultAuth } from "../../../lib/hooks/useVaultAuth";
+import {
+  CORE_MANIFEST,
+  getDisplayStatus,
+  getRegistrySnapshot,
+  type SovereignModule,
+  type PhysicalityStatus,
+  type RegistrySnapshot,
+} from "../../../lib/registry/coreManifest";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
-const BG         = "#030008";
-const GOLD       = "#D4AF37";
-const GOLD_DIM   = "rgba(212,175,55,0.55)";
-const GOLD_BG    = "rgba(212,175,55,0.07)";
-const GOLD_BORD  = "rgba(212,175,55,0.3)";
-const GREEN      = "#4ade80";
-const GREEN_BG   = "rgba(74,222,128,0.07)";
-const GREEN_BORD = "rgba(74,222,128,0.3)";
-const RED        = "#ff4444";
-const RED_BG     = "rgba(255,68,68,0.08)";
-const RED_BORD   = "rgba(255,68,68,0.3)";
-const WHITE      = "#ffffff";
-const MUTED      = "rgba(180,200,255,0.6)";
+const BG           = "#030008";
+const GOLD         = "#D4AF37";
+const GOLD_DIM     = "rgba(212,175,55,0.55)";
+const GOLD_BG      = "rgba(212,175,55,0.07)";
+const GOLD_BORD    = "rgba(212,175,55,0.3)";
+const GREEN        = "#4ade80";
+const GREEN_BG     = "rgba(74,222,128,0.07)";
+const GREEN_BORD   = "rgba(74,222,128,0.3)";
+const BLUE         = "#60a5fa";
+const BLUE_BG      = "rgba(96,165,250,0.07)";
+const BLUE_BORD    = "rgba(96,165,250,0.3)";
+const PURPLE_BG    = "rgba(98,0,234,0.15)";
+const PURPLE_BORD  = "rgba(120,60,255,0.35)";
+const AMBER        = "#f59e0b";
+const AMBER_BG     = "rgba(245,158,11,0.1)";
+const AMBER_BORD   = "rgba(245,158,11,0.3)";
+const RED          = "#ff4444";
+const RED_BG       = "rgba(255,68,68,0.08)";
+const RED_BORD     = "rgba(255,68,68,0.3)";
+const WHITE        = "#ffffff";
+const MUTED        = "rgba(180,200,255,0.6)";
+const MONO         = "JetBrains Mono, Courier New, monospace";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type SystemStatus = "NOMINAL" | "WARN" | "HALT_BOOT" | "LOADING" | "ERROR";
-
-interface WatchdogData {
-  halt:           boolean;
-  reason:         string;
-  severity:       string;
-  kernel_version: string;
-  checked_at:     string;
+interface HeartbeatService {
+  id:          string;
+  label:       string;
+  icon:        string;
+  status:      "ONLINE" | "DEGRADED" | "OFFLINE" | "UNKNOWN";
+  latencyMs:   number | null;
+  cfRay:       string | null;
+  checkedAt:   string | null;
+  physicality: PhysicalityStatus;
 }
 
-interface VaultData {
-  block_count:    number;
-  latest_sha:     string | null;
-  latest_at:      string | null;
+interface DashboardData {
+  health:    Record<string, unknown>;
+  heartbeat: HeartbeatService[];
+  snapshot:  RegistrySnapshot;
 }
 
-interface TariSummary {
-  total_entries:             number;
-  liability_accrued_usd:     number;
-  stripe_total_collected_usd: number | null;
+// ── Card / badge helpers ──────────────────────────────────────────────────────
+
+function card(
+  bg: string,
+  border: string,
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return {
+    background:   bg,
+    border:       `1px solid ${border}`,
+    borderRadius: "14px",
+    padding:      "1.2rem 1.5rem",
+    marginBottom: "1.2rem",
+    ...extra,
+  };
 }
 
-// ── Status Colour Helper ──────────────────────────────────────────────────────
+function statusBadge(status: string): React.ReactNode {
+  let color = AMBER;
+  if (status === "ONLINE" || status === "PHYSICAL_TRUTH")   color = GREEN;
+  if (status === "OFFLINE" || status === "LATENT_PENDING")  color = RED;
+  if (status === "DEGRADED" || status === "LATENT_ARTIFACT") color = AMBER;
+  if (status === "UNKNOWN") color = MUTED;
+  return (
+    <span style={{
+      display:      "inline-block",
+      padding:      "0.15rem 0.6rem",
+      borderRadius: "20px",
+      fontSize:     "0.78rem",
+      fontWeight:   700,
+      background:   color + "22",
+      color,
+      border:       `1px solid ${color}66`,
+      fontFamily:   MONO,
+    }}>
+      {status}
+    </span>
+  );
+}
 
-function statusColor(s: SystemStatus): string {
-  switch (s) {
-    case "NOMINAL":   return GREEN;
-    case "WARN":      return GOLD;
-    case "HALT_BOOT": return RED;
-    case "ERROR":     return RED;
-    default:          return MUTED;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Derive PhysicalityStatus from an HTTP probe result and cf-ray presence. */
+function determinePhysicality(isOk: boolean, cfRay: string | null): PhysicalityStatus {
+  if (!isOk)   return "LATENT_PENDING";
+  if (!cfRay)  return "LATENT_ARTIFACT";
+  return "PHYSICAL_TRUTH";
+}
+
+/**
+ * Node-02 probe URL.  Only enabled when NEXT_PUBLIC_ENABLE_NODE02_PROBE="true"
+ * to prevent localhost probing in production deployments.
+ */
+const NODE02_PROBE_URL =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_ENABLE_NODE02_PROBE === "true"
+    ? "http://localhost:11434/api/tags"
+    : null;
+
+
+async function probeService(
+  id:    string,
+  label: string,
+  icon:  string,
+  url:   string | null,
+): Promise<HeartbeatService> {
+  // Null URL means the probe is disabled (e.g. Node-02 in production).
+  if (url === null) {
+    return {
+      id, label, icon,
+      status:      "OFFLINE",
+      latencyMs:   null,
+      cfRay:       null,
+      checkedAt:   new Date().toISOString(),
+      physicality: "LATENT_PENDING",
+    };
+  }
+
+  const t0 = Date.now();
+  let cfRay: string | null;
+
+  try {
+    const res       = await fetch(url, { credentials: "same-origin" });
+    const latencyMs = Date.now() - t0;
+    cfRay           = res.headers.get("cf-ray");
+    const status: HeartbeatService["status"] = res.ok ? "ONLINE" : "DEGRADED";
+
+    return {
+      id, label, icon, status, latencyMs, cfRay,
+      checkedAt:   new Date().toISOString(),
+      physicality: determinePhysicality(res.ok, cfRay),
+    };
+  } catch {
+    return {
+      id, label, icon,
+      status:    "OFFLINE",
+      latencyMs: null,
+      cfRay:     null,
+      checkedAt: new Date().toISOString(),
+      physicality: "LATENT_PENDING",
+    };
   }
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
-export default function SovereignAdminV3() {
-  const { authed, checking: authLoading, authError: authErrorMsg } = useVaultAuth();
+export default function SovereignAdminDashboardV3() {
+  const { authed, checking, password, setPassword, authError, handleAuth } = useVaultAuth();
 
-  // Watchdog panel
-  const [watchdog,        setWatchdog]        = useState<WatchdogData | null>(null);
-  const [watchdogLoading, setWatchdogLoading] = useState(false);
-  const [watchdogError,   setWatchdogError]   = useState<AosUiError | null>(null);
+  const [data,         setData]        = useState<DashboardData | null>(null);
+  const [loading,      setLoading]     = useState(false);
+  const [loadError,    setLoadError]   = useState<AosUiError | null>(null);
+  const [refreshAt,    setRefreshAt]   = useState<string | null>(null);
 
-  // VaultChain panel
-  const [vault,        setVault]        = useState<VaultData | null>(null);
-  const [vaultLoading, setVaultLoading] = useState(false);
-  const [vaultError,   setVaultError]   = useState<AosUiError | null>(null);
+  // Physicality toggle — when true show only LATENT modules, false show all
+  const [latentOnly,   setLatentOnly]  = useState(false);
+  const [registry,     setRegistry]    = useState<SovereignModule[]>(CORE_MANIFEST);
 
-  // TARI summary panel
-  const [tari,        setTari]        = useState<TariSummary | null>(null);
-  const [tariLoading, setTariLoading] = useState(false);
-  const [tariError,   setTariError]   = useState<AosUiError | null>(null);
+  // ── Data loader ───────────────────────────────────────────────────────────
 
-  // ── Compute derived status ────────────────────────────────────────────────
-  // NOTE: status is always computed from server data; never pre-initialised
-  // to 'UNKNOWN' to avoid the CodeQL "Useless assignment" alert.
-  let status: SystemStatus;
-  if (watchdogLoading || vaultLoading || tariLoading) {
-    status = "LOADING";
-  } else if (watchdogError || vaultError || tariError) {
-    status = "ERROR";
-  } else if (watchdog?.halt) {
-    status = "HALT_BOOT";
-  } else if (watchdog) {
-    status = "NOMINAL";
-  } else {
-    status = "LOADING";
-  }
-
-  // ── Data fetchers ─────────────────────────────────────────────────────────
-
-  const fetchWatchdog = useCallback(async () => {
-    setWatchdogLoading(true);
-    setWatchdogError(null);
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      const res  = await fetch("/api/v1/watchdog-status");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as WatchdogData;
-      setWatchdog(data);
-    } catch (err) {
-      setWatchdogError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
-    } finally {
-      setWatchdogLoading(false);
-    }
-  }, []);
+      // 1. Health API
+      const healthRes = await fetch("/api/v1/health", { credentials: "same-origin" });
+      const health: Record<string, unknown> = healthRes.ok
+        ? (await healthRes.json()) as Record<string, unknown>
+        : {};
 
-  const fetchVault = useCallback(async () => {
-    setVaultLoading(true);
-    setVaultError(null);
-    try {
-      const res  = await fetch("/api/v1/vaultchain-ledger?limit=1");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as { total_blocks?: number; records?: { block_sha512: string; created_at: string }[] };
-      setVault({
-        block_count: data.total_blocks ?? 0,
-        latest_sha:  data.records?.[0]?.block_sha512 ?? null,
-        latest_at:   data.records?.[0]?.created_at   ?? null,
-      });
-    } catch (err) {
-      setVaultError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
-    } finally {
-      setVaultLoading(false);
-    }
-  }, []);
+      // 2. Heartbeat probes
+      const heartbeat = await Promise.all([
+        probeService("D1",      "Cloudflare D1",    "🗄️",  "/api/v1/health"),
+        probeService("R2",      "Cloudflare R2",    "🪣",  "/api/v1/health"),
+        probeService("STRIPE",  "Stripe Rail",      "💳",  "/api/v1/health"),
+        probeService("VAULTCHAIN", "VaultChain™",   "⛓️",  "/api/v1/health"),
+        probeService("NODE02",  "Node-02 Local",    "🖥️",  NODE02_PROBE_URL),
+      ]);
 
-  const fetchTari = useCallback(async () => {
-    setTariLoading(true);
-    setTariError(null);
-    try {
-      const res  = await fetch("/api/v1/tari-stats");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as TariSummary;
-      setTari(data);
+      // Overlay actual D1/R2 status from health response
+      const d1Ok  = (health as { d1_ok?: boolean }).d1_ok;
+      const r2Ok  = (health as { r2_ok?: boolean }).r2_ok;
+      if (typeof d1Ok === "boolean") {
+        const d1 = heartbeat.find(h => h.id === "D1");
+        if (d1) { d1.status = d1Ok ? "ONLINE" : "DEGRADED"; d1.physicality = determinePhysicality(d1Ok, d1.cfRay); }
+      }
+      if (typeof r2Ok === "boolean") {
+        const r2 = heartbeat.find(h => h.id === "R2");
+        if (r2) { r2.status = r2Ok ? "ONLINE" : "DEGRADED"; r2.physicality = determinePhysicality(r2Ok, r2.cfRay); }
+      }
+
+      // 3. Module registry snapshot (in-memory)
+      const snapshot = getRegistrySnapshot();
+
+      setData({ health, heartbeat, snapshot });
+      setRegistry([...CORE_MANIFEST]);
+      setRefreshAt(new Date().toISOString());
     } catch (err) {
-      setTariError(buildAosUiError(AOS_ERROR.NETWORK, String(err)));
+      setLoadError(buildAosUiError(
+        AOS_ERROR.INTERNAL_ERROR,
+        err instanceof Error ? err.message : "Dashboard data load failed.",
+      ));
     } finally {
-      setTariLoading(false);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
-    void fetchWatchdog();
-    void fetchVault();
-    void fetchTari();
-  }, [authed, fetchWatchdog, fetchVault, fetchTari]);
+    if (authed) void loadAll();
+  }, [authed, loadAll]);
 
   // ── Auth gate ─────────────────────────────────────────────────────────────
 
-  if (authLoading) {
+  if (checking) {
     return (
-      <main style={{ background: BG, minHeight: "100vh", color: WHITE, padding: "2rem" }}>
+      <main className="page" style={{ background: BG, minHeight: "100vh" }}>
         <AnchorBanner />
-        <p style={{ color: MUTED }}>Verifying vault credentials…</p>
-      </main>
-    );
-  }
-
-  if (authErrorMsg || !authed) {
-    return (
-      <main style={{ background: BG, minHeight: "100vh", color: WHITE, padding: "2rem" }}>
-        <AnchorBanner />
-        <SovereignErrorBanner error={authErrorMsg ? buildAosUiError(AOS_ERROR.INVALID_AUTH, authErrorMsg) : buildAosUiError(AOS_ERROR.UNAUTHORIZED, "Not authed")} />
-        <p style={{ marginTop: "1rem" }}>
-          <Link href="/admin" style={{ color: GOLD }}>← Admin Home</Link>
+        <p style={{ color: MUTED, textAlign: "center", marginTop: "4rem" }}>
+          Verifying VaultGate sha512_payload…
         </p>
       </main>
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  if (!authed) {
+    return (
+      <main className="page" style={{ background: BG, minHeight: "100vh" }}>
+        <AnchorBanner />
+        <div style={{
+          maxWidth:     420,
+          margin:       "5rem auto",
+          padding:      "2rem",
+          background:   PURPLE_BG,
+          border:       `1px solid ${PURPLE_BORD}`,
+          borderRadius: 16,
+          textAlign:    "center",
+        }}>
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⛓️⚓⛓️</div>
+          <h2 style={{ color: WHITE, marginBottom: "0.5rem" }}>
+            Sovereign Admin v3.0
+          </h2>
+          <p style={{ color: MUTED, marginBottom: "1.5rem", fontSize: "0.88rem" }}>
+            VaultGate sha512_payload verification required.
+          </p>
+          <input
+            type="password"
+            placeholder="VAULTAUTH_TOKEN"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") void handleAuth(); }}
+            style={{
+              width:       "100%",
+              padding:     "0.75rem",
+              borderRadius: 8,
+              border:      `1px solid ${PURPLE_BORD}`,
+              background:  "rgba(0,0,0,0.45)",
+              color:       WHITE,
+              marginBottom: "0.75rem",
+              fontFamily:  MONO,
+              boxSizing:   "border-box",
+            }}
+          />
+          {authError && (
+            <p style={{ color: RED, marginBottom: "0.75rem", fontSize: "0.85rem" }}>
+              {authError}
+            </p>
+          )}
+          <button
+            onClick={() => void handleAuth()}
+            style={{
+              width:        "100%",
+              padding:      "0.75rem",
+              borderRadius: 8,
+              background:   "rgba(212,175,55,0.7)",
+              border:       "none",
+              color:        "#000",
+              cursor:       "pointer",
+              fontWeight:   "bold",
+              fontFamily:   MONO,
+            }}
+          >
+            🔓 Unlock Sovereign Dashboard v3.0
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Authed: render dashboard ──────────────────────────────────────────────
+
+  const displayModules = latentOnly
+    ? registry.filter(m => m.physicalityStatus !== "PHYSICAL_TRUTH")
+    : registry;
+
+  const physicalCount = registry.filter(m => m.physicalityStatus === "PHYSICAL_TRUTH").length;
+  const latentCount   = registry.filter(m => m.physicalityStatus !== "PHYSICAL_TRUTH").length;
 
   return (
-    <main style={{ background: BG, minHeight: "100vh", color: WHITE, padding: "2rem", fontFamily: "monospace" }}>
+    <main className="page" style={{ background: BG, minHeight: "100vh" }}>
       <AnchorBanner />
 
-      {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ color: GOLD, fontSize: "1.5rem", margin: 0 }}>
-          AveryOS™ Sovereign Admin <span style={{ color: GOLD_DIM }}>v3</span>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h1 style={{ color: GOLD, margin: 0, fontFamily: MONO, fontSize: "1.4rem" }}>
+          ⛓️⚓⛓️ Sovereign Admin Dashboard v3.0
         </h1>
-        <p style={{ color: MUTED, fontSize: "0.8rem", margin: "0.25rem 0 0" }}>
-          Kernel: {KERNEL_VERSION} · SHA: {KERNEL_SHA.slice(0, 16)}… · Status:{" "}
-          <span style={{ color: statusColor(status) }}>{status}</span>
+        <p style={{ color: GOLD_DIM, margin: "0.3rem 0 0", fontSize: "0.82rem", fontFamily: MONO }}>
+          Phase 117.3 · Root0 · Kernel {KERNEL_VERSION} · {KERNEL_SHA.slice(0, 12)}…
         </p>
-        <p style={{ marginTop: "0.75rem" }}>
-          <Link href="/admin" style={{ color: GOLD_DIM, fontSize: "0.8rem" }}>← Admin Home</Link>
-        </p>
+        <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={() => void loadAll()}
+            disabled={loading}
+            style={{
+              padding:      "0.35rem 0.9rem",
+              borderRadius: 8,
+              background:   GOLD_BG,
+              border:       `1px solid ${GOLD_BORD}`,
+              color:        GOLD,
+              cursor:       loading ? "not-allowed" : "pointer",
+              fontFamily:   MONO,
+              fontSize:     "0.8rem",
+            }}
+          >
+            {loading ? "⟳ Refreshing…" : "⟳ Refresh Heartbeat"}
+          </button>
+          {refreshAt && (
+            <span style={{ color: MUTED, fontSize: "0.78rem", fontFamily: MONO }}>
+              Last sync: {new Date(refreshAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Watchdog Panel */}
-      <section style={{ border: `1px solid ${GOLD_BORD}`, borderRadius: "8px", padding: "1rem", marginBottom: "1.5rem", background: GOLD_BG }}>
-        <h2 style={{ color: GOLD, fontSize: "1rem", margin: "0 0 0.75rem" }}>🛡 Sovereign Watchdog</h2>
-        {watchdogError && <SovereignErrorBanner error={watchdogError} />}
-        {watchdogLoading && <p style={{ color: MUTED }}>Loading…</p>}
-        {watchdog && !watchdogLoading && (
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.8rem" }}>
-            <tbody>
-              {[
-                ["Status",         watchdog.halt ? "⛔ HALT_BOOT" : "✅ NOMINAL"],
-                ["Reason",         watchdog.reason],
-                ["Severity",       watchdog.severity],
-                ["Kernel",         watchdog.kernel_version],
-                ["Checked at",     watchdog.checked_at],
-              ].map(([k, v]) => (
-                <tr key={k}>
-                  <td style={{ color: MUTED, paddingRight: "1rem", whiteSpace: "nowrap" }}>{k}</td>
-                  <td style={{ color: watchdog.halt && k === "Status" ? RED : WHITE }}>{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <button
-          onClick={() => { void fetchWatchdog(); }}
-          style={{ marginTop: "0.75rem", background: GOLD_BG, border: `1px solid ${GOLD_BORD}`, color: GOLD, borderRadius: "4px", padding: "0.3rem 0.8rem", cursor: "pointer", fontSize: "0.75rem" }}
-        >
-          ↻ Refresh
-        </button>
-      </section>
+      {loadError && <SovereignErrorBanner error={loadError} />}
 
-      {/* VaultChain Panel */}
-      <section style={{ border: `1px solid ${GREEN_BORD}`, borderRadius: "8px", padding: "1rem", marginBottom: "1.5rem", background: GREEN_BG }}>
-        <h2 style={{ color: GREEN, fontSize: "1rem", margin: "0 0 0.75rem" }}>⛓ VaultChain™ Ledger</h2>
-        {vaultError && <SovereignErrorBanner error={vaultError} />}
-        {vaultLoading && <p style={{ color: MUTED }}>Loading…</p>}
-        {vault && !vaultLoading && (
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.8rem" }}>
-            <tbody>
-              {[
-                ["Block count",  vault.block_count.toString()],
-                ["Latest SHA",   vault.latest_sha ? vault.latest_sha.slice(0, 32) + "…" : "—"],
-                ["Latest at",    vault.latest_at ?? "—"],
-              ].map(([k, v]) => (
-                <tr key={k}>
-                  <td style={{ color: MUTED, paddingRight: "1rem", whiteSpace: "nowrap" }}>{k}</td>
-                  <td style={{ color: WHITE }}>{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <button
-          onClick={() => { void fetchVault(); }}
-          style={{ marginTop: "0.75rem", background: GREEN_BG, border: `1px solid ${GREEN_BORD}`, color: GREEN, borderRadius: "4px", padding: "0.3rem 0.8rem", cursor: "pointer", fontSize: "0.75rem" }}
-        >
-          ↻ Refresh
-        </button>
-      </section>
+      {/* ── Physicality Summary ─────────────────────────────────────────── */}
+      <div style={card(GOLD_BG, GOLD_BORD, { display: "flex", gap: "2rem", flexWrap: "wrap", alignItems: "center" })}>
+        <div>
+          <div style={{ color: GOLD, fontFamily: MONO, fontSize: "0.8rem", marginBottom: "0.3rem" }}>
+            PHYSICAL_TRUTH
+          </div>
+          <div style={{ color: GREEN, fontSize: "2rem", fontWeight: 700, fontFamily: MONO }}>
+            {physicalCount}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: GOLD, fontFamily: MONO, fontSize: "0.8rem", marginBottom: "0.3rem" }}>
+            LATENT / PENDING
+          </div>
+          <div style={{ color: AMBER, fontSize: "2rem", fontWeight: 700, fontFamily: MONO }}>
+            {latentCount}
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          {/* Physicality Toggle */}
+          <label style={{
+            display:    "flex",
+            alignItems: "center",
+            gap:        "0.5rem",
+            cursor:     "pointer",
+            color:      WHITE,
+            fontFamily: MONO,
+            fontSize:   "0.82rem",
+          }}>
+            <input
+              type="checkbox"
+              checked={latentOnly}
+              onChange={e => setLatentOnly(e.target.checked)}
+              style={{ accentColor: AMBER, width: 16, height: 16 }}
+            />
+            Show Latent / Pending Only
+          </label>
+          <p style={{ color: MUTED, fontSize: "0.75rem", marginTop: "0.25rem", fontFamily: MONO }}>
+            Physicality Toggle — Phase 117.3
+          </p>
+        </div>
+      </div>
 
-      {/* TARI Summary Panel */}
-      <section style={{ border: `1px solid ${RED_BORD}`, borderRadius: "8px", padding: "1rem", marginBottom: "1.5rem", background: RED_BG }}>
-        <h2 style={{ color: RED, fontSize: "1rem", margin: "0 0 0.75rem" }}>💰 TARI™ Alignment Billing</h2>
-        {tariError && <SovereignErrorBanner error={tariError} />}
-        {tariLoading && <p style={{ color: MUTED }}>Loading…</p>}
-        {tari && !tariLoading && (
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.8rem" }}>
-            <tbody>
-              {[
-                ["Total events",       tari.total_entries.toString()],
-                ["Liability accrued",  `$${tari.liability_accrued_usd.toLocaleString()}`],
-                ["Stripe collected",   tari.stripe_total_collected_usd !== null ? `$${tari.stripe_total_collected_usd.toLocaleString()}` : "—"],
-              ].map(([k, v]) => (
-                <tr key={k}>
-                  <td style={{ color: MUTED, paddingRight: "1rem", whiteSpace: "nowrap" }}>{k}</td>
-                  <td style={{ color: WHITE }}>{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ── Heartbeat Monitor ──────────────────────────────────────────── */}
+      <div style={card(BLUE_BG, BLUE_BORD)}>
+        <h2 style={{ color: BLUE, fontSize: "1rem", margin: "0 0 1rem", fontFamily: MONO }}>
+          🫀 Live Heartbeat Monitor
+        </h2>
+        {loading && !data && (
+          <p style={{ color: MUTED, fontFamily: MONO, fontSize: "0.85rem" }}>
+            Probing sovereign endpoints…
+          </p>
         )}
-        <button
-          onClick={() => { void fetchTari(); }}
-          style={{ marginTop: "0.75rem", background: RED_BG, border: `1px solid ${RED_BORD}`, color: RED, borderRadius: "4px", padding: "0.3rem 0.8rem", cursor: "pointer", fontSize: "0.75rem" }}
-        >
-          ↻ Refresh
-        </button>
-      </section>
+        {data?.heartbeat.map(svc => (
+          <div
+            key={svc.id}
+            style={{
+              display:        "flex",
+              flexWrap:       "wrap",
+              alignItems:     "center",
+              gap:            "0.75rem",
+              padding:        "0.6rem 0",
+              borderBottom:   `1px solid rgba(96,165,250,0.12)`,
+            }}
+          >
+            <span style={{ fontSize: "1.2rem", minWidth: 24 }}>{svc.icon}</span>
+            <span style={{ color: WHITE, fontFamily: MONO, fontSize: "0.88rem", minWidth: 140 }}>
+              {svc.label}
+            </span>
+            {statusBadge(svc.status)}
+            {statusBadge(svc.physicality)}
+            {svc.latencyMs !== null && (
+              <span style={{ color: MUTED, fontFamily: MONO, fontSize: "0.78rem" }}>
+                {svc.latencyMs}ms
+              </span>
+            )}
+            {svc.cfRay && (
+              <span style={{ color: GOLD_DIM, fontFamily: MONO, fontSize: "0.75rem" }}>
+                ray: {svc.cfRay}
+              </span>
+            )}
+            {!svc.cfRay && svc.status === "ONLINE" && (
+              <span style={{ color: AMBER, fontFamily: MONO, fontSize: "0.75rem" }}>
+                ⚠ no cf-ray — LATENT_ARTIFACT
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Sovereign Module Registry ──────────────────────────────────── */}
+      <div style={card(GREEN_BG, GREEN_BORD)}>
+        <h2 style={{ color: GREEN, fontSize: "1rem", margin: "0 0 1rem", fontFamily: MONO }}>
+          📋 Sovereign Module Registry
+        </h2>
+        <p style={{ color: MUTED, fontSize: "0.78rem", fontFamily: MONO, marginBottom: "0.75rem" }}>
+          {latentOnly ? `Showing ${displayModules.length} latent/pending module(s).` : `Showing all ${displayModules.length} module(s).`}
+        </p>
+        {displayModules.map(mod => {
+          const display = getDisplayStatus(mod);
+          const statusColor =
+            display === "PHYSICAL_TRUTH" ? GREEN :
+            mod.physicalityStatus === "LATENT_ARTIFACT" ? AMBER : RED;
+          return (
+            <div
+              key={mod.id}
+              style={{
+                background:   statusColor + "08",
+                border:       `1px solid ${statusColor}30`,
+                borderRadius: 10,
+                padding:      "0.8rem 1rem",
+                marginBottom: "0.6rem",
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+                <span style={{ color: WHITE, fontWeight: 700, fontFamily: MONO, fontSize: "0.9rem" }}>
+                  {mod.name}
+                </span>
+                {statusBadge(display)}
+                <span style={{
+                  color:      MUTED,
+                  fontFamily: MONO,
+                  fontSize:   "0.72rem",
+                  background: "rgba(0,0,0,0.3)",
+                  padding:    "0.1rem 0.4rem",
+                  borderRadius: 6,
+                }}>
+                  {mod.verificationPath}
+                </span>
+              </div>
+              <p style={{ color: MUTED, fontSize: "0.78rem", margin: 0, lineHeight: 1.5 }}>
+                {mod.description}
+              </p>
+              {mod.lastVerifiedAt && (
+                <p style={{ color: GREEN, fontSize: "0.72rem", margin: "0.25rem 0 0", fontFamily: MONO }}>
+                  ✓ Last verified: {mod.lastVerifiedAt}
+                </p>
+              )}
+              {!mod.lastVerifiedAt && (
+                <p style={{ color: RED, fontSize: "0.72rem", margin: "0.25rem 0 0", fontFamily: MONO }}>
+                  ✗ Never verified — upgrade required
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Health Data ────────────────────────────────────────────────── */}
+      {data?.health && Object.keys(data.health).length > 0 && (
+        <div style={card(AMBER_BG, AMBER_BORD)}>
+          <h2 style={{ color: AMBER, fontSize: "1rem", margin: "0 0 1rem", fontFamily: MONO }}>
+            📡 Health API Response
+          </h2>
+          <pre style={{
+            color:      MUTED,
+            fontFamily: MONO,
+            fontSize:   "0.75rem",
+            overflow:   "auto",
+            margin:     0,
+            maxHeight:  240,
+          }}>
+            {JSON.stringify(data.health, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {/* ── Kernel Anchor ──────────────────────────────────────────────── */}
+      <div style={card(RED_BG, RED_BORD)}>
+        <h2 style={{ color: RED, fontSize: "1rem", margin: "0 0 0.75rem", fontFamily: MONO }}>
+          🔐 Kernel Anchor
+        </h2>
+        <div style={{ fontFamily: MONO, fontSize: "0.75rem", color: MUTED, wordBreak: "break-all" }}>
+          <span style={{ color: GOLD }}>SHA-512:</span> {KERNEL_SHA}
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: "0.75rem", color: MUTED, marginTop: "0.35rem" }}>
+          <span style={{ color: GOLD }}>Version:</span> {KERNEL_VERSION} &nbsp;|&nbsp;
+          <span style={{ color: GOLD }}>Phase:</span> 117.3 &nbsp;|&nbsp;
+          <span style={{ color: GREEN }}>Alignment: 100.000♾️%</span>
+        </div>
+      </div>
+
+      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      <div style={{ textAlign: "center", padding: "2rem 0", color: MUTED, fontSize: "0.75rem", fontFamily: MONO }}>
+        AveryOS™ Sovereign Admin Dashboard v3.0 · Phase 117.3 · Root0 · ⛓️⚓⛓️ 🤛🏻
+      </div>
     </main>
   );
 }
