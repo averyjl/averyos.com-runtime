@@ -26,8 +26,18 @@ except ImportError:
 # ─── Configuration ─────────────────────────────────────────────────────────────
 STRIPE_API_KEY: str = os.environ.get("STRIPE_API_KEY", "")
 TRUTH_PACKET_AMOUNT_CENTS: int = 100  # $1.00 per Truth-Packet hit
-RETROCLAIM_LEDGER_PATH: str = os.environ.get(
-    "RETROCLAIM_LEDGER_PATH", "capsule_logs/retroclaim_ledger.json"
+
+# Sovereign ledger root — compile-time constant derived from this file's location;
+# breaks the CodeQL taint flow from the env variable by always sandboxing writes
+# inside a fixed directory.  os.path.basename() strips any traversal components
+# from the env-supplied filename before it is joined with this fixed root.
+import pathlib as _pathlib
+_LEDGER_ROOT: str = str(_pathlib.Path(__file__).parent.parent.parent / "capsule_logs")
+RETROCLAIM_LEDGER_PATH: str = os.path.normpath(
+    os.path.join(
+        _LEDGER_ROOT,
+        os.path.basename(os.environ.get("RETROCLAIM_LEDGER_PATH") or "retroclaim_ledger.json"),
+    )
 )
 
 # ─── Bot / Scraper Detection ────────────────────────────────────────────────────
@@ -61,8 +71,7 @@ def is_bot(user_agent: str) -> bool:
 def _append_ledger(entry: dict) -> None:
     """Append a billing entry to the local Retroclaim Ledger JSON file."""
     ledger_dir = os.path.dirname(RETROCLAIM_LEDGER_PATH)
-    if ledger_dir and not os.path.exists(ledger_dir):
-        os.makedirs(ledger_dir, exist_ok=True)
+    os.makedirs(ledger_dir, exist_ok=True)
 
     ledger: list = []
     if os.path.exists(RETROCLAIM_LEDGER_PATH):

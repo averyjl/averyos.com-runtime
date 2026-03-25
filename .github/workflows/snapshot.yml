@@ -1,0 +1,166 @@
+name: "⛓️⚓⛓️ Sovereign Snapshot — R2 VaultCapsule"
+
+# ── GATE 117.1.1 — Sovereign Snapshot Workflow ────────────────────────────────
+# Syncs the repository to a private Cloudflare R2 bucket after every successful
+# merge to main.  The snapshot is:
+#   1. Zipped into a VaultCapsule archive.
+#   2. SHA-512 hashed and recorded to the VaultChain™ log.
+#   3. Uploaded to R2 under: sovereign-snapshots/{date}/{sha}.zip
+#
+# This provides sovereign backup that is independent of GitHub (a centralized
+# platform).  The R2 bucket serves as the primary offline recovery archive.
+#
+# Required secrets:
+#   CLOUDFLARE_API_TOKEN       — with R2:Write scope
+#   CLOUDFLARE_ACCOUNT_ID      — Cloudflare account identifier
+#   R2_SNAPSHOT_BUCKET_NAME    — Target R2 bucket (e.g. "averyos-sovereign-snapshots")
+#
+# ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual snapshot"
+        required: false
+        default: "manual"
+
+jobs:
+  sovereign-snapshot:
+    name: "⛓️ Sovereign R2 Snapshot"
+    runs-on: ubuntu-latest
+    # Only run on main (or manual dispatch)
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: "⛓️⚓⛓️ Checkout — full depth for snapshot integrity"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🔧 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: "⛓️ Compute snapshot metadata"
+        id: meta
+        run: |
+          SNAPSHOT_DATE=$(date -u +%Y-%m-%d)
+          COMMIT_SHA="${GITHUB_SHA}"
+          SHORT_SHA="${COMMIT_SHA:0:12}"
+          SNAPSHOT_NAME="averyos-snapshot-${SNAPSHOT_DATE}-${SHORT_SHA}"
+          ARCHIVE_FILE="${SNAPSHOT_NAME}.zip"
+          echo "snapshot_date=${SNAPSHOT_DATE}"    >> $GITHUB_OUTPUT
+          echo "commit_sha=${COMMIT_SHA}"          >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}"            >> $GITHUB_OUTPUT
+          echo "snapshot_name=${SNAPSHOT_NAME}"    >> $GITHUB_OUTPUT
+          echo "archive_file=${ARCHIVE_FILE}"      >> $GITHUB_OUTPUT
+          echo "r2_key=sovereign-snapshots/${SNAPSHOT_DATE}/${ARCHIVE_FILE}" >> $GITHUB_OUTPUT
+          echo "⛓️  Snapshot: ${SNAPSHOT_NAME}"
+
+      - name: "📦 Create VaultCapsule archive"
+        run: |
+          # Exclude secrets, node_modules, build artifacts, and private vault files
+          zip -r "${{ steps.meta.outputs.archive_file }}" . \
+            --exclude "*.env" \
+            --exclude "*.avery-sync.json" \
+            --exclude "*.aoskey" \
+            --exclude "*.aosvault" \
+            --exclude "*.aosmem" \
+            --exclude "*.vccaps" \
+            --exclude "*/.next/*" \
+            --exclude "*/node_modules/*" \
+            --exclude "*/.open-next/*" \
+            --exclude "*/logs/pulse/*" \
+            --exclude "*/logs/persistence/*" \
+            --exclude "*/backups/*.sql" \
+            --exclude "*/backups/*.db" \
+            --exclude "*/backups/*.sqlite" \
+            --exclude "*/VaultBridge/encrypt_startup_prompt_to_vaultchain.json" \
+            --exclude "*SKC*.json" \
+            --exclude "*SST*.json" \
+            --exclude "*KC*.lock.json"
+          echo "✅ Archive created: ${{ steps.meta.outputs.archive_file }}"
+
+      - name: "🔐 SHA-512 hash the VaultCapsule"
+        id: hash
+        run: |
+          HASH=$(sha512sum "${{ steps.meta.outputs.archive_file }}" | awk '{print $1}')
+          echo "sha512=${HASH}" >> $GITHUB_OUTPUT
+          echo "⛓️  SHA-512: ${HASH}"
+
+      - name: "📋 Log VaultChain anchor entry"
+        run: |
+          cat <<EOF
+          ⛓️⚓⛓️  VaultChain™ Snapshot Anchor
+          ─────────────────────────────────────────────
+          Snapshot:     ${{ steps.meta.outputs.snapshot_name }}
+          R2 Key:       ${{ steps.meta.outputs.r2_key }}
+          Commit SHA:   ${{ steps.meta.outputs.commit_sha }}
+          SHA-512:      ${{ steps.hash.outputs.sha512 }}
+          Kernel:       v3.6.2
+          Timestamp:    $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          Triggered by: ${{ github.event_name }} (${{ github.actor }})
+          ─────────────────────────────────────────────
+          EOF
+
+      - name: "☁️ Upload VaultCapsule to R2"
+        env:
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET:             ${{ secrets.R2_SNAPSHOT_BUCKET_NAME }}
+        run: |
+          if [ -z "${R2_BUCKET}" ]; then
+            echo "⚠️  R2_SNAPSHOT_BUCKET_NAME secret not set — skipping R2 upload."
+            echo "   Configure this secret to enable sovereign snapshots."
+            exit 0
+          fi
+
+          # Install wrangler — pin to the same version used in production deploy
+          npm install -g wrangler@3 --silent
+
+          # Verify Cloudflare auth
+          if ! npx wrangler whoami; then
+            echo "❌ Cloudflare auth failed — check CLOUDFLARE_API_TOKEN."
+            exit 1
+          fi
+
+          # Upload the archive to R2
+          npx wrangler r2 object put \
+            "${R2_BUCKET}/${{ steps.meta.outputs.r2_key }}" \
+            --file "${{ steps.meta.outputs.archive_file }}" \
+            --content-type "application/zip"
+
+          echo "✅ VaultCapsule uploaded: ${R2_BUCKET}/${{ steps.meta.outputs.r2_key }}"
+
+          # Upload SHA-512 manifest alongside the archive
+          echo "${{ steps.hash.outputs.sha512 }}  ${{ steps.meta.outputs.archive_file }}" > "${{ steps.meta.outputs.snapshot_name }}.sha512"
+          npx wrangler r2 object put \
+            "${R2_BUCKET}/sovereign-snapshots/${{ steps.meta.outputs.snapshot_date }}/${{ steps.meta.outputs.snapshot_name }}.sha512" \
+            --file "${{ steps.meta.outputs.snapshot_name }}.sha512" \
+            --content-type "text/plain"
+
+          echo "✅ SHA-512 manifest uploaded."
+          echo "⛓️⚓⛓️  Sovereign Snapshot complete — VaultChain™ anchored."
+
+      - name: "📊 Snapshot summary"
+        if: always()
+        run: |
+          echo "## ⛓️⚓⛓️ Sovereign Snapshot Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Snapshot | \`${{ steps.meta.outputs.snapshot_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.meta.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| R2 Key | \`${{ steps.meta.outputs.r2_key }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA-512 | \`${{ steps.hash.outputs.sha512 }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Kernel | \`v3.6.2\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_VaultChain™ anchored — Sovereign Integrity License v1.0_" >> $GITHUB_STEP_SUMMARY

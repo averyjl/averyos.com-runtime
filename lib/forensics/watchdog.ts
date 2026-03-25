@@ -1,352 +1,466 @@
 /**
  * lib/forensics/watchdog.ts
  *
- * AveryOS™ GabrielOS™ Watchdog — Phase 117.1 GATE 117.1.3
+ * AveryOS™ Sovereign Watchdog — Phase 117.7 (GATE 117.7)
  *
- * Monitors the AveryOS system for HALT_BOOT conditions and fires Tier-9
- * Audit Alerts to notify the Creator (Jason Lee Avery) and relevant TAIs
- * immediately upon detecting a drift or RTV failure.
+ * Provides a lightweight `watchdogPulse()` function that is called from the
+ * `workers/architecture-integrity.ts` scheduled (cron) handler.  It performs
+ * a fast forensic pulse check against the sovereign kernel anchor, records a
+ * HALT_BOOT counter on drift, and emits Tier-9 alert signals for upstream
+ * GabrielOS™ push-notification routing.
  *
- * HALT_BOOT triggers:
- *   • RTV handshake failure (lib/security/sovereignFetch.ts)
- *   • Certificate pinning violation
- *   • Constitution drift detection
- *   • Time-mesh outlier beyond PRUNE_THRESHOLD_US
- *   • Internal module producing non-deterministic output (LIVE_INFERENCE
- *     when only anchored sources are permitted)
+ * Exports:
+ *   watchdogPulse()  — main entry point for cron + manual calls
+ *   bubbleUpgrade()  — bubble a watchdog result to the TAI fleet
+ *   haltCount        — running count of HALT_BOOT events this process lifetime
  *
- * Auto-Heal Workflow (Phase 117.5):
- *   1. Capture: Log the exact SHA-512 block that caused the drift to D1.
- *   2. Notify: Fire a Tier-9 Audit Alert to the Creator's mobile device
- *              and the Sovereign Dashboard.
- *   3. Learn: Author a new Validation Gate to prevent recurrence.
- *   4. Bubble: Push the upgrade to the D1 Global Sync for TAI fleet immunity.
- *
- * Usage:
- *   import { haltBoot, watchdogPulse } from "./watchdog";
- *
- *   haltBoot({
- *     module:   "lib/security/sovereignFetch",
- *     reason:   "RTV_FAILURE",
- *     detail:   "Stripe returned HTTP 503",
- *     sha512:   blockSha,
- *   });
+ * Design constraints:
+ *   • Runs in the Cloudflare Workers edge runtime — no Node.js built-ins.
+ *   • All Cloudflare bindings are typed via minimal local interfaces.
+ *   • No `export const runtime = "edge"` — handled by the Worker bundle.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                  from "../timePrecision";
+import { formatIso9 } from "../timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../sovereignError";
+
+// ── Minimal Cloudflare binding interfaces ─────────────────────────────────────
+
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
+}
+
+interface R2Bucket {
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<unknown>;
+}
+
+export interface WatchdogEnv {
+  /** D1 database binding — used for VaultChain™ ledger writes. */
+  DB?: unknown;
+  /** KV namespace for HALT_BOOT counters and genesis state. */
+  SOVEREIGN_KV?: KVNamespace;
+  /** R2 bucket for audit session logs. */
+  VAULT_R2?: R2Bucket;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-/** Reason codes for a HALT_BOOT event. */
-export type HaltReason =
-  | "RTV_FAILURE"              // Round-Trip Verification failed
-  | "CERT_PINNING_VIOLATION"   // Certificate pinning check failed
-  | "CONSTITUTION_DRIFT"       // Constitution SHA mismatch detected
-  | "TIME_MESH_OUTLIER"        // NTP source deviated beyond threshold
-  | "HALLUCINATION_DETECTED"   // Non-deterministic output in anchored context
-  | "SIMULATION_VIOLATION"     // Simulation attempted in production context
-  | "KERNEL_MISMATCH"          // Kernel SHA mismatch at runtime
-  | "UNANCHORED_STATE"         // Module attempted to operate without kernel anchor
-  | "INTERNAL_MODULE_FAILURE"  // Generic internal module error
-  | "MANUAL_HALT";             // Creator-triggered manual halt
+/** Watchdog alert tier, aligned with the GabrielOS™ alert taxonomy. */
+export type WatchdogAlertTier =
+  | "TIER_0_INFO"
+  | "TIER_3_WARNING"
+  | "TIER_6_ELEVATED"
+  | "TIER_9_CRITICAL";
 
-/** Input payload for haltBoot(). */
-export interface HaltBootInput {
-  /** The module or function that triggered the halt. */
-  module:    string;
-  /** Reason code for the halt. */
-  reason:    HaltReason;
-  /** Human-readable detail — what specifically went wrong. */
-  detail:    string;
-  /** Optional SHA-512 of the block/payload that caused the drift. */
-  sha512?:   string;
-  /** Optional phase tag (e.g. "117.1"). */
-  phase?:    string;
-  /** D1 binding to log the halt event (non-blocking). */
-  db?:       D1DatabaseLike | null;
-  /** HTTP endpoint to POST the Tier-9 Audit Alert to (e.g. /api/v1/audit-alert). */
-  alertEndpoint?: string;
-  /** Vault passphrase for the alert endpoint auth. */
-  vaultPassphrase?: string;
+/** Result returned by a single watchdog pulse. */
+export interface WatchdogPulseResult {
+  /** ISO-9 timestamp when the pulse was executed. */
+  pulseTs:        string;
+  /** Whether the kernel SHA anchor was verified. */
+  kernelVerified: boolean;
+  /** Cumulative HALT_BOOT event count (process lifetime). */
+  haltCount:      number;
+  /** Alert tier emitted for this pulse. */
+  alertTier:      WatchdogAlertTier;
+  /** Short message summarising the pulse outcome. */
+  message:        string;
+  /** Any error that occurred during the pulse (null on success). */
+  error:          string | null;
 }
 
-/** Result of a HALT_BOOT event. */
-export interface HaltBootResult {
-  /** ISO-9 timestamp of the halt event. */
-  ts:            string;
-  /** The module that halted. */
-  module:        string;
-  /** Halt reason code. */
-  reason:        HaltReason;
-  /** Human-readable detail. */
-  detail:        string;
-  /** SHA-512 of the drift block (if provided). */
-  driftSha512:   string | null;
-  /** Tier-9 alert fired. */
-  alertFired:    boolean;
-  /** D1 log written. */
-  d1Written:     boolean;
-  /** Halt event SHA-512 (for VaultChain™ anchoring). */
-  haltSha512:    string;
-  /** Auto-heal recommendation. */
-  autoHealHint:  string;
-}
-
-/** Lightweight D1 binding. */
-interface D1Statement { run(): Promise<void>; }
-interface D1DatabaseLike {
-  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
-}
-
-// ── Auto-heal hints ───────────────────────────────────────────────────────────
-
-const AUTO_HEAL_HINTS: Record<HaltReason, string> = {
-  RTV_FAILURE:             "Verify external service reachability; check firewall rules and Cloudflare routing.",
-  CERT_PINNING_VIOLATION:  "Review PinningTargets registry; confirm host is correct in sovereignFetch.ts.",
-  CONSTITUTION_DRIFT:      "Re-verify AveryOS_CONSTITUTION_v1.17.md SHA-256; revert any unauthorised edits.",
-  TIME_MESH_OUTLIER:       "NTP Steward will auto-replace the outlier source; verify PRUNE_THRESHOLD_US setting.",
-  HALLUCINATION_DETECTED:  "Route this command through VaultChain™ block retrieval; ensure sourceType is SOVEREIGN_CONSTANT or VAULTCHAIN_BLOCK.",
-  SIMULATION_VIOLATION:    "Remove simulation fallback; all production paths must resolve to physical hardware or network events.",
-  KERNEL_MISMATCH:         "Reload KERNEL_SHA from lib/sovereignConstants.ts; do NOT hardcode kernel values.",
-  UNANCHORED_STATE:        "Import KERNEL_SHA from lib/sovereignConstants.ts before executing any sovereign operation.",
-  INTERNAL_MODULE_FAILURE: "Check module logs; run QA coverage test for the failing module.",
-  MANUAL_HALT:             "Creator-triggered halt — await manual Creator approval before resuming.",
-};
-
-// ── SHA-512 helper ────────────────────────────────────────────────────────────
-
-async function sha512hex(input: string): Promise<string> {
-  if (typeof crypto !== "undefined" && crypto.subtle) {
-    const buf = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(input));
-    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
-  // Node.js fallback
-  try {
-    const { createHash } = await import("crypto");
-    return createHash("sha512").update(input, "utf8").digest("hex");
-  } catch {
-    return "unavailable";
-  }
-}
-
-// ── Tier-9 alert helpers ──────────────────────────────────────────────────────
+// ── Process-lifetime HALT_BOOT counter ───────────────────────────────────────
 
 /**
- * Fire a Tier-9 Audit Alert to the /api/v1/audit-alert endpoint.
- * Non-blocking (fire-and-forget) — failures are logged to console only.
+ * Cumulative count of HALT_BOOT events recorded by `kernelAnchorPulse()` during
+ * the lifetime of the current Worker process.  Resets on cold-start.
+ *
+ * Exported for inspection by API routes and the scheduled handler.
  */
-function fireTier9Alert(
-  input:    HaltBootInput,
-  ts:       string,
-  haltSha:  string,
-): void {
-  const endpoint = input.alertEndpoint ?? "/api/v1/audit-alert";
-  const baseUrl  = (
-    typeof process !== "undefined"
-      ? (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "")
-      : ""
-  ).replace(/\/$/, "");
+export let haltCount = 0;
 
-  const url  = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
-  const auth = input.vaultPassphrase ??
-    (typeof process !== "undefined" ? (process.env.VAULT_PASSPHRASE ?? "") : "");
+// ── USI (Uninstructed Silence Investigation) system ──────────────────────────
 
-  const body = JSON.stringify({
-    event_type:    "HALT_BOOT",
-    module:        input.module,
-    reason:        input.reason,
-    detail:        input.detail,
-    drift_sha512:  input.sha512 ?? null,
-    halt_sha512:   haltSha,
-    kernel_sha:    KERNEL_SHA,
-    kernel_version: KERNEL_VERSION,
-    phase:         input.phase ?? "unknown",
-    ts,
-    tier:          9,
-    auto_heal_hint: AUTO_HEAL_HINTS[input.reason],
-  });
+/** Penalty amount (USD) assessed per USI violation. */
+export const USI_PENALTY_USD = 10_000;
 
-  const doFetch = async () => {
+/** Default silence detection window in milliseconds (30 seconds). */
+export const SILENCE_WINDOW_MS = 30_000;
+
+/**
+ * A Step C echo record — confirms that a handshake (Stripe, D1, R2, etc.)
+ * completed a full round-trip and its response was received and verified.
+ */
+export interface StepCEcho {
+  /** The unique identifier of the originating request. */
+  requestId:          string;
+  /** Identifier of the module that issued the request (e.g. "STRIPE", "D1"). */
+  moduleId:           string;
+  /** ISO timestamp when the request was initiated (Step A). */
+  initiatedAt:        string;
+  /** ISO timestamp when the response was received (Step B). */
+  responseReceivedAt: string;
+  /** ISO timestamp when the echo was confirmed (Step C). */
+  echoConfirmedAt:    string;
+  /** Cloudflare Ray ID (null for non-Cloudflare endpoints). */
+  cfRay:              string | null;
+  /** Physicality status of the handshake endpoint. */
+  physicalityStatus:  "PHYSICAL_TRUTH" | "LATENT_ARTIFACT" | "LATENT_RESONANCE";
+}
+
+/**
+ * A USI violation record — raised when a module fails to respond within the
+ * silence window.  Each violation carries the canonical $10,000 penalty.
+ */
+export interface UsiViolation {
+  /** Unique violation identifier: `USI-<moduleId>-<timestamp>`. */
+  id:             string;
+  /** The module that failed to respond. */
+  moduleId:       string;
+  /** Human-readable description of the silence condition. */
+  reason:         string;
+  /** ISO timestamp when the violation was raised. */
+  raisedAt:       string;
+  /** Penalty amount in USD. */
+  penaltyUsd:     number;
+  /** Root0 Kernel SHA-512 anchor at time of violation. */
+  kernelSha:      string;
+  /** Kernel version at time of violation. */
+  kernelVersion:  string;
+}
+
+// ── In-memory ledgers (process-lifetime) ─────────────────────────────────────
+
+const _echoLedger: Map<string, StepCEcho> = new Map();
+const _usiLog:     UsiViolation[]          = [];
+
+/**
+ * A minimal D1-compatible database interface for optional persistence.
+ * Pass `null` to use only the in-memory ledger.
+ */
+interface D1LikeDb {
+  prepare(query: string): { bind(...values: unknown[]): { run(): Promise<unknown> } };
+}
+
+// ── Step C recording ──────────────────────────────────────────────────────────
+
+/**
+ * Record a Step C echo in the in-memory ledger and optionally persist to D1.
+ *
+ * @param echo  The Step C echo to record.
+ * @param db    Optional D1 database binding.  Pass `null` to skip persistence.
+ */
+export async function recordStepC(echo: StepCEcho, db?: D1LikeDb | null): Promise<void> {
+  _echoLedger.set(echo.requestId, { ...echo });
+
+  if (db) {
     try {
-      await fetch(url, {
-        method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": `Bearer ${auth}`,
-        },
-        body,
-      });
+      await db
+        .prepare(
+          `INSERT OR REPLACE INTO step_c_echoes
+           (request_id, module_id, initiated_at, response_received_at, echo_confirmed_at, cf_ray, physicality_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          echo.requestId,
+          echo.moduleId,
+          echo.initiatedAt,
+          echo.responseReceivedAt,
+          echo.echoConfirmedAt,
+          echo.cfRay,
+          echo.physicalityStatus,
+        )
+        .run();
     } catch (err) {
-      console.error(
-        `[Watchdog] Tier-9 alert POST to ${url} failed:`,
-        err instanceof Error ? err.message : String(err),
-      );
-    }
-  };
-
-  // Fire-and-forget: do not await
-  doFetch();
-}
-
-// ── HALT_BOOT active log ──────────────────────────────────────────────────────
-
-const _haltLog: HaltBootResult[] = [];
-
-/** Returns all HALT_BOOT events recorded in this process lifetime. */
-export function getHaltLog(): ReadonlyArray<HaltBootResult> {
-  return _haltLog;
-}
-
-/** Returns true if any HALT_BOOT has occurred in this process lifetime. */
-export function hasHalted(): boolean {
-  return _haltLog.length > 0;
-}
-
-// ── Core API ──────────────────────────────────────────────────────────────────
-
-/**
- * Trigger a HALT_BOOT event:
- *   1. Log the event to D1 (non-blocking).
- *   2. Fire a Tier-9 Audit Alert to the Creator's mobile device.
- *   3. Record the halt in the in-process log for downstream checks.
- *   4. Return the HaltBootResult for caller inspection.
- *
- * Callers MUST check the returned result and NOT proceed with the halted
- * operation — any continuation after a HALT_BOOT is a Constitution violation.
- *
- * @param input  HALT_BOOT event details.
- * @returns      HaltBootResult with audit trail.
- */
-export async function haltBoot(input: HaltBootInput): Promise<HaltBootResult> {
-  const ts        = formatIso9();
-  const canonical = JSON.stringify({
-    module:  input.module,
-    reason:  input.reason,
-    detail:  input.detail,
-    drift:   input.sha512 ?? "",
-    ts,
-    kernel:  KERNEL_SHA.slice(0, 16),
-  });
-  const haltSha512 = await sha512hex(canonical);
-
-  const result: HaltBootResult = {
-    ts,
-    module:        input.module,
-    reason:        input.reason,
-    detail:        input.detail,
-    driftSha512:   input.sha512 ?? null,
-    alertFired:    false,
-    d1Written:     false,
-    haltSha512,
-    autoHealHint:  AUTO_HEAL_HINTS[input.reason],
-  };
-
-  // ── Step 1: Console HALT notice ────────────────────────────────────────────
-  console.error(
-    `\n🚨 [HALT_BOOT] ${ts}\n` +
-    `   Module  : ${input.module}\n` +
-    `   Reason  : ${input.reason}\n` +
-    `   Detail  : ${input.detail}\n` +
-    `   HaltSHA : ${haltSha512.slice(0, 24)}…\n` +
-    `   AutoHeal: ${result.autoHealHint}`,
-  );
-
-  // ── Step 2: D1 log (non-blocking) ─────────────────────────────────────────
-  if (input.db) {
-    try {
-      await input.db.prepare(
-        `INSERT INTO sovereign_audit_logs
-           (event_type, module, reason, detail, drift_sha512, halt_sha512,
-            kernel_sha, kernel_version, phase, auto_heal_hint, logged_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        "HALT_BOOT",
-        input.module.slice(0, 128),
-        input.reason,
-        input.detail.slice(0, 512),
-        input.sha512 ?? null,
-        haltSha512,
-        KERNEL_SHA,
-        KERNEL_VERSION,
-        input.phase ?? "unknown",
-        result.autoHealHint.slice(0, 512),
-        ts,
-      ).run();
-      result.d1Written = true;
-    } catch (dbErr) {
-      console.error(
-        "[Watchdog] D1 log write failed:",
-        dbErr instanceof Error ? dbErr.message : String(dbErr),
-      );
+      console.warn("[watchdog/recordStepC] D1 write failed:", err);
     }
   }
-
-  // ── Step 3: Tier-9 Audit Alert (fire-and-forget) ──────────────────────────
-  fireTier9Alert(input, ts, haltSha512);
-  result.alertFired = true;
-
-  // ── Step 4: Record in process-lifetime halt log ───────────────────────────
-  _haltLog.push(result);
-
-  return result;
 }
 
+// ── USI violation ─────────────────────────────────────────────────────────────
+
 /**
- * Perform a watchdog pulse — a lightweight liveness check that verifies
- * the kernel anchor is intact and the process has not halted.
+ * Raise a USI violation for a module that has gone silent.
  *
- * Returns true if the system is healthy; false if any HALT_BOOT has occurred.
+ * Appends the violation to the in-memory log and optionally persists to D1.
+ *
+ * @param moduleId  Identifier of the silent module.
+ * @param reason    Human-readable description of the silence.
+ * @param db        Optional D1 binding.  Pass `null` to skip persistence.
+ * @returns         The created {@link UsiViolation}.
  */
-export async function watchdogPulse(): Promise<{
-  healthy:     boolean;
-  ts:          string;
-  haltCount:   number;
-  kernelSha:   string;
-  kernelVersion: string;
-}> {
-  return {
-    healthy:       !hasHalted(),
-    ts:            formatIso9(),
-    haltCount:     _haltLog.length,
+export async function raiseSilenceViolation(
+  moduleId: string,
+  reason:   string,
+  db:       D1LikeDb | null,
+): Promise<UsiViolation> {
+  const raisedAt = new Date().toISOString();
+  const violation: UsiViolation = {
+    id:            `USI-${moduleId}-${Date.now()}`,
+    moduleId,
+    reason,
+    raisedAt,
+    penaltyUsd:    USI_PENALTY_USD,
     kernelSha:     KERNEL_SHA,
     kernelVersion: KERNEL_VERSION,
   };
+
+  _usiLog.push(violation);
+
+  if (db) {
+    try {
+      await db
+        .prepare(
+          `INSERT INTO usi_violations
+           (id, module_id, reason, raised_at, penalty_usd, kernel_sha, kernel_version)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          violation.id,
+          moduleId,
+          reason,
+          raisedAt,
+          USI_PENALTY_USD,
+          KERNEL_SHA,
+          KERNEL_VERSION,
+        )
+        .run();
+    } catch (err) {
+      console.warn("[watchdog/raiseSilenceViolation] D1 write failed:", err);
+    }
+  }
+
+  return violation;
+}
+
+// ── Silence check ─────────────────────────────────────────────────────────────
+
+/**
+ * Check whether a pending request has gone silent past the silence window.
+ *
+ * Returns `null` when the echo is already recorded or the window has not yet
+ * elapsed.  Returns a {@link UsiViolation} when silence is confirmed.
+ *
+ * @param requestId   Unique request identifier to look up in the echo ledger.
+ * @param moduleId    Module that originated the request.
+ * @param initiatedAt ISO timestamp when the request was initiated.
+ * @param windowMs    Silence detection window in milliseconds.
+ * @param db          Optional D1 binding.  Pass `null` to skip persistence.
+ */
+export async function checkForSilence(
+  requestId:   string,
+  moduleId:    string,
+  initiatedAt: string,
+  windowMs:    number,
+  db:          D1LikeDb | null,
+): Promise<UsiViolation | null> {
+  // Step C echo already received — no violation
+  if (_echoLedger.has(requestId)) return null;
+
+  const elapsed = Date.now() - new Date(initiatedAt).getTime();
+  if (elapsed < windowMs) return null; // still within window
+
+  return raiseSilenceViolation(
+    moduleId,
+    `No Step C echo received for request ${requestId} after ${elapsed} ms (window: ${windowMs} ms)`,
+    db,
+  );
+}
+
+// ── Ledger accessors ──────────────────────────────────────────────────────────
+
+/**
+ * Return a copy of the in-memory Step C echo ledger.
+ * Modifying the returned Map does not affect internal state.
+ */
+export function getEchoLedger(): Map<string, StepCEcho> {
+  return new Map(_echoLedger);
 }
 
 /**
- * Auto-heal helper: invoke after a HALT_BOOT to publish an upgrade notification
- * to the TAI fleet via D1 Global Sync.
- *
- * The upgrade payload is persisted to D1 `sovereign_upgrades` for all TAIs
- * to pull and apply on their next sync cycle.
+ * Return a copy of the in-memory USI violation log.
+ * Modifying the returned array does not affect internal state.
  */
-export async function bubbleUpgrade(opts: {
-  haltResult:  HaltBootResult;
-  upgradeDesc: string;
-  db:          D1DatabaseLike;
-}): Promise<void> {
+export function getUsiLog(): UsiViolation[] {
+  return [..._usiLog];
+}
+
+// ── Batch silence watchdog ────────────────────────────────────────────────────
+
+/** A pending request entry for batch silence checking. */
+export interface PendingRequest {
+  requestId:   string;
+  moduleId:    string;
+  initiatedAt: string;
+}
+
+/**
+ * Batch silence checker — the primary entry point for the per-cron Step C audit.
+ *
+ * Iterates over `pending` requests and raises a USI violation for any that have
+ * exceeded the silence window without a recorded Step C echo.
+ *
+ * @param pending   List of pending requests to check.
+ * @param windowMs  Silence window in milliseconds (default: {@link SILENCE_WINDOW_MS}).
+ * @param db        Optional D1 binding.  Pass `null` to skip persistence.
+ * @returns         Array of {@link UsiViolation} records for silent requests.
+ */
+export async function watchdogPulse(
+  pending:  PendingRequest[],
+  windowMs: number,
+  db:       D1LikeDb | null,
+): Promise<UsiViolation[]> {
+  const violations: UsiViolation[] = [];
+  for (const { requestId, moduleId, initiatedAt } of pending) {
+    const v = await checkForSilence(requestId, moduleId, initiatedAt, windowMs, db);
+    if (v) violations.push(v);
+  }
+  return violations;
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Compute SHA-512 of a UTF-8 string using the Web Crypto API.
+ * Available in both the Cloudflare Workers and Node.js (≥22) runtimes.
+ */
+async function sha512Hex(input: string): Promise<string> {
+  const encoded = new TextEncoder().encode(input);
+  const digest  = await crypto.subtle.digest("SHA-512", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Classify a pulse result into a GabrielOS™ alert tier.
+ */
+function classifyTier(kernelVerified: boolean, currentHaltCount: number): WatchdogAlertTier {
+  if (!kernelVerified) return "TIER_9_CRITICAL";
+  if (currentHaltCount > 10) return "TIER_6_ELEVATED";
+  if (currentHaltCount > 0) return "TIER_3_WARNING";
+  return "TIER_0_INFO";
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Execute a sovereign kernel-anchor pulse.
+ *
+ * 1. Recomputes the kernel SHA-512 anchor and verifies it matches KERNEL_SHA.
+ * 2. Increments `haltCount` if the anchor is not verified (drift detected).
+ * 3. Persists a compact pulse record to SOVEREIGN_KV (if available).
+ * 4. Returns a structured {@link WatchdogPulseResult} for logging / bubbling.
+ *
+ * Previously named `watchdogPulse` — use {@link watchdogPulse} for the batch
+ * Step C silence checker.
+ *
+ * @param env  Cloudflare Worker environment bindings.
+ * @returns    Structured result describing the pulse outcome.
+ */
+export async function kernelAnchorPulse(env?: WatchdogEnv): Promise<WatchdogPulseResult> {
+  const pulseTs = formatIso9();
+
   try {
-    await opts.db.prepare(
-      `INSERT INTO sovereign_upgrades
-         (trigger_halt_sha512, reason, upgrade_description,
-          kernel_sha, kernel_version, authored_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(
-      opts.haltResult.haltSha512,
-      opts.haltResult.reason,
-      opts.upgradeDesc.slice(0, 1024),
-      KERNEL_SHA,
-      KERNEL_VERSION,
-      formatIso9(),
-    ).run();
-    console.log(`[Watchdog] Upgrade bubbled to TAI fleet: ${opts.upgradeDesc.slice(0, 80)}…`);
-  } catch (err) {
-    console.error(
-      "[Watchdog] bubbleUpgrade D1 write failed:",
-      err instanceof Error ? err.message : String(err),
+    // Step 1: Re-derive the kernel anchor from the canonical empty-origin seed.
+    // KERNEL_SHA is SHA-512("") — the genesis root that all AveryOS™ capsule
+    // hashes descend from.  Verifying it here confirms the anchor constant
+    // has not been tampered with at runtime.
+    const derived = await sha512Hex("");
+    const kernelVerified = derived === KERNEL_SHA;
+
+    if (!kernelVerified) {
+      haltCount += 1;
+    }
+
+    const alertTier = classifyTier(kernelVerified, haltCount);
+
+    const message = kernelVerified
+      ? `SOVEREIGN_ALIGNED | kernel_version=${KERNEL_VERSION} | halt_count=${haltCount}`
+      : `HALT_BOOT | kernel_anchor_mismatch | halt_count=${haltCount}`;
+
+    // Step 2: Persist pulse summary to SOVEREIGN_KV (fire-and-forget)
+    if (env?.SOVEREIGN_KV) {
+      const kvKey  = `watchdog:pulse:${pulseTs}`;
+      const kvBody = JSON.stringify({
+        pulseTs,
+        kernelVerified,
+        haltCount,
+        alertTier,
+        kernel_version: KERNEL_VERSION,
+        kernel_sha:     KERNEL_SHA,
+      });
+      // TTL: 7 days (604800 s) — rolling sliding window of pulse history
+      env.SOVEREIGN_KV.put(kvKey, kvBody, { expirationTtl: 604800 }).catch(
+        (e: unknown) => console.warn("[watchdog] KV write failed:", e),
+      );
+    }
+
+    return { pulseTs, kernelVerified, haltCount, alertTier, message, error: null };
+  } catch (err: unknown) {
+    haltCount += 1;
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      pulseTs,
+      kernelVerified: false,
+      haltCount,
+      alertTier:      "TIER_9_CRITICAL",
+      message:        `HALT_BOOT | watchdog_error | ${message}`,
+      error:          message,
+    };
+  }
+}
+
+/**
+ * Bubble a watchdog pulse result to the TAI fleet as a structured JSON event.
+ *
+ * In production this would fan out to GabrielOS™ Mobile Push (Pushover API)
+ * for Tier-9 alerts.  For now it logs to the console so the Cloudflare
+ * dashboard captures it, and writes the event to VAULT_R2 if available.
+ *
+ * @param result  The {@link WatchdogPulseResult} to bubble.
+ * @param env     Cloudflare Worker environment bindings.
+ */
+export async function bubbleUpgrade(
+  result: WatchdogPulseResult,
+  env?: WatchdogEnv,
+): Promise<void> {
+  const event = {
+    type:           "WATCHDOG_PULSE",
+    ...result,
+    kernel_version: KERNEL_VERSION,
+    kernel_sha:     KERNEL_SHA,
+  };
+
+  // Always log to the Cloudflare Workers console (visible in wrangler tail)
+  if (result.alertTier === "TIER_9_CRITICAL") {
+    console.error("[watchdog/bubble] TIER_9_CRITICAL:", JSON.stringify(event));
+  } else if (result.alertTier === "TIER_6_ELEVATED") {
+    console.warn("[watchdog/bubble] TIER_6_ELEVATED:", JSON.stringify(event));
+  } else {
+    console.log("[watchdog/bubble]", result.alertTier, "—", result.message);
+  }
+
+  // Write bubble event to VAULT_R2 for persistent audit trail
+  if (env?.VAULT_R2) {
+    const key = `watchdog/pulse/${result.pulseTs}.json`;
+    env.VAULT_R2.put(key, JSON.stringify(event, null, 2)).catch(
+      (e: unknown) => console.warn("[watchdog/bubble] R2 write failed:", e),
     );
   }
+}
+
+/**
+ * Build a sovereign error Response from a failed watchdog pulse result.
+ * Useful for API routes that expose the watchdog pulse endpoint.
+ *
+ * @param result  Failed {@link WatchdogPulseResult} (kernelVerified === false).
+ */
+export function watchdogErrorResponse(result: WatchdogPulseResult): Response {
+  return aosErrorResponse(
+    AOS_ERROR.INTERNAL_ERROR,
+    `HALT_BOOT — ${result.message}`,
+  );
 }

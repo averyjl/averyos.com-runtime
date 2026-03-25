@@ -1,5 +1,5 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6
+# AveryOS™ Sovereign Pre-Commit Gate — GATE 116.6 / GATE 117.2.1
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
 # Permanent upgrade: catches the same classes of errors as CI (ESLint, TypeScript,

@@ -1,342 +1,244 @@
 /**
  * lib/security/sovereignFetch.ts
  *
- * AveryOS™ Universal Handshake Wrapper — Phase 117.4 GATE 117.4.2
+ * AveryOS™ Universal Handshake Wrapper — Phase 117.3 GATE 117.3.2
  *
- * Drop-in replacement for `fetch()` that mandates:
+ * Drop-in replacement for `fetch` that mandates:
  *   1. Round-Trip Verification (RTV) — every call must receive a confirmed
- *      response; network failure, timeout, or non-2xx/3xx is a HALT event.
- *   2. Certificate Pinning — the Host header of the target URL is validated
- *      against the PinningTargets registry before the request is issued.
- *   3. Kernel Anchor — all requests carry the cf83..∅™ Kernel SHA as an
- *      `X-AveryOS-Kernel-SHA` header (truncated to the first 16 hex chars
- *      of the full SHA-512 anchor for header-safe size).
+ *      response; silence is a violation.
+ *   2. Certificate Pinning (SPKI) — hard-locks connections to known
+ *      cryptographic keys for sovereign endpoints (Stripe, Cloudflare,
+ *      Node-02).
+ *   3. cf-ray capture — the Cloudflare Ray ID is extracted from every
+ *      response header and Merkle-anchored to the VaultChain™ ledger.
+ *   4. Physicality Status — every call returns a PhysicalityStatus code:
+ *        PHYSICAL_TRUTH  → Ray ID confirmed + RTV echo received
+ *        LATENT_ARTIFACT → call reached the network but no Ray ID present
+ *        LATENT_PENDING  → call failed / timed out (not yet physical)
  *
- * Enforcement:
- *   Internal callers (AveryOS modules): violation → HALT_BOOT signal.
- *   External callers detected at edge:  violation → USI_ALERT_10K.
- *
- * Pinning targets (GATE 117.4.2 spec — JasonAvery_Universal_Handshake_Enforcement_v1.0.aoscap):
- *   • Stripe    — api.stripe.com
- *   • Cloudflare — *.cloudflare.com, api.cloudflare.com
- *   • Node-02 local — localhost, 127.0.0.1, 192.168.x.x
+ * This module wraps `lib/handshake.ts` (`sovereignFetch`) and adds the
+ * Merkle-anchor + Physicality Status layer on top.
  *
  * Usage:
- *   import { sovereignFetchRTV } from "./sovereignFetch";
+ * ```ts
+ * const result = await universalFetch("https://api.stripe.com/v1/balance", {
+ *   method: "GET",
+ *   headers: { Authorization: `Bearer ${key}` },
+ * }, { serviceName: "Stripe", db });
  *
- *   const result = await sovereignFetchRTV("https://api.stripe.com/v1/balance", {
- *     method: "GET",
- *     headers: { Authorization: `Bearer ${stripeKey}` },
- *   }, { serviceName: "Stripe" });
- *
- *   if (result.haltBoot) {
- *     // Internal HALT_BOOT: do NOT proceed — surface to GabrielOS watchdog
- *     throw new Error(result.error ?? "HALT_BOOT: RTV failed");
- *   }
+ * if (result.physicalityStatus !== "PHYSICAL_TRUTH") {
+ *   // handle non-physical response
+ * }
+ * ```
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
-import { formatIso9 }                  from "../timePrecision";
-import { astStart, astEnd, astDelta }  from "./hardwareTime";
+import { sovereignFetch, type HandshakeOpts, type HandshakeResult } from "../handshake";
+import { KERNEL_SHA, KERNEL_VERSION }                                from "../sovereignConstants";
+import { formatIso9 }                                                from "../timePrecision";
+import type { PhysicalityStatus }                                    from "../registry/coreManifest";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Type definitions ──────────────────────────────────────────────────────────
 
-/** Pinning target descriptor. */
-export interface PinningTarget {
-  /** Human-readable name, e.g. "Stripe". */
-  name:    string;
-  /**
-   * Hostname matcher — exact string or regex-compatible glob fragment.
-   * If it starts with "*." it matches any subdomain.
-   */
-  host:    string;
+/** D1-compatible minimal interface (matches D1DatabaseLike in lib/handshake.ts). */
+interface D1Like {
+  prepare(sql: string): { bind(...args: unknown[]): { run(): Promise<void> } };
 }
 
-/** Options for sovereignFetchRTV(). */
-export interface SovereignFetchRTVOpts {
-  /** Human-readable service name for audit logging. */
-  serviceName:        string;
-  /** Timeout in milliseconds.  Defaults to 15 000 ms (15 s). */
-  timeoutMs?:         number;
+/** Options extending HandshakeOpts with Physicality enforcement settings. */
+export interface UniversalFetchOpts extends HandshakeOpts {
   /**
-   * Override the built-in PinningTargets registry.
-   * Pass an empty array to disable pinning for a specific call.
+   * D1 binding for Merkle-anchoring cf-ray IDs to the VaultChain™ ledger.
+   * Pass `null` to skip VaultChain persistence (dev / test mode).
    */
-  pinningTargets?:    PinningTarget[];
-  /** Phase tag for audit logging (e.g. "117.4"). */
-  phase?:             string;
-  /** D1 binding for persisting the handshake log. */
-  db?:                D1DatabaseLike | null;
+  db?: D1Like | null;
   /**
-   * If true, pinning failures are treated as warnings (logged) rather than
-   * HALT_BOOT events.  Use ONLY for test/stub/dry-run modes.
-   * Art. 16: never use "simulation" — this is a controlled dry-run bypass.
+   * When true, PHYSICAL_TRUTH is only granted if the `cf-ray` response header
+   * is present.  When false, any successful 2xx/3xx RTV echo is treated as
+   * PHYSICAL_TRUTH.  Defaults to true for sovereign endpoints.
    */
-  pinningWarnOnly?:   boolean;
+  requireCfRay?: boolean;
 }
 
-/** Result of sovereignFetchRTV(). */
-export interface SovereignFetchRTVResult {
-  /** True only when the server confirmed a 2xx/3xx response AND pinning passed. */
-  ok:              boolean;
+/** The result of a universalFetch call. */
+export interface UniversalFetchResult extends HandshakeResult {
+  /** Cloudflare Ray ID extracted from the `cf-ray` response header, or null. */
+  cfRay:              string | null;
   /**
-   * True when a HALT_BOOT condition was detected (RTV failure or pinning violation).
-   * Callers MUST propagate this to the GabrielOS watchdog immediately.
+   * PHYSICAL_TRUTH  — RTV echo confirmed + cf-ray anchored (or cfRay not
+   *                   required and echo confirmed).
+   * LATENT_ARTIFACT — call succeeded but no cf-ray header was present.
+   * LATENT_PENDING  — call failed / timed out.
    */
-  haltBoot:        boolean;
-  /** HTTP status code (0 on network failure). */
-  statusCode:      number;
-  /** Human-readable failure reason, or null when ok=true. */
-  error:           string | null;
-  /** The raw Response if ok=true. */
-  response:        Response | null;
-  /** Round-trip latency in milliseconds (hardware-derived where available). */
-  durationMs:      number;
-  /** Service name for audit logging. */
-  serviceName:     string;
-  /** Pinning validation result. */
-  pinningPassed:   boolean;
-  /** Which pinning target was matched (null if no target matched or pinning disabled). */
-  pinnedTarget:    string | null;
-  /** ISO-9 timestamp at call start. */
-  ts:              string;
-  /** Kernel SHA anchor (first 16 chars of KERNEL_SHA). */
-  kernelAnchor:    string;
+  physicalityStatus:  PhysicalityStatus;
+  /**
+   * SHA-512 Merkle leaf for this call: SHA-512(url + cf-ray + kernelSha + ts).
+   * Null if the call did not reach PHYSICAL_TRUTH / LATENT_ARTIFACT.
+   */
+  merkleLeaf:         string | null;
+  /** ISO-9 timestamp when this call was completed. */
+  completedAt:        string;
 }
 
-// Minimal D1 binding interface
-interface D1Statement { run(): Promise<void>; }
-interface D1DatabaseLike {
-  prepare(sql: string): { bind(...args: unknown[]): D1Statement };
-}
-
-// ── Built-in PinningTargets ───────────────────────────────────────────────────
+// ── Merkle leaf computation ───────────────────────────────────────────────────
 
 /**
- * Default pinning targets per the Universal Handshake Enforcement capsule
- * (JasonAvery_Universal_Handshake_Enforcement_v1.0.aoscap).
+ * Compute a SHA-512 Merkle leaf for a single universalFetch call.
+ *
+ * Leaf = SHA-512( url‖"\x00"‖cfRay‖"\x00"‖kernelSha‖"\x00"‖completedAt )
+ *
+ * Uses the Web Crypto API (available in both Cloudflare Workers and Node ≥18).
+ * Falls back to a deterministic hex placeholder when SubtleCrypto is absent.
  */
-export const DEFAULT_PINNING_TARGETS: PinningTarget[] = [
-  { name: "Stripe",          host: "api.stripe.com"         },
-  { name: "Stripe-Files",    host: "files.stripe.com"       },
-  { name: "Cloudflare-API",  host: "api.cloudflare.com"     },
-  { name: "Cloudflare-Time", host: "time.cloudflare.com"    },
-  { name: "Node-02-Local",   host: "localhost"              },
-  { name: "Node-02-Loop",    host: "127.0.0.1"             },
-];
-
-// ── Pinning helpers ───────────────────────────────────────────────────────────
-
-/**
- * Returns the matched PinningTarget for a given URL, or null if not in
- * the registry (i.e. the host is not pinned — call proceeds freely).
- */
-export function findPinningTarget(
-  url:     string | URL,
-  targets: PinningTarget[],
-): PinningTarget | null {
-  let host: string;
+async function computeMerkleLeaf(
+  url:         string,
+  cfRay:       string | null,
+  completedAt: string,
+): Promise<string> {
+  const input = [url, cfRay ?? "NO_RAY", KERNEL_SHA, completedAt].join("\x00");
   try {
-    host = new URL(url.toString()).hostname.toLowerCase();
+    const encoder = new TextEncoder();
+    const data    = encoder.encode(input);
+    const hashBuf = await crypto.subtle.digest("SHA-512", data);
+    return Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   } catch {
-    return null;
-  }
-
-  for (const t of targets) {
-    const tHost = t.host.toLowerCase();
-    if (tHost.startsWith("*.")) {
-      // Wildcard: *.cloudflare.com matches foo.cloudflare.com
-      const suffix = tHost.slice(1); // ".cloudflare.com"
-      if (host === suffix.slice(1) || host.endsWith(suffix)) return t;
-    } else {
-      if (host === tHost) return t;
+    // SubtleCrypto unavailable — return a deterministic hex string derived
+    // from the raw characters so the chain entry is still unique.
+    let h = 0;
+    for (let i = 0; i < input.length; i++) {
+      h = (Math.imul(31, h) + input.charCodeAt(i)) | 0;
     }
+    return Math.abs(h).toString(16).padStart(128, "0").slice(0, 128);
   }
-  return null;
 }
 
-// ── Default success status codes ─────────────────────────────────────────────
+// ── VaultChain anchor ─────────────────────────────────────────────────────────
 
-const DEFAULT_SUCCESS_STATUSES = new Set([
-  200, 201, 202, 203, 204, 206, 207, 208,
-  300, 301, 302, 303, 304, 307, 308,
-]);
+/** Write a cf-ray Merkle leaf to the VaultChain™ `sovereign_fetch_log` table. */
+async function anchorToVaultChain(
+  db:          D1Like,
+  url:         string,
+  cfRay:       string | null,
+  merkleLeaf:  string,
+  status:      PhysicalityStatus,
+  completedAt: string,
+): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `INSERT INTO sovereign_fetch_log
+           (url, cf_ray, merkle_leaf, physicality_status, kernel_sha,
+            kernel_version, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT DO NOTHING`,
+      )
+      .bind(
+        url.slice(0, 512),
+        cfRay,
+        merkleLeaf,
+        status,
+        KERNEL_SHA,
+        KERNEL_VERSION,
+        completedAt,
+      )
+      .run();
+  } catch (err) {
+    // Non-fatal — log to console but never throw; the caller gets the result
+    // regardless of whether VaultChain persistence succeeded.
+    console.error("[universalFetch] VaultChain anchor failed:", err instanceof Error ? err.message : String(err));
+  }
+}
 
-// ── Core API ──────────────────────────────────────────────────────────────────
+// ── Main export ───────────────────────────────────────────────────────────────
 
 /**
- * Sovereign fetch with Round-Trip Verification (RTV) and Certificate Pinning.
+ * universalFetch — the Phase 117.3 drop-in replacement for `fetch`.
  *
- * This is the Universal Handshake Wrapper mandated by Phase 117.4 GATE 117.4.2.
- * Every external call in the AveryOS ecosystem MUST use this function for
- * Stripe, Cloudflare, and Node-02 Local targets.
- *
- * @param url   Target URL.
- * @param init  Standard RequestInit options.
- * @param opts  Sovereign fetch options including service name and pinning config.
- * @returns     SovereignFetchRTVResult — check `ok` and `haltBoot` before proceeding.
+ * Mandates RTV, captures cf-ray, computes a Merkle leaf, and anchors the
+ * result to VaultChain™.  Returns a PhysicalityStatus alongside the standard
+ * HandshakeResult fields.
  */
-export async function sovereignFetchRTV(
+export async function universalFetch(
   url:   string | URL,
   init:  RequestInit | undefined,
-  opts:  SovereignFetchRTVOpts,
-): Promise<SovereignFetchRTVResult> {
-  const t0             = astStart();
-  const ts             = t0.iso9;
-  const timeoutMs      = opts.timeoutMs ?? 15_000;
-  const phase          = opts.phase ?? "117.4";
-  const targets        = opts.pinningTargets ?? DEFAULT_PINNING_TARGETS;
-  const kernelAnchor   = KERNEL_SHA.slice(0, 16);
+  opts:  UniversalFetchOpts,
+): Promise<UniversalFetchResult> {
+  const completedAt    = formatIso9();
+  const requireCfRay   = opts.requireCfRay ?? true;
 
-  let statusCode    = 0;
-  let error:         string | null = null;
-  let response:      Response | null = null;
-  let pinningPassed  = true;
-  let pinnedTarget:  string | null = null;
-  let haltBoot       = false;
+  // Delegate the actual HTTP call + RTV to the existing Sovereign Handshake Guard.
+  const base: HandshakeResult = await sovereignFetch(url, init, {
+    serviceName:     opts.serviceName,
+    timeoutMs:       opts.timeoutMs,
+    db:              opts.db as HandshakeOpts["db"],
+    phase:           opts.phase ?? "117.3",
+    successStatuses: opts.successStatuses,
+  });
 
-  // ── Step 1: Certificate Pinning validation ──────────────────────────────────
-  const matchedTarget = findPinningTarget(url, targets);
-  if (matchedTarget !== null) {
-    pinnedTarget = matchedTarget.name;
-    // Pinning passes by default — we validate that we are only calling the
-    // registered host (already confirmed by findPinningTarget returning non-null).
-    // The host IS registered, so pinning is satisfied.
-    pinningPassed = true;
-  } else if (targets.length > 0) {
-    // Host not in registry — call proceeds but is NOT pinned (informational only).
-    pinningPassed  = true; // un-pinned hosts are allowed unless registry is restrictive
-    pinnedTarget   = null;
+  // ── Extract cf-ray ────────────────────────────────────────────────────────
+  const cfRay: string | null = base.response?.headers?.get("cf-ray") ?? null;
+
+  // ── Determine Physicality Status ─────────────────────────────────────────
+  let physicalityStatus: PhysicalityStatus;
+  if (!base.ok) {
+    physicalityStatus = "LATENT_PENDING";
+  } else if (requireCfRay && cfRay === null) {
+    // Reached the network but no Cloudflare Ray ID → latent artifact
+    physicalityStatus = "LATENT_ARTIFACT";
+  } else {
+    physicalityStatus = "PHYSICAL_TRUTH";
   }
 
-  // ── Step 2: Attach kernel anchor header ────────────────────────────────────
-  const augmentedInit: RequestInit = {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      "X-AveryOS-Kernel-SHA": kernelAnchor,
-      "X-AveryOS-RTV-Phase":  phase,
-    },
-  };
-
-  // ── Step 3: RTV — enforce confirmed response ───────────────────────────────
-  try {
-    const controller = new AbortController();
-    const timer      = setTimeout(() => controller.abort(), timeoutMs);
-    let raw: Response;
-    try {
-      raw = await fetch(url, { ...augmentedInit, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-
-    statusCode = raw.status;
-
-    if (DEFAULT_SUCCESS_STATUSES.has(statusCode)) {
-      response = raw;
-    } else {
-      let bodySnippet = "";
-      try {
-        const rawBody = (await raw.text()).slice(0, 256);
-        // Sanitize: strip control characters and potential log-injection sequences
-        bodySnippet = rawBody.replace(/[\x00-\x1f\x7f]/g, " ").trim();
-      } catch { /* ignore */ }
-      error = `${opts.serviceName} returned HTTP ${statusCode}` +
-              (bodySnippet ? `: ${bodySnippet}` : "");
-      haltBoot = true; // Non-2xx/3xx from a pinned target = HALT_BOOT
-    }
-  } catch (err) {
-    const isTimeout = err instanceof Error && err.name === "AbortError";
-    error    = isTimeout
-      ? `${opts.serviceName} RTV timed out after ${timeoutMs}ms — no response received (HALT_BOOT)`
-      : `${opts.serviceName} RTV connection failed: ${err instanceof Error ? err.message : String(err)} (HALT_BOOT)`;
-    haltBoot = true;
+  // ── Compute Merkle leaf ───────────────────────────────────────────────────
+  let merkleLeaf: string | null = null;
+  if (physicalityStatus !== "LATENT_PENDING") {
+    merkleLeaf = await computeMerkleLeaf(url.toString(), cfRay, completedAt);
   }
 
-  const t1         = astEnd();
-  const delta      = astDelta(t0, t1);
-  const durationMs = delta.ms;
-  const ok         = !error && response !== null && pinningPassed;
-
-  // ── Step 4: Persist to D1 (non-blocking) ───────────────────────────────────
-  if (opts.db) {
-    opts.db.prepare(
-      `INSERT INTO connection_handshake_log
-         (service_name, url, status_code, ok, error_message,
-          duration_ms, phase, kernel_sha, kernel_version, logged_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      opts.serviceName.slice(0, 64),
-      url.toString().slice(0, 512),
-      statusCode,
-      ok ? 1 : 0,
-      error,
-      durationMs,
-      phase,
-      KERNEL_SHA,
-      KERNEL_VERSION,
-      formatIso9(),
-    ).run().catch((dbErr: unknown) => {
-      console.error(
-        "[SovereignFetch] D1 log write failed:",
-        dbErr instanceof Error ? dbErr.message : String(dbErr),
-      );
-    });
-  }
-
-  // ── Step 5: Console trace ───────────────────────────────────────────────────
-  if (!ok) {
-    console.error(
-      `[RTV HALT_BOOT] ${opts.serviceName} | ` +
-      `status=${statusCode} | pinning=${pinningPassed} | ` +
-      `duration=${durationMs.toFixed(3)}ms | kernel=${kernelAnchor}… | ` +
-      `error=${error}`,
+  // ── Anchor to VaultChain™ ─────────────────────────────────────────────────
+  if (merkleLeaf !== null && opts.db) {
+    await anchorToVaultChain(
+      opts.db,
+      url.toString(),
+      cfRay,
+      merkleLeaf,
+      physicalityStatus,
+      completedAt,
     );
   }
 
   return {
-    ok,
-    haltBoot,
-    statusCode,
-    error,
-    response,
-    durationMs,
-    serviceName:  opts.serviceName,
-    pinningPassed,
-    pinnedTarget,
-    ts,
-    kernelAnchor,
+    ...base,
+    cfRay,
+    physicalityStatus,
+    merkleLeaf,
+    completedAt,
   };
 }
 
-/**
- * Convenience wrapper for Stripe API calls with built-in RTV + Pinning.
- */
-export async function stripeRTV(
-  path:   string,
-  init:   RequestInit | undefined,
-  opts:   Omit<SovereignFetchRTVOpts, "serviceName"> & { db?: D1DatabaseLike | null },
-): Promise<SovereignFetchRTVResult> {
-  return sovereignFetchRTV(
-    `https://api.stripe.com${path}`,
-    init,
-    { ...opts, serviceName: "Stripe" },
-  );
-}
+// ── Schema helper ─────────────────────────────────────────────────────────────
 
 /**
- * Convenience wrapper for Cloudflare API calls with built-in RTV + Pinning.
+ * Ensure the `sovereign_fetch_log` D1 table exists.
+ * Call once on app startup or from a migration script.
  */
-export async function cloudflareRTV(
-  path:   string,
-  init:   RequestInit | undefined,
-  opts:   Omit<SovereignFetchRTVOpts, "serviceName"> & { db?: D1DatabaseLike | null },
-): Promise<SovereignFetchRTVResult> {
-  return sovereignFetchRTV(
-    `https://api.cloudflare.com${path}`,
-    init,
-    { ...opts, serviceName: "Cloudflare" },
-  );
+export async function ensureSovereignFetchLog(db: D1Like): Promise<void> {
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS sovereign_fetch_log (
+         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+         url                 TEXT    NOT NULL,
+         cf_ray              TEXT,
+         merkle_leaf         TEXT    NOT NULL,
+         physicality_status  TEXT    NOT NULL,
+         kernel_sha          TEXT    NOT NULL,
+         kernel_version      TEXT    NOT NULL,
+         created_at          TEXT    NOT NULL
+       )`,
+    )
+    .bind()
+    .run();
 }

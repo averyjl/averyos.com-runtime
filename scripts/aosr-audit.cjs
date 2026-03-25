@@ -50,6 +50,7 @@ const crypto = require("crypto");
 const readline = require("readline");
 
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync, OUTPUT_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ── Sovereign kernel anchor ────────────────────────────────────────────────────
 const KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
@@ -423,12 +424,9 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
-      fs.writeFileSync(
-        path.isAbsolute(outFile) ? outFile : path.join(process.cwd(), outFile),
-        JSON.stringify(report, null, 2),
-        "utf8",
-      );
-      console.log(`${DIM}Report written to ${outFile}${R}\n`);
+      const reportFileName = path.basename(outFile);
+      sovereignWriteSync(OUTPUT_ROOT, reportFileName, JSON.stringify(report, null, 2));
+      console.log(`${DIM}Report written to ${path.join(OUTPUT_ROOT, reportFileName)}${R}\n`);
     } catch (err) {
       logAosError(
         AOS_ERROR.D1_WRITE_FAILED,

@@ -35,6 +35,7 @@ const path = require('path');
 // Promises in a CJS context where await is unavailable at the top level.
 const crypto = require('crypto');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync, TAKEDOWNS_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ---------------------------------------------------------------------------
 // Sovereign constants
@@ -524,7 +525,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(dmcaText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `DMCA_NOTICE_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        fs.writeFileSync(path.join(outputDir, fileName), dmcaText + footer, 'utf-8');
+        sovereignWriteSync(TAKEDOWNS_ROOT, fileName, dmcaText + footer);
         console.log(`📄 DMCA: ${fileName}`);
         totalGenerated++;
       } catch (err) {
@@ -538,7 +539,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(gdprText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `GDPR_ART17_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        fs.writeFileSync(path.join(outputDir, fileName), gdprText + footer, 'utf-8');
+        sovereignWriteSync(TAKEDOWNS_ROOT, fileName, gdprText + footer);
         console.log(`📄 GDPR: ${fileName}`);
         totalGenerated++;
       } catch (err) {
@@ -649,8 +650,8 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = dmcaText + footer;
       const fileName   = `DMCA_NOTICE_${safeOrg}_${date}.md`;
-      const filePath   = path.join(outputDir, fileName);
-      fs.writeFileSync(filePath, full, 'utf-8');
+      const filePath   = path.join(TAKEDOWNS_ROOT, fileName);
+      sovereignWriteSync(TAKEDOWNS_ROOT, fileName, full);
       written.push({ type: 'DMCA', path: filePath, seal: noticeSeal });
       console.log(`📄 DMCA notice written: ${filePath}`);
     } catch (err) {
@@ -666,8 +667,8 @@ function main() {
       const footer     = `\n\n---\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
       const full       = gdprText + footer;
       const fileName   = `GDPR_ART17_NOTICE_${safeOrg}_${date}.md`;
-      const filePath   = path.join(outputDir, fileName);
-      fs.writeFileSync(filePath, full, 'utf-8');
+      const filePath   = path.join(TAKEDOWNS_ROOT, fileName);
+      sovereignWriteSync(TAKEDOWNS_ROOT, fileName, full);
       written.push({ type: 'GDPR Art.17', path: filePath, seal: noticeSeal });
       console.log(`📄 GDPR Art.17 notice written: ${filePath}`);
     } catch (err) {

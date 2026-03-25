@@ -64,7 +64,7 @@ const POLICIES = [
   { platform: 'Microsoft', category: 'AzureOpenAI_ToS', url: 'https://learn.microsoft.com/en-us/legal/cognitive-services/openai/code-of-conduct' },
   { platform: 'Meta',      category: 'ToS',             url: 'https://www.facebook.com/legal/terms' },
   { platform: 'Meta',      category: 'Privacy',         url: 'https://www.facebook.com/privacy/policy/' },
-  { platform: 'Meta',      category: 'Llama_ToS',       url: 'https://llama.meta.com/llama3/use-policy/' },
+  { platform: 'Meta',      category: 'Ollama_ToS',       url: 'https://ollama.meta.com/ollama3/use-policy/' },
   { platform: 'OpenAI',    category: 'ToS',             url: 'https://openai.com/policies/terms-of-use/' },
   { platform: 'OpenAI',    category: 'Privacy',         url: 'https://openai.com/policies/privacy-policy/' },
   { platform: 'OpenAI',    category: 'Usage_Policy',    url: 'https://openai.com/policies/usage-policies/' },

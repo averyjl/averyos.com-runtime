@@ -1136,8 +1136,7 @@ async function main() {
       console.log("    metadata.settlement_status: 'Settlement Requested'");
       console.log("    metadata.capsule_id: 'AveryOS_TARI_VerifyDollar_v1'");
       console.log("    metadata.kernel_version: v3.6.2");
-      console.log("    metadata.handshake_label: 'AveryOS Live Truth Handshake'");
-      console.log(`    metadata.handshake_ts: '${new Date().toISOString()}'`);
+      console.log(`    metadata.live_truth_handshake: 'AveryOS Live Truth Handshake: ${new Date().toISOString()}'`);
       return;
     }
 
@@ -1161,14 +1160,12 @@ async function main() {
         success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
         cancel_url:  `${SITE_URL}/licensing`,
         metadata: {
-          settlement_status:  'Settlement Requested',
-          capsule_id:         'AveryOS_TARI_VerifyDollar_v1',
-          kernel_version:     'v3.6.2',
-          test_mode:          isTestKey ? '1' : '0',
-          rail_verification:  '1',
-          handshake_label:    'AveryOS Live Truth Handshake',
-          handshake_ts:       new Date().toISOString(),
-          handshake_sha_hint: KERNEL_SHA_HINT,
+          settlement_status: 'Settlement Requested',
+          capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
+          kernel_version:    'v3.6.2',
+          test_mode:         isTestKey ? '1' : '0',
+          rail_verification: '1',
+          live_truth_handshake: `AveryOS Live Truth Handshake: ${new Date().toISOString()}`,
         },
       });
 

@@ -28,6 +28,7 @@
 const fs      = require('fs');
 const path    = require('path');
 const { execSync } = require('child_process');
+const { sovereignWriteSync, SOVEREIGN_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -237,7 +238,7 @@ async function resolveFile(filePath) {
   }
 
   if (!DRY_RUN && resolved > 0) {
-    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
+    sovereignWriteSync(SOVEREIGN_ROOT, path.relative(SOVEREIGN_ROOT, filePath), lines.join('\n'));
     console.log(`[AOS] ✓ Wrote resolved file: ${filePath}`);
   }
 
