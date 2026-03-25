@@ -125,6 +125,17 @@ export default function AboutPage() {
         <p><strong>Email:</strong> truth@averyworld.com</p>
         <p><strong>Legal:</strong> legal@averyworld.com</p>
         <p><strong>Entity:</strong> AveryOS, LLC (Utah, USA)</p>
+        <p>
+          <strong>Bio-Optimization Genesis:</strong>{" "}
+          <a
+            href="https://nobis.biz"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'rgba(120, 148, 255, 0.9)', textDecoration: 'none' }}
+          >
+            nobis.biz
+          </a>
+        </p>
       </section>
       <FooterBadge />
     </main>
