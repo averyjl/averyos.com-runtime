@@ -3,10 +3,11 @@
 /**
  * app/miracle-health-habits/page.tsx
  *
- * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1
+ * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1 / GATE 123.6.3
  *
  * Establishes a Physical-to-Digital Bridge for Jason Lee Avery's book.
- * Links Author identity to retail nodes on Amazon, Apple, and Barnes & Noble.
+ * Links Author identity to retail nodes on Amazon, Apple, Barnes & Noble,
+ * Google Books, and nobis.biz.
  * Includes JSON-LD SoftwareApplication schema for SEO identity anchoring.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
@@ -51,20 +52,17 @@ const RETAIL_LINKS = [
   {
     platform: "Google Books",
     icon: "🔍",
-    url: "https://play.google.com/store/books/details/Jason_L_Avery_Miracle_Health_Habits?id=pxpXEQAAQBAJ",
-    description: "Available on Google Play Books — read on any Android or web.",
+    url: "https://books.google.com/books?q=Miracle+Health+Habits+Jason+Avery",
+    description: "Available on Google Books — search, preview, and read digitally.",
     color: "#4285F4",
   },
-];
-
-// ── Secondary / Extended Retail Links ─────────────────────────────────────────
-const EXTENDED_LINKS = [
-  { label: "Fable",       url: "https://fable.co/book/x-9798230289104" },
-  { label: "Smashwords",  url: "https://www.smashwords.com/books/view/1762542" },
-  { label: "Thalia",      url: "https://www.thalia.de/shop/home/artikeldetails/A1075231820" },
-  { label: "Kobo",        url: "https://www.kobo.com/us/en/ebook/miracle-health-habits?sId=ddd26b41-d8e0-439e-bf3f-a0eb9117f69f&ssId=VRX05UcZ7t7uy5Fw-Snpv" },
-  { label: "Books2Read",  url: "https://books2read.com/u/bODLdK" },
-  { label: "Vivlio",      url: "https://shop.vivlio.com/product/9798230289104_9798230289104_10020/miracle-health-habits" },
+  {
+    platform: "nobis.biz",
+    icon: "⚓",
+    url: "https://nobis.biz",
+    description: "Available via nobis.biz — sovereign distribution node.",
+    color: "#ffd700",
+  },
 ];
 
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
