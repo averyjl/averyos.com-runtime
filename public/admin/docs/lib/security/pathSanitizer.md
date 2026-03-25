@@ -10,11 +10,17 @@
 
 ### `resolveSafeFilePath` *(function)*
 
+### `resolveSovereignPath` *(function)*
+
+### `sovereignWriteSync` *(function)*
+
 ### `SAFE_CAPSULE_ROOT` *(constant)*
 
 ### `SAFE_CONTENT_ROOT` *(constant)*
 
 ### `SAFE_LOGS_ROOT` *(constant)*
+
+### `SAFE_SOVEREIGN_WRITES_ROOT` *(constant)*
 
 ---
 
