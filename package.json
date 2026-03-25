@@ -14,10 +14,10 @@
     "sync:heartbeat": "node scripts/sync-heartbeat.cjs",
     "dev": "next dev",
     "build": "node scripts/verifyGenesis.cjs && next build",
-    "deploy": "npm run pre-deploy:check && npm run build:cloudflare && node -e \"const fs=require('fs');if(!fs.existsSync('.open-next/worker.js')){console.error('❌ .open-next/worker.js not found — build:cloudflare may have failed');process.exit(1);}console.log('✅ .open-next/worker.js verified');\" && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
-    "pre-deploy:check": "npx wrangler d1 migrations apply averyos_kernel_db --remote --dry-run 2>&1 | tee /dev/stderr | grep -qE '(All migrations|No migrations|up to date)' && echo '✅ Migration dry-run passed' || (echo '❌ Migration dry-run failed — fix migrations before deploying' && exit 1)",
+    "deploy": "npm run pre-deploy:check && npm run build:cloudflare && node -e \"const fs=require('fs');if(!fs.existsSync('.open-next/worker.js')){console.error('\u274c .open-next/worker.js not found \u2014 build:cloudflare may have failed');process.exit(1);}console.log('\u2705 .open-next/worker.js verified');\" && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
+    "pre-deploy:check": "npx wrangler d1 migrations apply averyos_kernel_db --remote --dry-run 2>&1 | tee /dev/stderr | grep -qE '(All migrations|No migrations|up to date)' && echo '\u2705 Migration dry-run passed' || (echo '\u274c Migration dry-run failed \u2014 fix migrations before deploying' && exit 1)",
     "security:lint": "bash scripts/security-lint.sh",
-    "hooks:install": "cp scripts/security-lint.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo '✅ Pre-commit security hook installed'",
+    "hooks:install": "cp scripts/security-lint.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo '\u2705 Pre-commit security hook installed'",
     "logs:bouncer": "wrangler tail gabriel-gatekeeper",
     "logs:app": "wrangler tail averyoscom-runtime",
     "build:worker": "npx @opennextjs/cloudflare build",
@@ -83,7 +83,8 @@
     "eslint-plugin-security": "^4.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "wrangler": "4.76.0"
   },
   "overrides": {
     "undici": ">=7.24.0",

@@ -48,9 +48,83 @@ const SOVEREIGN_ROOT = path.resolve(__dirname, "..", "..");
 const OUTPUT_ROOT = path.resolve(SOVEREIGN_ROOT, "output");
 
 /**
+ * Dedicated root for sovereign takedown notices (DMCA / GDPR Art.17).
+ */
+const TAKEDOWNS_ROOT = path.resolve(OUTPUT_ROOT, "takedowns");
+
+/**
+ * Dedicated root for evidence packet bundles.
+ */
+const EVIDENCE_PACKETS_ROOT = path.resolve(OUTPUT_ROOT, "evidence-packets");
+
+/**
+ * Dedicated root for mesh-proof-kit capsule logs.
+ */
+const CAPSULE_LOGS_ROOT = path.resolve(OUTPUT_ROOT, "capsule_logs");
+
+/**
  * Logs directory — sovereign log writes must stay here.
  */
 const LOGS_ROOT = path.resolve(SOVEREIGN_ROOT, "logs");
+
+/**
+ * Pulse heartbeat log directory (sub-directory of LOGS_ROOT).
+ */
+const PULSE_LOGS_ROOT = path.resolve(LOGS_ROOT, "pulse");
+
+/**
+ * Capsule manifest output directory.
+ */
+const CAPSULE_MANIFEST_ROOT = path.resolve(
+  SOVEREIGN_ROOT, "public", "manifest", "capsules",
+);
+
+/**
+ * Public static assets directory.
+ */
+const PUBLIC_ROOT = path.resolve(SOVEREIGN_ROOT, "public");
+
+/**
+ * License-enforcement output directory (evidence, notices, logs).
+ */
+const ENFORCEMENT_ROOT = path.resolve(
+  SOVEREIGN_ROOT, "public", "license-enforcement",
+);
+
+/**
+ * Evidence sub-directory of ENFORCEMENT_ROOT.
+ */
+const ENFORCEMENT_EVIDENCE_ROOT = path.resolve(ENFORCEMENT_ROOT, "evidence");
+
+/**
+ * Notices sub-directory of ENFORCEMENT_ROOT.
+ */
+const ENFORCEMENT_NOTICES_ROOT = path.resolve(ENFORCEMENT_ROOT, "notices");
+
+/**
+ * Logs sub-directory of ENFORCEMENT_ROOT.
+ */
+const ENFORCEMENT_LOGS_ROOT = path.resolve(ENFORCEMENT_ROOT, "logs");
+
+/**
+ * VaultBridge directory — sovereign registry files.
+ */
+const VAULTBRIDGE_ROOT = path.resolve(SOVEREIGN_ROOT, "VaultBridge");
+
+/**
+ * Scripts directory — generated index / semantic-map files.
+ */
+const SCRIPTS_ROOT = path.resolve(SOVEREIGN_ROOT, "scripts");
+
+/**
+ * Tests generated output directory.
+ */
+const TESTS_GENERATED_ROOT = path.resolve(SOVEREIGN_ROOT, "__tests__", "generated");
+
+/**
+ * Docs output directory (public/admin/docs).
+ */
+const DOCS_ROOT = path.resolve(SOVEREIGN_ROOT, "public", "admin", "docs");
 
 // ── Core helpers ──────────────────────────────────────────────────────────────
 
@@ -103,7 +177,21 @@ module.exports = {
   PathTraversalError,
   SOVEREIGN_ROOT,
   OUTPUT_ROOT,
+  TAKEDOWNS_ROOT,
+  EVIDENCE_PACKETS_ROOT,
+  CAPSULE_LOGS_ROOT,
   LOGS_ROOT,
+  PULSE_LOGS_ROOT,
+  CAPSULE_MANIFEST_ROOT,
+  PUBLIC_ROOT,
+  ENFORCEMENT_ROOT,
+  ENFORCEMENT_EVIDENCE_ROOT,
+  ENFORCEMENT_NOTICES_ROOT,
+  ENFORCEMENT_LOGS_ROOT,
+  VAULTBRIDGE_ROOT,
+  SCRIPTS_ROOT,
+  TESTS_GENERATED_ROOT,
+  DOCS_ROOT,
   resolveSovereignPath,
   sovereignWriteSync,
 };

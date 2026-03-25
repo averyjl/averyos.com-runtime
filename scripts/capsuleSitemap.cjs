@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+const { sovereignWriteSync, PUBLIC_ROOT } = require("./lib/sovereignIO.cjs");
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const registryPath = path.join(process.cwd(), "public", "capsule-registry");
-const outputDir = path.join(process.cwd(), "public");
 const appDir = path.join(process.cwd(), "app");
 const pagesDir = path.join(process.cwd(), "pages");
 
@@ -67,8 +67,7 @@ const buildRobotsTxt = () => {
 };
 
 const writeOutputs = (sitemapXml) => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  fs.writeFileSync(path.join(outputDir, "sitemap.xml"), sitemapXml);
+  sovereignWriteSync(PUBLIC_ROOT, "sitemap.xml", sitemapXml);
   // NOTE: public/robots.txt is intentionally NOT written here.
   // app/robots.ts handles dynamic per-subdomain robots.txt via the Next.js
   // Metadata API. Writing a static public/robots.txt would shadow the dynamic

@@ -89,7 +89,8 @@ function main() {
 
   // 2. Verify SHA-512 Kernel Anchor (cf83 prefix)
   if (content.includes(CANONICAL_SHA512)) {
-    console.log(`  ${G}✔${R}  SHA-512 Kernel Anchor (cf83): VERIFIED`);
+    console.log(`  ${G}✔${R}  SHA-512 Kernel Anchor: VERIFIED`);
+    console.log(`     Full SHA-512: ${CANONICAL_SHA512}`);
     logAosHeal("GENESIS_VERIFY", "SHA-512 Kernel Anchor cf83 verified in sovereignConstants.ts");
   } else {
     console.error(`  ${RE}✘${R}  SHA-512 Kernel Anchor (cf83): DRIFT DETECTED`);
