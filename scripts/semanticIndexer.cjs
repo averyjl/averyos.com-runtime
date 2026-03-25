@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { compileCapsuleSignature } = require('./capsuleSignatureCompiler');
+const { sovereignWriteSync, SCRIPTS_ROOT } = require('./lib/sovereignIO.cjs');
 
 const CONSTITUTION_PATH = path.join(process.cwd(), 'AveryOS_CONSTITUTION.md');
-const INDEX_PATH = path.join(process.cwd(), 'scripts', 'sovereign-index.json');
 
 function generateSemanticMap() {
   console.log("⛓️⚓⛓️ INITIALIZING SEMANTIC INDEXER...");
@@ -27,7 +27,7 @@ function generateSemanticMap() {
     };
   });
 
-  fs.writeFileSync(INDEX_PATH, JSON.stringify(semanticMap, null, 2));
+  sovereignWriteSync(SCRIPTS_ROOT, "sovereign-index.json", JSON.stringify(semanticMap, null, 2));
   console.log(`✅ SEMANTIC MAP GENERATED: ${semanticMap.length} Principles Anchored.`);
 }
 

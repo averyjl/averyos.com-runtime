@@ -44,6 +44,7 @@ const https   = require('https');
 const crypto  = require('crypto');
 
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
+const { sovereignWriteSync, TAKEDOWNS_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -230,12 +231,11 @@ ${CREATOR_EMAIL}
 
 /** Write a notice to the output directory and return the file path */
 function writeNotice(eventId, noticeText) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const seal     = sha512(noticeText + KERNEL_SHA);
   const filename = `demand-${eventId}-${Date.now()}.txt`;
-  const filePath = path.join(OUTPUT_DIR, filename);
+  const filePath = path.join(TAKEDOWNS_ROOT, filename);
   const sealed   = `${noticeText}\n================================================================\nSEAL : ${seal}\n================================================================\n`;
-  fs.writeFileSync(filePath, sealed, 'utf8');
+  sovereignWriteSync(TAKEDOWNS_ROOT, filename, sealed);
   return { filePath, seal };
 }
 
@@ -330,7 +330,8 @@ async function runSweep() {
       console.log(`[settlement] 💳 Stripe invoice created: ${checkoutUrl}`);
       // Append checkout URL to the notice file
       try {
-        fs.appendFileSync(filePath, `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`);
+        const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+        sovereignWriteSync(TAKEDOWNS_ROOT, path.basename(filePath), existing + `\nSTRIPE CHECKOUT : ${checkoutUrl}\n`);
       } catch (err) {
         logAosError(AOS_ERROR.WRITE_ERROR, `Failed to append checkout URL to notice: ${err.message}`, err);
       }
