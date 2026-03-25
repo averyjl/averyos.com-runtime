@@ -77,6 +77,11 @@ jobs:
         # queries. The "+" prefix adds them on top of the default set rather than
         # replacing it, maximising detection coverage at the design stage.
         queries: +security-and-quality
+        # Path-exclusion config: keeps CodeQL focused on production source only.
+        # Excludes electron/, scripts/, uplink/ and generated stubs — these are
+        # CommonJS/Node.js build tools that produce false-positive alerts which
+        # the Copilot auto-fix bot then "fixes" by deleting working code.
+        config-file: .github/codeql/codeql-config.yml
 
     # If the analyze step fails for one of the languages you are analyzing with
     # "We were unable to automatically build your code", modify the matrix above

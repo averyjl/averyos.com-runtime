@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { classifyDerRequest, BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
+import { BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
 import { syncD1RowToFirebase } from './lib/firebaseClient';
 import {
   isGeminiCreditExhausted,
@@ -708,9 +708,9 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
 }
 
 // ── Phase 88 — UsageCreditWatch constants ────────────────────────────────────
-// Monthly Gemini credit ceiling in USD. If accumulated spend in KV_LOGS exceeds
-// this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
-const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+// Monthly Gemini credit ceiling: $50/month (defined in lib/geminiSpendTracker.ts).
+// If accumulated spend in KV_LOGS exceeds this, the intelligence router falls
+// back to LOCAL_OLLAMA_NODE.  The threshold is enforced by isGeminiCreditExhausted().
 
 // ── Phase 92.5 — Cadence Prediction Shield ────────────────────────────────────
 // Tracks the time between requests from the same IP address.
@@ -1326,6 +1326,7 @@ export async function middleware(request: NextRequest) {
 
   // Compute the alignment directive for this request (used later for browser
   // pass-through so high-value orgs receive the correct forensic header).
+  // eslint-disable-next-line security/detect-object-injection
   const derAlignmentStatus = DER_ASN_ALIGNMENTS[clientAsn] ?? '';
 
   // ── HN / Community Referrer Detection ────────────────────────────────────

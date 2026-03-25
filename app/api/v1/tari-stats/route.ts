@@ -78,7 +78,6 @@ interface TariStatsResponse {
   firebase_sync_status: string;
   // Phase 117 — Firebase tari_metrics stream URL (Firestore collection: averyos-tari-probe)
   firebase_tari_metrics_url: string;
-  timestamp: string;
   // Gate 2 — Live Stripe revenue balance
   stripe_available_usd: number | null;
   stripe_pending_usd:   number | null;
@@ -86,6 +85,8 @@ interface TariStatsResponse {
   // Gate 2.1 — Historical Stripe payment intents / charges list
   stripe_recent_charges: StripeChargeEntry[];
   stripe_total_collected_usd: number | null;
+  /** ISO-8601 timestamp of when this response was generated. */
+  timestamp: string;
 }
 
 /** TARI™ liability rates mirrored from audit-alert route for watcher accrual. */
