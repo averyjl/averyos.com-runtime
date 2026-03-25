@@ -42,6 +42,7 @@ const https  = require("https");
 const http   = require("http");
 
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
+const { sovereignWriteSync, TESTS_GENERATED_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ── CLI flags ─────────────────────────────────────────────────────────────────
 
@@ -890,10 +891,9 @@ async function runQa() {
   };
 
   if (!DRY_RUN) {
-    const genDir = path.resolve(__dirname, "..", "__tests__", "generated");
-    if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
-    const outFile = path.join(genDir, `qa-run-${Date.now()}.json`);
-    fs.writeFileSync(outFile, JSON.stringify(record, null, 2));
+    const outFileName = `qa-run-${Date.now()}.json`;
+    const outFile = path.join(TESTS_GENERATED_ROOT, outFileName);
+    sovereignWriteSync(TESTS_GENERATED_ROOT, outFileName, JSON.stringify(record, null, 2));
     console.log(`${DIM}Run record saved → ${path.relative(process.cwd(), outFile)}${R}`);
     logAosHeal("QA_COMPLETE", `avery-qa run ${runId}: ${overallStatus.toUpperCase()}`);
   }

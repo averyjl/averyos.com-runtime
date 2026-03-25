@@ -92,11 +92,9 @@ function main() {
 
   // 2. Verify SHA-512 Kernel Anchor (cf83 prefix)
   if (content.includes(CANONICAL_SHA512)) {
-    // Phase 124.1: Print the FULL 128-character SHA-512 — never truncate.
     console.log(`  ${G}✔${R}  SHA-512 Kernel Anchor: VERIFIED`);
-    console.log(`     Full SHA-512 (128 chars):`);
-    console.log(`     ${CANONICAL_SHA512}`);
-    logAosHeal("GENESIS_VERIFY", `SHA-512 Kernel Anchor verified (full): ${CANONICAL_SHA512}`);
+    console.log(`     Full SHA-512: ${CANONICAL_SHA512}`);
+    logAosHeal("GENESIS_VERIFY", "SHA-512 Kernel Anchor cf83 verified in sovereignConstants.ts");
   } else {
     console.error(`  ${RE}✘${R}  SHA-512 Kernel Anchor (cf83): DRIFT DETECTED`);
     console.error(`     Expected : ${CANONICAL_SHA512.slice(0, 20)}…`);
