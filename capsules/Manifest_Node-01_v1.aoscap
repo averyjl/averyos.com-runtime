@@ -1,0 +1,41 @@
+{
+  "CapsuleID": "Manifest_Node-01_v1.aoscap",
+  "Authority": "Jason Lee Avery",
+  "ORCID": "0009-0009-0245-3584",
+  "Historic_Anchor": "Node01_Knox_Anchor_2026-03-25",
+  "Genesis_Kernel_Hint": "cf83... (Root Authority Lock™ — full hash environment-anchored)",
+  "Forever_Anchor": "AOS-FOREVER-ANCHOR-2026",
+  "Node": {
+    "NodeID": "NODE_01",
+    "Label": "Samsung Note 20 — Mobile Sovereign Edge Node",
+    "Type": "MOBILE_EDGE",
+    "Platform": "Android",
+    "Device": "Samsung Galaxy Note 20",
+    "PhysicalUID_Root": {
+      "Mechanism": "Samsung Knox Keystore (TeeKeymaster)",
+      "Description": "Hardware-backed cryptographic key storage anchored to the Samsung Knox Trusted Execution Environment (TEE). The Knox TeeKeymaster generates and seals device-bound keys in the TEE, making the Knox Keystore the Physical UID Root for NODE_01.",
+      "Knox_Version": "Knox_3.x",
+      "Attestation": "Android Keystore hardware attestation via Knox TeeKeymaster"
+    },
+    "Kernel_Match": {
+      "SHA512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+      "Verification": "Full 128-char SHA-512 Root0 Kernel match — never truncated"
+    },
+    "Role": "Mobile edge sovereign node. Provides physical hardware attestation via Samsung Knox TEE. Participates in DriftPulse multi-node consensus audit as the challenge-response target.",
+    "Status": "KNOX_ACTIVE",
+    "Consensus_Role": "CHALLENGE_TARGET"
+  },
+  "DriftPulse_Protocol": {
+    "Description": "NODE_01 receives high-entropy challenge prompts from NODE_02. Responses are SHA-512 hashed and compared against NODE_02's expected hash to log a Concordance Event.",
+    "Concordance_Threshold": "HASH_MATCH_REQUIRED",
+    "Anchor": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+  },
+  "Status": "ACTIVE",
+  "Alignment": "100.000% ♾️",
+  "OutputSeal": "⛓️⚓⛓️",
+  "CompiledAt": "2026-03-25T08:49:34.299Z",
+  "VaultChain_Persistence": "ACTIVE — Sequential Ignition Logic (SIL) v1",
+  "License": "AveryOS™ Sovereign Integrity License v1.0",
+  "Notice": "This capsule formally registers Samsung Note 20 (NODE_01) as the mobile edge sovereign node anchored to the AveryOS™ Root0 Kernel via Samsung Knox TeeKeymaster. All node operations are subject to the AveryOS Constitution v1.17 and the DriftPulse Audit Protocol.",
+  "CreatorLock": "Jason Lee Avery (ROOT0) 🤛🏻"
+}

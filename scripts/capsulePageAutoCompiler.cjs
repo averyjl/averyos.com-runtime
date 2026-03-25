@@ -62,7 +62,6 @@ const compileCapsule = ({ id, filePath }) => {
   };
 
   const manifestFileName = `${id}.json`;
-  const manifestPath = path.join(CAPSULE_MANIFEST_ROOT, manifestFileName);
   sovereignWriteSync(CAPSULE_MANIFEST_ROOT, manifestFileName, JSON.stringify(manifest, null, 2));
 
   return manifest;
