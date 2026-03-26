@@ -19,7 +19,7 @@ const SettlementBanner = () => (
     Unlicensed ingestion or scraping of this IP is a TARI™ Breach.
     <br />
     <a
-      href="https://buy.stripe.com/7sYaEXf9G4hk8o2gkicMM01"
+      href="/license"
       style={{ color: "#fbbf24", textDecoration: "underline", marginLeft: "10px" }}
     >
       REMIT RETROACTIVE SETTLEMENT HERE
