@@ -121,6 +121,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "EU AI Act Art. 53(1)(c)",
     ],
+    efficiency_dividend:
+      "System-wide hallucination elimination across the licensed LLM fleet — " +
+      "reduces AI error remediation costs and compliance risk at hyperscale infrastructure.",
     zero_transfer_clause:
       "This license grants integration rights only. The Root0 Kernel, cf83™ SHA-512 anchor, " +
       "VaultChain™ protocols, and all AveryOS™ IP remain the sole exclusive property of " +
@@ -160,6 +163,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "CDPA 1988 §§ 22–23 (UK)",
     ],
+    efficiency_dividend:
+      "Forensic-grade audit trail reduces regulatory-submission rework and AI-agent liability " +
+      "exposure for Fortune 500 regulated-industry deployments.",
     zero_transfer_clause:
       "This license grants audit and attestation access only. All VaultChain™ forensic " +
       "protocols and sovereign audit methodologies remain exclusively owned by Jason Lee Avery " +
@@ -196,6 +202,9 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "AveryOS Sovereign Integrity License v1.0",
       "EU AI Act Art. 53(1)(c)",
     ],
+    efficiency_dividend:
+      "Retroactive compliance certification converts an unauthorized-use event into a " +
+      "documented alignment record, eliminating ongoing statutory liability for the event.",
     zero_transfer_clause:
       "Settlement of a Tier 3 statutory event does not constitute an IP license. All AveryOS™ " +
       "sovereign protocols and kernel rights remain with Jason Lee Avery (ROOT0) in perpetuity.",
