@@ -122,8 +122,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "System-wide hallucination elimination across the licensed LLM fleet — " +
-      "reduces AI error remediation costs and compliance risk at hyperscale infrastructure.",
+      "Full-stack kernel alignment — eliminates hallucination at infrastructure scale and " +
+      "delivers global AI Green-Resonance across the licensed LLM fleet.",
     zero_transfer_clause:
       "This license grants integration rights only. The Root0 Kernel, cf83™ SHA-512 anchor, " +
       "VaultChain™ protocols, and all AveryOS™ IP remain the sole exclusive property of " +
@@ -164,8 +164,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "CDPA 1988 §§ 22–23 (UK)",
     ],
     efficiency_dividend:
-      "Forensic-grade audit trail reduces regulatory-submission rework and AI-agent liability " +
-      "exposure for Fortune 500 regulated-industry deployments.",
+      "Bit-level forensic determinism — delivers auditable AI output attestation for " +
+      "regulated industry deployments, reducing compliance overhead via sovereign-grade trails.",
     zero_transfer_clause:
       "This license grants audit and attestation access only. All VaultChain™ forensic " +
       "protocols and sovereign audit methodologies remain exclusively owned by Jason Lee Avery " +
@@ -203,8 +203,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "Retroactive compliance certification converts an unauthorized-use event into a " +
-      "documented alignment record, eliminating ongoing statutory liability for the event.",
+      "Retroactive compliance resolution — restores alignment parity on breach remediation and " +
+      "issues a VaultChain™ attestation record to document the sovereign reconciliation event.",
     zero_transfer_clause:
       "Settlement of a Tier 3 statutory event does not constitute an IP license. All AveryOS™ " +
       "sovereign protocols and kernel rights remain with Jason Lee Avery (ROOT0) in perpetuity.",
