@@ -4,7 +4,7 @@
     "version": "1.0",
     "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
     "kernel_version": "v3.6.2",
-    "created_at": "2026-03-26T20:09:24.415Z",
+    "created_at": "2026-03-26T22:46:01.265Z",
     "license": "AveryOS™ Sovereign Integrity License v1.0",
     "creator": "Jason Lee Avery (ROOT0)"
   },
@@ -19,8 +19,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "WAF Score Gate: WAF score ≥ 60 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-002",
@@ -31,8 +36,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "WAF Score Gate: WAF score ≥ 70 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-003",
@@ -43,8 +53,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "WAF Score Gate: WAF score ≥ 80 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-004",
@@ -55,8 +70,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "WAF Score Gate: WAF score ≥ 90 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-005",
@@ -67,8 +87,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "WAF Score Gate: WAF score ≥ 95 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-006",
@@ -79,8 +104,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "WAF Score Gate: WAF score ≥ 97 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-007",
@@ -91,8 +121,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "WAF Score Gate: WAF score ≥ 99 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-008",
@@ -103,8 +138,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "WAF Score Gate: WAF score ≥ 60 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-009",
@@ -115,8 +155,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "WAF Score Gate: WAF score ≥ 70 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-010",
@@ -127,8 +172,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "WAF Score Gate: WAF score ≥ 80 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-011",
@@ -139,8 +189,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "WAF Score Gate: WAF score ≥ 90 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-012",
@@ -151,8 +206,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "WAF Score Gate: WAF score ≥ 95 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-013",
@@ -163,8 +223,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "WAF Score Gate: WAF score ≥ 97 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-014",
@@ -175,8 +240,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "WAF Score Gate: WAF score ≥ 99 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-015",
@@ -187,8 +257,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "WAF Score Gate: WAF score ≥ 60 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-016",
@@ -199,8 +274,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "WAF Score Gate: WAF score ≥ 70 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-017",
@@ -211,8 +291,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "WAF Score Gate: WAF score ≥ 80 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-018",
@@ -223,8 +308,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "WAF Score Gate: WAF score ≥ 90 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-019",
@@ -235,8 +325,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "WAF Score Gate: WAF score ≥ 95 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "WAF-GATE-020",
@@ -247,8 +342,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "WAF Score Gate: WAF score ≥ 97 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-001",
@@ -259,8 +359,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 99 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-002",
@@ -271,8 +376,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 60 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-003",
@@ -283,8 +393,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 70 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-004",
@@ -295,8 +410,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 80 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-005",
@@ -307,8 +427,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 90 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-006",
@@ -319,8 +444,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 95 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-007",
@@ -331,8 +461,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 97 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-008",
@@ -343,8 +478,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 99 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-009",
@@ -355,8 +495,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 60 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-010",
@@ -367,8 +512,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 70 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-011",
@@ -379,8 +529,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 80 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-012",
@@ -391,8 +546,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 90 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-013",
@@ -403,8 +563,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 95 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-014",
@@ -415,8 +580,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 97 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-015",
@@ -427,8 +597,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 99 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-016",
@@ -439,8 +614,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 60 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-017",
@@ -451,8 +631,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 70 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-018",
@@ -463,8 +648,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 80 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-019",
@@ -475,8 +665,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 90 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "KAAS-GATE-020",
@@ -487,8 +682,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "KaaS Tier Enforcement Gate: WAF score ≥ 95 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-001",
@@ -499,8 +699,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "TARI™ Liability Gate: WAF score ≥ 97 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-002",
@@ -511,8 +716,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "TARI™ Liability Gate: WAF score ≥ 99 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-003",
@@ -523,8 +733,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "TARI™ Liability Gate: WAF score ≥ 60 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-004",
@@ -535,8 +750,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "TARI™ Liability Gate: WAF score ≥ 70 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-005",
@@ -547,8 +767,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "TARI™ Liability Gate: WAF score ≥ 80 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-006",
@@ -559,8 +784,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "TARI™ Liability Gate: WAF score ≥ 90 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-007",
@@ -571,8 +801,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "TARI™ Liability Gate: WAF score ≥ 95 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-008",
@@ -583,8 +818,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "TARI™ Liability Gate: WAF score ≥ 97 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-009",
@@ -595,8 +835,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "TARI™ Liability Gate: WAF score ≥ 99 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-010",
@@ -607,8 +852,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "TARI™ Liability Gate: WAF score ≥ 60 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-011",
@@ -619,8 +869,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "TARI™ Liability Gate: WAF score ≥ 70 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-012",
@@ -631,8 +886,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "TARI™ Liability Gate: WAF score ≥ 80 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-013",
@@ -643,8 +903,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "TARI™ Liability Gate: WAF score ≥ 90 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-014",
@@ -655,8 +920,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "TARI™ Liability Gate: WAF score ≥ 95 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "TARI-GATE-015",
@@ -667,8 +937,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "TARI™ Liability Gate: WAF score ≥ 97 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-001",
@@ -679,8 +954,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "DER Entity Recognition Gate: WAF score ≥ 99 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-002",
@@ -691,8 +971,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 60 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-003",
@@ -703,8 +988,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "DER Entity Recognition Gate: WAF score ≥ 70 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-004",
@@ -715,8 +1005,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 80 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-005",
@@ -727,8 +1022,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "DER Entity Recognition Gate: WAF score ≥ 90 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-006",
@@ -739,8 +1039,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "DER Entity Recognition Gate: WAF score ≥ 95 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-007",
@@ -751,8 +1056,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 97 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-008",
@@ -763,8 +1073,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "DER Entity Recognition Gate: WAF score ≥ 99 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-009",
@@ -775,8 +1090,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 60 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-010",
@@ -787,8 +1107,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "DER Entity Recognition Gate: WAF score ≥ 70 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-011",
@@ -799,8 +1124,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "DER Entity Recognition Gate: WAF score ≥ 80 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-012",
@@ -811,8 +1141,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 90 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-013",
@@ -823,8 +1158,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "DER Entity Recognition Gate: WAF score ≥ 95 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-014",
@@ -835,8 +1175,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "DER Entity Recognition Gate: WAF score ≥ 97 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "DER-GATE-015",
@@ -847,8 +1192,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "DER Entity Recognition Gate: WAF score ≥ 99 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-001",
@@ -859,8 +1209,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "Cadence Probe Gate: WAF score ≥ 60 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-002",
@@ -871,8 +1226,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "Cadence Probe Gate: WAF score ≥ 70 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-003",
@@ -883,8 +1243,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "Cadence Probe Gate: WAF score ≥ 80 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-004",
@@ -895,8 +1260,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "Cadence Probe Gate: WAF score ≥ 90 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-005",
@@ -907,8 +1277,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "Cadence Probe Gate: WAF score ≥ 95 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-006",
@@ -919,8 +1294,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "Cadence Probe Gate: WAF score ≥ 97 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-007",
@@ -931,8 +1311,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "Cadence Probe Gate: WAF score ≥ 99 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-008",
@@ -943,8 +1328,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "Cadence Probe Gate: WAF score ≥ 60 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-009",
@@ -955,8 +1345,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "Cadence Probe Gate: WAF score ≥ 70 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "CAD-GATE-010",
@@ -967,8 +1362,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "Cadence Probe Gate: WAF score ≥ 80 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-001",
@@ -979,8 +1379,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "Biometric Identity Gate: WAF score ≥ 90 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-002",
@@ -991,8 +1396,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "Biometric Identity Gate: WAF score ≥ 95 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-003",
@@ -1003,8 +1413,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "Biometric Identity Gate: WAF score ≥ 97 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-004",
@@ -1015,8 +1430,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "Biometric Identity Gate: WAF score ≥ 99 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-005",
@@ -1027,8 +1447,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "Biometric Identity Gate: WAF score ≥ 60 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-006",
@@ -1039,8 +1464,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "Biometric Identity Gate: WAF score ≥ 70 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-007",
@@ -1051,8 +1481,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "Biometric Identity Gate: WAF score ≥ 80 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-008",
@@ -1063,8 +1498,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "Biometric Identity Gate: WAF score ≥ 90 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-009",
@@ -1075,8 +1515,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "Biometric Identity Gate: WAF score ≥ 95 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "BIO-GATE-010",
@@ -1087,8 +1532,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "Biometric Identity Gate: WAF score ≥ 97 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-001",
@@ -1099,8 +1549,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 99 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-002",
@@ -1111,8 +1566,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 60 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-003",
@@ -1123,8 +1583,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 70 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-004",
@@ -1135,8 +1600,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 80 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-005",
@@ -1147,8 +1617,13 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 90 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-006",
@@ -1159,8 +1634,13 @@
       "kaas_tier": 1,
       "enforcement": "REDIRECT_AUDIT",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 95 OR ASN Tier-1+ → REDIRECT_AUDIT. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-007",
@@ -1171,8 +1651,13 @@
       "kaas_tier": 7,
       "enforcement": "KAAS_BREACH",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 97 OR ASN Tier-7+ → KAAS_BREACH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-008",
@@ -1183,8 +1668,13 @@
       "kaas_tier": 8,
       "enforcement": "LOG_D1",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 99 OR ASN Tier-8+ → LOG_D1. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-009",
@@ -1195,8 +1685,13 @@
       "kaas_tier": 9,
       "enforcement": "FCM_PUSH",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 60 OR ASN Tier-9+ → FCM_PUSH. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     },
     {
       "gate_id": "VLT-GATE-010",
@@ -1207,10 +1702,15 @@
       "kaas_tier": 10,
       "enforcement": "INVOICE_STRIPE",
       "description": "VaultChain™ Capsule Gate: WAF score ≥ 70 OR ASN Tier-10+ → INVOICE_STRIPE. Forensic receipt logged to D1 sovereign_audit_logs and kaas_valuations. Kernel: v3.6.2",
+<<<<<<< HEAD
+      "kernel_sha": "cf83e1357eefb8bd…",
+      "created_at": "2026-03-26T22:46:01.267Z"
+=======
       "kernel_sha": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
       "created_at": "2026-03-26T20:09:24.417Z"
+>>>>>>> fee2cf1c2961eb2c3ddcd3244846e02163f7a7db
     }
   ],
-  "generated_at": "2026-03-26T20:09:24.417Z",
+  "generated_at": "2026-03-26T22:46:01.267Z",
   "integrity_note": "This manifest is part of the AveryOS™ KaaS sovereignty automation. Each gate represents a forensic checkpoint anchored to the cf83™ Kernel Root. ⛓️⚓⛓️ Creator: Jason Lee Avery (ROOT0) 🤛🏻"
 }
