@@ -10,6 +10,15 @@
  *   path        string   — page path that triggered the banner
  *   event_type  string?  — defaults to "COMPLIANCE_INGRESS"
  *
+ * D1 columns used:
+ *   anchored_at     — ISO-9 timestamp
+ *   sha512          — KERNEL_SHA (sovereign anchor)
+ *   event_type      — COMPLIANCE_INGRESS | BOT_INGRESS | COMPLIANCE_REVIEW
+ *   kernel_sha      — KERNEL_SHA (duplicate for indexed queries)
+ *   path            — page path from body
+ *   ip_address      — cf-connecting-ip from edge headers (real ingestor IP)
+ *   thought_summary — User-Agent string of the ingestor (forensic record)
+ *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
@@ -42,10 +51,16 @@ export async function POST(request: Request): Promise<Response> {
     return aosErrorResponse(AOS_ERROR.INVALID_JSON, "Request body must be valid JSON.", 400);
   }
 
-  const user_agent = (body.user_agent ?? "unknown").slice(0, 512);
-  const path       = (body.path       ?? "/").slice(0, 512);
-  const event_type = (body.event_type ?? "COMPLIANCE_INGRESS").slice(0, 64);
+  const user_agent  = (body.user_agent ?? "unknown").slice(0, 512);
+  const path        = (body.path       ?? "/").slice(0, 512);
+  const event_type  = (body.event_type ?? "COMPLIANCE_INGRESS").slice(0, 64);
   const anchored_at = formatIso9();
+  // Real connecting IP from Cloudflare edge headers (forensic record)
+  const ip_address  = (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")  ??
+    "unknown"
+  ).slice(0, 64);
 
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -56,8 +71,8 @@ export async function POST(request: Request): Promise<Response> {
 
     await cfEnv.DB.prepare(
       `INSERT INTO anchor_audit_logs
-         (anchored_at, sha512, event_type, kernel_sha, path, ip_address)
-       VALUES (?, ?, ?, ?, ?, ?)`
+         (anchored_at, sha512, event_type, kernel_sha, path, ip_address, thought_summary)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         anchored_at,
@@ -65,6 +80,7 @@ export async function POST(request: Request): Promise<Response> {
         event_type,
         KERNEL_SHA,
         path,
+        ip_address,
         user_agent,
       )
       .run();

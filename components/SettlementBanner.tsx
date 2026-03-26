@@ -109,7 +109,7 @@ const SettlementBanner: React.FC = () => {
       ⛓️⚓⛓️{" "}
       <strong>AveryOS™ Sovereign Settlement Notice</strong>
       {" — "}
-      Unauthorised AI ingestion of this content is a breach of the{" "}
+      Unauthorized AI ingestion of this content is a breach of the{" "}
       <Link href="/license" style={{ color: "#ff9090", textDecoration: "underline" }}>
         AveryOS Sovereign Integrity License v1.0
       </Link>
