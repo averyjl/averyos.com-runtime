@@ -1,22 +1,25 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
-# Design-Stage Security Gate: runs the full ESLint suite before every push
-# to prevent SARIF alerts from reaching the origin repository and triggering
-# unauthorized bot "fixes" (ref: PR #360 Bot-Corruption Event forensic audit).
+# Design-Stage Security Gate: runs the full ESLint suite AND all unit tests
+# before every push to prevent SARIF alerts and regressions reaching origin.
 #
 # Gate sequence:
-#   1. npm run lint:full — full ESLint sweep across all TS/JS source files
+#   1. npm run lint:full  — full ESLint sweep across all TS/JS source files
+#   2. npm run test:unit  — full unit test suite (100% Coverage Mandate, GATE 126.2.2)
 #
 # DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
-#   There is NO bypass for this gate. If lint fails, the issue MUST be resolved
-#   before pushing. Using --no-verify is a Constitution violation and constitutes
-#   a HALT_BOOT event requiring immediate RCA + auto-heal.
+#   There is NO bypass for this gate. If lint or tests fail, the issue MUST be
+#   resolved before pushing. Using --no-verify is a Constitution violation and
+#   constitutes a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
 
-echo "⛓️⚓⛓️  AveryOS™ Pre-Push Lint Gate — GATE 117.1.4"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2"
 echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
-echo "✅ Full lint: clean — push cleared."
+echo "✅ Full lint: clean."
+echo "⛓️ Running unit test suite (npm run test:unit) — 100% Coverage Mandate…"
+npm run test:unit
+echo "✅ All unit tests passed — push cleared."
