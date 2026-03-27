@@ -8,12 +8,12 @@
 // See: https://nextjs.org/docs/messages/middleware-to-proxy
 // All firewall/WAF logic lives in lib/security/proxy.ts — do not add logic here.
 
-// GATE 127.4.1 — Force Edge Runtime for Cloudflare Workers compatibility.
-// Cloudflare Workers only supports the Edge Runtime for proxy/middleware.
+// NOTE: `export const runtime = "edge"` is intentionally omitted here.
+// Next.js 16's Proxy convention prohibits route-segment config exports in proxy
+// files. The @opennextjs/cloudflare adapter manages the edge runtime automatically.
 // Node.js-only APIs (fs, path, sqlite) are NOT permitted here — all such
 // logic must remain isolated in lib/ modules that are NOT bundled into the
 // Cloudflare Worker edge bundle.
-export const runtime = "edge";
 
 import type { NextRequest } from 'next/server';
 import { proxy as proxyHandler, getStatutoryOrigin } from './lib/security/proxy';
