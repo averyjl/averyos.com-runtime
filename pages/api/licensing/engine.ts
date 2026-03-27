@@ -17,15 +17,13 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
 import Stripe from "stripe";
+import {
+  sovereignWriteSync,
+  sovereignReadSync,
+} from "../../../lib/security/pathSanitizer";
 
-const RETROCLAIM_LEDGER_PATH = path.join(
-  process.cwd(),
-  "capsule_logs",
-  "retroclaim_ledger.json"
-);
+const RETROCLAIM_LEDGER_FILENAME = "retroclaim_ledger.json";
 
 const TRUTH_PACKET_AMOUNT_CENTS = 100; // $1.00 per Truth-Packet hit
 
@@ -124,19 +122,9 @@ type RetroclaImEntry = {
 };
 
 function appendLedger(entry: RetroclaImEntry): void {
-  const logDir = path.dirname(RETROCLAIM_LEDGER_PATH);
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  let ledger: RetroclaImEntry[] = [];
-  if (fs.existsSync(RETROCLAIM_LEDGER_PATH)) {
-    try {
-      const raw = JSON.parse(fs.readFileSync(RETROCLAIM_LEDGER_PATH, "utf8"));
-      if (Array.isArray(raw)) ledger = raw;
-    } catch {
-      ledger = [];
-    }
-  }
+  const ledger = sovereignReadSync<RetroclaImEntry[]>(RETROCLAIM_LEDGER_FILENAME, []);
   ledger.push(entry);
-  fs.writeFileSync(RETROCLAIM_LEDGER_PATH, JSON.stringify(ledger, null, 2));
+  sovereignWriteSync(RETROCLAIM_LEDGER_FILENAME, ledger);
 }
 
 async function logStripetruthPacket(

@@ -24,6 +24,10 @@ dist
 capsule_logs/*
 !capsule_logs/.gitkeep
 
+# Vault storage – ignore all runtime-generated data files; keep the placeholder
+vault_storage/*
+!vault_storage/.gitkeep
+
 # OpenNext Cloudflare build output
 .open-next/
 

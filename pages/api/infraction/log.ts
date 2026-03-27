@@ -4,24 +4,19 @@
  *
  * Records a $10,000 USI (Unlawful Session Interference) or DT (Digital Trespass)
  * infraction event to the persistent infraction ledger at:
- *   capsule_logs/infraction_ledger.json
- *
- * GET /api/infraction/log
- * Returns the full infraction ledger (for the Debt Clock).
+ *   vault_storage/infraction_ledger.json
  *
  * Security: No secrets are hardcoded. All env vars via process.env.
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
+import {
+  sovereignWriteSync,
+  sovereignReadSync,
+} from "../../../lib/security/pathSanitizer";
 
-const INFRACTION_LEDGER_PATH = path.join(
-  process.cwd(),
-  "capsule_logs",
-  "infraction_ledger.json"
-);
+const LEDGER_FILENAME = "infraction_ledger.json";
 
 const USI_DT_PENALTY_USD = 10_000.00;
 
@@ -41,21 +36,11 @@ export interface InfractionEntry {
 }
 
 function readLedger(): InfractionEntry[] {
-  const dir = path.dirname(INFRACTION_LEDGER_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(INFRACTION_LEDGER_PATH)) return [];
-  try {
-    const raw = JSON.parse(fs.readFileSync(INFRACTION_LEDGER_PATH, "utf8"));
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
+  return sovereignReadSync<InfractionEntry[]>(LEDGER_FILENAME, []);
 }
 
 function writeLedger(entries: InfractionEntry[]): void {
-  const dir = path.dirname(INFRACTION_LEDGER_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(INFRACTION_LEDGER_PATH, JSON.stringify(entries, null, 2));
+  sovereignWriteSync(LEDGER_FILENAME, entries);
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {

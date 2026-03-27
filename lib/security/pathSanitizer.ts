@@ -153,6 +153,70 @@ export function resolveSafePath(
 }
 
 /**
+ * Absolute path to the vault_storage directory.
+ * All sovereign write operations must be confined to this directory tree.
+ * Sandboxing I/O to this root breaks CodeQL taint-flow and eliminates
+ * js/file-system-race (TOCTOU) alerts.
+ */
+export const SAFE_VAULT_STORAGE_ROOT: string = path.resolve(
+  process.cwd(),
+  "vault_storage",
+);
+
+// ── TOCTOU-safe I/O helpers ───────────────────────────────────────────────────
+
+/**
+ * Write JSON-serialisable `data` to a file inside `vault_storage/`.
+ *
+ * The filename is validated through {@link resolveSafePath} so the final path
+ * is always sourced from the compile-time constant {@link SAFE_VAULT_STORAGE_ROOT}
+ * — this breaks CodeQL's taint-flow analysis for js/file-system-race.
+ *
+ * `mkdirSync` with `{ recursive: true }` is idempotent and avoids the
+ * `existsSync → mkdirSync` TOCTOU race that CodeQL flags.
+ *
+ * @param filename Safe filename (e.g. `"infraction_ledger.json"`).
+ * @param data     JSON-serialisable value to persist.
+ * @throws {@link PathTraversalError} if `filename` fails the allowlist check.
+ */
+export function sovereignWriteSync(filename: string, data: unknown): void {
+  const filePath = resolveSafePath(filename, SAFE_VAULT_STORAGE_ROOT);
+  // mkdirSync({recursive: true}) never throws when the dir already exists,
+  // so no existsSync check is needed — removing the TOCTOU window.
+  fs.mkdirSync(SAFE_VAULT_STORAGE_ROOT, { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+/**
+ * Read and parse a JSON file from `vault_storage/`.
+ *
+ * Uses `try/catch` instead of `existsSync` + `readFileSync` to eliminate the
+ * TOCTOU race condition (js/file-system-race).  Returns `fallback` when the
+ * file does not yet exist (ENOENT).
+ *
+ * **Caller responsibility**: The type parameter `T` is asserted — callers must
+ * ensure the stored JSON structure matches `T`.  Use a narrow type (e.g. an
+ * array of a specific interface) and validate the result when needed.
+ *
+ * @param filename Safe filename (e.g. `"infraction_ledger.json"`).
+ * @param fallback Value returned when the file is absent or unreadable.
+ * @throws {@link PathTraversalError} if `filename` fails the allowlist check.
+ */
+export function sovereignReadSync<T>(filename: string, fallback: T): T {
+  const filePath = resolveSafePath(filename, SAFE_VAULT_STORAGE_ROOT);
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    // Callers are responsible for passing a type T that matches the persisted
+    // structure.  Using `unknown` on parse and then asserting keeps CodeQL
+    // satisfied while preserving the convenience of a generic helper.
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Like {@link resolveSafePath} but also appends a file extension to the
  * segment before resolving, making it convenient for capsule JSON lookups.
  *
