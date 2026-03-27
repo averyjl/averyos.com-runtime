@@ -33,6 +33,11 @@ capsule_logs/*
 # Sovereign runtime files
 .sovereign-lock
 
+# AOS-GUARD vault storage — runtime write root (lib/security/sovereignGuard.ts)
+# Contains private sovereign runtime state generated at runtime.
+# The boot map is served via private API routes, not directly from /public.
+vault_storage/
+
 # Generated TAI semantic index (built from Constitution by semanticIndexer.js)
 scripts/sovereign-index.json
 
