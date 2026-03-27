@@ -1,5 +1,5 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
 # Design-Stage Security Gate: runs the full ESLint suite AND all unit tests
@@ -7,7 +7,8 @@
 #
 # Gate sequence:
 #   1. npm run lint:full  — full ESLint sweep across all TS/JS source files
-#   2. npm run test:unit  — full unit test suite (100% Coverage Mandate, GATE 126.2.2)
+#   2. npm run test:unit  — full unit test suite (all modules, GATE 126.2.2)
+#   3. npm run test:coverage — coverage report; mandated by GATE 126.9.2 / 127.0.2
 #
 # DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
 #   There is NO bypass for this gate. If lint or tests fail, the issue MUST be
@@ -16,10 +17,13 @@
 
 set -e
 
-echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2"
 echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
 echo "✅ Full lint: clean."
-echo "⛓️ Running unit test suite (npm run test:unit) — 100% Coverage Mandate…"
+echo "⛓️ Running unit test suite (npm run test:unit) — full module regression guard…"
 npm run test:unit
-echo "✅ All unit tests passed — push cleared."
+echo "✅ All unit tests passed."
+echo "⛓️ Running coverage report (npm run test:coverage) — GATE 126.9.2 / 127.0.2 mandate…"
+npm run test:coverage
+echo "✅ Coverage report complete — push cleared."
