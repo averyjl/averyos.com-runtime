@@ -1,17 +1,28 @@
-// GabrielOS Edge-Guard v1.6 — Proxy Bridge Entry Point (GATE 126.2.3)
-// Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
+// GabrielOS Edge-Guard v1.6 — Proxy Entry Point (Next.js 16)
+// Sovereign License Enforcement Proxy + TARI™ Billing Engine Trigger + Legal Tripwire
 // DER 2.0 Gateway — Dynamic Entity Recognition (Phase 83 — INGESTION_INTENT Engine)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 //
-// GATE 126.2.3: All firewall/WAF logic has been extracted to lib/security/proxy.ts
-// to achieve naming alignment with 'Proxy' without breaking Next.js runtime.
-// This file is a thin re-export bridge — do not add logic here.
+// GATE 126.2.3: This file is the Next.js 16 entry point (proxy.ts convention).
+// All firewall/WAF logic lives in lib/security/proxy.ts.
+// This file provides an explicit function export required by Next.js 16's
+// proxy file validation (re-exports alone do not satisfy the check).
 
-export { proxy as default, getStatutoryOrigin } from './lib/security/proxy';
+import type { NextRequest } from 'next/server';
+import {
+  proxy as proxyHandler,
+  getStatutoryOrigin,
+} from './lib/security/proxy';
 export type { StatutoryJurisdiction } from './lib/security/proxy';
 
-// Configure which paths to run middleware on
+export async function proxy(request: NextRequest) {
+  return proxyHandler(request);
+}
+
+export { getStatutoryOrigin };
+
+// Configure which paths to run the proxy on
 export const config = {
   matcher: [
     /*
