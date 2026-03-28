@@ -83,7 +83,7 @@ async function main() {
       process.exit(1);
     }
     text = fs.readFileSync(abs, "utf8");
-  } else if (process.stdin.isTTY === false) {
+  } else if (process.stdin.isTTY !== true) {
     // Piped from test runner
     text = await readStdin();
   } else {
