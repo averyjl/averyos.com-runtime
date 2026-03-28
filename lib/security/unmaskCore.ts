@@ -1,7 +1,7 @@
 /**
  * lib/security/unmaskCore.ts
  *
- * AveryOS™ Master Unmasking Logic — Phase 116.3 GATE 116.3.1
+ * AveryOS™ Master Unmasking Logic — Phase 116.3 GATE 116.3.1 / Phase 128.2 GATE 128.2.3
  *
  * Resident Handshake protocol that verifies the local USB salt file
  * (AveryOS-anchor-salt.aossalt) and returns the residency state.
@@ -13,6 +13,33 @@
  *   FULLY_RESIDENT  — AveryOS-anchor-salt.aossalt present on USB (highest trust)
  *   NODE-02_PHYSICAL — Legacy .aos-salt / AOS_SALT.bin detected
  *   CLOUD           — No USB salt found
+ *
+ * ── SnapChain Signature Standard (GATE 128.2.3) ────────────────────────────
+ * Ed25519 (Curve25519) is the canonical SnapChain digital-signature algorithm
+ * for all AveryOS™ capsule and VaultChain attestations.  Every capsule hash
+ * committed to the sovereign ledger MUST be signed with an Ed25519 key pair
+ * whose public key is registered in the SNAPCHAIN_REGISTRY_PATH.
+ *
+ * Algorithm summary:
+ *   Curve:       Curve25519 (Bernstein et al., 2006)
+ *   Scheme:      EdDSA (Edwards-curve Digital Signature Algorithm — RFC 8032)
+ *   JWS alg:     EdDSA  (registered in IANA JOSE Algorithms — RFC 8037)
+ *   JWK key_type: OKP   (Octet Key Pair)
+ *   JWK crv:     Ed25519
+ *   Key size:    32-byte private scalar → 32-byte compressed public key
+ *   Signature:   64 bytes (deterministic — no random nonce required)
+ *   Security:    ~128-bit equivalent (comparable to P-256 / RSA-3072)
+ *
+ * Why Ed25519 for SnapChain?
+ *   1. Deterministic — same key + message always produces the same signature,
+ *      eliminating k-reuse vulnerabilities inherent in ECDSA.
+ *   2. Fast — sign and verify operations complete in microseconds on Node-02.
+ *   3. Compact — 64-byte signatures and 32-byte public keys minimise
+ *      on-chain capsule overhead in the VaultChain ledger.
+ *   4. Side-channel resistant — the Curve25519 arithmetic is designed to
+ *      execute in constant time, resisting timing attacks on sovereign nodes.
+ *   5. Standards-aligned — RFC 8032 (EdDSA) + RFC 8037 (JWK OKP) ensure
+ *      cross-platform verification by any C2PA-compliant toolchain.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -28,6 +55,60 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 export const SALT_FILENAME_PRIMARY  = "AveryOS-anchor-salt.aossalt";
 export const SALT_FILENAME_LEGACY   = ".aos-salt";
 export const SALT_FILENAME_BLOCK    = "AOS_SALT.bin";
+
+// ── SnapChain Ed25519 Signature Standard (GATE 128.2.3) ────────────────────────
+// These constants define the canonical cryptographic algorithm used to sign
+// every capsule hash and VaultChain attestation in the AveryOS™ sovereign ledger.
+
+/** The signing algorithm used by SnapChain — Ed25519 (Edwards-curve DSA). */
+export const SNAPCHAIN_ALGORITHM    = "Ed25519" as const;
+
+/** The underlying elliptic curve — Curve25519 (Bernstein, 2006). */
+export const SNAPCHAIN_CURVE        = "Curve25519" as const;
+
+/** JOSE JWS algorithm identifier for EdDSA over Curve25519 (RFC 8037). */
+export const SNAPCHAIN_JWS_ALG      = "EdDSA" as const;
+
+/** JOSE JWK key type for Ed25519 octet key pairs (RFC 8037). */
+export const SNAPCHAIN_KEY_TYPE     = "OKP" as const;
+
+/** JOSE JWK crv parameter for Ed25519 (RFC 8037). */
+export const SNAPCHAIN_JWK_CRV      = "Ed25519" as const;
+
+/** Ed25519 private key length in bytes (32-byte scalar). */
+export const SNAPCHAIN_PRIVKEY_BYTES = 32 as const;
+
+/** Ed25519 public key length in bytes (32-byte compressed point — same size as private scalar). */
+export const SNAPCHAIN_PUBKEY_BYTES  = SNAPCHAIN_PRIVKEY_BYTES;
+
+/** Ed25519 signature length in bytes (deterministic R‖S output — 2 × SNAPCHAIN_PRIVKEY_BYTES). */
+export const SNAPCHAIN_SIG_BYTES     = (SNAPCHAIN_PRIVKEY_BYTES * 2) as 64;
+
+/** Well-known file path (relative to repo root) where SnapChain public keys are registered. */
+export const SNAPCHAIN_REGISTRY_PATH = "VaultBridge/snapchain-registry.json" as const;
+
+/**
+ * SnapChainAlgorithm — discriminated-union type identifying Ed25519 as the
+ * sole valid algorithm for SnapChain signatures.  Any capsule signed with
+ * a different algorithm must be rejected as non-compliant.
+ */
+export type SnapChainAlgorithm = typeof SNAPCHAIN_ALGORITHM;
+
+/**
+ * SnapChainPublicKeyRecord — the shape of a single entry in
+ * SNAPCHAIN_REGISTRY_PATH.  Consumers MUST verify `algorithm === "Ed25519"`
+ * before trusting the `publicKeyHex` value.
+ */
+export interface SnapChainPublicKeyRecord {
+  /** Ed25519 compressed public key (32 bytes encoded as 64 lowercase hex chars). */
+  publicKeyHex: string;
+  /** Must equal SNAPCHAIN_ALGORITHM ("Ed25519"). */
+  algorithm:    SnapChainAlgorithm;
+  /** ISO-8601 timestamp at which this key was registered. */
+  registeredAt: string;
+  /** Human-readable label, e.g. "Node-02 PC Key v1". */
+  label:        string;
+}
 
 // ── Residency states ──────────────────────────────────────────────────────────
 export type ResidencyState = "FULLY_RESIDENT" | "NODE-02_PHYSICAL" | "CLOUD";

@@ -1,14 +1,16 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2 / GATE 128.2.2
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
 # Design-Stage Security Gate: runs the full ESLint suite AND all unit tests
 # before every push to prevent SARIF alerts and regressions reaching origin.
 #
 # Gate sequence:
-#   1. npm run lint:full  — full ESLint sweep across all TS/JS source files
-#   2. npm run test:unit  — full unit test suite (all modules, GATE 126.2.2)
-#   3. npm run test:coverage — coverage report; mandated by GATE 126.9.2 / 127.0.2
+#   1. npm run lint:full        — full ESLint sweep across all TS/JS source files
+#   2. npm run test:unit        — full unit test suite (all modules, GATE 126.2.2)
+#   3. npm run test:coverage    — coverage report; mandated by GATE 126.9.2 / 127.0.2
+#   4. npm run test:coverage:gate — coverage threshold check; mandated by GATE 128.2.2
+#                                   (100.00% line/branch/function — fail-fast on shortfall)
 #
 # DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
 #   There is NO bypass for this gate. If lint or tests fail, the issue MUST be
@@ -17,7 +19,7 @@
 
 set -e
 
-echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2 / GATE 128.2.2"
 echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
 echo "✅ Full lint: clean."
@@ -26,4 +28,7 @@ npm run test:unit
 echo "✅ All unit tests passed."
 echo "⛓️ Running coverage report (npm run test:coverage) — GATE 126.9.2 / 127.0.2 mandate…"
 npm run test:coverage
-echo "✅ Coverage report complete — push cleared."
+echo "✅ Coverage report complete."
+echo "⛓️ Running coverage gate (npm run test:coverage:gate) — GATE 128.2.2 mandate (100.00%)…"
+npm run test:coverage:gate
+echo "✅ Coverage gate passed at 100.00% — push cleared."
