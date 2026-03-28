@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-26T22:46:02.386Z",
+  "generated_at": "2026-03-27T22:18:58.374Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -896,7 +896,7 @@
     {
       "path": "lib/forensics/vaultChain.ts",
       "doc": "admin/docs/lib/forensics/vaultChain.md",
-      "symbolCount": 20,
+      "symbolCount": 22,
       "symbols": [
         {
           "name": "mirrorBlockToR2",
@@ -935,6 +935,10 @@
           "kind": "function"
         },
         {
+          "name": "fetchBtcAnchorData",
+          "kind": "function"
+        },
+        {
           "name": "VAULTCHAIN_R2_PREFIX",
           "kind": "constant"
         },
@@ -964,6 +968,10 @@
         },
         {
           "name": "WriteBlockInput",
+          "kind": "interface"
+        },
+        {
+          "name": "BtcAnchorData",
           "kind": "interface"
         },
         {
@@ -2690,6 +2698,17 @@
           "name": "GET",
           "kind": "function"
         },
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/compliance/log-ingress/route.ts",
+      "doc": "admin/docs/app/api/v1/compliance/log-ingress/route.md",
+      "symbolCount": 1,
+      "symbols": [
         {
           "name": "POST",
           "kind": "function"
