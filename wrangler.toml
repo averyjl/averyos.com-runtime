@@ -12,7 +12,7 @@ command = "npm run build:cloudflare"
 
 [assets]
 binding = "ASSETS"
-directory = ".open-next/assets"
+directory = "./.open-next/assets"
 
 [vars]
 NODE_VERSION = "22"
