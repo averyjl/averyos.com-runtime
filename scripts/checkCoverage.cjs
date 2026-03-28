@@ -32,29 +32,41 @@ const COVERAGE_THRESHOLD = 100.00;
 
 // ── Coverage line patterns (Node.js built-in test runner output) ──────────────
 //
-// Example Node.js coverage summary lines (TAP-like):
-//   # lines: 82.35% (56/68)
-//   # branches: 75.00% (12/16)
-//   # functions: 88.24% (15/17)
+// Node.js --experimental-test-coverage emits a columnar summary table:
 //
-const METRIC_RE = /^#\s+(lines|branches|functions)\s*:\s*([\d.]+)%/i;
+//   ℹ start of coverage report
+//   ℹ -----------------------------------------------------------------------
+//   ℹ file            | line % | branch % | funcs % | uncovered lines
+//   ℹ -----------------------------------------------------------------------
+//   ℹ  foo.ts         | 100.00 |   100.00 |  100.00 |
+//   ℹ -----------------------------------------------------------------------
+//   ℹ all files       |  82.04 |    68.18 |   50.00 |
+//   ℹ -----------------------------------------------------------------------
+//   ℹ end of coverage report
+//
+// The "all files" row contains the rolled-up totals we enforce.
+//
+const ALL_FILES_RE = /^[iℹ]\s+all\s+files\s+\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/i;
 
 /**
- * Parse coverage metrics from raw test runner output text.
- * Returns an array of { metric, percent } objects.
+ * Parse the rolled-up coverage percentages from the "all files" row in the
+ * Node.js --experimental-test-coverage table output.
  *
- * @param {string} text - raw stdout from node --experimental-test-coverage
+ * @param {string} text - raw stdout/stderr from node --experimental-test-coverage
  * @returns {{ metric: string, percent: number }[]}
  */
 function parseCoverageMetrics(text) {
-  const metrics = [];
   for (const line of text.split(/\r?\n/)) {
-    const m = METRIC_RE.exec(line.trim());
+    const m = ALL_FILES_RE.exec(line.trim());
     if (m) {
-      metrics.push({ metric: m[1].toLowerCase(), percent: parseFloat(m[2]) });
+      return [
+        { metric: "lines",     percent: parseFloat(m[1]) },
+        { metric: "branches",  percent: parseFloat(m[2]) },
+        { metric: "functions", percent: parseFloat(m[3]) },
+      ];
     }
   }
-  return metrics;
+  return [];
 }
 
 /**
