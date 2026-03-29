@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-27T22:18:58.374Z",
+  "generated_at": "2026-03-29T05:40:04.683Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -1965,8 +1965,36 @@
     {
       "path": "lib/security/unmaskCore.ts",
       "doc": "admin/docs/lib/security/unmaskCore.md",
-      "symbolCount": 7,
+      "symbolCount": 25,
       "symbols": [
+        {
+          "name": "sanitisePathComponent",
+          "kind": "function"
+        },
+        {
+          "name": "validateSaltPath",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateVolumesDir",
+          "kind": "function"
+        },
+        {
+          "name": "getUsbMountCandidates",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateMountChildren",
+          "kind": "function"
+        },
+        {
+          "name": "readSaltData",
+          "kind": "function"
+        },
+        {
+          "name": "scanMountsForSalt",
+          "kind": "function"
+        },
         {
           "name": "performResidencyHandshake",
           "kind": "function"
@@ -1988,8 +2016,52 @@
           "kind": "constant"
         },
         {
+          "name": "SNAPCHAIN_ALGORITHM",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_CURVE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWS_ALG",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_KEY_TYPE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWK_CRV",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PRIVKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PUBKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_SIG_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_REGISTRY_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "SnapChainPublicKeyRecord",
+          "kind": "interface"
+        },
+        {
           "name": "HandshakeResult",
           "kind": "interface"
+        },
+        {
+          "name": "SnapChainAlgorithm",
+          "kind": "type"
         },
         {
           "name": "ResidencyState",

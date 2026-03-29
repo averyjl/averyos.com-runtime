@@ -9,7 +9,7 @@
   ],
   "sha": "1d7a32e29b5b1a678c0b3239b14fa2aa818afd8781c665c5fe7ad810ab796b0cac0d0bdc889db3560854d253c5f05b3de2540bd03dd2f80dfc84e1ba9c3d0f14",
   "driftLock": "d07b94849d994a9969cbe4c97a78eba5f664f3c43f93d17a379b9f1d0b3f111c80ddad28e92c76a2b6659884b0887786c226b6be0436b4378f034a4a5cca4ddf",
-  "compiledAt": "2026-03-27T22:18:57.854Z",
+  "compiledAt": "2026-03-29T05:40:04.115Z",
   "vaultChainUrl": "https://vaultchain.example/sovereign-init",
   "licenseStatus": "Ready for retroclaim validation",
   "viewerUrl": "https://viewer.example/sovereign-init",
