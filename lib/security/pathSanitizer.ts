@@ -179,13 +179,15 @@ export const SAFE_VAULT_STORAGE_ROOT: string = path.resolve(
  * @param data     JSON-serialisable value to persist.
  * @throws {@link PathTraversalError} if `filename` fails the allowlist check.
  */
-export function sovereignWriteSync(filename: string, data: unknown): void {
+function sovereignWriteSyncImpl(filename: string, data: unknown): void {
   const filePath = resolveSafePath(filename, SAFE_VAULT_STORAGE_ROOT);
   // mkdirSync({recursive: true}) never throws when the dir already exists,
   // so no existsSync check is needed — removing the TOCTOU window.
   fs.mkdirSync(SAFE_VAULT_STORAGE_ROOT, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
+
+export const sovereignWriteSync = sovereignWriteSyncImpl;
 
 /**
  * Read and parse a JSON file from `vault_storage/`.
