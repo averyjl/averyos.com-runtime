@@ -5,13 +5,7 @@
  *
  * Covers:
  *   - SALT_FILENAME_* constants
- *   - sanitisePathComponent() — internal path sanitizer
- *   - validateSaltPath() — internal path validator
- *   - readSaltData() — internal salt file reader
- *   - enumerateVolumesDir() — macOS /Volumes enumerator
- *   - enumerateMountChildren() — Linux mount children enumerator
- *   - getUsbMountCandidates() — internal USB mount scanner (all platforms via mocking)
- *   - scanMountsForSalt() — core inner scan loop
+ *   - SNAPCHAIN_* Ed25519 constants and types (GATE 128.2.3)
  *   - performResidencyHandshake() — USB salt scanner (returns CLOUD in CI)
  *   - isFullyResident() — convenience boolean wrapper
  *
@@ -38,6 +32,15 @@ import {
   SALT_FILENAME_PRIMARY,
   SALT_FILENAME_LEGACY,
   SALT_FILENAME_BLOCK,
+  SNAPCHAIN_ALGORITHM,
+  SNAPCHAIN_CURVE,
+  SNAPCHAIN_JWS_ALG,
+  SNAPCHAIN_KEY_TYPE,
+  SNAPCHAIN_JWK_CRV,
+  SNAPCHAIN_PRIVKEY_BYTES,
+  SNAPCHAIN_PUBKEY_BYTES,
+  SNAPCHAIN_SIG_BYTES,
+  SNAPCHAIN_REGISTRY_PATH,
 } from "../lib/security/unmaskCore";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
 
@@ -545,5 +548,57 @@ describe("isFullyResident()", () => {
     // On a sovereign Node-02 machine with the salt present, this may be true.
     const result = isFullyResident();
     assert.ok(result === true || result === false);
+  });
+});
+
+// ── SnapChain Ed25519 Signature Standard constants (GATE 128.2.3) ─────────────
+
+describe("SnapChain Ed25519 Signature Standard constants", () => {
+  test("SNAPCHAIN_ALGORITHM is 'Ed25519'", () => {
+    assert.equal(SNAPCHAIN_ALGORITHM, "Ed25519");
+  });
+
+  test("SNAPCHAIN_CURVE is 'Curve25519'", () => {
+    assert.equal(SNAPCHAIN_CURVE, "Curve25519");
+  });
+
+  test("SNAPCHAIN_JWS_ALG is 'EdDSA' (RFC 8037 JOSE algorithm identifier)", () => {
+    assert.equal(SNAPCHAIN_JWS_ALG, "EdDSA");
+  });
+
+  test("SNAPCHAIN_KEY_TYPE is 'OKP' (Octet Key Pair — RFC 8037)", () => {
+    assert.equal(SNAPCHAIN_KEY_TYPE, "OKP");
+  });
+
+  test("SNAPCHAIN_JWK_CRV is 'Ed25519' (RFC 8037 JWK crv parameter)", () => {
+    assert.equal(SNAPCHAIN_JWK_CRV, "Ed25519");
+  });
+
+  test("SNAPCHAIN_PRIVKEY_BYTES is 32 (Ed25519 private scalar length)", () => {
+    assert.equal(SNAPCHAIN_PRIVKEY_BYTES, 32);
+  });
+
+  test("SNAPCHAIN_PUBKEY_BYTES is 32 (Ed25519 compressed public key length)", () => {
+    assert.equal(SNAPCHAIN_PUBKEY_BYTES, 32);
+  });
+
+  test("SNAPCHAIN_SIG_BYTES is 64 (Ed25519 deterministic signature length)", () => {
+    assert.equal(SNAPCHAIN_SIG_BYTES, 64);
+  });
+
+  test("SNAPCHAIN_REGISTRY_PATH contains 'VaultBridge/'", () => {
+    assert.ok(SNAPCHAIN_REGISTRY_PATH.startsWith("VaultBridge/"));
+  });
+
+  test("SNAPCHAIN_REGISTRY_PATH ends with '.json'", () => {
+    assert.ok(SNAPCHAIN_REGISTRY_PATH.endsWith(".json"));
+  });
+
+  test("public key is half the signature length (32 bytes vs 64 bytes)", () => {
+    assert.equal(SNAPCHAIN_PUBKEY_BYTES * 2, SNAPCHAIN_SIG_BYTES);
+  });
+
+  test("private and public key sizes are equal for Ed25519", () => {
+    assert.equal(SNAPCHAIN_PRIVKEY_BYTES, SNAPCHAIN_PUBKEY_BYTES);
   });
 });
