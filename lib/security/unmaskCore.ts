@@ -134,12 +134,14 @@ const ALLOWED_SALT_FILENAMES = new Set([
 ]);
 
 // ── Path sanitizer ─────────────────────────────────────────────────────────────
-function sanitisePathComponent(s: string): string {
+/** @internal - exported for unit testing only */
+export function sanitisePathComponent(s: string): string {
   return s.replace(/[\x00-\x1f]/g, "").replace(/[^a-zA-Z0-9_.\-@ ]/g, "").trim();
 }
 
 // ── Path validator ─────────────────────────────────────────────────────────────
-function validateSaltPath(saltPath: string): string | null {
+/** @internal - exported for unit testing only */
+export function validateSaltPath(saltPath: string): string | null {
   const norm = path.normalize(saltPath);
   if (norm.includes("\x00") || norm.includes("..")) return null;
   const base = path.basename(norm);
@@ -148,21 +150,36 @@ function validateSaltPath(saltPath: string): string | null {
 }
 
 // ── USB mount candidates (platform-aware) ──────────────────────────────────────
-function getUsbMountCandidates(): string[] {
-  if (process.platform === "win32") {
+
+/**
+ * enumerateVolumesDir()
+ *
+ * Lists all sanitised volume names under a macOS-style volumes directory
+ * (e.g. /Volumes).  Each entry name is sanitised before joining.
+ *
+ * @internal - exported for unit testing only
+ */
+export function enumerateVolumesDir(volumesRoot: string): string[] {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller validates volumesRoot
+  return fs
+    .readdirSync(volumesRoot)
+    .map((v) => {
+      const safe = sanitisePathComponent(v);
+      return safe ? path.join(volumesRoot, safe) : null;
+    })
+    .filter((v): v is string => v !== null);
+}
+
+/** @internal - exported for unit testing only */
+export function getUsbMountCandidates(): string[] {
+  if (process.platform === "win32") { // platform-specific: covered on Windows only
     const letters: string[] = [];
     for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
     return letters;
   }
-  if (process.platform === "darwin") {
+  if (process.platform === "darwin") { // platform-specific: covered on macOS only
     try {
-      return fs
-        .readdirSync("/Volumes")
-        .map((v) => {
-          const safe = sanitisePathComponent(v);
-          return safe ? path.join("/Volumes", safe) : null;
-        })
-        .filter((v): v is string => v !== null);
+      return enumerateVolumesDir("/Volumes");
     } catch { return []; }
   }
   // Linux: restrict to three conventional removable-media directories.
@@ -182,19 +199,34 @@ function getUsbMountCandidates(): string[] {
       if (!SAFE_BASE_RE.test(base)) continue;
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against SAFE_BASE_RE above
       if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
-        // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against SAFE_BASE_RE above
-        fs.readdirSync(base).forEach((c) => {
-          const safe = sanitisePathComponent(c);
-          if (safe) result.push(path.join(base, safe));
-        });
+        result.push(...enumerateMountChildren(base));
       }
     } catch { /* skip inaccessible mount bases */ }
   }
   return result;
 }
 
+/**
+ * enumerateMountChildren()
+ *
+ * Lists all sanitised child entries of a mount base directory.
+ * Each entry is sanitised with sanitisePathComponent() before being added.
+ *
+ * @internal - exported for unit testing only
+ */
+export function enumerateMountChildren(base: string): string[] {
+  const result: string[] = [];
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller validates base
+  fs.readdirSync(base).forEach((c) => {
+    const safe = sanitisePathComponent(c);
+    if (safe) result.push(path.join(base, safe));
+  });
+  return result;
+}
+
 // ── Salt file reader (first 64 bytes as hex + full SHA-512) ──────────────────
-function readSaltData(saltPath: string): { previewHex: string | null; sha512: string | null } {
+/** @internal - exported for unit testing only */
+export function readSaltData(saltPath: string): { previewHex: string | null; sha512: string | null } {
   const safe = validateSaltPath(saltPath);
   if (!safe) return { previewHex: null, sha512: null };
   try {
@@ -207,17 +239,18 @@ function readSaltData(saltPath: string): { previewHex: string | null; sha512: st
 }
 
 /**
- * performResidencyHandshake()
+ * scanMountsForSalt()
  *
- * Scans all USB mount candidates for the sovereign salt file and returns
- * the current residency state.  This is the core of the Master Unmasking
- * Logic — when FULLY_RESIDENT is returned, the kernel is authorized to
- * activate all sovereign operations.
+ * Core inner loop of the Resident Handshake — given a list of mount-point
+ * candidates, scans each one for the sovereign salt file and returns the
+ * first match as a HandshakeResult, or null if no salt is found.
+ *
+ * @internal - exported for unit testing only
  */
-export function performResidencyHandshake(): HandshakeResult {
-  const candidates = getUsbMountCandidates();
-  const timestamp  = new Date().toISOString();
-
+export function scanMountsForSalt(
+  candidates: string[],
+  timestamp: string,
+): HandshakeResult | null {
   for (const mount of candidates) {
     try {
       // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
@@ -259,6 +292,23 @@ export function performResidencyHandshake(): HandshakeResult {
       }
     } catch { /* skip inaccessible mounts */ }
   }
+  return null;
+}
+
+/**
+ * performResidencyHandshake()
+ *
+ * Scans all USB mount candidates for the sovereign salt file and returns
+ * the current residency state.  This is the core of the Master Unmasking
+ * Logic — when FULLY_RESIDENT is returned, the kernel is authorized to
+ * activate all sovereign operations.
+ */
+export function performResidencyHandshake(): HandshakeResult {
+  const candidates = getUsbMountCandidates();
+  const timestamp  = new Date().toISOString();
+
+  const found = scanMountsForSalt(candidates, timestamp);
+  if (found) return found;
 
   return {
     state:         "CLOUD",
