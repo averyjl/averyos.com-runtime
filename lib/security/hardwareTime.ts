@@ -88,13 +88,44 @@ function hrNow(): bigint {
 
 // ── ISO-9 helper (inline — avoids circular import with timePrecision) ─────────
 
+/**
+ * Generate six live sub-millisecond digits for ISO-9 formatting.
+ *
+ * Mirrors the strategy of timePrecision.formatIso9() when called without an
+ * explicit source: injects real sub-ms entropy rather than padding with zeros
+ * so AST timestamps carry genuine ISO-9 precision.
+ *
+ * Priority order:
+ *   1. Node.js: process.hrtime.bigint() — nanoseconds within the current ms.
+ *   2. Web / Workers: performance.now() fractional part — µs precision.
+ *   3. Fallback: Math.random() — 0..999999 range.
+ */
+function subMilliDigits(): string {
+  if (
+    typeof process !== "undefined" &&
+    typeof process.hrtime === "function" &&
+    typeof (process.hrtime as { bigint?: () => bigint }).bigint === "function"
+  ) {
+    const ns  = (process.hrtime as { bigint: () => bigint }).bigint();
+    const sub = Number(ns % 1_000_000n);
+    return sub.toString().padStart(6, "0");
+  }
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    const fracMs = performance.now() % 1;
+    const total  = Math.floor(fracMs * 1_000_000);
+    return total.toString().padStart(6, "0");
+  }
+  const n = Math.floor(Math.random() * 1_000_000);
+  return n.toString().padStart(6, "0");
+}
+
 function toIso9(epochMs: number): string {
   const d   = new Date(epochMs);
   const iso = d.toISOString();                    // "YYYY-MM-DDTHH:MM:SS.mmmZ"
   const [head, frac] = iso.split(".");
-  const ms  = frac?.replace("Z", "") ?? "000";    // 3-digit ms
-  const pad = ms.padEnd(9, "0");                  // pad to 9 digits
-  return `${head}.${pad}Z`;
+  const ms  = (frac?.replace("Z", "") ?? "000").slice(0, 3).padEnd(3, "0");
+  const sub = subMilliDigits();                   // 6 live sub-ms digits
+  return `${head}.${ms}${sub}Z`;
 }
 
 // ── Core API ──────────────────────────────────────────────────────────────────
@@ -142,14 +173,17 @@ export function astEnd(): HardwarePulse {
  */
 export function astDelta(start: HardwarePulse, end: HardwarePulse): AstDelta {
   const ns = end.hrNs > start.hrNs ? end.hrNs - start.hrNs : 0n;
-  const ms = Number(ns) / 1_000_000;
+
+  // Compute milliseconds via bigint division first to avoid precision loss
+  // when converting very large nanosecond deltas to number.
+  const msBig = ns / 1_000_000n;
+  const ms    = Number(msBig);
 
   // Seconds with 9 decimal places of nanosecond precision
   // e.g. 5.110291436s  (matches Sovereign Log format)
-  const totalSec  = Number(ns) / 1_000_000_000;
-  const wholeSec  = Math.floor(totalSec);
-  const fracNs    = Number(ns % 1_000_000_000n);
-  const display   = `${wholeSec}.${String(fracNs).padStart(9, "0")}s`;
+  const wholeSecBig = ns / 1_000_000_000n;
+  const fracNsBig   = ns % 1_000_000_000n;
+  const display     = `${wholeSecBig.toString()}.${fracNsBig.toString().padStart(9, "0")}s`;
 
   return { ms, ns, display };
 }

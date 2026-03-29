@@ -65,6 +65,22 @@ const RETAIL_LINKS = [
   },
 ];
 
+// ── Extended / Secondary Retail Links ────────────────────────────────────────
+const EXTENDED_LINKS: Array<{ label: string; url: string }> = [
+  {
+    label: "Goodreads",
+    url:   "https://www.goodreads.com/search?q=Miracle+Health+Habits+Jason+Avery",
+  },
+  {
+    label: "Open Library",
+    url:   "https://openlibrary.org/search?q=Miracle+Health+Habits+Jason+Avery",
+  },
+  {
+    label: "WorldCat",
+    url:   "https://www.worldcat.org/search?q=Miracle+Health+Habits+Jason+Avery",
+  },
+];
+
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
 const JSON_LD = JSON.stringify({
   "@context": "https://schema.org",

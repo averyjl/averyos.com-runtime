@@ -97,7 +97,12 @@ const _listeners: SyncListener[] = [];
 /**
  * Perform Recursive Outlier Detection:
  * Compare each source in the active result against the audit average.
- * Returns the names of any quarantined sources.
+ *
+ * Returns the names of outlier sources and a slot count.  This function
+ * identifies which sources deviate beyond PRUNE_THRESHOLD_US from the
+ * Audit-100 consensus — the caller (syncActive) logs the outliers.
+ * Physical quarantine and pool rotation are handled by the upstream
+ * NTP provider configuration, not in-process.
  */
 function detectOutliers(
   active: TimeMeshResult,

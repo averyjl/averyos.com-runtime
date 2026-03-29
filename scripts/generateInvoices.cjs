@@ -98,9 +98,13 @@ const PER_REQUEST_CENTS    = 1;           // $0.01 in cents
 const TOP_N                = 10;
 const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
 // Sovereign kernel anchor hint — first 23 hex chars of KERNEL_SHA.
-// Full SHA-512: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
-// Source: lib/sovereignConstants.ts — KERNEL_SHA
-const KERNEL_SHA_HINT      = 'cf83e1357eefb8bdf154285';
+// Derived from process.env.KERNEL_SHA when available; falls back to the
+// canonical constant so the hint never drifts from the active anchor.
+const CANONICAL_KERNEL_SHA = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+const KERNEL_SHA_VALUE     = (process.env.KERNEL_SHA && typeof process.env.KERNEL_SHA === 'string')
+  ? process.env.KERNEL_SHA
+  : CANONICAL_KERNEL_SHA;
+const KERNEL_SHA_HINT      = KERNEL_SHA_VALUE.slice(0, 23);
 // Only process orgs whose total liability meets or exceeds this threshold.
 // Orgs below the threshold are logged but skipped.
 const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents

@@ -46,6 +46,7 @@
  */
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
+import { formatIso9 } from "../timePrecision";
 import {
   astStart,
   astEnd,
@@ -203,7 +204,8 @@ async function sha512Hex(text: string): Promise<string> {
 export async function createAlmTrace(input: AlmTraceInput): Promise<AlmForensicTrace> {
   // Use hardware-pulsed AST timing (Phase 117.7 GATE 117.7.3)
   const t0         = astStart();
-  const ts         = t0.iso9;
+  // Use formatIso9() for live sub-ms entropy rather than the zeroed t0.iso9
+  const ts         = formatIso9();
   const blockSha   = input.blockId ?? null;
   const label      = input.label ?? input.command;
 
