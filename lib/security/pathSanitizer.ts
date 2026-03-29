@@ -179,15 +179,13 @@ export const SAFE_VAULT_STORAGE_ROOT: string = path.resolve(
  * @param data     JSON-serialisable value to persist.
  * @throws {@link PathTraversalError} if `filename` fails the allowlist check.
  */
-function sovereignWriteSyncImpl(filename: string, data: unknown): void {
+export function sovereignWriteSync(filename: string, data: unknown): void {
   const filePath = resolveSafePath(filename, SAFE_VAULT_STORAGE_ROOT);
   // mkdirSync({recursive: true}) never throws when the dir already exists,
   // so no existsSync check is needed — removing the TOCTOU window.
   fs.mkdirSync(SAFE_VAULT_STORAGE_ROOT, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
-
-export const sovereignWriteSync = sovereignWriteSyncImpl;
 
 /**
  * Read and parse a JSON file from `vault_storage/`.
@@ -287,10 +285,11 @@ export function resolveSovereignPath(
 }
 
 /**
- * The sole authorised `fs.writeFileSync` sink for the AveryOS™ runtime.
+ * The sole authorised `fs.writeFileSync` sink for the AveryOS™ runtime
+ * when writing to a path outside of `vault_storage/`.
  *
- * All script and library code that writes files must go through this
- * function — never call `fs.writeFileSync`, `fs.openSync`, or
+ * All script and library code that writes files to an explicit root must go
+ * through this function — never call `fs.writeFileSync`, `fs.openSync`, or
  * `fs.writeSync` directly with a path derived from dynamic or user-supplied
  * input.  The architecture itself eliminates the CodeQL taint flow rather
  * than suppressing alerts.
@@ -301,7 +300,7 @@ export function resolveSovereignPath(
  * @param data         Content to write — string or Buffer.
  * @param encoding     Optional encoding (default `"utf-8"`).
  */
-export function sovereignWriteSync(
+export function sovereignWriteToRoot(
   sovereignRoot: string,
   filename: string,
   data: string | Buffer,

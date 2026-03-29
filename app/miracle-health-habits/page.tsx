@@ -65,6 +65,10 @@ const RETAIL_LINKS = [
   },
 ];
 
+// Derived list used in the "Also on:" link row — maps RETAIL_LINKS to the
+// { label, url } shape expected by the JSX below.
+const EXTENDED_LINKS = RETAIL_LINKS.map((l) => ({ label: l.platform, url: l.url }));
+
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
 const JSON_LD = JSON.stringify({
   "@context": "https://schema.org",
