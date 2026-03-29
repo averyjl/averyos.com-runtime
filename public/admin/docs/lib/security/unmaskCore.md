@@ -6,6 +6,20 @@
 
 ## Public API
 
+### `sanitisePathComponent` *(function)*
+
+### `validateSaltPath` *(function)*
+
+### `enumerateVolumesDir` *(function)*
+
+### `getUsbMountCandidates` *(function)*
+
+### `enumerateMountChildren` *(function)*
+
+### `readSaltData` *(function)*
+
+### `scanMountsForSalt` *(function)*
+
 ### `performResidencyHandshake` *(function)*
 
 ### `isFullyResident` *(function)*
@@ -16,7 +30,29 @@
 
 ### `SALT_FILENAME_BLOCK` *(constant)*
 
+### `SNAPCHAIN_ALGORITHM` *(constant)*
+
+### `SNAPCHAIN_CURVE` *(constant)*
+
+### `SNAPCHAIN_JWS_ALG` *(constant)*
+
+### `SNAPCHAIN_KEY_TYPE` *(constant)*
+
+### `SNAPCHAIN_JWK_CRV` *(constant)*
+
+### `SNAPCHAIN_PRIVKEY_BYTES` *(constant)*
+
+### `SNAPCHAIN_PUBKEY_BYTES` *(constant)*
+
+### `SNAPCHAIN_SIG_BYTES` *(constant)*
+
+### `SNAPCHAIN_REGISTRY_PATH` *(constant)*
+
+### `SnapChainPublicKeyRecord` *(interface)*
+
 ### `HandshakeResult` *(interface)*
+
+### `SnapChainAlgorithm` *(type)*
 
 ### `ResidencyState` *(type)*
 
