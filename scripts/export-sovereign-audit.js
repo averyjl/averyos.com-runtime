@@ -292,7 +292,6 @@ async function main() {
     // Write Settlement Notice
     const noticeMd = buildSettlementNotice({ ip, events, totalLiabilityUsd, capsuleId, btcAnchor, issuedAt });
     const noticeFileName = `${capsuleId}_settlement.md`;
-    const noticePath = path.join(OUTPUT_ROOT, noticeFileName);
     sovereignWriteSync(OUTPUT_ROOT, noticeFileName, noticeMd);
 
     // Upload to R2

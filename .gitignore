@@ -33,6 +33,11 @@ capsule_logs/*
 # Sovereign runtime files
 .sovereign-lock
 
+# AOS-GUARD vault storage — runtime write root (lib/security/sovereignGuard.ts)
+# Contains private sovereign runtime state generated at runtime.
+# The boot map is served via private API routes, not directly from /public.
+vault_storage/
+
 # Generated TAI semantic index (built from Constitution by semanticIndexer.js)
 scripts/sovereign-index.json
 
@@ -150,6 +155,8 @@ VaultBridge/encrypt_startup_prompt_to_vaultchain.json
 # VaultBridge/sovereign_ai_registry.json tracks all registered AI coding tools
 # and their sync status. Contains operational metadata — private only.
 VaultBridge/sovereign_ai_registry.json
+vault_storage/
+vault_storage/averyos_boot_map_v1.*
 
 # Per-AI private sovereign instruction files (managed by syncSovereignAIInstructions.cjs)
 # These hold detailed operational content beyond the public instruction files.

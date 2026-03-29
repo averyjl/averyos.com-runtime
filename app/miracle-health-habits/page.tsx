@@ -38,7 +38,7 @@ const RETAIL_LINKS = [
   {
     platform: "Apple Books",
     icon: "🍎",
-    url: "https://books.apple.com/search?term=Miracle+Health+Habits+Jason+Avery",
+    url: "https://books.apple.com/us/book/miracle-health-habits/id6745434921",
     description: "Available on Apple Books — read on any Apple device.",
     color: "#0071e3",
   },
@@ -63,6 +63,13 @@ const RETAIL_LINKS = [
     description: "Available via nobis.biz — sovereign distribution node.",
     color: "#ffd700",
   },
+];
+
+// ── Extended / Secondary Retailer Links ───────────────────────────────────────
+const EXTENDED_LINKS = [
+  { label: "Kindle",  url: "https://www.amazon.com/s?k=Miracle+Health+Habits+Jason+Avery&i=digital-text" },
+  { label: "Kobo",    url: "https://www.kobo.com/us/en/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Audible", url: "https://www.audible.com/search?keywords=Miracle+Health+Habits+Jason+Avery" },
 ];
 
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
@@ -244,6 +251,52 @@ export default function MiracleHealthHabitsPage() {
                 </p>
               </a>
             ))}
+          </div>
+
+          {/* Extended / secondary retailer links */}
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.6rem",
+            marginTop: "1.25rem",
+            alignItems: "center",
+          }}>
+            <span style={{ fontSize: "0.72rem", color: DIM_GREEN, marginRight: "0.25rem" }}>Also on:</span>
+            {EXTENDED_LINKS.map((el) => (
+              <a
+                key={el.label}
+                href={el.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "0.72rem",
+                  color: DIM_GREEN,
+                  border: `1px solid ${BORDER_G}`,
+                  borderRadius: "6px",
+                  padding: "0.2rem 0.6rem",
+                  textDecoration: "none",
+                  background: BG_PANEL,
+                }}
+              >
+                {el.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Author page */}
+          <div style={{ marginTop: "0.9rem" }}>
+            <a
+              href="https://www.amazon.com/author/jasonleeavery"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: "0.72rem",
+                color: "#FF9900",
+                textDecoration: "none",
+              }}
+            >
+              📦 Amazon Author Page — Jason Lee Avery
+            </a>
           </div>
         </section>
 

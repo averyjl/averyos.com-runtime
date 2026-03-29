@@ -27,7 +27,6 @@ const nextConfig = {
   // handler.mjs without any runtime risk since those pages are fully pre-built.
   serverExternalPackages: ['stripe', 'isomorphic-dompurify', 'jsdom', 'katex', 'marked'],
   
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
 
   images: {

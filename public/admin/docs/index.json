@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-24T23:04:54.480Z",
+  "generated_at": "2026-03-29T05:40:04.683Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -99,6 +99,25 @@
         },
         {
           "name": "CachedContentMeta",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/ai/meshDiscovery.ts",
+      "doc": "admin/docs/lib/ai/meshDiscovery.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "discoverMeshNodes",
+          "kind": "function"
+        },
+        {
+          "name": "MeshNode",
+          "kind": "interface"
+        },
+        {
+          "name": "MeshDiscoveryResult",
           "kind": "interface"
         }
       ]
@@ -877,7 +896,7 @@
     {
       "path": "lib/forensics/vaultChain.ts",
       "doc": "admin/docs/lib/forensics/vaultChain.md",
-      "symbolCount": 20,
+      "symbolCount": 22,
       "symbols": [
         {
           "name": "mirrorBlockToR2",
@@ -916,6 +935,10 @@
           "kind": "function"
         },
         {
+          "name": "fetchBtcAnchorData",
+          "kind": "function"
+        },
+        {
           "name": "VAULTCHAIN_R2_PREFIX",
           "kind": "constant"
         },
@@ -945,6 +968,10 @@
         },
         {
           "name": "WriteBlockInput",
+          "kind": "interface"
+        },
+        {
+          "name": "BtcAnchorData",
           "kind": "interface"
         },
         {
@@ -1898,6 +1925,25 @@
       ]
     },
     {
+      "path": "lib/security/sovereignGuard.ts",
+      "doc": "admin/docs/lib/security/sovereignGuard.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "resolveGuardedPath",
+          "kind": "function"
+        },
+        {
+          "name": "guardedWrite",
+          "kind": "function"
+        },
+        {
+          "name": "VAULT_STORAGE_ROOT",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "lib/security/ssrfGuard.ts",
       "doc": "admin/docs/lib/security/ssrfGuard.md",
       "symbolCount": 3,
@@ -1913,6 +1959,113 @@
         {
           "name": "POLICY_WATCH_ALLOWLIST",
           "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/unmaskCore.ts",
+      "doc": "admin/docs/lib/security/unmaskCore.md",
+      "symbolCount": 25,
+      "symbols": [
+        {
+          "name": "sanitisePathComponent",
+          "kind": "function"
+        },
+        {
+          "name": "validateSaltPath",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateVolumesDir",
+          "kind": "function"
+        },
+        {
+          "name": "getUsbMountCandidates",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateMountChildren",
+          "kind": "function"
+        },
+        {
+          "name": "readSaltData",
+          "kind": "function"
+        },
+        {
+          "name": "scanMountsForSalt",
+          "kind": "function"
+        },
+        {
+          "name": "performResidencyHandshake",
+          "kind": "function"
+        },
+        {
+          "name": "isFullyResident",
+          "kind": "function"
+        },
+        {
+          "name": "SALT_FILENAME_PRIMARY",
+          "kind": "constant"
+        },
+        {
+          "name": "SALT_FILENAME_LEGACY",
+          "kind": "constant"
+        },
+        {
+          "name": "SALT_FILENAME_BLOCK",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_ALGORITHM",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_CURVE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWS_ALG",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_KEY_TYPE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWK_CRV",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PRIVKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PUBKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_SIG_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_REGISTRY_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "SnapChainPublicKeyRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "HandshakeResult",
+          "kind": "interface"
+        },
+        {
+          "name": "SnapChainAlgorithm",
+          "kind": "type"
+        },
+        {
+          "name": "ResidencyState",
+          "kind": "type"
         }
       ]
     },
@@ -2624,6 +2777,17 @@
       ]
     },
     {
+      "path": "app/api/v1/compliance/log-ingress/route.ts",
+      "doc": "admin/docs/app/api/v1/compliance/log-ingress/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/compliance/usage-report/route.ts",
       "doc": "admin/docs/app/api/v1/compliance/usage-report/route.md",
       "symbolCount": 1,
@@ -2799,6 +2963,17 @@
     {
       "path": "app/api/v1/latent-manifest/route.ts",
       "doc": "admin/docs/app/api/v1/latent-manifest/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/ledger/blocks/route.ts",
+      "doc": "admin/docs/app/api/v1/ledger/blocks/route.md",
       "symbolCount": 1,
       "symbols": [
         {

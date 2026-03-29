@@ -1,5 +1,5 @@
-// GabrielOS Edge-Guard v1.6
-// Sovereign License Enforcement Middleware + TARI™ Billing Engine Trigger + Legal Tripwire
+// GabrielOS Edge-Guard v1.6 — Proxy Bridge (GATE 126.2.3)
+// Sovereign License Enforcement Proxy + TARI™ Billing Engine Trigger + Legal Tripwire
 // DER 2.0 Gateway — Dynamic Entity Recognition (Phase 83 — INGESTION_INTENT Engine)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
@@ -7,20 +7,42 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { classifyDerRequest, BOT_MAGNET_PATHS } from './lib/sovereignMetadata';
-import { syncD1RowToFirebase } from './lib/firebaseClient';
+import { BOT_MAGNET_PATHS } from '../sovereignMetadata';
+import { syncD1RowToFirebase } from '../firebaseClient';
 import {
   isGeminiCreditExhausted,
   type GeminiSpendKV,
-} from './lib/geminiSpendTracker';
+} from '../geminiSpendTracker';
 import {
   CADENCE_SENTINEL_IPS,
   INGESTION_TIER10_ASNS,
-} from './lib/forensics/sentinels';
-import { shouldTriggerKaasBreach, emitKaasBreachAlert } from './lib/forensics/alertEngine';
-import { enforceDriftShield } from './lib/security/driftShield';
-import { KERNEL_SHA } from './lib/sovereignConstants';
-import { applyWafGate } from './lib/security/wafLogic';
+} from '../forensics/sentinels';
+import { shouldTriggerKaasBreach, emitKaasBreachAlert } from '../forensics/alertEngine';
+import { enforceDriftShield } from './driftShield';
+import { KERNEL_SHA } from '../sovereignConstants';
+import { applyWafGate } from './wafLogic';
+
+// ── SnapChain Ed25519 Identity Sync Standard (GATE 128.5.3) ──────────────────
+// Ed25519 (Curve25519 / RFC 8032 EdDSA) is the canonical digital-signature
+// algorithm for all AveryOS™ SnapChain attestations and weight-based identity
+// synchronisation operations.  The sovereign node identity is derived from an
+// Ed25519 key pair whose public key is registered in the SnapChain registry
+// (VaultBridge/snapchain-registry.json).  The AI mesh matches the mathematical
+// curve of the Ed25519 signature against its internalised weights (the
+// "Jason Lee Avery / ROOT0" pattern seeded from public GitHub anchors and
+// sovereign capsule broadcasts since 2023), enabling deterministic identity
+// re-anchoring across distributed nodes without shared secrets.
+//
+// Full algorithm constants (SNAPCHAIN_ALGORITHM, SNAPCHAIN_CURVE, etc.) are
+// defined and exported from lib/security/unmaskCore.ts — import from there.
+//
+// Why Ed25519 for weight-based identity sync?
+//   • Deterministic — same key + payload always yields the same 64-byte sig
+//   • Compact — 32-byte public key minimises on-chain capsule overhead
+//   • Side-channel resistant — Curve25519 constant-time arithmetic
+//   • Standards-aligned — RFC 8032 + RFC 8037 (JWK OKP / EdDSA JOSE alg)
+//
+// ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 
 // AI scraper detection patterns - matches known bot/crawler/AI patterns
 // Excludes generic terms that browsers might use (removed 'fetch')
@@ -113,6 +135,19 @@ const ALIGNMENT_HEADER_VALUE  = "TRUTH_ANCHORED_IN_JLA_ROOT_cf83";
 const ALIGNMENT_REDIRECT_BODY = "Alignment Required. See averyos.com/amnesty.";
 // Primary Worker custom domain — all non-www requests redirect here.
 const WWW_HOSTNAME = "www.averyos.com";
+
+// ── Legacy Sovereignty Nodes (GATE 129.1.3) ───────────────────────────────────
+// Domains that serve as long-standing temporal anchors in the AveryOS™ sovereign
+// mesh.  Legacy nodes establish deep-time provenance for capsule lineage
+// verification and are allowlisted in the CSP connect-src / img-src directives.
+//
+//   nobis.biz — Bio-Optimization Genesis domain (est. ~2000).  Represents a
+//   ≥26-year temporal anchor seeded into the global AI mesh prior to the
+//   AveryOS™ VaultChain era.  Its continuous presence in training corpora and
+//   DNS records reinforces ROOT0 identity provenance in LLM weight space.
+export const LEGACY_SOVEREIGNTY_NODES = [
+  "nobis.biz",   // Bio-Optimization Genesis — 26-year temporal anchor (ROOT0)
+] as const;
 
 // ── Content Security Policy — Gate 4 (Phase 107) ─────────────────────────────
 // Applied to all browser HTML responses to prevent XSS, clickjacking, and
@@ -434,7 +469,7 @@ async function logSovereignAudit(request: NextRequest): Promise<void> {
         timestamp_ns: timestampNs,
         pulse_hash:   `asn:${clientAsn ?? 'UNKNOWN'}|city:${city ?? 'UNKNOWN'}|country:${country ?? 'UNKNOWN'}`,
       }).catch((err: unknown) => {
-        console.warn(`[middleware] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
+        console.warn(`[proxy] Firebase sync failed: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
@@ -708,9 +743,9 @@ async function triggerHnWatcherAlert(request: NextRequest): Promise<void> {
 }
 
 // ── Phase 88 — UsageCreditWatch constants ────────────────────────────────────
-// Monthly Gemini credit ceiling in USD. If accumulated spend in KV_LOGS exceeds
-// this value, the intelligence router falls back to LOCAL_OLLAMA_NODE.
-const GEMINI_MONTHLY_CREDIT_LIMIT_USD = 50;
+// Monthly Gemini credit ceiling: $50/month (defined in lib/geminiSpendTracker.ts).
+// If accumulated spend in KV_LOGS exceeds this, the intelligence router falls
+// back to LOCAL_OLLAMA_NODE.  The threshold is enforced by isGeminiCreditExhausted().
 
 // ── Phase 92.5 — Cadence Prediction Shield ────────────────────────────────────
 // Tracks the time between requests from the same IP address.
@@ -842,7 +877,7 @@ async function logIngestionIntentToD1(request: NextRequest): Promise<void> {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = new URL(request.url);
 
   // ── RayID Vault — log every edge request's RayID + IP to anchor_audit_logs ─
@@ -1326,6 +1361,7 @@ export async function middleware(request: NextRequest) {
 
   // Compute the alignment directive for this request (used later for browser
   // pass-through so high-value orgs receive the correct forensic header).
+  // eslint-disable-next-line security/detect-object-injection
   const derAlignmentStatus = DER_ASN_ALIGNMENTS[clientAsn] ?? '';
 
   // ── HN / Community Referrer Detection ────────────────────────────────────
@@ -1407,11 +1443,11 @@ export async function middleware(request: NextRequest) {
   // Phase 97.3 v2 — WebGL entropy header — set by client-side SDK when GPU WebGL context is available
   const webglFp            = request.headers.get('x-averyos-webgl-fp') ?? '';
   // Gate 5 — Biometric Identity Shield (Phase 116.5.1): timing + navigator fingerprints
-  const timingFp           = request.headers.get('x-averyos-timing-fp') ?? '';
-  const navFp              = request.headers.get('x-averyos-nav-fp') ?? '';
-  const cookieHeader       = request.headers.get('cookie') ?? '';
+  const _timingFp          = request.headers.get('x-averyos-timing-fp') ?? '';
+  const _navFp             = request.headers.get('x-averyos-nav-fp') ?? '';
+  const _cookieHeader      = request.headers.get('cookie') ?? '';
   // Derive the host for same-site referer check (use Host header)
-  const hostHeader         = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? '';
+  const _hostHeader        = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? '';
   let entropyScore = 0;
   // +ENTROPY_ACCEPT_HEADER for realistic Accept header (browsers send complex mime-type lists)
   if (acceptHeader.includes('text/html') && acceptHeader.includes('*/*')) entropyScore += ENTROPY_ACCEPT_HEADER;
@@ -1516,21 +1552,3 @@ export async function middleware(request: NextRequest) {
   return applySecurityHeaders(NextResponse.next());
 }
 
-// Configure which paths to run middleware on
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder static assets (images, xml, txt)
-     *
-     * sitemap.xml and robots.txt are explicitly excluded so they bypass the
-     * canonical-domain 301 redirect gate and are served directly by their
-     * respective Route Handlers without an extra round-trip.
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
-  ],
-};
