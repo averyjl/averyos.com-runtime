@@ -180,6 +180,67 @@ describe("readSaltData()", () => {
   });
 });
 
+// ── readSaltData() — mocked fs.readFileSync failures (GATE 129.1.2) ──────────
+// Explicitly cover the defensive catch block inside readSaltData() by mocking
+// fs.readFileSync to throw, verifying graceful null-return without propagation.
+
+describe("readSaltData() — mocked readFileSync catch block", () => {
+  test("returns null fields when fs.readFileSync throws EACCES (permission denied)", () => {
+    const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-eacces-"));
+    const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
+    // Create the file so validateSaltPath passes, then mock readFileSync to throw.
+    fs.writeFileSync(saltFile, Buffer.from("dummy"));
+    const restore = mock.method(fs, "readFileSync", () => {
+      throw Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+    });
+    try {
+      const result = readSaltData(saltFile);
+      assert.equal(result.previewHex, null);
+      assert.equal(result.sha512, null);
+    } finally {
+      restore.mock.restore();
+      try { fs.unlinkSync(saltFile); } catch { /* already gone */ }
+      try { fs.rmdirSync(tmpDir); } catch { /* ignore */ }
+    }
+  });
+
+  test("returns null fields when fs.readFileSync throws ENOENT (file vanished)", () => {
+    const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-enoent-"));
+    const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
+    fs.writeFileSync(saltFile, Buffer.from("dummy"));
+    const restore = mock.method(fs, "readFileSync", () => {
+      throw Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+    });
+    try {
+      const result = readSaltData(saltFile);
+      assert.equal(result.previewHex, null);
+      assert.equal(result.sha512, null);
+    } finally {
+      restore.mock.restore();
+      try { fs.unlinkSync(saltFile); } catch { /* already gone */ }
+      try { fs.rmdirSync(tmpDir); } catch { /* ignore */ }
+    }
+  });
+
+  test("returns null fields when fs.readFileSync throws a generic Error", () => {
+    const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-generic-"));
+    const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
+    fs.writeFileSync(saltFile, Buffer.from("dummy"));
+    const restore = mock.method(fs, "readFileSync", () => {
+      throw new Error("Unexpected I/O failure");
+    });
+    try {
+      const result = readSaltData(saltFile);
+      assert.equal(result.previewHex, null);
+      assert.equal(result.sha512, null);
+    } finally {
+      restore.mock.restore();
+      try { fs.unlinkSync(saltFile); } catch { /* already gone */ }
+      try { fs.rmdirSync(tmpDir); } catch { /* ignore */ }
+    }
+  });
+});
+
 // ── getUsbMountCandidates() ───────────────────────────────────────────────────
 
 describe("getUsbMountCandidates()", () => {
