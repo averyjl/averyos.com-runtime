@@ -11,13 +11,15 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import fs from "fs";
+import path from "path";
 import crypto from "crypto";
-import {
-  sovereignWriteSync,
-  sovereignReadSync,
-} from "../../../lib/security/pathSanitizer";
 
-const REGISTRY_FILENAME = "witness_registry.json";
+const WITNESS_REGISTRY_PATH = path.join(
+  process.cwd(),
+  "capsule_logs",
+  "witness_registry.json"
+);
 
 const SHA512_REGEX = /^[a-fA-F0-9]{128}$/;
 
@@ -30,11 +32,21 @@ export interface WitnessEntry {
 }
 
 function readRegistry(): WitnessEntry[] {
-  return sovereignReadSync<WitnessEntry[]>(REGISTRY_FILENAME, []);
+  const dir = path.dirname(WITNESS_REGISTRY_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(WITNESS_REGISTRY_PATH)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(WITNESS_REGISTRY_PATH, "utf8"));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
 }
 
 function writeRegistry(entries: WitnessEntry[]): void {
-  sovereignWriteSync(REGISTRY_FILENAME, entries);
+  const dir = path.dirname(WITNESS_REGISTRY_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(WITNESS_REGISTRY_PATH, JSON.stringify(entries, null, 2));
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {

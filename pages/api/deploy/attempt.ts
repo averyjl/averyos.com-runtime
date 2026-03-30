@@ -1,9 +1,7 @@
+import fs from "fs";
+import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyCapsuleHash } from "../../../scripts/verifyCapsuleHash";
-import {
-  sovereignWriteSync,
-  sovereignReadSync,
-} from "../../../lib/security/pathSanitizer";
 
 type AccessLog = {
   createdAt: string;
@@ -11,10 +9,13 @@ type AccessLog = {
   licenseKey: string;
 };
 
-const ACCESS_LOG_FILENAME = "license_access.json";
+const accessLogPath = path.join(process.cwd(), "capsule_logs", "license_access.json");
 
 const readAccessLog = (): AccessLog[] => {
-  return sovereignReadSync<AccessLog[]>(ACCESS_LOG_FILENAME, []);
+  if (!fs.existsSync(accessLogPath)) {
+    return [];
+  }
+  return JSON.parse(fs.readFileSync(accessLogPath, "utf8")) as AccessLog[];
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -38,7 +39,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     licenseKey: typeof licenseKey === "string" ? licenseKey : "",
   });
 
-  sovereignWriteSync(ACCESS_LOG_FILENAME, logs);
+  fs.mkdirSync(path.dirname(accessLogPath), { recursive: true });
+  fs.writeFileSync(accessLogPath, JSON.stringify(logs, null, 2));
 
   return res.status(200).json({ ok: true });
 };
