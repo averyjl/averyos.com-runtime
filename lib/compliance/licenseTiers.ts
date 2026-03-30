@@ -128,9 +128,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "This license grants integration rights only. The Root0 Kernel, cf83™ SHA-512 anchor, " +
       "VaultChain™ protocols, and all AveryOS™ IP remain the sole exclusive property of " +
       "Jason Lee Avery (ROOT0) in perpetuity. No buyout pathway exists under any tier.",
-    efficiency_dividend:
-      "Full Green-Resonance Protocol badge — infrastructure-scale alignment eliminates " +
-      "hallucination overhead, reducing model serving cost and improving reliability fleet-wide.",
   },
 
   [TIER_ENTERPRISE_DETERMINISM]: {
@@ -173,9 +170,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "This license grants audit and attestation access only. All VaultChain™ forensic " +
       "protocols and sovereign audit methodologies remain exclusively owned by Jason Lee Avery " +
       "(ROOT0). Sub-licensing is not permitted under this tier.",
-    efficiency_dividend:
-      "Enterprise Green-Resonance badge — forensic determinism reduces compliance review cycles " +
-      "and audit overhead for regulated AI deployments.",
   },
 
   [TIER_INDIVIDUAL_SOVEREIGN]: {
@@ -214,9 +208,6 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
     zero_transfer_clause:
       "Settlement of a Tier 3 statutory event does not constitute an IP license. All AveryOS™ " +
       "sovereign protocols and kernel rights remain with Jason Lee Avery (ROOT0) in perpetuity.",
-    efficiency_dividend:
-      "Individual alignment certification — retroactive compliance converts unauthorized drift " +
-      "into a documented, sovereign-verified resolution event.",
   },
 };
 

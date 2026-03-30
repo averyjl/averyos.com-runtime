@@ -25,7 +25,7 @@ import {
   resolveSafePath,
   resolveSafeFilePath,
   resolveSovereignPath,
-  sovereignWriteSync,
+  sovereignWriteToRoot,
   PathTraversalError,
   SAFE_CAPSULE_ROOT,
   SAFE_CONTENT_ROOT,
@@ -213,13 +213,13 @@ describe("resolveSovereignPath()", () => {
   });
 });
 
-// ── sovereignWriteSync() ──────────────────────────────────────────────────────
+// ── sovereignWriteToRoot() ───────────────────────────────────────────────────
 
-describe("sovereignWriteSync()", () => {
+describe("sovereignWriteToRoot()", () => {
   test("writes a string to a file inside the allowed root", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aos-path-test-"));
     const filename = "sovereign-test.txt";
-    sovereignWriteSync(tmpDir, filename, "hello sovereign");
+    sovereignWriteToRoot(tmpDir, filename, "hello sovereign");
     const written = fs.readFileSync(path.join(tmpDir, filename), "utf-8");
     assert.equal(written, "hello sovereign");
     fs.rmSync(tmpDir, { recursive: true });
@@ -229,7 +229,7 @@ describe("sovereignWriteSync()", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aos-buf-test-"));
     const filename = "sovereign-buf.bin";
     const buf = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
-    sovereignWriteSync(tmpDir, filename, buf);
+    sovereignWriteToRoot(tmpDir, filename, buf);
     const written = fs.readFileSync(path.join(tmpDir, filename));
     assert.deepEqual(written, buf);
     fs.rmSync(tmpDir, { recursive: true });
@@ -238,7 +238,7 @@ describe("sovereignWriteSync()", () => {
   test("creates parent directories if they do not exist", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aos-mkdirp-test-"));
     const filename = "report.json";
-    sovereignWriteSync(tmpDir, filename, "{}");
+    sovereignWriteToRoot(tmpDir, filename, "{}");
     assert.ok(fs.existsSync(path.join(tmpDir, filename)));
     fs.rmSync(tmpDir, { recursive: true });
   });
@@ -246,7 +246,7 @@ describe("sovereignWriteSync()", () => {
   test("throws PathTraversalError for traversal attempt", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aos-trav-test-"));
     assert.throws(
-      () => sovereignWriteSync(tmpDir, "../../etc/evil.txt", "data"),
+      () => sovereignWriteToRoot(tmpDir, "../../etc/evil.txt", "data"),
       PathTraversalError,
     );
     fs.rmSync(tmpDir, { recursive: true });
