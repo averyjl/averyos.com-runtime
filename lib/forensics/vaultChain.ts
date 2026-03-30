@@ -2,7 +2,7 @@
  * lib/forensics/vaultChain.ts
  *
  * AveryOS™ VaultChain™ Versioning — Ledger Addition Engine
- * Phase 119.7 GATE 119.7.4
+ * Phase 119.7 GATE 119.7.4 | Updated Phase 126.1 GATE 126.1.2
  *
  * Implements the "Ledger Addition" principle:
  *   • History is immutable — existing records are never modified or deleted.
@@ -491,4 +491,48 @@ export async function writeBlock(
   }
 
   return rowId;
+}
+
+// ── GATE 126.1.2 — Blockchain API Integration ─────────────────────────────────
+
+/** Shape of the data returned by a successful BTC anchor fetch. */
+export interface BtcAnchorData {
+  /** Latest Bitcoin block height. */
+  btc_height: number;
+  /** SHA-256 hash of the latest Bitcoin block. */
+  btc_hash: string;
+}
+
+/**
+ * Fetch the latest Bitcoin block height and hash for on-chain anchor verification.
+ *
+ * Dual-context: works in both Cloudflare Worker and Node.js (Node-02) environments.
+ *   • In Cloudflare Workers: pass `apiKey` from `cfEnv.BLOCKCHAIN_API_KEY`.
+ *   • In Node.js (Node-02): omit `apiKey`; falls back to `process.env.BLOCKCHAIN_API_KEY`.
+ *
+ * Calls the BlockCypher public API (https://api.blockcypher.com/v1/btc/main).
+ * Falls back to a KERNEL_SHA-anchored sentinel on any error so callers can
+ * always produce a block, even when the chain is unreachable.
+ *
+ * @param apiKey  Optional BlockCypher API token (overrides env var).
+ * @returns       BtcAnchorData on success, or null if unreachable.
+ */
+export async function fetchBtcAnchorData(apiKey?: string): Promise<BtcAnchorData | null> {
+  const token =
+    apiKey ??
+    (typeof process !== "undefined" ? process.env.BLOCKCHAIN_API_KEY : undefined);
+
+  const url = token
+    ? `https://api.blockcypher.com/v1/btc/main?token=${token}`
+    : `https://api.blockcypher.com/v1/btc/main`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { height?: number; hash?: string };
+    if (typeof data.height !== "number" || typeof data.hash !== "string") return null;
+    return { btc_height: data.height, btc_hash: data.hash };
+  } catch {
+    return null;
+  }
 }

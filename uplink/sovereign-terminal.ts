@@ -36,7 +36,6 @@ import 'dotenv/config';
 import { config } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import * as readline from 'readline';

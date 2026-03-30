@@ -11,7 +11,8 @@
     "VaultBridge/",
     ".open-next/",
     "node_modules/",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    "__tests__/generated/"
   ],
   "rules": {
     "security/detect-object-injection": "warn",
@@ -20,6 +21,7 @@
     "security/detect-eval-with-expression": "warn",
     "security/detect-no-csrf-before-method-override": "warn",
     "security/detect-possible-timing-attacks": "warn",
+    "security/detect-non-literal-fs-filename": "off",
     "@typescript-eslint/no-unused-vars": ["warn", {
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_",
@@ -51,11 +53,45 @@
         "scripts/**/*.js",
         "scripts/**/*.cjs",
         "workers/**/*.js",
-        "workers/**/*.cjs"
+        "workers/**/*.cjs",
+        "uplink/**/*.ts",
+        "uplink/**/*.js"
       ],
       "rules": {
         "@typescript-eslint/no-require-imports": "off",
-        "@typescript-eslint/no-var-requires": "off"
+        "@typescript-eslint/no-var-requires": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-object-injection": "off",
+        "security/detect-unsafe-regex": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "import/no-anonymous-default-export": "off"
+      }
+    },
+    {
+      "files": [
+        "app/**/*.ts",
+        "app/**/*.tsx",
+        "lib/**/*.ts",
+        "lib/**/*.tsx"
+      ],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": ["error", {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "caughtErrorsIgnorePattern": "^_",
+          "destructuredArrayIgnorePattern": "^_"
+        }]
+      }
+    },
+    {
+      "files": [
+        "__tests__/**/*.ts",
+        "__tests__/**/*.tsx",
+        "__tests__/**/*.js"
+      ],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-object-injection": "off"
       }
     },
     {

@@ -65,20 +65,11 @@ const RETAIL_LINKS = [
   },
 ];
 
-// ── Extended / Secondary Retail Links ────────────────────────────────────────
-const EXTENDED_LINKS: Array<{ label: string; url: string }> = [
-  {
-    label: "Goodreads",
-    url:   "https://www.goodreads.com/search?q=Miracle+Health+Habits+Jason+Avery",
-  },
-  {
-    label: "Open Library",
-    url:   "https://openlibrary.org/search?q=Miracle+Health+Habits+Jason+Avery",
-  },
-  {
-    label: "WorldCat",
-    url:   "https://www.worldcat.org/search?q=Miracle+Health+Habits+Jason+Avery",
-  },
+// ── Extended / Secondary Retailer Links ───────────────────────────────────────
+const EXTENDED_LINKS = [
+  { label: "Kindle",  url: "https://www.amazon.com/s?k=Miracle+Health+Habits+Jason+Avery&i=digital-text" },
+  { label: "Kobo",    url: "https://www.kobo.com/us/en/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Audible", url: "https://www.audible.com/search?keywords=Miracle+Health+Habits+Jason+Avery" },
 ];
 
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────

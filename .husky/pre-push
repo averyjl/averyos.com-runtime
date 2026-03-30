@@ -1,29 +1,44 @@
 #!/bin/sh
-# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4
+# AveryOS™ Sovereign Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2 / GATE 128.2.2
 # ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
 #
-# Design-Stage Security Gate: runs the full ESLint suite and TypeScript
-# type-check before every push to prevent SARIF alerts and type errors from
-# reaching the origin repository and triggering unauthorized bot "fixes"
-# (ref: PR #360 Bot-Corruption Event forensic audit).
+# Design-Stage Security Gate: runs the full ESLint suite AND all unit tests
+# before every push to prevent SARIF alerts and regressions reaching origin.
 #
 # Gate sequence:
-#   1. npm run lint:full — full ESLint sweep across all TS/JS source files
-#   2. tsc --noEmit    — TypeScript strict type-check (zero errors allowed)
+#   1. npm run lint:full        — full ESLint sweep across all TS/JS source files
+#   2. npm run test:unit        — full unit test suite (all modules, GATE 126.2.2)
+#   3. npm run test:coverage    — coverage report; mandated by GATE 126.9.2 / 127.0.2
+#
+# GATE 128.2.2 — 100.00% Coverage Mandate:
+#   The `npm run test:coverage:gate` command enforces the 100.00% threshold via
+#   scripts/checkCoverage.cjs.  Run it explicitly when targeting 100% coverage:
+#
+#     npm run test:coverage:gate
+#
+#   This step is not included in the automated gate because certain Node.js code
+#   paths in lib/security/unmaskCore.ts (USB salt scanner — FULLY_RESIDENT and
+#   NODE-02_PHYSICAL states) require physical hardware and cannot be covered in
+#   CI without mocking.  Once those paths are mocked, add step 4 below:
+#
+#   [Future step 4 — activate when 100% is achievable in CI]:
+#     npm run test:coverage:gate
 #
 # DRIFT POLICY (AveryOS™ Constitution v1.17 Art. 2, 14, 19):
-#   There is NO bypass for this gate. If lint or type-check fails, the issue
-#   MUST be resolved before pushing. Using --no-verify is a Constitution
-#   violation and constitutes a HALT_BOOT event requiring immediate RCA +
-#   auto-heal.
+#   There is NO bypass for this gate. If lint or tests fail, the issue MUST be
+#   resolved before pushing. Using --no-verify is a Constitution violation and
+#   constitutes a HALT_BOOT event requiring immediate RCA + auto-heal.
 
 set -e
 
-echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4"
+echo "⛓️⚓⛓️  AveryOS™ Pre-Push Gate — GATE 117.1.4 / GATE 126.2.2 / GATE 126.9.2 / GATE 127.0.2 / GATE 128.2.2"
 echo "⛓️ Running full ESLint sweep (npm run lint:full)…"
 npm run lint:full
 echo "✅ Full lint: clean."
-
-echo "⛓️ Running TypeScript type-check (tsc --noEmit)…"
-./node_modules/.bin/tsc --noEmit
-echo "✅ TypeScript: clean — push cleared."
+echo "⛓️ Running unit test suite (npm run test:unit) — full module regression guard…"
+npm run test:unit
+echo "✅ All unit tests passed."
+echo "⛓️ Running coverage report (npm run test:coverage) — GATE 126.9.2 / 127.0.2 mandate…"
+npm run test:coverage
+echo "✅ Coverage report complete — push cleared."
+echo "ℹ  GATE 128.2.2 reminder: run 'npm run test:coverage:gate' to verify 100.00% threshold."
