@@ -1,16 +1,16 @@
-// GabrielOS Edge-Guard v1.6 — Proxy Entry Point
+// GabrielOS Edge-Guard v1.6 — Middleware Entry Point
 // Sovereign License Enforcement Proxy + TARI™ Billing Engine Trigger + Legal Tripwire
 // DER 2.0 Gateway — Dynamic Entity Recognition (Phase 83 — INGESTION_INTENT Engine)
 // Author: Jason Lee Avery
 // Kernel Anchor: cf83e135...927da3e
 //
-// Next.js 16 "proxy" convention replaces the deprecated "middleware" convention.
-// See: https://nextjs.org/docs/messages/middleware-to-proxy
+// NOTE: This file uses the Next.js middleware.ts convention (Edge runtime by default)
+// instead of proxy.ts. Next.js 16's proxy.ts is locked to Node.js runtime and is
+// incompatible with @opennextjs/cloudflare which requires Edge runtime for middleware.
+// middleware.ts is still fully supported in Next.js 16 (with a deprecation notice)
+// and correctly compiles to Edge runtime, making it compatible with Cloudflare Workers.
+//
 // All firewall/WAF logic lives in lib/security/proxy.ts — do not add logic here.
-
-// NOTE: `export const runtime = "edge"` is intentionally omitted here.
-// Next.js 16's Proxy convention prohibits route-segment config exports in proxy
-// files. The @opennextjs/cloudflare adapter manages the edge runtime automatically.
 // Node.js-only APIs (fs, path, sqlite) are NOT permitted here — all such
 // logic must remain isolated in lib/ modules that are NOT bundled into the
 // Cloudflare Worker edge bundle.
@@ -21,7 +21,7 @@ export type { StatutoryJurisdiction } from './lib/security/proxy';
 
 export { getStatutoryOrigin };
 
-export default function proxy(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   return proxyHandler(request);
 }
 
