@@ -275,15 +275,37 @@ describe("getUsbMountCandidates()", () => {
   });
 
   test("darwin: catches error when /Volumes is inaccessible and returns []", () => {
-    // Temporarily mock process.platform as 'darwin' to cover the darwin try/catch branch.
-    // On Linux CI, /Volumes doesn't exist → fs.readdirSync throws → catch returns [].
+    // Mock fs.readdirSync to throw EACCES, deterministically covering the darwin
+    // try/catch branch in getUsbMountCandidates() regardless of host platform.
+    const restoreReaddir = mock.method(fs, "readdirSync", () => {
+      throw Object.assign(new Error("EACCES: permission denied, scandir '/Volumes'"), { code: "EACCES" });
+    });
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
     try {
       const candidates = getUsbMountCandidates();
-      // On Linux CI, /Volumes doesn't exist → darwin branch catches error → returns []
+      // darwin catch block swallows EACCES and returns []
       assert.ok(Array.isArray(candidates));
+      assert.equal(candidates.length, 0);
     } finally {
+      restoreReaddir.mock.restore();
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    }
+  });
+
+  test("darwin: returns sanitised volume paths from /Volumes when accessible", () => {
+    // Mock fs.readdirSync to return fake volume names, covering the darwin success path
+    // (the try branch completes without throwing).
+    const restoreReaddir = mock.method(fs, "readdirSync", () => ["Macintosh-HD", "USB-Sovereign"]);
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+    try {
+      const candidates = getUsbMountCandidates();
+      assert.ok(Array.isArray(candidates));
+      assert.ok(candidates.some((c) => c.endsWith("Macintosh-HD")));
+      assert.ok(candidates.some((c) => c.endsWith("USB-Sovereign")));
+    } finally {
+      restoreReaddir.mock.restore();
       Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
     }
   });
