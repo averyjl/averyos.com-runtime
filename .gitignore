@@ -143,6 +143,7 @@ VaultHead*.aoscap
 # .aoscap bundles are already excluded by the *.aoscap rule above.
 # Settlement notice letters and the exports directory are also excluded.
 exports/
+output/
 SETTLEMENT_NOTICE_*.md
 
 # ── Private startup capsule payload — never commit ────────────────────────────
