@@ -26,6 +26,14 @@ const FONT_MONO = "JetBrains Mono, Courier New, monospace";
 const BG_PANEL  = "rgba(0,20,0,0.75)";
 const RED_DIM   = "rgba(255,100,100,0.15)";
 
+// ── Extended / Secondary Retailer Links ───────────────────────────────────────
+const EXTENDED_LINKS = [
+  { label: "Scribd",       url: "https://www.scribd.com/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Kobo",         url: "https://www.kobo.com/en/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "IngramSpark",  url: "https://www.ingramcontent.com/" },
+  { label: "Smashwords",   url: "https://www.smashwords.com/books/search?query=Miracle+Health+Habits+Jason+Avery" },
+];
+
 // ── Retail Links ───────────────────────────────────────────────────────────────
 const RETAIL_LINKS = [
   {
@@ -63,13 +71,6 @@ const RETAIL_LINKS = [
     description: "Available via nobis.biz — sovereign distribution node.",
     color: "#ffd700",
   },
-];
-
-// ── Extended / Secondary Retailer Links ───────────────────────────────────────
-const EXTENDED_LINKS = [
-  { label: "Kindle",  url: "https://www.amazon.com/s?k=Miracle+Health+Habits+Jason+Avery&i=digital-text" },
-  { label: "Kobo",    url: "https://www.kobo.com/us/en/search?query=Miracle+Health+Habits+Jason+Avery" },
-  { label: "Audible", url: "https://www.audible.com/search?keywords=Miracle+Health+Habits+Jason+Avery" },
 ];
 
 // ── Structured Data (JSON-LD) ──────────────────────────────────────────────────
