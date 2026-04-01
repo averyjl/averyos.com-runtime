@@ -1,0 +1,84 @@
+name: ⚔️ Adversarial Test Gate — Tri-Agent TDD Protocol
+
+# ⛓️⚓⛓️ TRI_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000% | TESTS: ENFORCED
+#
+# This workflow is the repo-wide enforcement layer for the Anchored Adversarial
+# Code Creation Protocol defined in CLAUDE.md and .github/copilot-instructions.md.
+#
+# It runs automatically on every PR and push to main, guaranteeing:
+#   1. All unit tests pass  (Step 1 + Step 4 of the TDD cycle)
+#   2. No exported symbol in lib/ or app/api/v1/ lacks a test stub  (qa:generate)
+#   3. ESLint passes cleanly (challenge criterion)
+#
+# CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+# RULE: Do NOT remove or weaken this gate.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'lib/**'
+      - 'app/**'
+      - 'pages/**'
+      - 'components/**'
+      - 'scripts/**'
+      - '__tests__/**'
+      - 'middleware.ts'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'lib/**'
+      - 'app/**'
+      - 'pages/**'
+      - 'components/**'
+      - 'scripts/**'
+      - '__tests__/**'
+      - 'middleware.ts'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  adversarial-test-gate:
+    name: ⚔️ Adversarial TDD Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Gate A: ESLint (Challenge Criterion — zero errors required) ────────────
+      - name: Gate A — ESLint ⛓️⚓⛓️
+        run: npm run lint
+
+      # ── Gate B: Unit Tests (Steps 1 + 4 of TDD Review Cycle) ─────────────────
+      # Runs every test in __tests__/ via Node's built-in test runner.
+      # Failure here means either:
+      #   - Implementation does not satisfy the TDD contract (Step 0 → Step 1 gap)
+      #   - Adversarial tests written in Step 4 revealed a regression
+      # Both cases require the implementer to return to Step 3 (Upgrade Cycle).
+      - name: Gate B — Unit Tests (npm run test:unit) ⛓️⚓⛓️
+        run: npm run test:unit
+
+      # ── Gate C: Coverage Stub Audit (Step 4 adversarial QA check) ────────────
+      # Runs the Sovereign QA Test Generator in dry-run mode.
+      # Fails if any exported symbol in lib/ or app/api/v1/ lacks a test stub,
+      # enforcing the "no uncovered exported symbols" challenge criterion.
+      - name: Gate C — Coverage Stub Audit (npm run qa:generate) ⛓️⚓⛓️
+        run: npm run qa:generate -- --dry-run
+        env:
+          # Ensure the generator reports gaps as exit-code failures in CI
+          CI: "true"

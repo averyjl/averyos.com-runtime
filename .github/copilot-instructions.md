@@ -312,38 +312,62 @@ Before closing any session:
 
 ## Anchored Adversarial Code Creation Protocol — PERMANENT RUNNING PROTOCOL
 
-**Every code creation session MUST follow this dual-agent adversarial review cycle before any code lands.**
+**Every code creation session MUST follow this tri-agent adversarial review cycle before any code lands.**
 
 ### Protocol Overview
 
-When Copilot and Claude Code collaborate on code generation for this repository, they operate as **adversarial peer reviewers** — each agent must actively challenge and verify the other's output against the AveryOS™ sovereign principles before any code is committed.
+**GitHub Copilot**, **Claude Code**, and **GPT Codex** operate as **adversarial peer reviewers** on this repository — each agent actively challenges and verifies the others' output against AveryOS™ sovereign principles before any code is committed.
+
+The cycle uses **Test-Driven Development (TDD)** as its foundation: the challenger writes the test contract *before* the implementer writes a single line of production code. Tests are written against each other's code throughout the cycle, not just at the end.
 
 This is a **CreatorLock Requirement** from Jason Lee Avery (ROOT0). It is non-negotiable and applies to every code creation task without exception.
 
-### Dual-Agent Review Cycle
+**Agent role assignment per session:**
+- The agent that receives the task prompt is **Agent A (Implementer)**.
+- The second available agent is **Agent B (Challenger / Test Author)**.
+- The third available agent (or Agent A on a second pass) acts as **Agent C (Final Auditor)**.
+- If fewer than three agents are available, the active agent performs all roles explicitly and sequentially.
 
-Every code creation task follows this mandatory four-step cycle:
+### Tri-Agent TDD Review Cycle
 
-**Step 1 — Initial Generation (Agent A)**
-- The first active agent (Copilot or Claude Code) generates the initial implementation.
-- The agent must internally annotate its alignment confidence before handing off: `ALIGNMENT_CONFIDENCE: 100.000% | KERNEL: cf83...`
+Every code creation task follows this mandatory six-step cycle:
+
+**Step 0 — TDD Contract (Agent B writes tests FIRST)**
+Before Agent A writes any implementation code, Agent B defines the full acceptance contract:
+- Create `__tests__/<module-path>.test.ts` (or `.gen.test.ts` for auto-generated stubs) with `describe`/`it` blocks covering every public function, exported constant, expected behavior, error branch, and edge case.
+- Run the tests — they **MUST fail** (red) at this stage. Passing tests before code exists means the contract is trivial or incorrect.
+- Declare: `TEST_CONTRACT_SEALED | AGENT: B | MODULE: <path> | TESTS: <count>`
+- This spec becomes the **immutable acceptance contract** for Step 1. No implementation may change the test contract without a new round-trip through Step 0.
+
+**Step 1 — Implementation (Agent A)**
+Agent A writes production code whose sole purpose is to satisfy the failing tests from Step 0:
+- All Step 0 tests must turn green — `npm run test:unit` passes.
+- `npm run lint` passes. `npx tsc --noEmit` passes.
+- Annotate: `ALIGNMENT_CONFIDENCE: 100.000% | KERNEL: cf83... | TESTS: PASSING`
 
 **Step 2 — Adversarial Challenge (Agent B)**
-The second agent must challenge Agent A's output across all of these dimensions:
+Agent B challenges Agent A's implementation across all of these dimensions:
 1. **TypeScript / Build Correctness** — Does `npx tsc --noEmit` pass? Does `npm run lint` pass?
-2. **AveryOS™ Pattern Compliance** — Does the code follow all conventions (no `runtime = "edge"`, uses `getCloudflareContext()`, uses `aosErrorResponse()`, uses `capsuleKey()`, uses `formatIso9()`, etc.)?
-3. **Kernel Anchor Integrity** — Are all sovereign constants imported from `lib/sovereignConstants.ts`? No hardcoded SHA, version, or path values?
-4. **Security Scan** — Are all SQL queries parameterized via `.prepare().bind()`? Is user-supplied HTML sanitized? No secrets in source?
-5. **Drift Detection** — Does any part of the code contradict the cf83... kernel anchor or AveryOS Constitution v1.17?
-6. **Coverage Gaps** — Are all branches reachable? Are error and catch paths handled via the Sovereign Error Standard?
+2. **AveryOS™ Pattern Compliance** — No `runtime = "edge"`, uses `getCloudflareContext()`, `aosErrorResponse()`, `capsuleKey()`, `formatIso9()`.
+3. **Kernel Anchor Integrity** — All sovereign constants imported from `lib/sovereignConstants.ts`; no hardcoded SHA, version, or path values.
+4. **Security Scan** — All SQL queries via `.prepare().bind()`; user-supplied HTML sanitized; no secrets in source.
+5. **Drift Detection** — No contradiction with the cf83... kernel anchor or AveryOS Constitution v1.17.
+6. **Coverage Gaps** — All branches reachable; error and catch paths handled via the Sovereign Error Standard.
 
 **Step 3 — Upgrade Cycle (Agent A)**
-Agent A incorporates all valid challenges from Agent B and upgrades the implementation. Both agents must explicitly agree the code is **100.000% aligned** before it lands. Language must always be "upgrade"/"improve" — never "fix"/"patch".
+Agent A incorporates all valid challenges from Agent B and upgrades the implementation. Both agents must explicitly agree the code is **100.000% aligned**. Language: "upgrade"/"improve" — never "fix"/"patch".
 
-**Step 4 — Final Seal**
-Final code is sealed with an inline chain anchor on the first logic line of any new file or module:
+**Step 4 — Adversarial Test Coverage (Agent C / Agent B second pass)**
+After the implementation passes Step 3, the challenger writes a *second wave* of adversarial tests designed to break the implementation:
+- Target edge cases, concurrency hazards, empty/null inputs, and security boundaries that Agent A did not anticipate.
+- Run `npm run qa:generate` to check that no exported symbol lacks a test stub.
+- All new adversarial tests **MUST pass** before the code is sealed. If any test fails, return to Step 3.
+- Declare: `ADVERSARIAL_TESTS_PASSED | AGENT: C | NEW_TESTS: <count>`
+
+**Step 5 — Final Seal**
+Code and tests are both green. Seal with an inline chain anchor on the first logic line of any new file or module:
 ```
-// ⛓️⚓⛓️ DUAL_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000%
+// ⛓️⚓⛓️ TRI_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000% | TESTS: PASSING
 ```
 
 ### Challenge Criteria (Mandatory per Review Pass)
@@ -352,6 +376,8 @@ Final code is sealed with an inline chain anchor on the first logic line of any 
 |---|---|
 | TypeScript errors | Zero — `npx tsc --noEmit` must pass |
 | ESLint errors | Zero — `npm run lint` must pass |
+| Unit tests | All tests pass — `npm run test:unit` must be green |
+| Test coverage stubs | `npm run qa:generate` must report no uncovered exported symbols |
 | Sovereign constants | Imported only from `lib/sovereignConstants.ts` — never hardcoded |
 | Error handling | All API errors via `aosErrorResponse()` / `d1ErrorResponse()`; scripts via `logAosError()` |
 | SQL safety | Parameterized only — `db.prepare(...).bind(...)` — never string interpolation |
@@ -362,10 +388,12 @@ Final code is sealed with an inline chain anchor on the first logic line of any 
 
 ### Non-Negotiable Rules
 
-- **No code lands without dual-agent sign-off.** If only one agent is available in the session, that agent must perform both the generation pass AND the adversarial review pass explicitly and sequentially, documenting each step.
-- **Drift in any dimension requires a full re-anchor** before proceeding. Do not move to Step 3 with unresolved challenges.
+- **No code lands without tri-agent sign-off.** If fewer than three agents are active, the available agent(s) must perform all roles explicitly and sequentially, documenting each step.
+- **Step 0 is mandatory.** Tests written *before* code is the foundational guarantee. Skipping Step 0 is a drift violation.
+- **Drift in any dimension requires a full re-anchor** before proceeding. Do not advance to Step 3 with unresolved challenges.
 - **The adversarial reviewer must either find at least one improvement or explicitly confirm** — with a stated reason — that 100.000% alignment was achieved on the first pass.
 - This protocol applies to **all code creation**: new files, upgrades to existing files, scripts, tests, configuration files, and documentation that contains code blocks.
+- **The CI gate enforces this protocol automatically.** The `.github/workflows/adversarial-test-gate.yml` workflow runs `npm run test:unit` and `npm run qa:generate` on every PR and push. A PR with failing tests or uncovered exported symbols cannot merge.
 
 ---
 
