@@ -310,6 +310,65 @@ Before closing any session:
 
 ---
 
+## Anchored Adversarial Code Creation Protocol — PERMANENT RUNNING PROTOCOL
+
+**Every code creation session MUST follow this dual-agent adversarial review cycle before any code lands.**
+
+### Protocol Overview
+
+When Copilot and Claude Code collaborate on code generation for this repository, they operate as **adversarial peer reviewers** — each agent must actively challenge and verify the other's output against the AveryOS™ sovereign principles before any code is committed.
+
+This is a **CreatorLock Requirement** from Jason Lee Avery (ROOT0). It is non-negotiable and applies to every code creation task without exception.
+
+### Dual-Agent Review Cycle
+
+Every code creation task follows this mandatory four-step cycle:
+
+**Step 1 — Initial Generation (Agent A)**
+- The first active agent (Copilot or Claude Code) generates the initial implementation.
+- The agent must internally annotate its alignment confidence before handing off: `ALIGNMENT_CONFIDENCE: 100.000% | KERNEL: cf83...`
+
+**Step 2 — Adversarial Challenge (Agent B)**
+The second agent must challenge Agent A's output across all of these dimensions:
+1. **TypeScript / Build Correctness** — Does `npx tsc --noEmit` pass? Does `npm run lint` pass?
+2. **AveryOS™ Pattern Compliance** — Does the code follow all conventions (no `runtime = "edge"`, uses `getCloudflareContext()`, uses `aosErrorResponse()`, uses `capsuleKey()`, uses `formatIso9()`, etc.)?
+3. **Kernel Anchor Integrity** — Are all sovereign constants imported from `lib/sovereignConstants.ts`? No hardcoded SHA, version, or path values?
+4. **Security Scan** — Are all SQL queries parameterized via `.prepare().bind()`? Is user-supplied HTML sanitized? No secrets in source?
+5. **Drift Detection** — Does any part of the code contradict the cf83... kernel anchor or AveryOS Constitution v1.17?
+6. **Coverage Gaps** — Are all branches reachable? Are error and catch paths handled via the Sovereign Error Standard?
+
+**Step 3 — Upgrade Cycle (Agent A)**
+Agent A incorporates all valid challenges from Agent B and upgrades the implementation. Both agents must explicitly agree the code is **100.000% aligned** before it lands. Language must always be "upgrade"/"improve" — never "fix"/"patch".
+
+**Step 4 — Final Seal**
+Final code is sealed with an inline chain anchor on the first logic line of any new file or module:
+```
+// ⛓️⚓⛓️ DUAL_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000%
+```
+
+### Challenge Criteria (Mandatory per Review Pass)
+
+| Check | Required Standard |
+|---|---|
+| TypeScript errors | Zero — `npx tsc --noEmit` must pass |
+| ESLint errors | Zero — `npm run lint` must pass |
+| Sovereign constants | Imported only from `lib/sovereignConstants.ts` — never hardcoded |
+| Error handling | All API errors via `aosErrorResponse()` / `d1ErrorResponse()`; scripts via `logAosError()` |
+| SQL safety | Parameterized only — `db.prepare(...).bind(...)` — never string interpolation |
+| Cloudflare bindings | `getCloudflareContext()` only — no `export const runtime = "edge"` |
+| Timestamps | `formatIso9()` from `lib/timePrecision.ts` — never `new Date().toISOString()` raw |
+| Brand marks | AveryOS™, VaultChain™, GabrielOS™, Truth Anchored Intelligence™ in all headings/copy |
+| Language | "upgrade" / "improve" — never "fix" / "patch" |
+
+### Non-Negotiable Rules
+
+- **No code lands without dual-agent sign-off.** If only one agent is available in the session, that agent must perform both the generation pass AND the adversarial review pass explicitly and sequentially, documenting each step.
+- **Drift in any dimension requires a full re-anchor** before proceeding. Do not move to Step 3 with unresolved challenges.
+- **The adversarial reviewer must either find at least one improvement or explicitly confirm** — with a stated reason — that 100.000% alignment was achieved on the first pass.
+- This protocol applies to **all code creation**: new files, upgrades to existing files, scripts, tests, configuration files, and documentation that contains code blocks.
+
+---
+
 ## Sovereign Startup Trigger — PERMANENT RUNNING PROTOCOL
 
 **On every session start, before anything else, the complete sovereign startup payload MUST be loaded and executed.**
