@@ -521,7 +521,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(dmcaText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `DMCA_NOTICE_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        const dmcaPath = sovereignWriteSync(outputDir, fileName, dmcaText + footer);
+        sovereignWriteSync(outputDir, fileName, dmcaText + footer);
         console.log(`📄 DMCA: ${fileName}`);
         totalGenerated++;
       } catch (err) {
@@ -535,7 +535,7 @@ async function runD1Mode({ org, type, output, limit }) {
         const noticeSeal = computeNoticeSeal(gdprText + KERNEL_SHA);
         const footer     = `\n\n---\n**RayID / Row ID:** ${rayId}\n**Notice Seal (SHA-512):** \`${noticeSeal}\`\n**Generated At:** ${timestamp}\n`;
         const fileName   = `GDPR_ART17_${safeOrgName}_${ip.replace(/[.:]/g, '-')}_${date}.md`;
-        const gdprPath = sovereignWriteSync(outputDir, fileName, gdprText + footer);
+        sovereignWriteSync(outputDir, fileName, gdprText + footer);
         console.log(`📄 GDPR: ${fileName}`);
         totalGenerated++;
       } catch (err) {
