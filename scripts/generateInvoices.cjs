@@ -142,15 +142,15 @@ const FORENSIC_EVENT_TYPES = new Set(['DER_HIGH_VALUE', 'DER_SETTLEMENT', 'HN_WA
  * @returns {Array<{org_id: string, request_count: number, ip?: string}>}
  */
 function loadLogs() {
-  if (!fs.existsSync(LOG_PATH)) {
-    logAosHeal(AOS_ERROR.NOT_FOUND, `Log file not found at ${LOG_PATH} — returning empty set.`);
-    return [];
-  }
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(LOG_PATH, 'utf8'));
   } catch (err) {
-    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse log file at ${LOG_PATH}: ${err.message}`, err);
+    if (err.code === 'ENOENT') {
+      logAosHeal(AOS_ERROR.NOT_FOUND, `Log file not found at ${LOG_PATH} — returning empty set.`);
+    } else {
+      logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse log file at ${LOG_PATH}: ${err.message}`, err);
+    }
     return [];
   }
   if (!Array.isArray(raw)) {
@@ -236,15 +236,15 @@ function mergeOrgMaps(asnOrgMap, fileOrgMap) {
  * @returns {Array<{asn?: string, ip_address?: string, path?: string, ray_id?: string}>}
  */
 function loadAnchorAuditLogs() {
-  if (!fs.existsSync(ANCHOR_AUDIT_LOG_PATH)) {
-    logAosHeal(AOS_ERROR.NOT_FOUND, `anchor_audit_logs file not found at ${ANCHOR_AUDIT_LOG_PATH} — returning empty set.`);
-    return [];
-  }
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(ANCHOR_AUDIT_LOG_PATH, 'utf8'));
   } catch (err) {
-    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse anchor_audit_logs file at ${ANCHOR_AUDIT_LOG_PATH}: ${err.message}`, err);
+    if (err.code === 'ENOENT') {
+      logAosHeal(AOS_ERROR.NOT_FOUND, `anchor_audit_logs file not found at ${ANCHOR_AUDIT_LOG_PATH} — returning empty set.`);
+    } else {
+      logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse anchor_audit_logs file at ${ANCHOR_AUDIT_LOG_PATH}: ${err.message}`, err);
+    }
     return [];
   }
   // wrangler d1 execute --json wraps results in { results: [...] }

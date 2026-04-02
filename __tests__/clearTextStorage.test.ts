@@ -32,7 +32,9 @@ const LIB_DIR   = path.join(ROOT, "lib");
 /** Recursively find all .tsx / .ts files under a directory. */
 function findFiles(dir: string, exts = [".tsx", ".ts"]): string[] {
   const results: string[] = [];
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
   if (!fs.existsSync(dir)) return results;
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -46,6 +48,7 @@ function findFiles(dir: string, exts = [".tsx", ".ts"]): string[] {
 
 /** Return all lines in a file that match the given RegExp. */
 function scanFile(filePath: string, pattern: RegExp): { line: number; text: string }[] {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
   const lines = fs.readFileSync(filePath, "utf8").split("\n");
   return lines
     .map((text, i) => ({ line: i + 1, text }))
@@ -146,7 +149,9 @@ describe("B — useVaultAuth hook: all admin pages use the permanent auth patter
   for (const pagePath of ADMIN_PAGES) {
     const label = path.relative(ROOT, pagePath);
     test(`${label} — imports and uses useVaultAuth`, () => {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
       assert.ok(fs.existsSync(pagePath), `${label} must exist`);
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
       const content = fs.readFileSync(pagePath, "utf8");
       assert.ok(
         content.includes(HOOK_IMPORT),
@@ -161,11 +166,13 @@ describe("B — useVaultAuth hook: all admin pages use the permanent auth patter
 
   test("useVaultAuth hook file exists at lib/hooks/useVaultAuth.ts", () => {
     const hookPath = path.join(LIB_DIR, "hooks", "useVaultAuth.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     assert.ok(fs.existsSync(hookPath), "lib/hooks/useVaultAuth.ts must exist");
   });
 
   test("useVaultAuth hook probes /api/v1/vault/auth-check (not a data API)", () => {
     const hookPath = path.join(LIB_DIR, "hooks", "useVaultAuth.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content  = fs.readFileSync(hookPath, "utf8");
     assert.ok(
       content.includes("/api/v1/vault/auth-check"),
@@ -189,6 +196,7 @@ describe("B — useVaultAuth hook: all admin pages use the permanent auth patter
 
   test("useVaultAuth hook POSTs to /api/v1/vault/auth for login", () => {
     const hookPath = path.join(LIB_DIR, "hooks", "useVaultAuth.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content  = fs.readFileSync(hookPath, "utf8");
     assert.ok(
       content.includes("/api/v1/vault/auth"),
@@ -208,11 +216,13 @@ describe("C — /api/v1/vault/auth-check: dedicated cookie-validation endpoint",
 
   test("/api/v1/vault/auth-check route exists", () => {
     const routePath = path.join(ROOT, "app", "api", "v1", "vault", "auth-check", "route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     assert.ok(fs.existsSync(routePath), "/api/v1/vault/auth-check/route.ts must exist");
   });
 
   test("/api/v1/vault/auth-check uses safeEqual for constant-time comparison", () => {
     const routePath = path.join(ROOT, "app", "api", "v1", "vault", "auth-check", "route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content   = fs.readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("safeEqual"),
@@ -222,6 +232,7 @@ describe("C — /api/v1/vault/auth-check: dedicated cookie-validation endpoint",
 
   test("/api/v1/vault/auth-check reads VAULT_COOKIE_NAME from lib/vaultCookieConfig", () => {
     const routePath = path.join(ROOT, "app", "api", "v1", "vault", "auth-check", "route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content   = fs.readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("vaultCookieConfig"),
@@ -231,7 +242,9 @@ describe("C — /api/v1/vault/auth-check: dedicated cookie-validation endpoint",
 
   test("/api/v1/vault/auth route still sets HttpOnly Secure SameSite=Strict cookie", () => {
     const routePath = path.join(ROOT, "app", "api", "v1", "vault", "auth", "route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     assert.ok(fs.existsSync(routePath), "/api/v1/vault/auth route must exist");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content = fs.readFileSync(routePath, "utf8");
     assert.ok(content.includes("HttpOnly"),        "vault auth route must set HttpOnly");
     assert.ok(content.includes("SameSite=Strict"), "vault auth route must set SameSite=Strict");
@@ -240,6 +253,7 @@ describe("C — /api/v1/vault/auth-check: dedicated cookie-validation endpoint",
 
   test("VAULT_COOKIE_NAME comes from lib/vaultCookieConfig (single source of truth)", () => {
     const routePath = path.join(ROOT, "app", "api", "v1", "vault", "auth", "route.ts");
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const content   = fs.readFileSync(routePath, "utf8");
     assert.ok(
       content.includes("vaultCookieConfig"),
@@ -264,17 +278,20 @@ describe("D — JSDoc @returns Promise mismatch scan (stale async annotations)",
    * Returns any violations found.
    */
   function findReturnsMismatch(filePath: string): { line: number; text: string }[] {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- path from validated test fixture
     const src   = fs.readFileSync(filePath, "utf8");
     const lines = src.split("\n");
     const violations: { line: number; text: string }[] = [];
 
     for (let i = 0; i < lines.length; i++) {
+      // eslint-disable-next-line security/detect-object-injection -- bounded loop index
       const line = lines[i] ?? "";
       // Look for a JSDoc @returns line that mentions Promise
       if (!/@returns?\s+.*Promise/i.test(line)) continue;
 
       // Scan forward (up to 10 lines) for the function signature
       for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+        // eslint-disable-next-line security/detect-object-injection -- bounded loop index
         const sigLine = lines[j] ?? "";
         // Skip JSDoc continuation lines and blank lines
         if (/^\s*\*/.test(sigLine) || sigLine.trim() === "") continue;

@@ -55,6 +55,7 @@ const crypto = require('crypto');
 const https  = require('https');
 const http   = require('http');
 const net    = require('net');
+const tmp    = require('tmp');
 const { execSync } = require('child_process');
 const { logAosError, logAosHeal, AOS_ERROR } = require('./sovereignErrorLogger.cjs');
 
@@ -492,8 +493,9 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
     return;
   }
 
-  // Write SQL to a temp file to avoid shell-injection from string interpolation
-  const tmpSqlPath = path.join(require('os').tmpdir(), `aos_onchain_${Date.now()}.sql`);
+  // Write SQL to a secure temp file (tmp.fileSync: unique, restricted permissions, auto-cleanup)
+  const tmpObj    = tmp.fileSync({ prefix: 'aos_onchain_', postfix: '.sql', keep: false });
+  const tmpSqlPath = tmpObj.name;
   const sha512Prefix = sha512.slice(0, 16);
   const setClauses = [];
   if (btcTxid) setClauses.push(`btc_anchor_sha = '${btcTxid}'`);
@@ -501,7 +503,8 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
   const sql = `UPDATE anchor_audit_logs SET ${setClauses.join(', ')} WHERE sha512 LIKE '${sha512Prefix}%';`;
 
   try {
-    fs.writeFileSync(tmpSqlPath, sql, 'utf8');
+    const sqlfd = fs.openSync(tmpSqlPath, 'w');
+    try { fs.writeSync(sqlfd, sql); } finally { fs.closeSync(sqlfd); }
     execSync(
       `npx wrangler d1 execute ${DB_NAME} --remote --file "${tmpSqlPath}"`,
       { stdio: 'inherit' },
@@ -512,7 +515,7 @@ function updateD1Record(sha512, btcTxid, ipfsCid) {
     logAosError(AOS_ERROR.DB_QUERY_FAILED, `D1 update failed: ${err.message}`, err);
     warn('D1 update failed — record not updated. Run manually if needed.');
   } finally {
-    try { fs.unlinkSync(tmpSqlPath); } catch { /* best-effort cleanup */ }
+    try { tmpObj.removeCallback(); } catch { /* best-effort cleanup */ }
   }
 }
 
@@ -530,11 +533,13 @@ async function main() {
   let capsuleJson = null;
 
   if (!sha512 && CAPSULE_PATH) {
-    if (!fs.existsSync(CAPSULE_PATH)) {
+    let capsuleBuf;
+    try {
+      capsuleBuf = fs.readFileSync(CAPSULE_PATH);
+    } catch {
       fail(`Capsule file not found: ${CAPSULE_PATH}`);
       process.exit(2);
     }
-    const capsuleBuf = fs.readFileSync(CAPSULE_PATH);
     sha512       = sha512Hex(capsuleBuf);
     try { capsuleJson = JSON.parse(capsuleBuf.toString('utf8')); } catch {}
     success(`Capsule SHA-512: ${sha512.slice(0, 32)}…`);

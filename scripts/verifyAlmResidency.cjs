@@ -200,7 +200,7 @@ async function almChat() {
 function writeAosrSummary(pingResult, chatResult) {
   try {
     const logsDir = path.join(REPO_ROOT, 'logs');
-    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    fs.mkdirSync(logsDir, { recursive: true });
 
     const pingPass     = pingResult?.alive === true;
     const chatPass     = chatResult?.aligned === true;
@@ -216,7 +216,8 @@ function writeAosrSummary(pingResult, chatResult) {
       alm_host:         `${ALM_HOST}:${ALM_PORT}`,
       alm_model:        ALM_MODEL,
     });
-    fs.appendFileSync(VAULT_LOG, entry + '\n', 'utf-8');
+    const almFd = fs.openSync(VAULT_LOG, 'a');
+    try { fs.writeSync(almFd, entry + '\n'); } finally { fs.closeSync(almFd); }
   } catch (err) {
     console.warn(`⚠️  Could not write AOSR summary: ${err.message}`);
   }

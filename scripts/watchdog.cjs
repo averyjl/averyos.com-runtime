@@ -11,8 +11,12 @@ const LOCAL_SALT_PATH = path.join(process.cwd(), ".anchor-salt");
 const LEGACY_USB_PATH = "D:\\.averyos-anchor-salt.aossalt";
 
 function resolveSaltPath() {
-  if (fs.existsSync(LOCAL_SALT_PATH)) return LOCAL_SALT_PATH;
-  if (fs.existsSync(LEGACY_USB_PATH)) return LEGACY_USB_PATH;
+  let localSaltExists = false;
+  try { fs.accessSync(LOCAL_SALT_PATH); localSaltExists = true; } catch {}
+  if (localSaltExists) return LOCAL_SALT_PATH;
+  let legacyUsbExists = false;
+  try { fs.accessSync(LEGACY_USB_PATH); legacyUsbExists = true; } catch {}
+  if (legacyUsbExists) return LEGACY_USB_PATH;
   return null;
 }
 
@@ -27,7 +31,9 @@ const CRITICAL_SCRIPTS = [
 
 function killSession(reason) {
   console.error(`\n🚨 CRITICAL SECURITY BREACH: ${reason}`);
-  if (fs.existsSync(SOVEREIGN_LOCK_PATH)) {
+  let sovereignLockExists = false;
+  try { fs.accessSync(SOVEREIGN_LOCK_PATH); sovereignLockExists = true; } catch {}
+  if (sovereignLockExists) {
     fs.unlinkSync(SOVEREIGN_LOCK_PATH);
   }
   console.log("🔒 Sovereign Environment Vaporized. System Locked.");
@@ -41,11 +47,6 @@ function pulse() {
     killSession("Anchor salt missing. Run 'npm run setup' to restore .anchor-salt.");
   }
 
-  // 2. Logic Integrity
-  if (!fs.existsSync(SOVEREIGN_LOCK_PATH)) {
-    killSession("Sovereign Lock missing. Run 'npm run setup' to restore .sovereign-lock.");
-  }
-
   // 3. Sovereign lock kernel alignment check
   try {
     const lock = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"));
@@ -53,8 +54,12 @@ function pulse() {
     if (lock.kernel_sha && lock.kernel_sha !== KERNEL_SHA) {
       killSession(`Kernel SHA drift detected in .sovereign-lock. Expected ${KERNEL_SHA.slice(0, 16)}...`);
     }
-  } catch {
-    killSession("Sovereign Lock corrupted or unreadable.");
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      killSession("Sovereign Lock missing. Run 'npm run setup' to restore .sovereign-lock.");
+    } else {
+      killSession("Sovereign Lock corrupted or unreadable.");
+    }
   }
 
   console.log(`🛡️ GabrielOS™: Pulse Verified [${new Date().toLocaleTimeString()}] | Salt: ${saltPath}`);

@@ -39,6 +39,7 @@
 const fs   = require("fs");
 const path = require("path");
 const os   = require("os");
+const tmp  = require("tmp");
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -52,8 +53,9 @@ const AOS_SALT_BLOCK_FILE = "AOS_SALT.bin";
  * Takes priority over legacy markers when present.
  */
 const AOS_SALT_AOSSALT    = "AveryOS-anchor-salt.aossalt";
-/** Runtime cache for last residency check result. */
-const RESIDENCY_CACHE_FILE = path.join(os.tmpdir(), ".aos_residency_cache.json");
+/** Runtime cache for last residency check result — stored in a secure tmp file. */
+const _residencyCacheFile = tmp.fileSync({ prefix: 'aos_residency_', postfix: '.json', keep: true });
+const RESIDENCY_CACHE_FILE = _residencyCacheFile.name;
 
 /** Common USB mount points across platforms. */
 const USB_MOUNT_CANDIDATES = (() => {
@@ -85,7 +87,9 @@ const USB_MOUNT_CANDIDATES = (() => {
   const expanded = [];
   for (const base of candidates) {
     try {
-      if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
+      let baseExists = false;
+      try { fs.accessSync(base); baseExists = true; } catch {}
+      if (baseExists && fs.statSync(base).isDirectory()) {
         const children = fs.readdirSync(base);
         for (const child of children) {
           expanded.push(path.join(base, child));
@@ -115,20 +119,28 @@ function detectAosSaltUsb() {
     try {
       // Priority 1 — GATE 115.2.2: FULLY_RESIDENT .aossalt file
       const aossaltPath = path.join(mount, AOS_SALT_AOSSALT);
-      if (fs.existsSync(aossaltPath)) {
+      let aossaltExists = false;
+      try { fs.accessSync(aossaltPath); aossaltExists = true; } catch {}
+      if (aossaltExists) {
         return { found: true, mountPath: mount, saltPath: aossaltPath, fullyResident: true };
       }
 
       const markerPath = path.join(mount, AOS_SALT_MARKER);
       const blockPath  = path.join(mount, AOS_SALT_BLOCK_FILE);
 
-      if (fs.existsSync(namedPath)) {
+      let namedExists = false;
+      try { fs.accessSync(namedPath); namedExists = true; } catch {}
+      if (namedExists) {
         return { found: true, mountPath: mount, saltPath: namedPath };
       }
-      if (fs.existsSync(markerPath)) {
+      let markerExists = false;
+      try { fs.accessSync(markerPath); markerExists = true; } catch {}
+      if (markerExists) {
         return { found: true, mountPath: mount, saltPath: markerPath, fullyResident: false };
       }
-      if (fs.existsSync(blockPath)) {
+      let blockExists = false;
+      try { fs.accessSync(blockPath); blockExists = true; } catch {}
+      if (blockExists) {
         return { found: true, mountPath: mount, saltPath: blockPath, fullyResident: false };
       }
     } catch {
@@ -161,9 +173,8 @@ function readSaltPreview(saltPath) {
 
 function writeResidencyCache(state) {
   try {
-    // Note: this script is CommonJS (.cjs) and cannot import lib/timePrecision.ts
-    // (ESM/TypeScript). Standard ISO-8601 is sufficient for a local runtime cache.
-    fs.writeFileSync(RESIDENCY_CACHE_FILE, JSON.stringify({ ...state, cached_at: new Date().toISOString() }, null, 2), "utf8");
+    const cfd = fs.openSync(RESIDENCY_CACHE_FILE, 'w');
+    try { fs.writeSync(cfd, JSON.stringify({ ...state, cached_at: new Date().toISOString() }, null, 2)); } finally { fs.closeSync(cfd); }
   } catch {
     // Non-fatal — cache writes may fail in restricted environments
   }
@@ -171,9 +182,13 @@ function writeResidencyCache(state) {
 
 function readResidencyCache() {
   try {
-    if (fs.existsSync(RESIDENCY_CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(RESIDENCY_CACHE_FILE, "utf8"));
+    let _cacheData;
+    try {
+      _cacheData = fs.readFileSync(RESIDENCY_CACHE_FILE, "utf8");
+    } catch {
+      return null;
     }
+    return JSON.parse(_cacheData);
   } catch {
     // Cache read failure is non-fatal
   }
