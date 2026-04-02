@@ -275,15 +275,37 @@ describe("getUsbMountCandidates()", () => {
   });
 
   test("darwin: catches error when /Volumes is inaccessible and returns []", () => {
-    // Temporarily mock process.platform as 'darwin' to cover the darwin try/catch branch.
-    // On Linux CI, /Volumes doesn't exist → fs.readdirSync throws → catch returns [].
+    // Mock fs.readdirSync to throw EACCES, deterministically covering the darwin
+    // try/catch branch in getUsbMountCandidates() regardless of host platform.
+    const restoreReaddir = mock.method(fs, "readdirSync", () => {
+      throw Object.assign(new Error("EACCES: permission denied, scandir '/Volumes'"), { code: "EACCES" });
+    });
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
     try {
       const candidates = getUsbMountCandidates();
-      // On Linux CI, /Volumes doesn't exist → darwin branch catches error → returns []
+      // darwin catch block swallows EACCES and returns []
       assert.ok(Array.isArray(candidates));
+      assert.equal(candidates.length, 0);
     } finally {
+      restoreReaddir.mock.restore();
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    }
+  });
+
+  test("darwin: returns sanitised volume paths from /Volumes when accessible", () => {
+    // Mock fs.readdirSync to return fake volume names, covering the darwin success path
+    // (the try branch completes without throwing).
+    const restoreReaddir = mock.method(fs, "readdirSync", () => ["Macintosh-HD", "USB-Sovereign"]);
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+    try {
+      const candidates = getUsbMountCandidates();
+      assert.ok(Array.isArray(candidates));
+      assert.ok(candidates.some((c) => c.endsWith("Macintosh-HD")));
+      assert.ok(candidates.some((c) => c.endsWith("USB-Sovereign")));
+    } finally {
+      restoreReaddir.mock.restore();
       Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
     }
   });
@@ -321,6 +343,49 @@ describe("getUsbMountCandidates()", () => {
       assert.ok(candidates.every((c) => !c.includes("@")));
     } finally {
       restore.mock.restore();
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    }
+  });
+
+  test("linux: skips base when existsSync returns true but isDirectory() returns false", () => {
+    // Covers the branch where existsSync(base) is truthy but statSync(base).isDirectory()
+    // returns false — the if-body is NOT entered so no children are enumerated.
+    const restoreUser   = mock.method(os, "userInfo", () => ({ username: "testuser" }));
+    const restoreExists = mock.method(fs, "existsSync", () => true);
+    const restoreStat   = mock.method(fs, "statSync", () => ({ isDirectory: () => false }));
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    try {
+      const candidates = getUsbMountCandidates();
+      // existsSync → true but isDirectory → false for every base → no children
+      assert.ok(Array.isArray(candidates));
+      assert.equal(candidates.length, 0);
+    } finally {
+      restoreUser.mock.restore();
+      restoreExists.mock.restore();
+      restoreStat.mock.restore();
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    }
+  });
+
+  test("linux: swallows EPERM when existsSync throws inside the mount-base loop", () => {
+    // Explicitly covers the defensive `catch { /* skip inaccessible mount bases */ }` block
+    // by mocking fs.existsSync to throw an EPERM error.  The function must swallow
+    // the exception and return an empty array rather than propagating.
+    const restoreUser   = mock.method(os, "userInfo", () => ({ username: "testuser" }));
+    const restoreExists = mock.method(fs, "existsSync", () => {
+      throw Object.assign(new Error("EPERM: operation not permitted"), { code: "EPERM" });
+    });
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    try {
+      const candidates = getUsbMountCandidates();
+      // The catch block swallows the error and the loop continues → []
+      assert.ok(Array.isArray(candidates));
+      assert.equal(candidates.length, 0);
+    } finally {
+      restoreUser.mock.restore();
+      restoreExists.mock.restore();
       Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
     }
   });
@@ -535,6 +600,30 @@ describe("scanMountsForSalt()", () => {
       fs.rmdirSync(tmpDir);
     }
   });
+
+  test("swallows error when fs.existsSync throws for a candidate and returns null", () => {
+    // Explicitly covers the defensive `catch { /* skip inaccessible mounts */ }` block
+    // inside scanMountsForSalt() by mocking fs.existsSync to throw.  The function
+    // must swallow the exception, exhaust all candidates, and return null.
+    const restoreExists = mock.method(fs, "existsSync", () => {
+      throw Object.assign(new Error("EPERM: operation not permitted"), { code: "EPERM" });
+    });
+    try {
+      const result = scanMountsForSalt(["/some-mount-path"], new Date().toISOString());
+      assert.equal(result, null);
+    } finally {
+      restoreExists.mock.restore();
+    }
+  });
+
+  test("returns null when mount path resolves to a traversal path (validateSaltPath returns null)", () => {
+    // Using '..' as the mount causes path.join('..', SALT_FILENAME_PRIMARY) to produce
+    // '../AveryOS-anchor-salt.aossalt'.  validateSaltPath rejects this because the
+    // normalized form still contains '..', so primaryPath is null and the '&&'
+    // short-circuits — covering the falsy-left-side branch of that expression.
+    const result = scanMountsForSalt([".."], new Date().toISOString());
+    assert.equal(result, null);
+  });
 });
 
 describe("performResidencyHandshake()", () => {
@@ -593,6 +682,46 @@ describe("performResidencyHandshake()", () => {
     // Both must be valid strings regardless
     assert.ok(typeof r1.timestamp === "string");
     assert.ok(typeof r2.timestamp === "string");
+  });
+
+  test("returns FULLY_RESIDENT and takes the `if (found) return found` path (mocked fs)", () => {
+    // Covers the `if (found) return found` truthy branch inside performResidencyHandshake().
+    // In CI there is no physical USB, so we mock the filesystem: pretend /mnt contains a
+    // single subdirectory with the sovereign primary salt file.
+    const fakeMount    = "usb-sovereign-test";
+    const fakeSaltPath = path.join("/mnt", fakeMount, SALT_FILENAME_PRIMARY);
+
+    const restoreReaddir = mock.method(fs, "readdirSync", (p: unknown) => {
+      if (p === "/mnt") return [fakeMount];
+      return [];
+    });
+    const restoreExists = mock.method(fs, "existsSync", (p: unknown) => {
+      return p === "/mnt" || p === fakeSaltPath;
+    });
+    const restoreStat = mock.method(fs, "statSync", (p: unknown) => {
+      if (p === "/mnt") return { isDirectory: () => true };
+      throw Object.assign(new Error(`ENOENT: ${String(p)}`), { code: "ENOENT" });
+    });
+    const restoreRead = mock.method(fs, "readFileSync", () =>
+      Buffer.from("sovereign-salt-payload-for-handshake-coverage-test"),
+    );
+
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    try {
+      const result = performResidencyHandshake();
+      assert.equal(result.state, "FULLY_RESIDENT");
+      assert.equal(result.found, true);
+      assert.equal(result.mountPath, path.join("/mnt", fakeMount));
+      assert.equal(result.kernelVersion, KERNEL_VERSION);
+      assert.equal(result.kernelSha, KERNEL_SHA);
+    } finally {
+      restoreReaddir.mock.restore();
+      restoreExists.mock.restore();
+      restoreStat.mock.restore();
+      restoreRead.mock.restore();
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    }
   });
 });
 
