@@ -83,7 +83,7 @@ function run(cmd, opts = {}) {
 function healGateA() {
   info("Gate A AutoHeal — running eslint --fix …");
 
-  const fix = run("npx eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/' --fix 2>&1");
+  run("npx eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/' --fix 2>&1");
   logAosHeal("GATE_A_ESLINT_FIX", "eslint --fix applied to all source files");
 
   // Re-verify: a clean lint means all fixable errors were resolved.
