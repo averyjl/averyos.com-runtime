@@ -38,7 +38,6 @@
 
 const { spawnSync } = require("child_process");
 const path  = require("path");
-const fs    = require("fs");
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
