@@ -39,7 +39,7 @@ describe("ntpSteward", () => {
   test("getStewardState() — is a function and returns state object", () => {
     assert.equal(typeof getStewardState, "function");
     const state = getStewardState();
-    assert.ok(state !== undefined, "getStewardState should return a state object");
+    assert.equal(typeof state, "object");
   });
 
   test("triggerActiveSync() — is a function", () => {
