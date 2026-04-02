@@ -372,8 +372,15 @@ function main() {
     ok("\n✅ All lib/ modules have test coverage!");
   }
 
+  // In CI (process.env.CI === 'true') and dry-run mode, a non-zero uncovered
+  // count is a hard failure — the Adversarial Test Gate enforces 100% stubs.
+  // Outside CI, gaps are warnings so local development is not blocked.
+  if (report.uncovered.length > 0 && (DRY_RUN && process.env.CI === "true")) {
+    process.exit(1); // Hard failure in CI — stubs required before code lands
+  }
+
   if (!DRY_RUN && report.uncovered.length > 0) {
-    process.exit(0); // Exit 0 — gaps are warnings, not hard failures until CI enforces them
+    process.exit(0); // Gaps are informational warnings in local non-dry-run mode
   }
 
   // ── GATE 111.5.3 — Key/Token Auto-Guard (inline) ─────────────────────────

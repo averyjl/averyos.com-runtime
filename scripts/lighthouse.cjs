@@ -17,17 +17,14 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { sovereignWriteSync, PULSE_LOGS_ROOT } = require('./lib/sovereignIO.cjs');
 
-const PULSE_DIR = path.resolve(process.cwd(), 'logs/pulse');
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://averyos.com';
 
 /** Run a shell command and return its stdout (throws on non-zero exit). */
 function run(cmd) {
   return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' });
 }
-
-// ── Ensure pulse log directory exists ────────────────────────────────────────
-fs.mkdirSync(PULSE_DIR, { recursive: true });
 
 // ── Write heartbeat entry ─────────────────────────────────────────────────────
 const ts = new Date().toISOString();
@@ -40,14 +37,12 @@ const entry = {
 };
 
 const filename = `pulse-${ts.replace(/[:.]/g, '-')}.json`;
-const filepath = path.join(PULSE_DIR, filename);
-const fdPulse = fs.openSync(filepath, 'w');
-try { fs.writeSync(fdPulse, JSON.stringify(entry, null, 2) + '\n'); } finally { fs.closeSync(fdPulse); }
+sovereignWriteSync(PULSE_LOGS_ROOT, filename, JSON.stringify(entry, null, 2) + '\n');
 console.log(`⚓ Sovereign Pulse recorded: ${filename}`);
 
 // ── Commit and push ───────────────────────────────────────────────────────────
 try {
-  const rel = path.relative(process.cwd(), PULSE_DIR);
+  const rel = path.relative(process.cwd(), PULSE_LOGS_ROOT);
   run(`git add "${rel}"`);
 
   const status = run('git status --porcelain');

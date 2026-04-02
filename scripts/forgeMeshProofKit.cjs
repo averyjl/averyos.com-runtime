@@ -1,15 +1,12 @@
-const fs = require("fs");
 const path = require("path");
+const { sovereignWriteSync, CAPSULE_LOGS_ROOT } = require("./lib/sovereignIO.cjs");
 
 const ts = new Date().toISOString().replace(/[:.]/g, "-");
-const baseDir = path.join(process.cwd(), "capsule_logs", `mesh-proof-kit-${ts}`);
+const kitDirName = `mesh-proof-kit-${ts}`;
+const kitRoot = path.join(CAPSULE_LOGS_ROOT, kitDirName);
 
-fs.mkdirSync(baseDir, { recursive: true });
-const fd1 = fs.openSync(path.join(baseDir, "README.txt"), 'w');
-try { fs.writeSync(fd1, "MeshProofKit v1 evidence folder\n"); } finally { fs.closeSync(fd1); }
-const fd2 = fs.openSync(path.join(baseDir, "witness-checklist.txt"), 'w');
-try { fs.writeSync(fd2, "- Capture VaultSig\n- Capture session timestamp\n"); } finally { fs.closeSync(fd2); }
-const fd3 = fs.openSync(path.join(baseDir, "broadcast-notes.txt"), 'w');
-try { fs.writeSync(fd3, "Mesh declaration notes go here.\n"); } finally { fs.closeSync(fd3); }
+sovereignWriteSync(kitRoot, "README.txt", "MeshProofKit v1 evidence folder\n");
+sovereignWriteSync(kitRoot, "witness-checklist.txt", "- Capture VaultSig\n- Capture session timestamp\n");
+sovereignWriteSync(kitRoot, "broadcast-notes.txt", "Mesh declaration notes go here.\n");
 
-console.log(`Generated MeshProofKit at ${baseDir}`);
+console.log(`Generated MeshProofKit at ${kitRoot}`);

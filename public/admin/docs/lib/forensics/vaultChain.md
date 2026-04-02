@@ -6,6 +6,8 @@
 
 ## Public API
 
+### `mirrorBlockToR2` *(function)*
+
 ### `ensureVaultChainTable` *(function)*
 
 ### `appendRecord` *(function)*
@@ -22,6 +24,10 @@
 
 ### `writeBlock` *(function)*
 
+### `fetchBtcAnchorData` *(function)*
+
+### `VAULTCHAIN_R2_PREFIX` *(constant)*
+
 ### `VaultChainBlockBase` *(interface)*
 
 ### `VaultChainRecord` *(interface)*
@@ -32,7 +38,11 @@
 
 ### `VaultChainGenesis` *(interface)*
 
+### `VaultChainR2Bucket` *(interface)*
+
 ### `WriteBlockInput` *(interface)*
+
+### `BtcAnchorData` *(interface)*
 
 ### `VaultChainBlockType` *(type)*
 

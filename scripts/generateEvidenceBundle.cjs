@@ -9,7 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
+const { sovereignWriteSync, ENFORCEMENT_EVIDENCE_ROOT, ENFORCEMENT_NOTICES_ROOT, ENFORCEMENT_LOGS_ROOT } = require("./lib/sovereignIO.cjs");
 
 // Generate SHA-512 hash
 function generateSha512(content) {
@@ -157,17 +157,23 @@ function main() {
   const logsDir = path.join(enforcementDir, "logs");
 
   [enforcementDir, evidenceDir, noticesDir, logsDir].forEach((dir) => {
-    fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   });
 
   // Generate evidence bundle
   const bundle = generateEvidenceBundle(options);
-  const bundlePath = sovereignWriteSync(evidenceDir, `${bundle.bundleId}.json`, JSON.stringify(bundle, null, 2));
+  const bundleFileName = `${bundle.bundleId}.json`;
+  const bundlePath = path.join(ENFORCEMENT_EVIDENCE_ROOT, bundleFileName);
+  sovereignWriteSync(ENFORCEMENT_EVIDENCE_ROOT, bundleFileName, JSON.stringify(bundle, null, 2));
   console.log(`✅ Evidence bundle created: ${bundlePath}`);
 
   // Generate compliance notice
   const notice = generateComplianceNotice(options);
-  const noticePath = sovereignWriteSync(noticesDir, `${notice.noticeId}.json`, JSON.stringify(notice, null, 2));
+  const noticeFileName = `${notice.noticeId}.json`;
+  const noticePath = path.join(ENFORCEMENT_NOTICES_ROOT, noticeFileName);
+  sovereignWriteSync(ENFORCEMENT_NOTICES_ROOT, noticeFileName, JSON.stringify(notice, null, 2));
   console.log(`✅ Compliance notice created: ${noticePath}`);
 
   // Add to enforcement log
@@ -175,17 +181,14 @@ function main() {
     ...options,
     stripeProductId: options.stripeProductId || `prod_${capsuleId}`,
   });
-  const logPath = path.join(logsDir, "enforcement-log.json");
+  const logPath = path.join(ENFORCEMENT_LOGS_ROOT, "enforcement-log.json");
 
   let events = [];
-  try {
+  if (fs.existsSync(logPath)) {
     events = JSON.parse(fs.readFileSync(logPath, "utf-8"));
-  } catch {
-    events = [];
   }
   events.push(event);
-  const fdLog = fs.openSync(logPath, 'w');
-  try { fs.writeSync(fdLog, JSON.stringify(events, null, 2)); } finally { fs.closeSync(fdLog); }
+  sovereignWriteSync(ENFORCEMENT_LOGS_ROOT, "enforcement-log.json", JSON.stringify(events, null, 2));
   console.log(`✅ Event added to log: ${event.id}`);
 
   console.log("\n📋 Summary:");

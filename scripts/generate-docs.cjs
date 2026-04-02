@@ -25,11 +25,12 @@
 
 const fs   = require("fs");
 const path = require("path");
+const { sovereignWriteSync, DOCS_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const ROOT     = path.resolve(__dirname, "..");
-const OUT_DIR  = path.join(ROOT, "public", "admin", "docs");
+const OUT_DIR  = DOCS_ROOT;
 const SRC_DIRS = [
   "lib",
   "app/api",
@@ -54,13 +55,8 @@ const PRIVATE_IP_PATTERNS = [
  */
 function scanTs(dir) {
   const results = [];
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return results;
-  }
-  for (const entry of entries) {
+  if (!fs.existsSync(dir)) return results;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
       results.push(...scanTs(path.join(dir, entry.name)));
     } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
@@ -232,9 +228,8 @@ function main() {
 
       // Write module doc
       const outFile = path.join(OUT_DIR, relPath.replace(/\.(ts|tsx)$/, ".md"));
-      fs.mkdirSync(path.dirname(outFile), { recursive: true });
-      const fdDoc = fs.openSync(outFile, 'w');
-      try { fs.writeSync(fdDoc, docMd); } finally { fs.closeSync(fdDoc); }
+      const outRelative = relPath.replace(/\.(ts|tsx)$/, ".md");
+      sovereignWriteSync(OUT_DIR, outRelative, docMd);
 
       index.modules.push({
         path:        relPath,
@@ -249,8 +244,7 @@ function main() {
 
   // Write index.json
   const indexPath = path.join(OUT_DIR, "index.json");
-  const fdIndex = fs.openSync(indexPath, 'w');
-  try { fs.writeSync(fdIndex, JSON.stringify(index, null, 2)); } finally { fs.closeSync(fdIndex); }
+  sovereignWriteSync(OUT_DIR, "index.json", JSON.stringify(index, null, 2));
 
   console.log(`[generate-docs] Complete — ${processedCount} modules documented, ${skippedCount} skipped (private IP).`);
   console.log(`[generate-docs] Index: ${path.relative(ROOT, indexPath)}`);

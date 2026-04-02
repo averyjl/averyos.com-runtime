@@ -2,7 +2,7 @@ name = "averyoscom-runtime"
 account_id = "374875d33ef47a741a129bd5e716abff"
 compatibility_date = "2026-02-05"
 main = ".open-next/worker.js"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat_v2"]
 
 # ── Build configuration ────────────────────────────────────────────────────────
 # Tells Cloudflare Workers CI and local `wrangler dev` the correct build command.
@@ -12,7 +12,7 @@ command = "npm run build:cloudflare"
 
 [assets]
 binding = "ASSETS"
-directory = ".open-next/assets"
+directory = "./.open-next/assets"
 
 [vars]
 NODE_VERSION = "22"
@@ -126,6 +126,7 @@ bucket_name = 'cloudflare-managed-42f4b874'
 #   wrangler secret put GITHUB_PAT
 #   wrangler secret put VAULT_PASSPHRASE
 #   wrangler secret put BLOCKCHAIN_API_KEY      # BlockCypher — BTC block anchor salt
+#   wrangler secret put ALCHEMY_API_KEY         # Alchemy/Blockchain API
 #   wrangler secret put AVERYOS_LICENSE_KEY     # AveryOS™ license gate for /api/v1/resonance
 #   wrangler secret put GABRIEL_SENTINEL_WEBHOOK # GabrielOS™ Sentinel webhook URL
 #   wrangler secret put PUSHOVER_APP_TOKEN      # Pushover notifications

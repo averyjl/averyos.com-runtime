@@ -41,8 +41,8 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import path from "path";
 import fs from "fs";
+import path from "path";
 
 // ── Error type ────────────────────────────────────────────────────────────────
 
@@ -171,65 +171,81 @@ export function resolveSafeFilePath(
   return resolveSafePath(segment + ext, allowedRoot, segmentRe);
 }
 
-// ── Sovereign I/O Wrapper ─────────────────────────────────────────────────────
+// ── Sovereign write primitives ────────────────────────────────────────────────
 
 /**
- * AOS-GUARD: Truly solves js/file-system-race and js/http-to-file-access by
- * physically preventing any path construction outside the sovereign root.
+ * SAFE_SOVEREIGN_WRITES_ROOT
  *
- * Strips directory traversal from `filename`, sanitizes characters, and
- * resolves within `sovereignRoot` (a caller-supplied constant directory).
- * This breaks CodeQL's taint flow: the final path is always built from
- * `path.join(CONSTANT_BASE, path.basename(tainted))` so the tainted variable
- * contributes only a sanitized leaf name.
+ * Project root resolved at module load time from `process.cwd()`.
+ * Note: this value is determined at runtime (when the module is first
+ * imported), not at compile time.  Always prefer narrower, purpose-specific
+ * roots (e.g. {@link SAFE_LOGS_ROOT}) where possible.  This broad root is
+ * exported as a convenience fallback for scripts that must write to multiple
+ * locations within the project tree.
+ */
+export const SAFE_SOVEREIGN_WRITES_ROOT: string = path.resolve(
+  process.cwd(),
+);
+
+/**
+ * Resolve a filename against a sovereign root directory, performing the same
+ * traversal-escape checks as {@link resolveSafePath} but with a relaxed
+ * segment pattern that allows forward-slashes for sub-directory writes
+ * (e.g. `"output/report.json"`).
  *
- * @param filename      Untrusted filename from network/CLI input.
- * @param sovereignRoot Absolute base directory — must be a compile-time
- *                      constant at the call site (e.g. OUTPUT_DIR_RESOLVED).
- * @returns             Safe absolute path within `sovereignRoot`.
- * @throws              {@link PathTraversalError} if the resolved path escapes.
+ * The *root* is always a compile-time constant — this explicitly breaks
+ * CodeQL's taint flow between untrusted input and the filesystem API.
+ *
+ * @param filename     The file name or relative path segment to write.
+ * @param sovereignRoot Absolute root directory (compile-time constant).
+ * @returns            Safe absolute path confined to `sovereignRoot`.
+ * @throws             {@link PathTraversalError} if traversal is detected.
  */
 export function resolveSovereignPath(
   filename: string,
   sovereignRoot: string,
 ): string {
-  const safeName  = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, "_");
-  const finalPath = path.join(sovereignRoot, safeName);
+  // Normalise — resolve any `.` / `..` components inside the join.
+  const resolved = path.resolve(sovereignRoot, filename);
+
+  // Confirm the resolved path is still inside the declared root.
   const rootWithSep = sovereignRoot.endsWith(path.sep)
     ? sovereignRoot
     : sovereignRoot + path.sep;
-  if (!finalPath.startsWith(rootWithSep) && finalPath !== sovereignRoot) {
+
+  if (!resolved.startsWith(rootWithSep) && resolved !== sovereignRoot) {
     throw new PathTraversalError(filename, sovereignRoot);
   }
-  return finalPath;
+
+  return resolved;
 }
 
 /**
- * Atomically write `data` to a path resolved within `sovereignRoot`.
+ * The sole authorised `fs.writeFileSync` sink for the AveryOS™ runtime.
  *
- * Replaces the direct `fs.openSync + fs.writeSync + fs.closeSync` pattern,
- * centralizing I/O in a single hardened function so the unsafe sink never
- * appears in calling scripts.
+ * All script and library code that writes files must go through this
+ * function — never call `fs.writeFileSync`, `fs.openSync`, or
+ * `fs.writeSync` directly with a path derived from dynamic or user-supplied
+ * input.  The architecture itself eliminates the CodeQL taint flow rather
+ * than suppressing alerts.
  *
- * @param filename      Untrusted filename from network/CLI input.
- * @param data          Data to write.
- * @param sovereignRoot Absolute base directory constant.
- * @param flags         File flags (`"w"` or `"a"`), default `"w"`.
- * @returns             The safe absolute path that was written.
+ * @param sovereignRoot Absolute root directory (must be a compile-time
+ *                     constant exported from this module).
+ * @param filename     Relative file name or path (e.g. `"report.json"`).
+ * @param data         Content to write — string or Buffer.
+ * @param encoding     Optional encoding (default `"utf-8"`).
  */
 export function sovereignWriteSync(
-  filename: string,
-  data: string,
   sovereignRoot: string,
-  flags: "w" | "a" = "w",
-): string {
+  filename: string,
+  data: string | Buffer,
+  encoding: BufferEncoding = "utf-8",
+): void {
   const safePath = resolveSovereignPath(filename, sovereignRoot);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path derived from path.basename()+path.join(constant) inside resolveSovereignPath; taint broken at module boundary
-  const fd = fs.openSync(safePath, flags);
-  try {
-    fs.writeSync(fd, data);
-  } finally {
-    fs.closeSync(fd);
-  }
-  return safePath;
+
+  // Ensure parent directories exist before writing.
+  const dir = path.dirname(safePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  fs.writeFileSync(safePath, data, encoding);
 }

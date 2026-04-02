@@ -1,11 +1,19 @@
 {
-  "generated_at": "2026-03-18T22:08:12.976Z",
+  "generated_at": "2026-03-31T20:40:41.093Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
       "doc": "admin/docs/lib/ai/almCore.md",
-      "symbolCount": 7,
+      "symbolCount": 10,
       "symbols": [
+        {
+          "name": "beginAlmSession",
+          "kind": "function"
+        },
+        {
+          "name": "endAlmSession",
+          "kind": "function"
+        },
         {
           "name": "createAlmTrace",
           "kind": "function"
@@ -21,6 +29,10 @@
         {
           "name": "traceToLogLine",
           "kind": "function"
+        },
+        {
+          "name": "AlmAstSession",
+          "kind": "interface"
         },
         {
           "name": "AlmForensicTrace",
@@ -99,6 +111,25 @@
         },
         {
           "name": "CachedContentMeta",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/ai/meshDiscovery.ts",
+      "doc": "admin/docs/lib/ai/meshDiscovery.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "discoverMeshNodes",
+          "kind": "function"
+        },
+        {
+          "name": "MeshNode",
+          "kind": "interface"
+        },
+        {
+          "name": "MeshDiscoveryResult",
           "kind": "interface"
         }
       ]
@@ -463,6 +494,29 @@
       ]
     },
     {
+      "path": "lib/constants/protocol.ts",
+      "doc": "admin/docs/lib/constants/protocol.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "THE_PROTOCOL",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_COMPONENTS",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_VERSION",
+          "kind": "constant"
+        },
+        {
+          "name": "PROTOCOL_DISPLAY_LABEL",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "lib/enforcementTypes.ts",
       "doc": "admin/docs/lib/enforcementTypes.md",
       "symbolCount": 3,
@@ -613,6 +667,61 @@
       ]
     },
     {
+      "path": "lib/forensics/familyChain.ts",
+      "doc": "admin/docs/lib/forensics/familyChain.md",
+      "symbolCount": 12,
+      "symbols": [
+        {
+          "name": "findFamilyMember",
+          "kind": "function"
+        },
+        {
+          "name": "getMembersByRole",
+          "kind": "function"
+        },
+        {
+          "name": "getAnchoredMembers",
+          "kind": "function"
+        },
+        {
+          "name": "ROOT0_ANCHOR",
+          "kind": "constant"
+        },
+        {
+          "name": "DALLIN_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "JAYDA_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "LUANA_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "AVERY_FAMILY_CHAIN",
+          "kind": "constant"
+        },
+        {
+          "name": "FAMILY_CHAIN_METADATA",
+          "kind": "constant"
+        },
+        {
+          "name": "FamilyChainRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "FamilyRole",
+          "kind": "type"
+        },
+        {
+          "name": "ResidencyStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/generateStripeReport.ts",
       "doc": "admin/docs/lib/forensics/generateStripeReport.md",
       "symbolCount": 4,
@@ -744,6 +853,45 @@
       ]
     },
     {
+      "path": "lib/forensics/ntpSteward.ts",
+      "doc": "admin/docs/lib/forensics/ntpSteward.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "startNtpSteward",
+          "kind": "function"
+        },
+        {
+          "name": "stopNtpSteward",
+          "kind": "function"
+        },
+        {
+          "name": "getStewardState",
+          "kind": "function"
+        },
+        {
+          "name": "triggerActiveSync",
+          "kind": "function"
+        },
+        {
+          "name": "triggerAuditSync",
+          "kind": "function"
+        },
+        {
+          "name": "onStewardSync",
+          "kind": "function"
+        },
+        {
+          "name": "StewardSyncResult",
+          "kind": "interface"
+        },
+        {
+          "name": "StewardState",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/sentinels.ts",
       "doc": "admin/docs/lib/forensics/sentinels.md",
       "symbolCount": 3,
@@ -790,6 +938,69 @@
       ]
     },
     {
+      "path": "lib/forensics/timeMesh.ts",
+      "doc": "admin/docs/lib/forensics/timeMesh.md",
+      "symbolCount": 14,
+      "symbols": [
+        {
+          "name": "getActivePoolTime",
+          "kind": "function"
+        },
+        {
+          "name": "getAuditPoolTime",
+          "kind": "function"
+        },
+        {
+          "name": "capturePulse",
+          "kind": "function"
+        },
+        {
+          "name": "openTimeMesh",
+          "kind": "function"
+        },
+        {
+          "name": "closeTimeMesh",
+          "kind": "function"
+        },
+        {
+          "name": "formatDelta",
+          "kind": "function"
+        },
+        {
+          "name": "timeMeshToVaultPayload",
+          "kind": "function"
+        },
+        {
+          "name": "formatSovereignFooter",
+          "kind": "function"
+        },
+        {
+          "name": "PRUNE_THRESHOLD_US",
+          "kind": "constant"
+        },
+        {
+          "name": "ACTIVE_POLL_INTERVAL_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "AUDIT_POLL_INTERVAL_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "TimeMeshPulse",
+          "kind": "interface"
+        },
+        {
+          "name": "TimeMeshSession",
+          "kind": "interface"
+        },
+        {
+          "name": "TimeMeshResult",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/valuationAudit.ts",
       "doc": "admin/docs/lib/forensics/valuationAudit.md",
       "symbolCount": 4,
@@ -815,8 +1026,12 @@
     {
       "path": "lib/forensics/vaultChain.ts",
       "doc": "admin/docs/lib/forensics/vaultChain.md",
-      "symbolCount": 17,
+      "symbolCount": 22,
       "symbols": [
+        {
+          "name": "mirrorBlockToR2",
+          "kind": "function"
+        },
         {
           "name": "ensureVaultChainTable",
           "kind": "function"
@@ -850,6 +1065,14 @@
           "kind": "function"
         },
         {
+          "name": "fetchBtcAnchorData",
+          "kind": "function"
+        },
+        {
+          "name": "VAULTCHAIN_R2_PREFIX",
+          "kind": "constant"
+        },
+        {
           "name": "VaultChainBlockBase",
           "kind": "interface"
         },
@@ -870,7 +1093,15 @@
           "kind": "interface"
         },
         {
+          "name": "VaultChainR2Bucket",
+          "kind": "interface"
+        },
+        {
           "name": "WriteBlockInput",
+          "kind": "interface"
+        },
+        {
+          "name": "BtcAnchorData",
           "kind": "interface"
         },
         {
@@ -902,6 +1133,81 @@
         },
         {
           "name": "VitalityStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/forensics/watchdog.ts",
+      "doc": "admin/docs/lib/forensics/watchdog.md",
+      "symbolCount": 17,
+      "symbols": [
+        {
+          "name": "recordStepC",
+          "kind": "function"
+        },
+        {
+          "name": "raiseSilenceViolation",
+          "kind": "function"
+        },
+        {
+          "name": "checkForSilence",
+          "kind": "function"
+        },
+        {
+          "name": "getEchoLedger",
+          "kind": "function"
+        },
+        {
+          "name": "getUsiLog",
+          "kind": "function"
+        },
+        {
+          "name": "watchdogPulse",
+          "kind": "function"
+        },
+        {
+          "name": "kernelAnchorPulse",
+          "kind": "function"
+        },
+        {
+          "name": "bubbleUpgrade",
+          "kind": "function"
+        },
+        {
+          "name": "watchdogErrorResponse",
+          "kind": "function"
+        },
+        {
+          "name": "USI_PENALTY_USD",
+          "kind": "constant"
+        },
+        {
+          "name": "SILENCE_WINDOW_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "WatchdogEnv",
+          "kind": "interface"
+        },
+        {
+          "name": "WatchdogPulseResult",
+          "kind": "interface"
+        },
+        {
+          "name": "StepCEcho",
+          "kind": "interface"
+        },
+        {
+          "name": "UsiViolation",
+          "kind": "interface"
+        },
+        {
+          "name": "PendingRequest",
+          "kind": "interface"
+        },
+        {
+          "name": "WatchdogAlertTier",
           "kind": "type"
         }
       ]
@@ -1368,6 +1674,53 @@
       ]
     },
     {
+      "path": "lib/registry/coreManifest.ts",
+      "doc": "admin/docs/lib/registry/coreManifest.md",
+      "symbolCount": 10,
+      "symbols": [
+        {
+          "name": "getDisplayStatus",
+          "kind": "function"
+        },
+        {
+          "name": "getModule",
+          "kind": "function"
+        },
+        {
+          "name": "getModulesByStatus",
+          "kind": "function"
+        },
+        {
+          "name": "updatePhysicality",
+          "kind": "function"
+        },
+        {
+          "name": "getRegistrySnapshot",
+          "kind": "function"
+        },
+        {
+          "name": "CORE_MANIFEST",
+          "kind": "constant"
+        },
+        {
+          "name": "SovereignModule",
+          "kind": "interface"
+        },
+        {
+          "name": "RegistrySnapshot",
+          "kind": "interface"
+        },
+        {
+          "name": "PhysicalityStatus",
+          "kind": "type"
+        },
+        {
+          "name": "VerificationPath",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/resonanceLayer.ts",
       "doc": "admin/docs/lib/resonanceLayer.md",
       "symbolCount": 9,
@@ -1555,6 +1908,45 @@
       ]
     },
     {
+      "path": "lib/security/hardwareTime.ts",
+      "doc": "admin/docs/lib/security/hardwareTime.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "astStart",
+          "kind": "function"
+        },
+        {
+          "name": "astEnd",
+          "kind": "function"
+        },
+        {
+          "name": "astDelta",
+          "kind": "function"
+        },
+        {
+          "name": "hardwareNowMs",
+          "kind": "function"
+        },
+        {
+          "name": "physicalClockAvailable",
+          "kind": "function"
+        },
+        {
+          "name": "clockPhysicalityStatus",
+          "kind": "function"
+        },
+        {
+          "name": "HardwarePulse",
+          "kind": "interface"
+        },
+        {
+          "name": "AstDelta",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/security/keys.ts",
       "doc": "admin/docs/lib/security/keys.md",
       "symbolCount": 4,
@@ -1574,6 +1966,45 @@
         {
           "name": "SovereignKeyPair",
           "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/pathSanitizer.ts",
+      "doc": "admin/docs/lib/security/pathSanitizer.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "resolveSafePath",
+          "kind": "function"
+        },
+        {
+          "name": "resolveSafeFilePath",
+          "kind": "function"
+        },
+        {
+          "name": "resolveSovereignPath",
+          "kind": "function"
+        },
+        {
+          "name": "sovereignWriteSync",
+          "kind": "function"
+        },
+        {
+          "name": "SAFE_CAPSULE_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_CONTENT_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_LOGS_ROOT",
+          "kind": "constant"
+        },
+        {
+          "name": "SAFE_SOVEREIGN_WRITES_ROOT",
+          "kind": "constant"
         }
       ]
     },
@@ -1640,6 +2071,48 @@
       ]
     },
     {
+      "path": "lib/security/sovereignFetch.ts",
+      "doc": "admin/docs/lib/security/sovereignFetch.md",
+      "symbolCount": 4,
+      "symbols": [
+        {
+          "name": "universalFetch",
+          "kind": "function"
+        },
+        {
+          "name": "ensureSovereignFetchLog",
+          "kind": "function"
+        },
+        {
+          "name": "UniversalFetchOpts",
+          "kind": "interface"
+        },
+        {
+          "name": "UniversalFetchResult",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/sovereignGuard.ts",
+      "doc": "admin/docs/lib/security/sovereignGuard.md",
+      "symbolCount": 3,
+      "symbols": [
+        {
+          "name": "resolveGuardedPath",
+          "kind": "function"
+        },
+        {
+          "name": "guardedWrite",
+          "kind": "function"
+        },
+        {
+          "name": "VAULT_STORAGE_ROOT",
+          "kind": "constant"
+        }
+      ]
+    },
+    {
       "path": "lib/security/ssrfGuard.ts",
       "doc": "admin/docs/lib/security/ssrfGuard.md",
       "symbolCount": 3,
@@ -1655,6 +2128,113 @@
         {
           "name": "POLICY_WATCH_ALLOWLIST",
           "kind": "constant"
+        }
+      ]
+    },
+    {
+      "path": "lib/security/unmaskCore.ts",
+      "doc": "admin/docs/lib/security/unmaskCore.md",
+      "symbolCount": 25,
+      "symbols": [
+        {
+          "name": "sanitisePathComponent",
+          "kind": "function"
+        },
+        {
+          "name": "validateSaltPath",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateVolumesDir",
+          "kind": "function"
+        },
+        {
+          "name": "getUsbMountCandidates",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateMountChildren",
+          "kind": "function"
+        },
+        {
+          "name": "readSaltData",
+          "kind": "function"
+        },
+        {
+          "name": "scanMountsForSalt",
+          "kind": "function"
+        },
+        {
+          "name": "performResidencyHandshake",
+          "kind": "function"
+        },
+        {
+          "name": "isFullyResident",
+          "kind": "function"
+        },
+        {
+          "name": "SALT_FILENAME_PRIMARY",
+          "kind": "constant"
+        },
+        {
+          "name": "SALT_FILENAME_LEGACY",
+          "kind": "constant"
+        },
+        {
+          "name": "SALT_FILENAME_BLOCK",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_ALGORITHM",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_CURVE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWS_ALG",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_KEY_TYPE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWK_CRV",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PRIVKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PUBKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_SIG_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_REGISTRY_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "SnapChainPublicKeyRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "HandshakeResult",
+          "kind": "interface"
+        },
+        {
+          "name": "SnapChainAlgorithm",
+          "kind": "type"
+        },
+        {
+          "name": "ResidencyState",
+          "kind": "type"
         }
       ]
     },
@@ -2366,6 +2946,17 @@
       ]
     },
     {
+      "path": "app/api/v1/compliance/log-ingress/route.ts",
+      "doc": "admin/docs/app/api/v1/compliance/log-ingress/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/compliance/usage-report/route.ts",
       "doc": "admin/docs/app/api/v1/compliance/usage-report/route.md",
       "symbolCount": 1,
@@ -2550,6 +3141,17 @@
       ]
     },
     {
+      "path": "app/api/v1/ledger/blocks/route.ts",
+      "doc": "admin/docs/app/api/v1/ledger/blocks/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
+          "kind": "function"
+        }
+      ]
+    },
+    {
       "path": "app/api/v1/ledger/transactions/route.ts",
       "doc": "admin/docs/app/api/v1/ledger/transactions/route.md",
       "symbolCount": 2,
@@ -2627,6 +3229,17 @@
         },
         {
           "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/registry/snapshot/route.ts",
+      "doc": "admin/docs/app/api/v1/registry/snapshot/route.md",
+      "symbolCount": 1,
+      "symbols": [
+        {
+          "name": "GET",
           "kind": "function"
         }
       ]

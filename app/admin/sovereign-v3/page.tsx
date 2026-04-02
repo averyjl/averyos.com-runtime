@@ -158,7 +158,7 @@ async function probeService(
   }
 
   const t0 = Date.now();
-  let cfRay: string | null = null;
+  let cfRay: string | null;
 
   try {
     const res       = await fetch(url, { credentials: "same-origin" });

@@ -3,10 +3,11 @@
 /**
  * app/miracle-health-habits/page.tsx
  *
- * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1
+ * Miracle Health Habits™ — Public Book Page — Phase 115 GATE 115.1 / GATE 123.6.3
  *
  * Establishes a Physical-to-Digital Bridge for Jason Lee Avery's book.
- * Links Author identity to retail nodes on Amazon, Apple, and Barnes & Noble.
+ * Links Author identity to retail nodes on Amazon, Apple, Barnes & Noble,
+ * Google Books, and nobis.biz.
  * Includes JSON-LD SoftwareApplication schema for SEO identity anchoring.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
@@ -25,6 +26,14 @@ const FONT_MONO = "JetBrains Mono, Courier New, monospace";
 const BG_PANEL  = "rgba(0,20,0,0.75)";
 const RED_DIM   = "rgba(255,100,100,0.15)";
 
+// ── Extended / Secondary Retailer Links ───────────────────────────────────────
+const EXTENDED_LINKS = [
+  { label: "Scribd",       url: "https://www.scribd.com/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Kobo",         url: "https://www.kobo.com/en/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "IngramSpark",  url: "https://www.ingramcontent.com/" },
+  { label: "Smashwords",   url: "https://www.smashwords.com/books/search?query=Miracle+Health+Habits+Jason+Avery" },
+];
+
 // ── Retail Links ───────────────────────────────────────────────────────────────
 const RETAIL_LINKS = [
   {
@@ -37,7 +46,7 @@ const RETAIL_LINKS = [
   {
     platform: "Apple Books",
     icon: "🍎",
-    url: "https://books.apple.com/search?term=Miracle+Health+Habits+Jason+Avery",
+    url: "https://books.apple.com/us/book/miracle-health-habits/id6745434921",
     description: "Available on Apple Books — read on any Apple device.",
     color: "#0071e3",
   },
@@ -47,6 +56,20 @@ const RETAIL_LINKS = [
     url: "https://www.barnesandnoble.com/s/Miracle+Health+Habits+Jason+Avery",
     description: "Available at Barnes & Noble — in-store and online.",
     color: "#006600",
+  },
+  {
+    platform: "Google Books",
+    icon: "🔍",
+    url: "https://books.google.com/books?q=Miracle+Health+Habits+Jason+Avery",
+    description: "Available on Google Books — search, preview, and read digitally.",
+    color: "#4285F4",
+  },
+  {
+    platform: "nobis.biz",
+    icon: "⚓",
+    url: "https://nobis.biz",
+    description: "Available via nobis.biz — sovereign distribution node.",
+    color: "#ffd700",
   },
 ];
 
@@ -229,6 +252,52 @@ export default function MiracleHealthHabitsPage() {
                 </p>
               </a>
             ))}
+          </div>
+
+          {/* Extended / secondary retailer links */}
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.6rem",
+            marginTop: "1.25rem",
+            alignItems: "center",
+          }}>
+            <span style={{ fontSize: "0.72rem", color: DIM_GREEN, marginRight: "0.25rem" }}>Also on:</span>
+            {EXTENDED_LINKS.map((el) => (
+              <a
+                key={el.label}
+                href={el.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "0.72rem",
+                  color: DIM_GREEN,
+                  border: `1px solid ${BORDER_G}`,
+                  borderRadius: "6px",
+                  padding: "0.2rem 0.6rem",
+                  textDecoration: "none",
+                  background: BG_PANEL,
+                }}
+              >
+                {el.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Author page */}
+          <div style={{ marginTop: "0.9rem" }}>
+            <a
+              href="https://www.amazon.com/author/jasonleeavery"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: "0.72rem",
+                color: "#FF9900",
+                textDecoration: "none",
+              }}
+            >
+              📦 Amazon Author Page — Jason Lee Avery
+            </a>
           </div>
         </section>
 

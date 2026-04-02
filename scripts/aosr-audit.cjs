@@ -50,7 +50,7 @@ const crypto = require("crypto");
 const readline = require("readline");
 
 const { logAosError, logAosHeal, AOS_ERROR } = require("./sovereignErrorLogger.cjs");
-const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
+const { sovereignWriteSync, OUTPUT_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ── Sovereign kernel anchor ────────────────────────────────────────────────────
 const KERNEL_SHA     = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e";
@@ -301,10 +301,11 @@ function printReport(report) {
 // ── Vault append ───────────────────────────────────────────────────────────────
 function appendToVault(report) {
   try {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
-    logAosHeal("aosr-audit.cjs", "Created logs/ directory", { action: "mkdir" });
-    const appendFd = fs.openSync(VAULT_FILE, 'a');
-    try { fs.writeSync(appendFd, JSON.stringify(report) + "\n"); } finally { fs.closeSync(appendFd); }
+    if (!fs.existsSync(LOGS_DIR)) {
+      fs.mkdirSync(LOGS_DIR, { recursive: true });
+      logAosHeal("aosr-audit.cjs", "Created logs/ directory", { action: "mkdir" });
+    }
+    fs.appendFileSync(VAULT_FILE, JSON.stringify(report) + "\n", "utf8");
   } catch (err) {
     logAosError(
       AOS_ERROR.D1_WRITE_FAILED,
@@ -317,14 +318,11 @@ function appendToVault(report) {
 
 // ── List mode ─────────────────────────────────────────────────────────────────
 function listReports() {
-  let vaultData;
-  try {
-    vaultData = fs.readFileSync(VAULT_FILE, "utf8");
-  } catch {
+  if (!fs.existsSync(VAULT_FILE)) {
     console.log(`${YELLOW}No audit records found in ${VAULT_FILE}${R}`);
     return;
   }
-  const lines = vaultData
+  const lines = fs.readFileSync(VAULT_FILE, "utf8")
     .split("\n")
     .filter(l => l.trim());
   const recent = lines.slice(-10).reverse();
@@ -348,15 +346,12 @@ function readFile(filePath) {
   const resolved = path.isAbsolute(filePath)
     ? filePath
     : path.join(process.cwd(), filePath);
-  let fileData;
-  try {
-    fileData = fs.readFileSync(resolved, "utf8");
-  } catch {
+  if (!fs.existsSync(resolved)) {
     logAosError(AOS_ERROR.NOT_FOUND, "aosr-audit.cjs", `File not found: ${resolved}`, {});
     console.error(`${RED}Error: file not found: ${resolved}${R}`);
     process.exit(2);
   }
-  return fileData;
+  return fs.readFileSync(resolved, "utf8");
 }
 
 // ── Interactive mode ──────────────────────────────────────────────────────────
@@ -429,8 +424,9 @@ async function main() {
   // Write JSON report if --out specified
   if (outFile) {
     try {
-      sovereignWriteSync(process.cwd(), outFile, JSON.stringify(report, null, 2));
-      console.log(`${DIM}Report written to ${outFile}${R}\n`);
+      const reportFileName = path.basename(outFile);
+      sovereignWriteSync(OUTPUT_ROOT, reportFileName, JSON.stringify(report, null, 2));
+      console.log(`${DIM}Report written to ${path.join(OUTPUT_ROOT, reportFileName)}${R}\n`);
     } catch (err) {
       logAosError(
         AOS_ERROR.D1_WRITE_FAILED,

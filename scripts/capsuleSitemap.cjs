@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+const { sovereignWriteSync, PUBLIC_ROOT } = require("./lib/sovereignIO.cjs");
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 const registryPath = path.join(process.cwd(), "public", "capsule-registry");
-const outputDir = path.join(process.cwd(), "public");
 const appDir = path.join(process.cwd(), "app");
 const pagesDir = path.join(process.cwd(), "pages");
 
@@ -67,9 +67,7 @@ const buildRobotsTxt = () => {
 };
 
 const writeOutputs = (sitemapXml) => {
-  fs.mkdirSync(outputDir, { recursive: true });
-  const sitemapFd = fs.openSync(path.join(outputDir, "sitemap.xml"), 'w');
-  try { fs.writeSync(sitemapFd, sitemapXml); } finally { fs.closeSync(sitemapFd); }
+  sovereignWriteSync(PUBLIC_ROOT, "sitemap.xml", sitemapXml);
   // NOTE: public/robots.txt is intentionally NOT written here.
   // app/robots.ts handles dynamic per-subdomain robots.txt via the Next.js
   // Metadata API. Writing a static public/robots.txt would shadow the dynamic
@@ -83,9 +81,7 @@ const isDynamic = (segment) => segment.startsWith("[");
 // Auto-scan the App Router (app/) directory for page.tsx files
 const scanAppRouter = () => {
   const urls = [];
-  let appDirExists = false;
-  try { fs.accessSync(appDir); appDirExists = true; } catch {}
-  if (!appDirExists) return urls;
+  if (!fs.existsSync(appDir)) return urls;
 
   const walk = (dir, urlPath) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -114,9 +110,7 @@ const scanAppRouter = () => {
 // Auto-scan the Pages Router (pages/) directory for .tsx/.ts/.js/.jsx files
 const scanPagesRouter = () => {
   const urls = [];
-  let pagesDirExists = false;
-  try { fs.accessSync(pagesDir); pagesDirExists = true; } catch {}
-  if (!pagesDirExists) return urls;
+  if (!fs.existsSync(pagesDir)) return urls;
 
   const walk = (dir, urlPath) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -170,9 +164,7 @@ const toSitemapEntries = (paths) => {
 
 // Load manifest-based capsules (optional legacy support)
 const loadManifestCapsules = () => {
-  let manifestDirExists = false;
-  try { fs.accessSync(manifestDir); manifestDirExists = true; } catch {}
-  if (!manifestDirExists) return [];
+  if (!fs.existsSync(manifestDir)) return [];
   return fs
     .readdirSync(manifestDir)
     .filter((f) => f.endsWith(".json") && f !== "index.json")
@@ -185,9 +177,7 @@ const loadManifestCapsules = () => {
 
 // Load registry-based capsules
 const loadRegistryCapsules = () => {
-  let registryPathExists = false;
-  try { fs.accessSync(registryPath); registryPathExists = true; } catch {}
-  if (!registryPathExists) return [];
+  if (!fs.existsSync(registryPath)) return [];
   return fs
     .readdirSync(registryPath)
     .filter((f) => f.endsWith(".json"))

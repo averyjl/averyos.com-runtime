@@ -88,6 +88,17 @@ export default function ContactPage() {
           <p><strong>Entity:</strong> AveryOS, LLC</p>
           <p><strong>Jurisdiction:</strong> Utah, USA</p>
           <p><strong>License:</strong> AveryOS Sovereign Integrity License v1.0</p>
+          <p>
+            <strong>Bio-Optimization Genesis:</strong>{" "}
+            <a
+              href="https://nobis.biz"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'rgba(120, 148, 255, 0.9)', textDecoration: 'none' }}
+            >
+              nobis.biz
+            </a>
+          </p>
         </div>
       </section>
 

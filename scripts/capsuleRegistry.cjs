@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { sovereignWriteSync, CAPSULE_MANIFEST_ROOT } = require("./lib/sovereignIO.cjs");
 
 const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 
@@ -9,9 +10,7 @@ const loadManifest = (filePath) => {
 };
 
 const buildRegistry = () => {
-  let manifestDirExists = false;
-  try { fs.accessSync(manifestDir); manifestDirExists = true; } catch {}
-  if (!manifestDirExists) {
+  if (!fs.existsSync(manifestDir)) {
     console.log("No manifest directory found.");
     return;
   }
@@ -35,9 +34,7 @@ const buildRegistry = () => {
     })),
   };
 
-  const registryPath = path.join(manifestDir, "index.json");
-  const registryFd = fs.openSync(registryPath, 'w');
-  try { fs.writeSync(registryFd, JSON.stringify(registry, null, 2)); } finally { fs.closeSync(registryFd); }
+  sovereignWriteSync(CAPSULE_MANIFEST_ROOT, "index.json", JSON.stringify(registry, null, 2));
   console.log(`Wrote registry with ${registry.count} capsule(s).`);
 };
 

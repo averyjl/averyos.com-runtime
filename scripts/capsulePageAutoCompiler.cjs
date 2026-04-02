@@ -2,12 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const HASH_TYPE = "sha512"; // Re-anchoring the global hash standard
+const { sovereignWriteSync, CAPSULE_MANIFEST_ROOT } = require("./lib/sovereignIO.cjs");
 
 const capsulesDir = path.join(process.cwd(), "capsules");
-const manifestDir = path.join(process.cwd(), "public", "manifest", "capsules");
 
 const ensureDir = (dirPath) => {
-  fs.mkdirSync(dirPath, { recursive: true });
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
 };
 
 const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
@@ -15,9 +17,7 @@ const { compileCapsuleSignature } = require('./capsuleSignatureCompiler.cjs');
 const computeSha = (content) => compileCapsuleSignature(content);
 
 const readCapsules = () => {
-  let capsulesExists = false;
-  try { fs.accessSync(capsulesDir); capsulesExists = true; } catch {}
-  if (!capsulesExists) {
+  if (!fs.existsSync(capsulesDir)) {
     return [];
   }
   return fs
@@ -61,15 +61,14 @@ const compileCapsule = ({ id, filePath }) => {
     stripeUrl: payload.stripeUrl ?? null,
   };
 
-  const manifestPath = path.join(manifestDir, `${id}.json`);
-  const manifestFd = fs.openSync(manifestPath, 'w');
-  try { fs.writeSync(manifestFd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(manifestFd); }
+  const manifestFileName = `${id}.json`;
+  sovereignWriteSync(CAPSULE_MANIFEST_ROOT, manifestFileName, JSON.stringify(manifest, null, 2));
 
   return manifest;
 };
 
 const run = () => {
-  ensureDir(manifestDir);
+  ensureDir(CAPSULE_MANIFEST_ROOT);
   const capsules = readCapsules();
   if (capsules.length === 0) {
     console.log("No .aoscap files found.");

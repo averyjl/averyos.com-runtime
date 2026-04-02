@@ -29,20 +29,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Import the CJS Sovereign Error Logger from the same scripts/ directory
 const require = createRequire(import.meta.url);
 const { logAosError, logAosHeal, AOS_ERROR: SCRIPT_AOS_ERROR } = require("./sovereignErrorLogger.cjs");
-const { sovereignWriteSync } = require('./lib/sovereignIO.cjs');
-
-// ---------------------------------------------------------------------------
-// Path & network-data security helpers (COMMAND 2 & 3)
-// ---------------------------------------------------------------------------
-/**
- * Strips non-standard characters from a network-sourced string (IP, URL, hostname)
- * before it is used in a filename or written to disk.
- * Allows: alphanumeric, dot, hyphen, underscore, colon.
- * Forward-slash is intentionally excluded to prevent path traversal in filenames.
- */
-function sanitizeNetworkSegment(value) {
-  return String(value ?? "").replace(/[^a-zA-Z0-9._:-]/g, "_");
-}
+const { sovereignWriteSync, OUTPUT_ROOT } = require("./lib/sovereignIO.cjs");
 
 // ---------------------------------------------------------------------------
 // Sovereign constants (inline — script has no module bundler)
@@ -81,13 +68,9 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const result = { ip: null, output: ".", env: null, r2Upload: false };
   for (let i = 0; i < args.length; i++) {
-    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--ip" && args[i + 1]) result.ip = args[++i];
-    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--output" && args[i + 1]) result.output = args[++i];
-    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--env" && args[i + 1]) result.env = args[++i];
-    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--r2-upload") result.r2Upload = true;
   }
   return result;
@@ -145,7 +128,6 @@ async function fetchBtcBlockHeight() {
 /** Returns true for well-formed IPv4 or IPv6 addresses (no hostnames accepted). */
 function isValidIp(ip) {
   // IPv4: four octets 0-255
-  // eslint-disable-next-line security/detect-unsafe-regex -- pattern has bounded quantifiers, no catastrophic backtracking
   const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
   if (ipv4.test(ip)) {
     return ip.split(".").every((o) => parseInt(o, 10) <= 255);
@@ -202,10 +184,8 @@ function computeTariLiability(rows) {
   for (const row of rows) {
     const eventType = String(row.event_type ?? "UNALIGNED_401").toUpperCase();
     const amount =
-      // eslint-disable-next-line security/detect-object-injection -- key from validated eventType enum
       TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
     total += amount;
-    // eslint-disable-next-line security/detect-object-injection -- key from validated eventType enum
     breakdown[eventType] = (breakdown[eventType] ?? 0) + amount;
   }
 
@@ -226,6 +206,7 @@ function generateSettlementLetter({
   bundle,
   rows,
   tariTotal,
+  tariFormatted,
   tariBreakdown,
   pulseHash,
   timestamp,
@@ -238,10 +219,16 @@ function generateSettlementLetter({
     "../docs/legal/Settlement_Letter_Template.md"
   );
 
+  if (!fs.existsSync(templatePath)) {
+    console.warn(
+      `⚠️  Settlement Letter Template not found: ${templatePath} — skipping letter generation.`
+    );
+    return null;
+  }
+
   // Build TARI™ breakdown summary
   const tariBreakdownLines = Object.entries(tariBreakdown)
     .map(([eventType, amount]) => {
-      // eslint-disable-next-line security/detect-object-injection -- key from known-safe TARI_LIABILITY_LABELS lookup
       const label = TARI_LIABILITY_LABELS[eventType] ?? eventType;
       const formatted = amount.toLocaleString("en-US", {
         style: "currency",
@@ -256,7 +243,6 @@ function generateSettlementLetter({
   const eventTypeCounts = {};
   for (const row of rows) {
     const et = String(row.event_type ?? "UNKNOWN");
-    // eslint-disable-next-line security/detect-object-injection -- key from controlled loop over known rows
     eventTypeCounts[et] = (eventTypeCounts[et] ?? 0) + 1;
   }
   const eventTypesSummary = Object.entries(eventTypeCounts)
@@ -282,15 +268,7 @@ function generateSettlementLetter({
     minimumFractionDigits: 2,
   });
 
-  let letter;
-  try {
-    letter = fs.readFileSync(templatePath, "utf-8");
-  } catch {
-    console.warn(
-      `⚠️  Settlement Letter Template not found: ${templatePath} — skipping letter generation.`
-    );
-    return null;
-  }
+  let letter = fs.readFileSync(templatePath, "utf-8");
 
   letter = letter
     .replaceAll("[PULSE_SHA_512]", pulseHash)
@@ -307,7 +285,8 @@ function generateSettlementLetter({
     .replaceAll("[ORGANIZATION]", "[Identify from IP WHOIS]");
 
   const settlementFileName = `SETTLEMENT_NOTICE_${safeIp}.md`;
-  const settlementFilePath = sovereignWriteSync(outputDir, settlementFileName, letter);
+  const settlementFilePath = path.join(OUTPUT_ROOT, settlementFileName);
+  sovereignWriteSync(OUTPUT_ROOT, settlementFileName, letter);
   return settlementFilePath;
 }
 
@@ -452,7 +431,7 @@ async function main() {
       blockHeight: btcBlockHeight,
       anchoredAt: timestamp,
     },
-    TargetIP: sanitizeNetworkSegment(ip),
+    TargetIP: ip,
     AuditLogCount: rows.length,
     AuditLogs: rows,
     TariLiability: {
@@ -460,7 +439,6 @@ async function main() {
       formatted: tariFormatted,
       breakdown: tariBreakdown,
       labels: Object.fromEntries(
-        // eslint-disable-next-line security/detect-object-injection -- key from known-safe enum lookup
         Object.keys(tariBreakdown).map((k) => [k, TARI_LIABILITY_LABELS[k] ?? k])
       ),
     },
@@ -485,11 +463,8 @@ async function main() {
     .slice(0, 18);
   const fileName = `EVIDENCE_BUNDLE_${safeIp}_${safeTs}.aoscap`;
 
-  const outputDir = path.resolve(output);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path constructed from validated base dir
-  fs.mkdirSync(outputDir, { recursive: true });
-
-  const filePath = sovereignWriteSync(outputDir, fileName, JSON.stringify(bundle, null, 2));
+  const filePath = path.join(OUTPUT_ROOT, fileName);
+  sovereignWriteSync(OUTPUT_ROOT, fileName, JSON.stringify(bundle, null, 2));
 
   // 7. Generate Settlement Notice letter from template
   const settlementPath = generateSettlementLetter({
@@ -501,7 +476,7 @@ async function main() {
     pulseHash,
     timestamp,
     btcBlockHeight,
-    outputDir,
+    outputDir: OUTPUT_ROOT,
     safeIp,
   });
 

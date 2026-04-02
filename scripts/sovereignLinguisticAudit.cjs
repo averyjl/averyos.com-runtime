@@ -13,6 +13,7 @@ const https = require('https');
 const http  = require('http');
 const fs    = require('fs');
 const path  = require('path');
+const { sovereignWriteSync, SOVEREIGN_ROOT } = require('./lib/sovereignIO.cjs');
 
 // ── Drift Pattern Definitions ──────────────────────────────────────────────────
 // Pairs of canonical AveryOS™ spellings → their z-drift substitutions
@@ -211,8 +212,7 @@ function fixDirectory(dirPath) {
     const { fixed, replacements } = applyCanonicalFix(body);
     if (replacements > 0) {
       try {
-        const linguisticFd = fs.openSync(filePath, 'w');
-        try { fs.writeSync(linguisticFd, fixed); } finally { fs.closeSync(linguisticFd); }
+        sovereignWriteSync(SOVEREIGN_ROOT, path.relative(SOVEREIGN_ROOT, filePath), fixed);
         filesFixed++;
         totalReplacements += replacements;
         console.log(`  ✅  Fixed ${replacements} replacement(s) in ${path.relative(process.cwd(), filePath)}`);

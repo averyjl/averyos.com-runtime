@@ -14,22 +14,25 @@
     "sync:heartbeat": "node scripts/sync-heartbeat.cjs",
     "dev": "next dev",
     "build": "node scripts/verifyGenesis.cjs && next build",
-    "deploy": "npm run pre-deploy:check && npm run build:cloudflare && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
-    "pre-deploy:check": "npx wrangler d1 migrations apply averyos_kernel_db --remote --dry-run 2>&1 | tee /dev/stderr | grep -qE '(All migrations|No migrations|up to date)' && echo '\u2705 Migration dry-run passed' || (echo '\u274c Migration dry-run failed \u2014 fix migrations before deploying' && exit 1)",
+    "deploy": "npm run pre-deploy:check && npm run build:cloudflare && node -e \"const fs=require('fs');if(!fs.existsSync('.open-next/worker.js')){console.error('❌ .open-next/worker.js not found — build:cloudflare may have failed');process.exit(1);}console.log('✅ .open-next/worker.js verified');\" && wrangler deploy && wrangler deploy workers/gabriel-gatekeeper.js --name gabriel-gatekeeper",
+    "pre-deploy:check": "npx wrangler d1 migrations apply averyos_kernel_db --remote --dry-run 2>&1 | grep -qE '(All migrations|No migrations|up to date)' && echo '✅ Migration dry-run passed' || (echo '❌ Migration dry-run failed — fix migrations before deploying' && exit 1)",
     "security:lint": "bash scripts/security-lint.sh",
-    "hooks:install": "cp scripts/security-lint.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo '\u2705 Pre-commit security hook installed'",
+    "hooks:install": "cp scripts/security-lint.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo '✅ Pre-commit security hook installed'",
     "logs:bouncer": "wrangler tail gabriel-gatekeeper",
     "logs:app": "wrangler tail averyoscom-runtime",
     "build:worker": "npx @opennextjs/cloudflare build",
     "build:cloudflare": "node scripts/patchOpenNextStripe.cjs && node scripts/generate-gates.cjs && npm run capsule:build && npm run capsule:sitemap && node scripts/generate-docs.cjs && npx @opennextjs/cloudflare build && node scripts/patchWorkerQueue.cjs",
     "preview": "npx @opennextjs/cloudflare preview",
     "start": "next start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/'",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/' --quiet",
     "lint:full": "npx eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/' --quiet",
-    "test": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/'",
-    "test:unit": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts && node --test __tests__/generateInvoices.test.cjs",
-    "test:unit:ts": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts",
+    "test": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern 'functions/' --ignore-pattern 'VaultEcho/' --quiet",
+    "test:unit": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts __tests__/protocol.test.ts __tests__/agentSummary.test.ts __tests__/coreManifest.test.ts __tests__/pathSanitizer.test.ts __tests__/sovereignGuard.test.ts __tests__/sovereignFetch.test.ts __tests__/unmaskCore.test.ts __tests__/meshDiscovery.test.ts && node --loader ./__tests__/loader.mjs --loader ./__tests__/react-test-loader.mjs --experimental-strip-types --test __tests__/useComplianceWindow.test.ts && node --test __tests__/generateInvoices.test.cjs && node --loader ./__tests__/loader.mjs --loader ./__tests__/next-test-loader.mjs --experimental-strip-types --test __tests__/generated/proxy.gen.test.ts",
+    "test:unit:ts": "node --loader ./__tests__/loader.mjs --experimental-strip-types --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts __tests__/protocol.test.ts __tests__/agentSummary.test.ts __tests__/coreManifest.test.ts __tests__/pathSanitizer.test.ts __tests__/sovereignGuard.test.ts __tests__/sovereignFetch.test.ts __tests__/unmaskCore.test.ts __tests__/meshDiscovery.test.ts",
+    "test:unit:hooks": "node --loader ./__tests__/loader.mjs --loader ./__tests__/react-test-loader.mjs --experimental-strip-types --test __tests__/useComplianceWindow.test.ts",
     "test:unit:cjs": "node --test __tests__/generateInvoices.test.cjs",
+    "test:coverage": "node --loader ./__tests__/loader.mjs --experimental-strip-types --experimental-test-coverage --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts __tests__/protocol.test.ts __tests__/agentSummary.test.ts __tests__/coreManifest.test.ts __tests__/pathSanitizer.test.ts __tests__/sovereignGuard.test.ts __tests__/sovereignFetch.test.ts __tests__/unmaskCore.test.ts __tests__/meshDiscovery.test.ts && node --loader ./__tests__/loader.mjs --loader ./__tests__/next-test-loader.mjs --experimental-strip-types --experimental-test-coverage --test __tests__/generated/proxy.gen.test.ts",
+    "test:coverage:gate": "node --loader ./__tests__/loader.mjs --experimental-strip-types --experimental-test-coverage --test __tests__/tariUniversal.test.ts __tests__/sovereignKeys.test.ts __tests__/timeMesh.test.ts __tests__/navigationRoutes.test.ts __tests__/wafLogic.test.ts __tests__/driftShield.test.ts __tests__/sovereignError.test.ts __tests__/timePrecision.test.ts __tests__/qaEngine.test.ts __tests__/clearTextStorage.test.ts __tests__/vaultsigWebhook.test.ts __tests__/monetization/live-settlement.test.ts __tests__/protocol.test.ts __tests__/agentSummary.test.ts __tests__/coreManifest.test.ts __tests__/pathSanitizer.test.ts __tests__/sovereignGuard.test.ts __tests__/sovereignFetch.test.ts __tests__/unmaskCore.test.ts __tests__/meshDiscovery.test.ts 2>&1 | node scripts/checkCoverage.cjs",
     "qa:generate": "node scripts/qaTestGenerator.cjs",
     "qa:generate:verbose": "node scripts/qaTestGenerator.cjs --verbose",
     "qa:generate:force": "node scripts/qaTestGenerator.cjs --force",
@@ -39,6 +42,8 @@
     "capsule:index": "node scripts/capsuleRegistry.cjs",
     "capsule:sitemap": "node scripts/capsuleSitemap.cjs",
     "capsule:sha512": "node scripts/genSha512.cjs",
+    "sha:monitor": "node scripts/monitorSHAIntegrity.cjs",
+    "sha:monitor:report": "node scripts/monitorSHAIntegrity.cjs --fix-report",
     "generate:docs": "node scripts/generate-docs.cjs",
     "forge:MeshProofKit_v1": "node scripts/forgeMeshProofKit.cjs",
     "sync:LocalNode_SeedWitnessTraining_v1": "node scripts/localNodeSeedWitnessTraining.cjs",
@@ -65,14 +70,14 @@
     "express-rate-limit": "8.2.2",
     "firebase": "^12.10.0",
     "isomorphic-dompurify": "2.36.0",
+    "jsonwebtoken": "^9.0.3",
     "katex": "^0.16.35",
     "marked": "17.0.2",
     "next": "16.1.7",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "^3.7.0",
-    "stripe": "20.4.0",
-    "tmp": "^0.2.5"
+    "stripe": "20.4.0"
   },
   "devDependencies": {
     "@types/node": "22.13.5",
@@ -84,14 +89,18 @@
     "eslint-plugin-security": "^4.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "wrangler": "4.79.0"
   },
   "overrides": {
     "undici": ">=7.24.0",
-    "flatted": ">=3.4.2",
+    "flatted": "3.4.2",
     "fast-xml-parser": ">=5.5.6",
+    "picomatch": ">=4.0.4",
     "path-to-regexp": ">=8.4.2",
-    "picomatch": ">=4.0.4"
+    "micromatch": {
+      "picomatch": "2.3.2"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx,js,cjs,mjs}": "eslint --quiet"
