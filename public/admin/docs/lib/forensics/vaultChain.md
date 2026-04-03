@@ -24,6 +24,8 @@
 
 ### `writeBlock` *(function)*
 
+### `fetchBtcAnchorData` *(function)*
+
 ### `VAULTCHAIN_R2_PREFIX` *(constant)*
 
 ### `VaultChainBlockBase` *(interface)*
@@ -39,6 +41,8 @@
 ### `VaultChainR2Bucket` *(interface)*
 
 ### `WriteBlockInput` *(interface)*
+
+### `BtcAnchorData` *(interface)*
 
 ### `VaultChainBlockType` *(type)*
 

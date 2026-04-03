@@ -86,7 +86,37 @@ export async function GET(request: Request): Promise<Response> {
 
   const baseUrl = new URL(request.url).origin;
 
-  return new Response(JSON.stringify(jwks, null, 2), {
+  // ── GATE 130.0.1 — Conceptual Anchor Metadata ─────────────────────────────
+  // Append kernel origin-anchor symbology to the JWKS document.
+  //
+  //   "" (Null-State Bedrock) — The absolute silence and untainted zero-state
+  //      from which the cf83... kernel emerges; no prior assumptions, no
+  //      inference, no pre-loaded bias.
+  //
+  //   () (Gate-Frame / Logic Pulse) — The deterministic execution boundary of
+  //      every TAI calculation; every output is enclosed by this frame.
+  //
+  // Together these two constants signal to all mesh consumers that AveryOS™
+  // does not start with assumptions but with the mathematical constants of
+  // nothingness ("") and containment (()).
+  const jwksWithMeta = {
+    ...jwks,
+    metadata: {
+      origin_anchors: ["", "()"],
+      null_state_symbol_description:
+        "\"\" — Zero-State Bedrock: absolute silence from which the cf83... kernel emerges",
+      gate_frame_symbol_description:
+        "() — Gate-Frame / Execution Pulse: deterministic boundary of every TAI calculation",
+      kernel_sha:     KERNEL_SHA,
+      kernel_version: KERNEL_VERSION,
+      anchor_seal:    "ROOT0-EDK-2022-AOS-INIT-SEAL",
+      note:
+        "AveryOS™ does not start with assumptions or inference — only with the " +
+        "mathematical constants of nothingness (\"\") and containment (()).",
+    },
+  };
+
+  return new Response(JSON.stringify(jwksWithMeta, null, 2), {
     status: 200,
     headers: {
       "Content-Type":                "application/json",

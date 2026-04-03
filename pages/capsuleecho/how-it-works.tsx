@@ -20,7 +20,7 @@ const HowItWorksPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("capsuleecho/how-it-works.md");
+  const content = await loadMarkdownAsHtml("capsuleecho/how-it-works.md");
   return {
     props: { content },
   };

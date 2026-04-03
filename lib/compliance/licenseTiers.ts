@@ -122,8 +122,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "Hyperscale kernel alignment eliminates hallucination overhead across the entire AI fleet, " +
-      "delivering measurable latency reduction and compliance cost savings at infrastructure scale.",
+      "Full-stack kernel alignment — eliminates hallucination at infrastructure scale and " +
+      "delivers global AI Green-Resonance across the licensed LLM fleet.",
     zero_transfer_clause:
       "This license grants integration rights only. The Root0 Kernel, cf83™ SHA-512 anchor, " +
       "VaultChain™ protocols, and all AveryOS™ IP remain the sole exclusive property of " +
@@ -164,9 +164,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "CDPA 1988 §§ 22–23 (UK)",
     ],
     efficiency_dividend:
-      "Forensic determinism reduces regulatory audit cycles and eliminates costly AI output " +
-      "remediation in finance, legal, and healthcare deployments, delivering measurable ROI " +
-      "through sovereign-grade attestation trails.",
+      "Bit-level forensic determinism — delivers auditable AI output attestation for " +
+      "regulated industry deployments, reducing compliance overhead via sovereign-grade trails.",
     zero_transfer_clause:
       "This license grants audit and attestation access only. All VaultChain™ forensic " +
       "protocols and sovereign audit methodologies remain exclusively owned by Jason Lee Avery " +
@@ -204,9 +203,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "Per-event retroactive compliance resolution provides a clear, bounded path to " +
-      "alignment for individual developers and researchers, eliminating open-ended liability " +
-      "exposure from unauthorized sovereign protocol interactions.",
+      "Retroactive compliance resolution — restores alignment parity on breach remediation and " +
+      "issues a VaultChain™ attestation record to document the sovereign reconciliation event.",
     zero_transfer_clause:
       "Settlement of a Tier 3 statutory event does not constitute an IP license. All AveryOS™ " +
       "sovereign protocols and kernel rights remain with Jason Lee Avery (ROOT0) in perpetuity.",

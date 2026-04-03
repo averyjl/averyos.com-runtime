@@ -166,10 +166,14 @@ function sha256(text) {
  * @returns {Record<string, string>}  url → SHA-256
  */
 function loadState() {
+  let raw;
   try {
-    if (fs.existsSync(STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    }
+    raw = fs.readFileSync(STATE_FILE, 'utf8');
+  } catch {
+    return {};
+  }
+  try {
+    return JSON.parse(raw);
   } catch (err) {
     logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse state file ${STATE_FILE}`, err);
   }
@@ -181,7 +185,8 @@ function loadState() {
  */
 function saveState(state) {
   try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    const stateFd = fs.openSync(STATE_FILE, 'w');
+    try { fs.writeSync(stateFd, JSON.stringify(state, null, 2)); } finally { fs.closeSync(stateFd); }
   } catch (err) {
     logAosError(AOS_ERROR.INTERNAL_ERROR, `Failed to save state file ${STATE_FILE}`, err);
   }
@@ -247,7 +252,7 @@ function sendPushoverAlert(title, message, priority = 1) {
  */
 function draftInfrastructureUpdate(policy, previousHash, newHash, snippet) {
   if (DRY_RUN) return;
-  if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const fileName  = `INFRA_UPDATE_${policy.platform}_${policy.category}_${timestamp}.md`;
@@ -298,7 +303,8 @@ ${snippet}
 
 ⛓️⚓⛓️  AveryOS™ Sovereign Policy Watcher | Phase 105 | 🤛🏻 Jason Lee Avery (ROOT0)
 `;
-  fs.writeFileSync(filePath, content, 'utf8');
+  const infraFd = fs.openSync(filePath, 'w');
+  try { fs.writeSync(infraFd, content); } finally { fs.closeSync(infraFd); }
   console.log(`📄 Infrastructure Update drafted: ${fileName}`);
 }
 

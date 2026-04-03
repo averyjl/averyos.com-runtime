@@ -6,6 +6,10 @@
 
 ## Public API
 
+### `getActivePoolTime` *(function)*
+
+### `getAuditPoolTime` *(function)*
+
 ### `capturePulse` *(function)*
 
 ### `openTimeMesh` *(function)*
@@ -18,9 +22,17 @@
 
 ### `formatSovereignFooter` *(function)*
 
+### `PRUNE_THRESHOLD_US` *(constant)*
+
+### `ACTIVE_POLL_INTERVAL_MS` *(constant)*
+
+### `AUDIT_POLL_INTERVAL_MS` *(constant)*
+
 ### `TimeMeshPulse` *(interface)*
 
 ### `TimeMeshSession` *(interface)*
+
+### `TimeMeshResult` *(type)*
 
 ---
 
