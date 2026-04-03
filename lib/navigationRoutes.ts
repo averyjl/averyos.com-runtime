@@ -79,7 +79,6 @@ export const navigationRoutes: NavigationRoute[] = [
   // Private tools — hidden from public nav, accessible only via CreatorLock tab
   { path: "/evidence-vault",            label: "Evidence Vault",          icon: "🗄️", isAdmin: true },
   { path: "/sigtrace",                  label: "Signature Trace",         icon: "🔐", isAdmin: true },
-  { path: "/tari-revenue",              label: "TARI™ Revenue",           icon: "💹", isAdmin: true },
   { path: "/vaultchain-explorer",       label: "VaultChain™ Explorer",    icon: "🔍", isAdmin: true },
   { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
