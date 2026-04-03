@@ -38,6 +38,13 @@ interface BotCountResponse {
   error?: string;
 }
 
+interface TotalDebtResponse {
+  total_debt_usd: number;
+  total_debt_precision_9: string;
+  row_count: number;
+  timestamp: string;
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function MetricCard({
@@ -87,6 +94,9 @@ export default function ValuationDashboardPage() {
   const [inputBots,  setInputBots]  = useState<string>("700");
   const [notes,      setNotes]      = useState<string>("");
   const [computedAt, setComputedAt] = useState<string>("");
+  const [debtValue,  setDebtValue]  = useState<string>("0.000000000");
+  const [debtRows,   setDebtRows]   = useState<number>(0);
+  const [debtTimestamp, setDebtTimestamp] = useState<string>("Loading…");
 
   const runValuation = useCallback(async (bots: number, notesText: string) => {
     setLoading(true);
@@ -127,6 +137,27 @@ export default function ValuationDashboardPage() {
     if (!authed) return;
     void runValuation(botCount, "");
   }, [authed, botCount, runValuation]);
+
+  // Fetch live debt total (admin-only)
+  useEffect(() => {
+    if (!authed) return;
+    const fetchDebt = () => {
+      fetch("/api/licensing/total-debt", { cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error(`Debt API HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((d: TotalDebtResponse) => {
+          setDebtValue(d.total_debt_precision_9 ?? Number(d.total_debt_usd ?? 0).toFixed(9));
+          setDebtRows(d.row_count ?? 0);
+          setDebtTimestamp(d.timestamp ?? new Date().toISOString());
+        })
+        .catch(() => setDebtTimestamp("DEBT_FEED_UNAVAILABLE"));
+    };
+    fetchDebt();
+    const interval = setInterval(fetchDebt, 15000);
+    return () => clearInterval(interval);
+  }, [authed]);
 
   // ── Auth gate ────────────────────────────────────────────────────────────────
   if (authChecking) {
@@ -262,6 +293,30 @@ export default function ValuationDashboardPage() {
             {loading ? "⏳ Computing…" : "⟳ Compute IVI"}
           </button>
         </div>
+      </section>
+
+      {/* ⚖️ Debt Disclosure — Admin Only */}
+      <section style={{
+        background: "rgba(20,0,0,0.75)",
+        border: "2px solid rgba(248,113,113,0.45)",
+        borderRadius: "12px",
+        padding: "1.25rem 1.5rem",
+        marginBottom: "2rem",
+      }}>
+        <h2 style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: RED, textTransform: "uppercase", letterSpacing: "0.07em" }}>
+          ⚖️ Debt Disclosure
+        </h2>
+        <div style={{
+          fontFamily: FONT_MONO,
+          fontSize: "clamp(1.7rem, 4vw, 2.8rem)",
+          fontWeight: 900,
+          color: RED,
+        }}>
+          ${Number(debtValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+        <p style={{ color: "rgba(238,244,255,0.7)", marginTop: "0.6rem", fontSize: "0.82rem" }}>
+          Ledger rows: {debtRows.toLocaleString("en-US")} · Status: {debtTimestamp}
+        </p>
       </section>
 
       {/* Metric Cards */}

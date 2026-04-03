@@ -72,19 +72,10 @@ type HomeProps = {
   capsules: CapsuleIndexItem[];
 };
 
-type TotalDebtResponse = {
-  total_debt_usd: number;
-  total_debt_precision_9: string;
-  row_count: number;
-  timestamp: string;
-};
 
 const Home: NextPage<HomeProps> = ({ capsules }) => {
   const capsuleCount = capsules.length;
   const [auditData, setAuditData] = useState<VaultAuditData | null>(null);
-  const [debtValue, setDebtValue] = useState<string>("0.000000000");
-  const [debtRows, setDebtRows] = useState<number>(0);
-  const [debtTimestamp, setDebtTimestamp] = useState<string>("Loading...");
 
   useEffect(() => {
     const fetchAudit = async () => {
@@ -99,25 +90,10 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
       }
     };
 
-    const fetchDebt = async () => {
-      try {
-        const response = await fetch("/api/licensing/total-debt", { cache: "no-store" });
-        const data = await response.json() as TotalDebtResponse;
-        setDebtValue(data.total_debt_precision_9 ?? Number(data.total_debt_usd ?? 0).toFixed(9));
-        setDebtRows(data.row_count ?? 0);
-        setDebtTimestamp(data.timestamp ?? new Date().toISOString());
-      } catch {
-        setDebtTimestamp("DEBT_FEED_UNAVAILABLE");
-      }
-    };
-
     fetchAudit();
-    fetchDebt();
     const auditInterval = setInterval(fetchAudit, 30000);
-    const debtInterval = setInterval(fetchDebt, 15000);
     return () => {
       clearInterval(auditInterval);
-      clearInterval(debtInterval);
     };
   }, []);
 
@@ -237,23 +213,6 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
               View Full VaultChain™ Dashboard →
             </Link>
           </div>
-        </section>
-
-        <section className="card" style={{ border: "2px solid rgba(248,113,113,0.45)" }}>
-          <h2 style={{ color: "#ffffff", marginTop: 0 }}>⚖️ Debt Disclosure</h2>
-          <div
-            style={{
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: "clamp(1.7rem, 4vw, 2.8rem)",
-              fontWeight: 900,
-              color: "#f87171",
-            }}
-          >
-            ${Number(debtValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p style={{ color: "rgba(238,244,255,0.7)", marginTop: "0.6rem" }}>
-            Ledger rows: {debtRows.toLocaleString("en-US")} · Status: {debtTimestamp}
-          </p>
         </section>
 
         {/* Capsule Registry */}
