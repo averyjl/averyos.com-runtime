@@ -20,7 +20,7 @@ const TruthdeckUiPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("viewer/truthdeck-ui.md");
+  const content = await loadMarkdownAsHtml("viewer/truthdeck-ui.md");
   return {
     props: { content },
   };

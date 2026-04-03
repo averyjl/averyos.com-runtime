@@ -52,7 +52,7 @@ export async function GET() {
     type RegistrySnapshot = {
       generatedAt: string;
       count: number;
-      capsules: ReturnType<typeof listRegistryCapsules>;
+      capsules: Awaited<ReturnType<typeof listRegistryCapsules>>;
     };
     let cachedSnapshot: RegistrySnapshot | null = null;
 
@@ -90,8 +90,8 @@ export async function GET() {
     }
 
     // ── 2. Fall back to statically-compiled manifest ─────────────────────────
-    const registry  = loadCapsuleRegistry();
-    const capsules  = listRegistryCapsules();
+    const registry  = await loadCapsuleRegistry();
+    const capsules  = await listRegistryCapsules();
 
     const snapshot = {
       generatedAt:    registry?.generatedAt ?? new Date().toISOString(),

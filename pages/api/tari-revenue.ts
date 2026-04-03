@@ -45,13 +45,12 @@ export default function handler(
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 
   let logs: GatewayLogEntry[] = [];
-  if (fs.existsSync(LOG_PATH)) {
-    try {
-      logs = JSON.parse(fs.readFileSync(LOG_PATH, "utf8"));
-      if (!Array.isArray(logs)) logs = [];
-    } catch {
-      logs = [];
-    }
+  try {
+    const raw = fs.readFileSync(LOG_PATH, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    logs = Array.isArray(parsed) ? (parsed as GatewayLogEntry[]) : [];
+  } catch {
+    logs = [];
   }
 
   // Filter to 24-hour window; skip entries without a parseable timestamp

@@ -118,7 +118,9 @@ describe("formatIso9() — lexicographic ordering", () => {
     );
     for (let i = 0; i < timestamps.length - 1; i++) {
       assert.ok(
+        // eslint-disable-next-line security/detect-object-injection -- bounded loop index access
         timestamps[i]! < timestamps[i + 1]!,
+        // eslint-disable-next-line security/detect-object-injection -- bounded loop index access
         `Order violation at index ${i}: "${timestamps[i]}" vs "${timestamps[i + 1]}"`,
       );
     }

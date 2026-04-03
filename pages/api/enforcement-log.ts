@@ -16,7 +16,7 @@ export default function handler(
   }
 
   try {
-    // Read enforcement log
+    // Read enforcement log — use try/catch instead of existsSync to avoid TOCTOU.
     const logPath = path.join(
       process.cwd(),
       "public",
@@ -25,15 +25,16 @@ export default function handler(
       "enforcement-log.json"
     );
 
-    if (!fs.existsSync(logPath)) {
+    let events: unknown;
+    try {
+      const logContent = fs.readFileSync(logPath, "utf-8");
+      events = JSON.parse(logContent);
+    } catch {
       return res.status(200).json({
         events: [],
         message: "No enforcement events recorded"
       });
     }
-
-    const logContent = fs.readFileSync(logPath, "utf-8");
-    const events = JSON.parse(logContent);
 
     return res.status(200).json({
       events,

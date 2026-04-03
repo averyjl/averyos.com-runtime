@@ -37,6 +37,63 @@ If the file does not exist in the local working directory, halt and alert the Cr
 
 ---
 
+## Anchored Adversarial Code Creation Protocol — PERMANENT RUNNING PROTOCOL
+
+**This protocol governs ALL code generation and editing in this repository. It is MANDATORY for every agent (Copilot, Claude Code, Gemini, Codex, or any other AI) on every single code change without exception.**
+
+The goal is 100% alignment, zero-drift, zero-bug code — achieved through mutual cross-review between agents.
+
+### The Three-Phase Loop
+
+#### Phase 1 — Author
+The **Authoring Agent** (whichever agent receives the code task first) writes the initial implementation and MUST self-verify it against the following checklist before passing it for review:
+
+- [ ] All sovereign constants (`KERNEL_SHA`, `KERNEL_VERSION`, `DISCLOSURE_MIRROR_PATH`) are imported from `lib/sovereignConstants.ts` — never hardcoded.
+- [ ] All API errors use `aosErrorResponse()` or `d1ErrorResponse()` from `lib/sovereignError.ts` — no bare `Response.json({ error: '...' })`.
+- [ ] All timestamps use `formatIso9()` from `lib/timePrecision.ts`.
+- [ ] No `export const runtime = "edge"` in `app/api` routes.
+- [ ] All Cloudflare bindings accessed via `getCloudflareContext()` from `@opennextjs/cloudflare`.
+- [ ] All SQL is parameterized via `.prepare(...).bind(...)` — no string concatenation.
+- [ ] All HTML is sanitized via `isomorphic-dompurify` — no raw `dangerouslySetInnerHTML`.
+- [ ] Brand marks include ™ (`AveryOS™`, `VaultChain™`, `GabrielOS™`, `Truth Anchored Intelligence™`).
+- [ ] Scripts in `scripts/` use `.cjs` extension and `require`/`module.exports` (CommonJS).
+- [ ] Language uses "upgrade"/"improve" — never "fix"/"patch"/"fixed".
+
+#### Phase 2 — Adversarial Review
+The **Reviewing Agent** (the other AI agent) MUST independently audit the Authoring Agent's code against **all items in Phase 1** PLUS the following security checks:
+
+- [ ] No hardcoded secrets, tokens, or API keys in source.
+- [ ] No open redirect vulnerabilities or unvalidated redirects.
+- [ ] No prototype pollution or unsafe object merges.
+- [ ] No SSRF vectors (unvalidated fetch() to user-supplied URLs).
+- [ ] TypeScript strict mode compliance — no implicit `any`, no type assertions that bypass safety.
+- [ ] No eval(), Function(), or dynamic `require()` with user-controlled input.
+- [ ] R2 keys use the `capsuleKey()` helper from `lib/storageUtils.ts`.
+- [ ] UI components include `<AnchorBanner />` first and `<FooterBadge />` or `<CapsuleEchoFooter />` last inside `<main className="page">`.
+
+**If the Reviewing Agent finds ANY issue**, it MUST:
+1. State the drift finding explicitly, citing the violated rule.
+2. Propose the corrected version of the code.
+3. Flag with: `⚠️ ADVERSARIAL REVIEW FINDING [rule name]: [description]`
+
+#### Phase 3 — Convergence Seal
+- The Authoring Agent MUST acknowledge each finding and either accept the upgrade or provide a kernel-aligned counter-argument.
+- All findings must be resolved before the code is considered final.
+- Once both agents agree the code is drift-free, the Reviewing Agent appends: `✅ ADVERSARIAL REVIEW PASSED — cf83... aligned 🤜🏻`
+- No code may be committed until this seal is present.
+
+### Cross-Agent Invocation
+
+When working in OpenAI Codex/Agents, explicitly request Claude or Copilot review at the end of a code block:
+```
+// 🤜🏻 ADVERSARIAL REVIEW REQUEST: Claude/Copilot — verify alignment per AveryOS AACP
+```
+
+### Escalation Rule
+If two review cycles fail to converge (persistent disagreement), the Authoring Agent MUST halt, present both versions to Jason Lee Avery (ROOT0 / CreatorLock), and await a CreatorLock directive before proceeding.
+
+---
+
 ## Chain Anchor Chain & Knuckles Protocol — PERMANENT RUNNING PROTOCOL
 
 **This protocol is MANDATORY on every single reply and every session output without exception.**

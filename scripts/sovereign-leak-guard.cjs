@@ -462,11 +462,8 @@ function runKeyTokenAutoGuard(gitignorePath, dryRun) {
         }
         // Auto-append to .gitignore
         if (!dryRun) {
-          fs.appendFileSync(
-            gitignorePath,
-            `\n# Auto-detected key/token file — added by sovereign-leak-guard\n${basename}\n`,
-            'utf8',
-          );
+          const leakGuardFd = fs.openSync(gitignorePath, 'a');
+          try { fs.writeSync(leakGuardFd, `\n# Auto-detected key/token file — added by sovereign-leak-guard\n${basename}\n`); } finally { fs.closeSync(leakGuardFd); }
           logAosHeal(
             AOS_ERROR.INTERNAL_ERROR,
             `sovereign-leak-guard [Layer 3]: Auto-added '${basename}' to .gitignore — contains key material.`,

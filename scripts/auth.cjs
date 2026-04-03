@@ -11,8 +11,12 @@ const LOCAL_SALT_PATH = path.join(process.cwd(), ".anchor-salt");
 const LEGACY_USB_PATH = "D:\\.averyos-anchor-salt.aossalt";
 
 function resolveSaltPath() {
-  if (fs.existsSync(LOCAL_SALT_PATH)) return LOCAL_SALT_PATH;
-  if (fs.existsSync(LEGACY_USB_PATH)) return LEGACY_USB_PATH;
+  let localExists = false;
+  try { fs.accessSync(LOCAL_SALT_PATH); localExists = true; } catch {}
+  if (localExists) return LOCAL_SALT_PATH;
+  let legacyExists = false;
+  try { fs.accessSync(LEGACY_USB_PATH); legacyExists = true; } catch {}
+  if (legacyExists) return LEGACY_USB_PATH;
   return null;
 }
 
@@ -48,19 +52,24 @@ function main() {
   }
 
   // 4. LOCK GENESIS — merge with existing lock data if present
-  const existing = fs.existsSync(SOVEREIGN_LOCK_PATH)
-    ? JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"))
-    : {};
-
-  fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify({
-    ...existing,
-    locked: true,
-    node: `${os.hostname()} (${os.platform()}/${os.arch()})`,
-    hardware: hardwareId,
-    salt_path: saltPath,
-    physicalSaltVerified: true,
-    last_auth_at: new Date().toISOString(),
-  }, null, 2));
+  let existing = {};
+  try {
+    existing = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"));
+  } catch { /* file doesn't exist yet */ }
+  const lockFd = fs.openSync(SOVEREIGN_LOCK_PATH, 'w');
+  try {
+    fs.writeSync(lockFd, JSON.stringify({
+      ...existing,
+      locked: true,
+      node: `${os.hostname()} (${os.platform()}/${os.arch()})`,
+      hardware: hardwareId,
+      salt_path: saltPath,
+      physicalSaltVerified: true,
+      last_auth_at: new Date().toISOString(),
+    }, null, 2));
+  } finally {
+    fs.closeSync(lockFd);
+  }
 
   console.log("✅ Sovereign Authentication Successful. Node Physically Locked.");
 }

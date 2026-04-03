@@ -79,8 +79,13 @@ function iso9() {
 
 /** Read a value from .env.local (best-effort; returns "" if missing) */
 function readEnvLocal(key) {
-  if (!fs.existsSync(ENV_LOCAL_PATH)) return "";
-  const lines = fs.readFileSync(ENV_LOCAL_PATH, "utf8").split("\n");
+  let _envContent;
+  try {
+    _envContent = fs.readFileSync(ENV_LOCAL_PATH, "utf8");
+  } catch {
+    return "";
+  }
+  const lines = _envContent.split("\n");
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.startsWith("#") || !trimmed.includes("=")) continue;
@@ -97,18 +102,22 @@ function readEnvLocal(key) {
 function setupEnvLocal() {
   step("1 / 5 — Environment variables (.env.local)");
 
-  if (fs.existsSync(ENV_LOCAL_PATH) && !FORCE) {
+  let _envLocalExists = false;
+  try { fs.accessSync(ENV_LOCAL_PATH); _envLocalExists = true; } catch {}
+  if (_envLocalExists && !FORCE) {
     skip(".env.local already exists — skipping scaffold (use --force to overwrite)");
     return;
   }
 
-  if (!fs.existsSync(ENV_EXAMPLE_PATH)) {
+  let example;
+  try {
+    example = fs.readFileSync(ENV_EXAMPLE_PATH, "utf8");
+  } catch {
     warn(".env.example not found — cannot scaffold .env.local");
     return;
   }
-
-  const example = fs.readFileSync(ENV_EXAMPLE_PATH, "utf8");
-  fs.writeFileSync(ENV_LOCAL_PATH, example, "utf8");
+  const envfd = fs.openSync(ENV_LOCAL_PATH, 'w');
+  try { fs.writeSync(envfd, example); } finally { fs.closeSync(envfd); }
   ok(".env.local created from .env.example");
   warn("ACTION REQUIRED: Open .env.local and replace all placeholder values with real keys.");
 }
@@ -118,14 +127,17 @@ function setupEnvLocal() {
 function setupAnchorSalt() {
   step("2 / 5 — Anchor salt (.anchor-salt)");
 
-  if (fs.existsSync(ANCHOR_SALT_PATH) && !FORCE) {
+  let _anchorSaltExists = false;
+  try { fs.accessSync(ANCHOR_SALT_PATH); _anchorSaltExists = true; } catch {}
+  if (_anchorSaltExists && !FORCE) {
     skip(".anchor-salt already exists — skipping generation");
     return;
   }
 
   // 64 bytes = 512 bits of entropy — matches the SHA-512 kernel anchor size
   const salt = crypto.randomBytes(64).toString("hex");
-  fs.writeFileSync(ANCHOR_SALT_PATH, salt, { encoding: "utf8", mode: 0o600 });
+  const saltfd = fs.openSync(ANCHOR_SALT_PATH, 'w', 0o600);
+  try { fs.writeSync(saltfd, salt); } finally { fs.closeSync(saltfd); }
   // Best-effort chmod — silently ignored on Windows (POSIX only)
   try { fs.chmodSync(ANCHOR_SALT_PATH, 0o600); } catch { /* Windows: restrict manually via File Explorer → Security */ }
   ok(".anchor-salt generated (64-byte random, 512-bit entropy)");
@@ -137,7 +149,9 @@ function setupAnchorSalt() {
 function setupSovereignNodes() {
   step("3 / 5 — Sovereign node registry (.sovereign-nodes.json)");
 
-  if (fs.existsSync(NODES_PATH) && !FORCE) {
+  let _nodesExists = false;
+  try { fs.accessSync(NODES_PATH); _nodesExists = true; } catch {}
+  if (_nodesExists && !FORCE) {
     skip(".sovereign-nodes.json already exists — skipping generation");
     return;
   }
@@ -186,7 +200,8 @@ function setupSovereignNodes() {
     note: "This file is private and gitignored. It is used by auth.cjs and watchdog.cjs for sovereign authentication.",
   };
 
-  fs.writeFileSync(NODES_PATH, JSON.stringify(nodes, null, 2), { encoding: "utf8", mode: 0o600 });
+  const nodesfd = fs.openSync(NODES_PATH, 'w', 0o600);
+  try { fs.writeSync(nodesfd, JSON.stringify(nodes, null, 2)); } finally { fs.closeSync(nodesfd); }
   ok(`.sovereign-nodes.json generated (NODE_02: ${node02Id})`);
 }
 
@@ -195,7 +210,9 @@ function setupSovereignNodes() {
 async function setupAverySyncManifest() {
   step("4 / 5 — Sovereign Sync Manifest (.avery-sync.json)");
 
-  if (fs.existsSync(SYNC_MANIFEST_PATH) && !FORCE) {
+  let _syncManifestExists = false;
+  try { fs.accessSync(SYNC_MANIFEST_PATH); _syncManifestExists = true; } catch {}
+  if (_syncManifestExists && !FORCE) {
     skip(".avery-sync.json already exists — skipping generation");
     return;
   }
@@ -256,7 +273,8 @@ async function setupAverySyncManifest() {
     note: "This file is private and gitignored. Read by GabrielOS™ Workers and Firebase Cloud Functions. Never commit.",
   };
 
-  fs.writeFileSync(SYNC_MANIFEST_PATH, JSON.stringify(manifest, null, 2), { encoding: "utf8", mode: 0o600 });
+  const syncfd = fs.openSync(SYNC_MANIFEST_PATH, 'w', 0o600);
+  try { fs.writeSync(syncfd, JSON.stringify(manifest, null, 2)); } finally { fs.closeSync(syncfd); }
   ok(".avery-sync.json generated (Sovereign Sync Manifest)");
   log("ℹ️ ", `Firebase project: ${firebaseProjectId}`);
   log("ℹ️ ", `Sync mode: ${manifest.sync_mode} | Alignment: ${manifest.alignment_status}`);
@@ -267,15 +285,27 @@ async function setupAverySyncManifest() {
 function setupSovereignLock() {
   step("5 / 5 — Sovereign lock (.sovereign-lock)");
 
-  if (fs.existsSync(SOVEREIGN_LOCK_PATH) && !FORCE) {
-    // Refresh timestamp to mark this run
-    const existing = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"));
-    existing.last_setup_at = iso9();
-    existing.kernel_sha    = KERNEL_SHA;
-    fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify(existing, null, 2), { encoding: "utf8", mode: 0o600 });
-    ok(".sovereign-lock refreshed (timestamp updated)");
-    return;
+  if (!FORCE) {
+    let existing = null;
+    try {
+      existing = JSON.parse(fs.readFileSync(SOVEREIGN_LOCK_PATH, "utf8"));
+    } catch { /* file doesn't exist yet */ }
+    if (existing !== null) {
+      existing.last_setup_at = iso9();
+      existing.kernel_sha    = KERNEL_SHA;
+      const lockfd = fs.openSync(SOVEREIGN_LOCK_PATH, 'w', 0o600);
+      try { fs.writeSync(lockfd, JSON.stringify(existing, null, 2)); } finally { fs.closeSync(lockfd); }
+      ok(".sovereign-lock refreshed (timestamp updated)");
+      return;
+    }
   }
+
+  let _anchorSaltPresent = false;
+  try { fs.accessSync(ANCHOR_SALT_PATH); _anchorSaltPresent = true; } catch {}
+  let _nodesPresent = false;
+  try { fs.accessSync(NODES_PATH); _nodesPresent = true; } catch {}
+  let _syncManifestPresent = false;
+  try { fs.accessSync(SYNC_MANIFEST_PATH); _syncManifestPresent = true; } catch {}
 
   const lock = {
     locked: true,
@@ -284,15 +314,16 @@ function setupSovereignLock() {
     hardware: `${os.hostname()}:${os.platform()}:${os.arch()}`,
     kernel_sha: KERNEL_SHA,
     kernel_version: KERNEL_VERSION,
-    anchor_salt_present: fs.existsSync(ANCHOR_SALT_PATH),
-    nodes_present: fs.existsSync(NODES_PATH),
-    sync_manifest_present: fs.existsSync(SYNC_MANIFEST_PATH),
+    anchor_salt_present: _anchorSaltPresent,
+    nodes_present: _nodesPresent,
+    sync_manifest_present: _syncManifestPresent,
     first_setup_at: iso9(),
     last_setup_at: iso9(),
     creator_lock: "Jason Lee Avery (ROOT0) 🤛🏻",
   };
 
-  fs.writeFileSync(SOVEREIGN_LOCK_PATH, JSON.stringify(lock, null, 2), { encoding: "utf8", mode: 0o600 });
+  const newlockfd = fs.openSync(SOVEREIGN_LOCK_PATH, 'w', 0o600);
+  try { fs.writeSync(newlockfd, JSON.stringify(lock, null, 2)); } finally { fs.closeSync(newlockfd); }
   ok(".sovereign-lock written — sovereign environment initialized");
 }
 
@@ -310,7 +341,9 @@ function verify() {
 
   let allGood = true;
   for (const { path: p, label, required } of files) {
-    if (fs.existsSync(p)) {
+    let _fileExists = false;
+    try { fs.accessSync(p); _fileExists = true; } catch {}
+    if (_fileExists) {
       ok(`${label} present`);
       // Spot-check .sovereign-lock kernel alignment
       if (p === SOVEREIGN_LOCK_PATH) {
