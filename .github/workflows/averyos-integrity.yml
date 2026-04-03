@@ -29,13 +29,6 @@ jobs:
       - name: 🏗️ Build project
         run: npm run build
 
-      # ─── Step 1: Attest Build ───────────────────────────────────────────────
-      - name: 🔐 Attest Build Provenance (Sigstore)
-        id: attest
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
-        with:
-          subject-path: '.next/**'
-
       # ─── Step 2: Sovereign Injection ────────────────────────────────────────
       - name: 🔑 Fetch AveryOS Loop Signature
         id: loop_sig
@@ -56,6 +49,10 @@ jobs:
           echo "LOOP_SIG_FETCHED=true" >> "$GITHUB_OUTPUT"
           echo "LOOP_SIG_DATA=$LOOP_SIG_SINGLE" >> "$GITHUB_OUTPUT"
 
+      # ─── Step 3: Generate Handshake Capsule BEFORE attestation ───────────────
+      # The capsule contains a SHA-512 hash of every .next build artifact, so
+      # attesting it provides the same integrity guarantee as attesting .next/**
+      # without hitting the 1024-subject limit of actions/attest-build-provenance.
       - name: 🔒 Calculate Sovereign SHA-512 & Generate Handshake Capsule
         id: handshake
         env:
@@ -82,7 +79,6 @@ jobs:
             "build_timestamp_ms": "$TIMESTAMP_9",
             "github_run_id": "${{ github.run_id }}",
             "github_sha": "${{ github.sha }}",
-            "attestation_token": "${{ steps.attest.outputs.bundle-path }}",
             "anchor": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
             "status": "IGNITION_1017"
           }
@@ -93,7 +89,16 @@ jobs:
           echo "SOVEREIGN_SHA=$SOVEREIGN_SHA" >> "$GITHUB_OUTPUT"
           echo "TIMESTAMP_9=$TIMESTAMP_9" >> "$GITHUB_OUTPUT"
 
-      # ─── Step 3: Cross-Repo Push ─────────────────────────────────────────────
+      # ─── Step 4: Attest the capsule (1 subject — no over-limit error) ────────
+      # Attesting the capsule is cryptographically equivalent to attesting every
+      # .next file directly because the capsule contains their collective SHA-512.
+      - name: 🔐 Attest Build Provenance (Sigstore)
+        id: attest
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        with:
+          subject-path: 'build_handshake_v2026.aoscap'
+
+      # ─── Step 5: Cross-Repo Push ─────────────────────────────────────────────
       - name: 📤 Push Handshake Capsule to vaultchain-registry
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
@@ -135,7 +140,7 @@ jobs:
             echo "✅ Capsule pushed to vaultchain-registry: $CAPSULE_PATH"
           fi
 
-      # ─── Step 4: Real-Time Health Signal ────────────────────────────────────
+      # ─── Step 6: Real-Time Health Signal ────────────────────────────────────
       - name: 📡 Update AveryOS™ Sovereign Health Page
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
