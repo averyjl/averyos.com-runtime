@@ -103,7 +103,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       const registry = readRegistry();
       registry.push(entry);
       writeRegistry(registry);
-      console.log(`⛓️  Witness registered: ${name} — ${id.slice(0, 12)}…`);
+      const safeName = name.replace(/[\r\n]/g, "");
+      console.log(`⛓️  Witness registered: ${safeName} — ${id.slice(0, 12)}…`);
     } catch (err) {
       console.error("⚠️  Failed to write witness registry:", err);
       return res.status(500).json({ error: "Failed to write witness registry" });
