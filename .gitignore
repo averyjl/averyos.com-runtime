@@ -220,3 +220,4 @@ AVERYOS_PUBLIC_KEY_B64.txt
 # HARDWARE RESIDENCY
 .aid.bak
 .aid*
+heartbeat.log
