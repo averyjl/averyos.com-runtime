@@ -26,6 +26,15 @@ const FONT_MONO = "JetBrains Mono, Courier New, monospace";
 const BG_PANEL  = "rgba(0,20,0,0.75)";
 const RED_DIM   = "rgba(255,100,100,0.15)";
 
+// ── Extended / Secondary Retail Links ─────────────────────────────────────────
+const EXTENDED_LINKS: { label: string; url: string }[] = [
+  { label: "Scribd",    url: "https://www.scribd.com/search#query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Kobo",      url: "https://www.kobo.com/us/en/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Smashwords", url: "https://www.smashwords.com/books/search?query=Miracle+Health+Habits+Jason+Avery" },
+  { label: "OverDrive", url: "https://www.overdrive.com/search?q=Miracle+Health+Habits+Jason+Avery" },
+  { label: "Draft2Digital", url: "https://books2read.com/Miracle-Health-Habits" },
+];
+
 // ── Retail Links ───────────────────────────────────────────────────────────────
 const RETAIL_LINKS = [
   {
