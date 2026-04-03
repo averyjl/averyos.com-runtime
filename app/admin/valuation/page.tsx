@@ -143,7 +143,10 @@ export default function ValuationDashboardPage() {
     if (!authed) return;
     const fetchDebt = () => {
       fetch("/api/licensing/total-debt", { cache: "no-store" })
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error(`Debt API HTTP ${r.status}`);
+          return r.json();
+        })
         .then((d: TotalDebtResponse) => {
           setDebtValue(d.total_debt_precision_9 ?? Number(d.total_debt_usd ?? 0).toFixed(9));
           setDebtRows(d.row_count ?? 0);
