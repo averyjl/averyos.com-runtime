@@ -20,7 +20,7 @@ const AveryOSWhitepaperPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("whitepaper.md");
+  const content = await loadMarkdownAsHtml("whitepaper.md");
   return {
     props: { content },
   };

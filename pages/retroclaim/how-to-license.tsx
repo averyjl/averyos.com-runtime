@@ -20,7 +20,7 @@ const HowToLicensePage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("retroclaim/how-to-license.md");
+  const content = await loadMarkdownAsHtml("retroclaim/how-to-license.md");
   return {
     props: { content },
   };

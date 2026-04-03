@@ -51,11 +51,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultAuditRespo
 
   try {
     // Load all capsule manifests
-    const capsuleIds = listCapsuleIds();
+    const capsuleIds = await listCapsuleIds();
     const transactions: VaultAuditTransaction[] = [];
 
     for (const capsuleId of capsuleIds) {
-      const manifest = loadCapsuleManifest(capsuleId);
+      const manifest = await loadCapsuleManifest(capsuleId);
       if (manifest) {
         transactions.push({
           id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,

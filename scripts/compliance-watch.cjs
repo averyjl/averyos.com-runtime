@@ -143,16 +143,21 @@ function sha256(text) {
 /** @returns {Record<string, string>} */
 function loadState() {
   try {
-    if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
   } catch (err) {
-    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse state file ${STATE_FILE} — starting fresh`, err);
+    if (err.code !== 'ENOENT') {
+      logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse state file ${STATE_FILE} — starting fresh`, err);
+    }
   }
   return {};
 }
 
 /** @param {Record<string, string>} state */
 function saveState(state) {
-  if (!DRY_RUN) fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+  if (!DRY_RUN) {
+    const stateFd = fs.openSync(STATE_FILE, 'w');
+    try { fs.writeSync(stateFd, JSON.stringify(state, null, 2)); } finally { fs.closeSync(stateFd); }
+  }
 }
 
 // ── Drift check ────────────────────────────────────────────────────────────────
@@ -227,10 +232,9 @@ function sendPushoverAlert(title, message, priority = 1) {
  */
 function logDriftEvent(policy, result, newHash) {
   if (DRY_RUN) return;
-  /** @type {unknown[]} */
   let events = [];
   try {
-    if (fs.existsSync(DRIFT_LOG_FILE)) events = JSON.parse(fs.readFileSync(DRIFT_LOG_FILE, 'utf8'));
+    events = JSON.parse(fs.readFileSync(DRIFT_LOG_FILE, 'utf8'));
   } catch { /* start fresh */ }
 
   events.push({
@@ -246,7 +250,8 @@ function logDriftEvent(policy, result, newHash) {
     kernelSha:        KERNEL_SHA.slice(0, 16) + '…',
   });
 
-  fs.writeFileSync(DRIFT_LOG_FILE, JSON.stringify(events, null, 2), 'utf8');
+  const driftFd = fs.openSync(DRIFT_LOG_FILE, 'w');
+  try { fs.writeSync(driftFd, JSON.stringify(events, null, 2)); } finally { fs.closeSync(driftFd); }
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────

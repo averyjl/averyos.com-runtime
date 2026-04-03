@@ -27,6 +27,10 @@ import {
   d1ErrorResponse,
   classifyAndRespond,
   buildAosUiError,
+  classifyApiResponseError,
+  withAosErrorHandling,
+  logAosScriptError,
+  logAosHeal,
   type AosApiError,
   type AosErrorCode,
 } from "../lib/sovereignError";
@@ -228,5 +232,197 @@ describe("buildAosUiError()", () => {
     const err  = buildAosUiError(AOS_ERROR.INTERNAL_ERROR, "crash");
     const json = JSON.stringify(err);
     assert.ok(typeof json === "string" && json.length > 0);
+  });
+});
+
+// ── classifyAndRespond — additional branches ──────────────────────────────────
+
+describe("classifyAndRespond() — additional error branches", () => {
+  test("classifies 'stripe' in message → STRIPE_ERROR", async () => {
+    const res  = classifyAndRespond(new Error("stripe charge failed"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.STRIPE_ERROR);
+  });
+
+  test("classifies 'binding' in message → BINDING_MISSING", async () => {
+    const res  = classifyAndRespond(new Error("binding not found"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.BINDING_MISSING);
+  });
+
+  test("classifies 'env.db' in message → BINDING_MISSING", async () => {
+    const res  = classifyAndRespond(new Error("env.db is undefined"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.BINDING_MISSING);
+  });
+
+  test("classifies 'json' in message → INVALID_JSON", async () => {
+    const res  = classifyAndRespond(new Error("json parse error"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.INVALID_JSON);
+  });
+
+  test("classifies 'parse' in message → INVALID_JSON", async () => {
+    const res  = classifyAndRespond(new Error("failed to parse body"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.INVALID_JSON);
+  });
+
+  test("classifies 'expired' in message → TOKEN_EXPIRED", async () => {
+    const res  = classifyAndRespond(new Error("token expired"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.TOKEN_EXPIRED);
+  });
+
+  test("classifies 'not found' in message → NOT_FOUND", async () => {
+    const res  = classifyAndRespond(new Error("resource not found"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.NOT_FOUND);
+  });
+
+  test("classifies '404' in message → NOT_FOUND", async () => {
+    const res  = classifyAndRespond(new Error("HTTP 404 response"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.NOT_FOUND);
+  });
+
+  test("classifies 'drift' in message → DRIFT_DETECTED", async () => {
+    const res  = classifyAndRespond(new Error("drift detected in kernel"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.DRIFT_DETECTED);
+  });
+
+  test("classifies 'kv' in message → KV_UNAVAILABLE", async () => {
+    const res  = classifyAndRespond(new Error("kv namespace unavailable"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.KV_UNAVAILABLE);
+  });
+
+  test("classifies 'sqlite' in message → DB_QUERY_FAILED", async () => {
+    const res  = classifyAndRespond(new Error("sqlite constraint violation"));
+    const body = await res.json() as AosApiError;
+    assert.equal(body.error, AOS_ERROR.DB_QUERY_FAILED);
+  });
+});
+
+// ── withAosErrorHandling ──────────────────────────────────────────────────────
+
+describe("withAosErrorHandling()", () => {
+  test("passes through successful handler response", async () => {
+    const handler = async (_req: Request) =>
+      new Response(JSON.stringify({ ok: true }), { status: 200 });
+    const wrapped = withAosErrorHandling(handler);
+    const res = await wrapped(new Request("https://averyos.com/test"));
+    assert.equal(res.status, 200);
+    const body = await res.json() as { ok: boolean };
+    assert.equal(body.ok, true);
+  });
+
+  test("catches thrown errors and returns an AOS error response", async () => {
+    const handler = async (_req: Request): Promise<Response> => {
+      throw new Error("stripe payment declined");
+    };
+    const wrapped = withAosErrorHandling(handler);
+    const res = await wrapped(new Request("https://averyos.com/test"));
+    // Should be a non-200 error response, not an unhandled rejection
+    assert.ok(res.status >= 400);
+    const body = await res.json() as AosApiError;
+    assert.ok(typeof body.error === "string");
+    assert.equal(body.sovereign_anchor, "⛓️⚓⛓️");
+  });
+
+  test("wraps handler that throws a non-Error value", async () => {
+    const handler = async (_req: Request): Promise<Response> => {
+      throw "plain string error"; // eslint-disable-line no-throw-literal
+    };
+    const wrapped = withAosErrorHandling(handler);
+    const res = await wrapped(new Request("https://averyos.com/test"));
+    assert.ok(res.status >= 400);
+  });
+
+  test("forwards ctx argument to the handler", async () => {
+    let receivedCtx: unknown;
+    const handler = async (_req: Request, ctx: unknown) => {
+      receivedCtx = ctx;
+      return new Response("ok");
+    };
+    const wrapped = withAosErrorHandling(handler);
+    await wrapped(new Request("https://averyos.com/"), { waitUntil: () => {} });
+    assert.ok(receivedCtx !== undefined);
+  });
+});
+
+// ── logAosScriptError ─────────────────────────────────────────────────────────
+
+describe("logAosScriptError()", () => {
+  test("does not throw for a known error code with string detail", () => {
+    assert.doesNotThrow(() =>
+      logAosScriptError(AOS_ERROR.DB_UNAVAILABLE, "test detail")
+    );
+  });
+
+  test("does not throw for an unknown error code", () => {
+    assert.doesNotThrow(() =>
+      logAosScriptError("CUSTOM_CODE" as AosErrorCode, "custom detail")
+    );
+  });
+
+  test("does not throw when cause is an Error with a stack", () => {
+    const cause = new Error("root cause");
+    assert.doesNotThrow(() =>
+      logAosScriptError(AOS_ERROR.INTERNAL_ERROR, "detail", cause)
+    );
+  });
+
+  test("does not throw when cause is a non-Error value", () => {
+    assert.doesNotThrow(() =>
+      logAosScriptError(AOS_ERROR.INTERNAL_ERROR, "detail", "string cause")
+    );
+  });
+});
+
+// ── logAosHeal ────────────────────────────────────────────────────────────────
+
+describe("logAosHeal()", () => {
+  test("does not throw for a known error code", () => {
+    assert.doesNotThrow(() =>
+      logAosHeal(AOS_ERROR.DB_UNAVAILABLE, "retrying connection")
+    );
+  });
+
+  test("does not throw for an unknown code string", () => {
+    assert.doesNotThrow(() =>
+      logAosHeal("CUSTOM" as AosErrorCode, "auto-heal action")
+    );
+  });
+});
+
+// ── classifyApiResponseError ──────────────────────────────────────────────────
+
+describe("classifyApiResponseError()", () => {
+  test("extracts code and detail from API body", () => {
+    const body = { error: AOS_ERROR.NOT_FOUND, detail: "capsule missing" };
+    const uiErr = classifyApiResponseError(body);
+    assert.equal(uiErr.code, AOS_ERROR.NOT_FOUND);
+    assert.equal(uiErr.detail, "capsule missing");
+    assert.ok(typeof uiErr.diagnosis === "string" && uiErr.diagnosis.length > 0);
+    assert.ok(Array.isArray(uiErr.steps));
+  });
+
+  test("falls back to INTERNAL_ERROR when error field is absent", () => {
+    const body = { message: "something went wrong" };
+    const uiErr = classifyApiResponseError(body);
+    assert.equal(uiErr.code, AOS_ERROR.INTERNAL_ERROR);
+  });
+
+  test("uses error string as detail when detail field is absent", () => {
+    const body = { error: AOS_ERROR.DRIFT_DETECTED };
+    const uiErr = classifyApiResponseError(body);
+    assert.equal(uiErr.detail, AOS_ERROR.DRIFT_DETECTED);
+  });
+
+  test("produces a JSON-serialisable object", () => {
+    const uiErr = classifyApiResponseError({ error: AOS_ERROR.KV_UNAVAILABLE, detail: "kv gone" });
+    assert.doesNotThrow(() => JSON.stringify(uiErr));
   });
 });

@@ -117,9 +117,14 @@ function info(msg) { if (VERBOSE) console.log(`${CYAN}ℹ${RESET}  ${msg}`); }
  * @returns {object|null}
  */
 function loadManifest() {
-  if (!fs.existsSync(SYNC_MANIFEST_PATH)) return null;
+  let raw;
   try {
-    return JSON.parse(fs.readFileSync(SYNC_MANIFEST_PATH, 'utf8'));
+    raw = fs.readFileSync(SYNC_MANIFEST_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
   } catch (err) {
     logAosError(AOS_ERROR.INVALID_JSON, `Manifest parse error: ${err.message}`, err);
     return null;
@@ -466,7 +471,14 @@ async function main() {
   ok(`Local runtime node: ${local.nodeId}`);
 
   // ── 2. .avery-sync.json ───────────────────────────────────────────────────
-  if (!fs.existsSync(SYNC_MANIFEST_PATH)) {
+  let syncManifestRaw;
+  let syncManifestMissing = false;
+  try {
+    syncManifestRaw = fs.readFileSync(SYNC_MANIFEST_PATH, 'utf8');
+  } catch {
+    syncManifestMissing = true;
+  }
+  if (syncManifestMissing) {
     warn('.avery-sync.json not found — run `npm run setup` to initialise the sync manifest.');
     logAosHeal(
       AOS_ERROR.MISSING_FIELD,
@@ -476,7 +488,7 @@ async function main() {
   } else {
     let syncManifest;
     try {
-      syncManifest = JSON.parse(fs.readFileSync(SYNC_MANIFEST_PATH, 'utf8'));
+      syncManifest = JSON.parse(syncManifestRaw);
     } catch (err) {
       fail(`.avery-sync.json could not be parsed: ${err.message}`);
       logAosError(AOS_ERROR.INVALID_JSON, `.avery-sync.json parse error: ${err.message}`, err);
@@ -543,7 +555,14 @@ async function main() {
 
   // ── 3. .sovereign-nodes.json ──────────────────────────────────────────────
   console.log('');
-  if (!fs.existsSync(SOVEREIGN_NODES_PATH)) {
+  let nodesManifestRaw;
+  let nodesManifestMissing = false;
+  try {
+    nodesManifestRaw = fs.readFileSync(SOVEREIGN_NODES_PATH, 'utf8');
+  } catch {
+    nodesManifestMissing = true;
+  }
+  if (nodesManifestMissing) {
     warn('.sovereign-nodes.json not found — run `npm run setup` to register sovereign nodes.');
     logAosHeal(
       AOS_ERROR.MISSING_FIELD,
@@ -552,7 +571,7 @@ async function main() {
   } else {
     let nodesManifest;
     try {
-      nodesManifest = JSON.parse(fs.readFileSync(SOVEREIGN_NODES_PATH, 'utf8'));
+      nodesManifest = JSON.parse(nodesManifestRaw);
     } catch (err) {
       fail(`.sovereign-nodes.json could not be parsed: ${err.message}`);
       logAosError(AOS_ERROR.INVALID_JSON, `.sovereign-nodes.json parse error: ${err.message}`, err);

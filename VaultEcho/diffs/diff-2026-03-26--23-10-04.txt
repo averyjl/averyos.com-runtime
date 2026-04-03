@@ -1,0 +1,4 @@
+11d10
+< 031702decc543403d50f76aa04f94566cba4bdc668dd8db95c260fd9f5be0182108381946b4c14bccee406c65f954fda4cb111c2a48a42e5b70c0a2fe769b7a6  ./public/manifest/gates/kaas_gates_v1.json
+984a984
+> f4a4faa6f108f18acbf71945155ee7bc9617fb2f7b87a3984822044cd21e46a11b86695abb2c979129465ffb892e9d35f9c39eb54efcfe28c526976ada58ad0f  ./public/manifest/gates/kaas_gates_v1.json

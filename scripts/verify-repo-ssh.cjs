@@ -75,15 +75,23 @@ function verbose(msg)  { if (isVerbose) log(`  ${dim("…")}  ${dim(msg)}`); }
  * Priority: SSH_KEY_PATH env > ~/.ssh/id_ed25519 > first key found in ~/.ssh
  */
 function resolveSSHKey() {
-  if (fs.existsSync(sshKeyPath)) return sshKeyPath;
+  let sshKeyExists = false;
+  try { fs.accessSync(sshKeyPath); sshKeyExists = true; } catch {}
+  if (sshKeyExists) return sshKeyPath;
 
   const sshDir = path.join(os.homedir(), ".ssh");
-  if (!fs.existsSync(sshDir)) return null;
+  let sshDirExists = false;
+  try { fs.accessSync(sshDir); sshDirExists = true; } catch {}
+  if (!sshDirExists) return null;
 
   const candidates = ["id_ed25519", "id_rsa", "id_ecdsa"].map((k) =>
     path.join(sshDir, k)
   );
-  return candidates.find((p) => fs.existsSync(p)) ?? null;
+  return candidates.find((p) => {
+    let candidateExists = false;
+    try { fs.accessSync(p); candidateExists = true; } catch {}
+    return candidateExists;
+  }) ?? null;
 }
 
 /** Returns true if a YubiKey GPG slot (slot 2 / authentication) is available. */
