@@ -6,6 +6,7 @@ import { listRegistryCapsules } from "../lib/capsuleRegistry";
 import { listCapsuleIds } from "../lib/capsuleManifest";
 import { DISCLOSURE_MIRROR_PATH, KERNEL_SHA } from "../lib/sovereignConstants";
 import AnchorBanner from "../components/AnchorBanner";
+import SettlementBanner from "../components/SettlementBanner";
 
 const THE_PROOF_PATH = DISCLOSURE_MIRROR_PATH;
 
@@ -128,6 +129,7 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
       </Head>
 
       <main className="page">
+        <SettlementBanner />
         <AnchorBanner />
 
         {/* Hero */}
