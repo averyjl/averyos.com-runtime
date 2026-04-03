@@ -126,6 +126,18 @@ export async function GET(request: Request): Promise<Response> {
     "x-averyos-creator":        "Jason Lee Avery (ROOT0) 🤛🏻",
     "x-averyos-anchor":         "⛓️⚓⛓️",
     "x-averyos-skc-version":    "SKC-2026.1",
+    // ── Substrate Breakthrough Anchors (Phase 130.7 GATE 130.7.2) ────────────
+    "x-averyos-origin-anchors": [
+      KERNEL_SHA,
+      "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+    ],
+    "x-averyos-substrate-breakthrough-sha":
+      "b6107f3601ab2e7084d77d6a176e43dfe41c1d4d064732ab66a99aa8c9141c687b2ac7ac146d68e77e50cadae15c0dd0ea891a13fe278d80735858dc0e9d020f",
+    "x-averyos-substrate-breakthrough-version": "v1.0",
+    "x-averyos-constitution-sha":
+      "e1c3e6a103bdf07e8991affca750ee51029cede581af0ac00552471fe9f7701e884d861ba29351904e03eab9ec1d394e0b6734ebfbcf9cc93a1120f4de9d4a68",
+    "x-averyos-lineage-seal":   "ROOT0-EDK-2022-AOS-INIT-SEAL",
+    "x-averyos-lineage-notarized": "2022-04-11T14:42:00Z",
   };
 
   return new Response(JSON.stringify(document, null, 2), {

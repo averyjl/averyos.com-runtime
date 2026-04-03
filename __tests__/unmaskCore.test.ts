@@ -105,29 +105,29 @@ describe("validateSaltPath()", () => {
     assert.ok(result!.endsWith(SALT_FILENAME_PRIMARY));
   });
 
-  test("accepts a valid legacy .aos-salt path", () => {
+  test("accepts a valid legacy .aos-salt path", async () => {
     const p = `/mnt/usb/${SALT_FILENAME_LEGACY}`;
     assert.ok(validateSaltPath(p) !== null);
   });
 
-  test("accepts a valid AOS_SALT.bin path", () => {
+  test("accepts a valid AOS_SALT.bin path", async () => {
     const p = `/mnt/usb/${SALT_FILENAME_BLOCK}`;
     assert.ok(validateSaltPath(p) !== null);
   });
 
-  test("rejects a path containing '..' traversal (relative escape)", () => {
+  test("rejects a path containing '..' traversal (relative escape)", async () => {
     // path.normalize resolves embedded '..' in absolute paths, but a relative
     // path starting with '..' still contains '..' after normalization
     const p = `../../etc/${SALT_FILENAME_PRIMARY}`;
     assert.equal(validateSaltPath(p), null);
   });
 
-  test("rejects a path containing a null byte (\\x00)", () => {
+  test("rejects a path containing a null byte (\\x00)", async () => {
     const p = `/mnt/usb/\x00/${SALT_FILENAME_PRIMARY}`;
     assert.equal(validateSaltPath(p), null);
   });
 
-  test("rejects a path whose basename is not an allowed salt filename", () => {
+  test("rejects a path whose basename is not an allowed salt filename", async () => {
     assert.equal(validateSaltPath("/mnt/usb/evil.txt"), null);
     assert.equal(validateSaltPath("/mnt/usb/secret.aoskey"), null);
   });
@@ -136,19 +136,19 @@ describe("validateSaltPath()", () => {
 // ── readSaltData() ─────────────────────────────────────────────────────────────
 
 describe("readSaltData()", () => {
-  test("returns null fields for an invalid (traversal) path", () => {
-    const result = readSaltData(`/mnt/usb/../etc/${SALT_FILENAME_PRIMARY}`);
+  test("returns null fields for an invalid (traversal) path", async () => {
+    const result = await readSaltData(`/mnt/usb/../etc/${SALT_FILENAME_PRIMARY}`);
     assert.equal(result.previewHex, null);
     assert.equal(result.sha512, null);
   });
 
-  test("returns null fields for a non-allowed basename", () => {
-    const result = readSaltData("/tmp/evil.txt");
+  test("returns null fields for a non-allowed basename", async () => {
+    const result = await readSaltData("/tmp/evil.txt");
     assert.equal(result.previewHex, null);
     assert.equal(result.sha512, null);
   });
 
-  test("reads a real file and returns hex preview + sha512", () => {
+  test("reads a real file and returns hex preview + sha512", async () => {
     // Write a temporary salt file with a known salt filename
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-test-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
@@ -156,7 +156,7 @@ describe("readSaltData()", () => {
     fs.writeFileSync(saltFile, saltContent);
 
     try {
-      const result = readSaltData(saltFile);
+      const result = await readSaltData(saltFile);
       assert.ok(result.previewHex !== null, "previewHex should not be null");
       assert.ok(result.sha512 !== null, "sha512 should not be null");
       // Preview is first 64 bytes as hex → max 128 hex chars
@@ -171,10 +171,10 @@ describe("readSaltData()", () => {
     }
   });
 
-  test("returns null fields for a path that does not exist on disk", () => {
+  test("returns null fields for a path that does not exist on disk", async () => {
     // File is a valid salt name but the path doesn't exist — readFileSync throws
     const nonExistent = path.join(os.tmpdir(), "no-such-dir-xyz", SALT_FILENAME_PRIMARY);
-    const result = readSaltData(nonExistent);
+    const result = await readSaltData(nonExistent);
     assert.equal(result.previewHex, null);
     assert.equal(result.sha512, null);
   });
@@ -185,7 +185,7 @@ describe("readSaltData()", () => {
 // fs.readFileSync to throw, verifying graceful null-return without propagation.
 
 describe("readSaltData() — mocked readFileSync catch block", () => {
-  test("returns null fields when fs.readFileSync throws EACCES (permission denied)", () => {
+  test("returns null fields when fs.readFileSync throws EACCES (permission denied)", async () => {
     const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-eacces-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     // Create the file so validateSaltPath passes, then mock readFileSync to throw.
@@ -194,7 +194,7 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
       throw Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
     });
     try {
-      const result = readSaltData(saltFile);
+      const result = await readSaltData(saltFile);
       assert.equal(result.previewHex, null);
       assert.equal(result.sha512, null);
     } finally {
@@ -204,7 +204,7 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
     }
   });
 
-  test("returns null fields when fs.readFileSync throws ENOENT (file vanished)", () => {
+  test("returns null fields when fs.readFileSync throws ENOENT (file vanished)", async () => {
     const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-enoent-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     fs.writeFileSync(saltFile, Buffer.from("dummy"));
@@ -212,7 +212,7 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
       throw Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
     });
     try {
-      const result = readSaltData(saltFile);
+      const result = await readSaltData(saltFile);
       assert.equal(result.previewHex, null);
       assert.equal(result.sha512, null);
     } finally {
@@ -222,7 +222,7 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
     }
   });
 
-  test("returns null fields when fs.readFileSync throws a generic Error", () => {
+  test("returns null fields when fs.readFileSync throws a generic Error", async () => {
     const tmpDir  = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-mock-generic-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     fs.writeFileSync(saltFile, Buffer.from("dummy"));
@@ -230,7 +230,7 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
       throw new Error("Unexpected I/O failure");
     });
     try {
-      const result = readSaltData(saltFile);
+      const result = await readSaltData(saltFile);
       assert.equal(result.previewHex, null);
       assert.equal(result.sha512, null);
     } finally {
@@ -244,25 +244,25 @@ describe("readSaltData() — mocked readFileSync catch block", () => {
 // ── getUsbMountCandidates() ───────────────────────────────────────────────────
 
 describe("getUsbMountCandidates()", () => {
-  test("returns an array on this platform (Linux CI)", () => {
-    const candidates = getUsbMountCandidates();
+  test("returns an array on this platform (Linux CI)", async () => {
+    const candidates = await getUsbMountCandidates();
     assert.ok(Array.isArray(candidates));
   });
 
-  test("all returned entries are non-empty strings", () => {
-    const candidates = getUsbMountCandidates();
+  test("all returned entries are non-empty strings", async () => {
+    const candidates = await getUsbMountCandidates();
     for (const c of candidates) {
       assert.ok(typeof c === "string");
       assert.ok(c.length > 0);
     }
   });
 
-  test("win32: returns drive letters D: through Z:", () => {
+  test("win32: returns drive letters D: through Z:", async () => {
     // Temporarily mock process.platform as 'win32' to cover the win32 branch
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "win32", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       assert.ok(Array.isArray(candidates));
       assert.ok(candidates.length > 0);
       // Should include D:\ at minimum
@@ -274,7 +274,7 @@ describe("getUsbMountCandidates()", () => {
     }
   });
 
-  test("darwin: catches error when /Volumes is inaccessible and returns []", () => {
+  test("darwin: catches error when /Volumes is inaccessible and returns []", async () => {
     // Mock fs.readdirSync to throw EACCES, deterministically covering the darwin
     // try/catch branch in getUsbMountCandidates() regardless of host platform.
     const restoreReaddir = mock.method(fs, "readdirSync", () => {
@@ -283,7 +283,7 @@ describe("getUsbMountCandidates()", () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       // darwin catch block swallows EACCES and returns []
       assert.ok(Array.isArray(candidates));
       assert.equal(candidates.length, 0);
@@ -293,14 +293,14 @@ describe("getUsbMountCandidates()", () => {
     }
   });
 
-  test("darwin: returns sanitised volume paths from /Volumes when accessible", () => {
+  test("darwin: returns sanitised volume paths from /Volumes when accessible", async () => {
     // Mock fs.readdirSync to return fake volume names, covering the darwin success path
     // (the try branch completes without throwing).
     const restoreReaddir = mock.method(fs, "readdirSync", () => ["Macintosh-HD", "USB-Sovereign"]);
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       assert.ok(Array.isArray(candidates));
       assert.ok(candidates.some((c) => c.endsWith("Macintosh-HD")));
       assert.ok(candidates.some((c) => c.endsWith("USB-Sovereign")));
@@ -309,7 +309,7 @@ describe("getUsbMountCandidates()", () => {
       Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
     }
   });
-  test("linux: returns [] when username sanitises to empty string", () => {
+  test("linux: returns [] when username sanitises to empty string", async () => {
     // Mock os.userInfo to return a username made of only stripped chars.
     // sanitisePathComponent strips everything non-[a-zA-Z0-9_.\-@ ], so
     // a Unicode-only username like 'テスト' sanitises to "" → early return [].
@@ -318,7 +318,7 @@ describe("getUsbMountCandidates()", () => {
     // Ensure we stay on Linux path
     Object.defineProperty(process, "platform", { value: "linux", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       assert.ok(Array.isArray(candidates));
       assert.equal(candidates.length, 0);
     } finally {
@@ -327,7 +327,7 @@ describe("getUsbMountCandidates()", () => {
     }
   });
 
-  test("linux: skips bases that do not match SAFE_BASE_RE (e.g. username with @)", () => {
+  test("linux: skips bases that do not match SAFE_BASE_RE (e.g. username with @)", async () => {
     // A username like 'john@doe' sanitises to 'john@doe' (@ is allowed by sanitisePathComponent)
     // but /media/john@doe does NOT match SAFE_BASE_RE (which only allows [a-zA-Z0-9_.,-]).
     // This exercises the `if (!SAFE_BASE_RE.test(base)) continue` branch.
@@ -335,7 +335,7 @@ describe("getUsbMountCandidates()", () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "linux", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       // /media/john@doe and /run/media/john@doe won't match regex → skipped.
       // /mnt itself always matches → included only if it exists and has subdirs.
       assert.ok(Array.isArray(candidates));
@@ -347,7 +347,7 @@ describe("getUsbMountCandidates()", () => {
     }
   });
 
-  test("linux: skips base when existsSync returns true but isDirectory() returns false", () => {
+  test("linux: skips base when existsSync returns true but isDirectory() returns false", async () => {
     // Covers the branch where existsSync(base) is truthy but statSync(base).isDirectory()
     // returns false — the if-body is NOT entered so no children are enumerated.
     const restoreUser   = mock.method(os, "userInfo", () => ({ username: "testuser" }));
@@ -356,7 +356,7 @@ describe("getUsbMountCandidates()", () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "linux", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       // existsSync → true but isDirectory → false for every base → no children
       assert.ok(Array.isArray(candidates));
       assert.equal(candidates.length, 0);
@@ -368,7 +368,7 @@ describe("getUsbMountCandidates()", () => {
     }
   });
 
-  test("linux: swallows EPERM when existsSync throws inside the mount-base loop", () => {
+  test("linux: swallows EPERM when existsSync throws inside the mount-base loop", async () => {
     // Explicitly covers the defensive `catch { /* skip inaccessible mount bases */ }` block
     // by mocking fs.existsSync to throw an EPERM error.  The function must swallow
     // the exception and return an empty array rather than propagating.
@@ -379,7 +379,7 @@ describe("getUsbMountCandidates()", () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "linux", configurable: true });
     try {
-      const candidates = getUsbMountCandidates();
+      const candidates = await getUsbMountCandidates();
       // The catch block swallows the error and the loop continues → []
       assert.ok(Array.isArray(candidates));
       assert.equal(candidates.length, 0);
@@ -392,10 +392,10 @@ describe("getUsbMountCandidates()", () => {
 });
 
 describe("enumerateMountChildren()", () => {
-  test("returns empty array for an empty directory", () => {
+  test("returns empty array for an empty directory", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-enumerate-empty-"));
     try {
-      const children = enumerateMountChildren(tmpDir);
+      const children = await enumerateMountChildren(tmpDir);
       assert.ok(Array.isArray(children));
       assert.equal(children.length, 0);
     } finally {
@@ -403,12 +403,12 @@ describe("enumerateMountChildren()", () => {
     }
   });
 
-  test("returns sanitised child paths for entries in a directory", () => {
+  test("returns sanitised child paths for entries in a directory", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-enumerate-"));
     const subDir = path.join(tmpDir, "usb-drive-01");
     fs.mkdirSync(subDir);
     try {
-      const children = enumerateMountChildren(tmpDir);
+      const children = await enumerateMountChildren(tmpDir);
       assert.ok(Array.isArray(children));
       assert.ok(children.length >= 1);
       // The subdir should appear as a child path
@@ -419,7 +419,7 @@ describe("enumerateMountChildren()", () => {
     }
   });
 
-  test("skips entries whose names sanitise to an empty string", () => {
+  test("skips entries whose names sanitise to an empty string", async () => {
     // Entries whose names contain only control chars sanitise to "" and are dropped
     const tmpDir      = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-enumerate-safe-"));
     const cleanEntry  = path.join(tmpDir, "clean-entry");
@@ -428,7 +428,7 @@ describe("enumerateMountChildren()", () => {
     fs.mkdirSync(cleanEntry);
     fs.mkdirSync(unicodeEntry);
     try {
-      const children = enumerateMountChildren(tmpDir);
+      const children = await enumerateMountChildren(tmpDir);
       // The clean entry should survive
       assert.ok(children.some((c) => c.endsWith("clean-entry")));
       // The unicode entry should be dropped
@@ -444,14 +444,14 @@ describe("enumerateMountChildren()", () => {
 // ── enumerateVolumesDir() ─────────────────────────────────────────────────────
 
 describe("enumerateVolumesDir()", () => {
-  test("returns an array of sanitised paths under a given volumes root", () => {
+  test("returns an array of sanitised paths under a given volumes root", async () => {
     const tmpVolumes = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-volumes-"));
     const vol1 = path.join(tmpVolumes, "Macintosh-HD");
     const vol2 = path.join(tmpVolumes, "MyUSB");
     fs.mkdirSync(vol1);
     fs.mkdirSync(vol2);
     try {
-      const result = enumerateVolumesDir(tmpVolumes);
+      const result = await enumerateVolumesDir(tmpVolumes);
       assert.ok(Array.isArray(result));
       assert.ok(result.some((p) => p.endsWith("Macintosh-HD")));
       assert.ok(result.some((p) => p.endsWith("MyUSB")));
@@ -462,7 +462,7 @@ describe("enumerateVolumesDir()", () => {
     }
   });
 
-  test("skips volume entries that sanitise to empty string", () => {
+  test("skips volume entries that sanitise to empty string", async () => {
     const tmpVolumes = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-volumes-safe-"));
     const safeVol   = path.join(tmpVolumes, "SafeVol");
     // Unicode-only name sanitises to "" and should be filtered out
@@ -470,7 +470,7 @@ describe("enumerateVolumesDir()", () => {
     fs.mkdirSync(safeVol);
     fs.mkdirSync(unicodeVol);
     try {
-      const result = enumerateVolumesDir(tmpVolumes);
+      const result = await enumerateVolumesDir(tmpVolumes);
       // SafeVol should be included; テスト should be filtered out
       assert.ok(result.some((p) => p.endsWith("SafeVol")));
       assert.ok(!result.some((p) => p.includes("テスト")));
@@ -481,10 +481,10 @@ describe("enumerateVolumesDir()", () => {
     }
   });
 
-  test("returns empty array for an empty volumes root", () => {
+  test("returns empty array for an empty volumes root", async () => {
     const tmpVolumes = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-volumes-empty-"));
     try {
-      const result = enumerateVolumesDir(tmpVolumes);
+      const result = await enumerateVolumesDir(tmpVolumes);
       assert.ok(Array.isArray(result));
       assert.equal(result.length, 0);
     } finally {
@@ -496,29 +496,29 @@ describe("enumerateVolumesDir()", () => {
 // ── scanMountsForSalt() ───────────────────────────────────────────────────────
 
 describe("scanMountsForSalt()", () => {
-  test("returns null when candidates array is empty", () => {
-    const result = scanMountsForSalt([], new Date().toISOString());
+  test("returns null when candidates array is empty", async () => {
+    const result = await scanMountsForSalt([], new Date().toISOString());
     assert.equal(result, null);
   });
 
-  test("returns null when candidates have no salt files", () => {
+  test("returns null when candidates have no salt files", async () => {
     // Create a temp dir with no salt files
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-empty-"));
     try {
-      const result = scanMountsForSalt([tmpDir], new Date().toISOString());
+      const result = await scanMountsForSalt([tmpDir], new Date().toISOString());
       assert.equal(result, null);
     } finally {
       fs.rmdirSync(tmpDir);
     }
   });
 
-  test("detects FULLY_RESIDENT when primary salt file exists in a candidate", () => {
+  test("detects FULLY_RESIDENT when primary salt file exists in a candidate", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-primary-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     fs.writeFileSync(saltFile, Buffer.from("sovereign-salt-test-primary"));
     try {
       const ts = new Date().toISOString();
-      const result = scanMountsForSalt([tmpDir], ts);
+      const result = await scanMountsForSalt([tmpDir], ts);
       assert.ok(result !== null);
       assert.equal(result!.state, "FULLY_RESIDENT");
       assert.equal(result!.found, true);
@@ -535,13 +535,13 @@ describe("scanMountsForSalt()", () => {
     }
   });
 
-  test("detects NODE-02_PHYSICAL when legacy .aos-salt file exists", () => {
+  test("detects NODE-02_PHYSICAL when legacy .aos-salt file exists", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-legacy-"));
     const legacyFile = path.join(tmpDir, SALT_FILENAME_LEGACY);
     fs.writeFileSync(legacyFile, Buffer.from("sovereign-salt-test-legacy"));
     try {
       const ts = new Date().toISOString();
-      const result = scanMountsForSalt([tmpDir], ts);
+      const result = await scanMountsForSalt([tmpDir], ts);
       assert.ok(result !== null);
       assert.equal(result!.state, "NODE-02_PHYSICAL");
       assert.equal(result!.found, true);
@@ -553,13 +553,13 @@ describe("scanMountsForSalt()", () => {
     }
   });
 
-  test("detects NODE-02_PHYSICAL when AOS_SALT.bin file exists", () => {
+  test("detects NODE-02_PHYSICAL when AOS_SALT.bin file exists", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-block-"));
     const blockFile = path.join(tmpDir, SALT_FILENAME_BLOCK);
     fs.writeFileSync(blockFile, Buffer.from("sovereign-salt-test-block"));
     try {
       const ts = new Date().toISOString();
-      const result = scanMountsForSalt([tmpDir], ts);
+      const result = await scanMountsForSalt([tmpDir], ts);
       assert.ok(result !== null);
       assert.equal(result!.state, "NODE-02_PHYSICAL");
       assert.equal(result!.found, true);
@@ -569,14 +569,14 @@ describe("scanMountsForSalt()", () => {
     }
   });
 
-  test("primary salt takes priority over legacy salt when both present", () => {
+  test("primary salt takes priority over legacy salt when both present", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-both-"));
     const primaryFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     const legacyFile  = path.join(tmpDir, SALT_FILENAME_LEGACY);
     fs.writeFileSync(primaryFile, Buffer.from("primary-salt"));
     fs.writeFileSync(legacyFile,  Buffer.from("legacy-salt"));
     try {
-      const result = scanMountsForSalt([tmpDir], new Date().toISOString());
+      const result = await scanMountsForSalt([tmpDir], new Date().toISOString());
       assert.ok(result !== null);
       assert.equal(result!.state, "FULLY_RESIDENT");
     } finally {
@@ -586,13 +586,13 @@ describe("scanMountsForSalt()", () => {
     }
   });
 
-  test("skips inaccessible mount candidates and continues", () => {
+  test("skips inaccessible mount candidates and continues", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "unmask-skip-"));
     const saltFile = path.join(tmpDir, SALT_FILENAME_PRIMARY);
     fs.writeFileSync(saltFile, Buffer.from("skip-test-salt"));
     try {
       // Pass a non-existent path first — it should be skipped, then tmpDir found
-      const result = scanMountsForSalt(["/nonexistent-mount-xyz", tmpDir], new Date().toISOString());
+      const result = await scanMountsForSalt(["/nonexistent-mount-xyz", tmpDir], new Date().toISOString());
       assert.ok(result !== null);
       assert.equal(result!.state, "FULLY_RESIDENT");
     } finally {
@@ -601,7 +601,7 @@ describe("scanMountsForSalt()", () => {
     }
   });
 
-  test("swallows error when fs.existsSync throws for a candidate and returns null", () => {
+  test("swallows error when fs.existsSync throws for a candidate and returns null", async () => {
     // Explicitly covers the defensive `catch { /* skip inaccessible mounts */ }` block
     // inside scanMountsForSalt() by mocking fs.existsSync to throw.  The function
     // must swallow the exception, exhaust all candidates, and return null.
@@ -609,46 +609,46 @@ describe("scanMountsForSalt()", () => {
       throw Object.assign(new Error("EPERM: operation not permitted"), { code: "EPERM" });
     });
     try {
-      const result = scanMountsForSalt(["/some-mount-path"], new Date().toISOString());
+      const result = await scanMountsForSalt(["/some-mount-path"], new Date().toISOString());
       assert.equal(result, null);
     } finally {
       restoreExists.mock.restore();
     }
   });
 
-  test("returns null when mount path resolves to a traversal path (validateSaltPath returns null)", () => {
+  test("returns null when mount path resolves to a traversal path (validateSaltPath returns null)", async () => {
     // Using '..' as the mount causes path.join('..', SALT_FILENAME_PRIMARY) to produce
     // '../AveryOS-anchor-salt.aossalt'.  validateSaltPath rejects this because the
     // normalized form still contains '..', so primaryPath is null and the '&&'
     // short-circuits — covering the falsy-left-side branch of that expression.
-    const result = scanMountsForSalt([".."], new Date().toISOString());
+    const result = await scanMountsForSalt([".."], new Date().toISOString());
     assert.equal(result, null);
   });
 });
 
 describe("performResidencyHandshake()", () => {
-  test("returns an object with a valid ResidencyState", () => {
-    const result = performResidencyHandshake();
+  test("returns an object with a valid ResidencyState", async () => {
+    const result = await performResidencyHandshake();
     const validStates = new Set(["FULLY_RESIDENT", "NODE-02_PHYSICAL", "CLOUD"]);
     assert.ok(validStates.has(result.state));
   });
 
-  test("embeds the sovereign kernel anchor (kernelVersion + kernelSha)", () => {
-    const result = performResidencyHandshake();
+  test("embeds the sovereign kernel anchor (kernelVersion + kernelSha)", async () => {
+    const result = await performResidencyHandshake();
     assert.equal(result.kernelVersion, KERNEL_VERSION);
     assert.equal(result.kernelSha, KERNEL_SHA);
   });
 
-  test("timestamp is an ISO-like string", () => {
-    const result = performResidencyHandshake();
+  test("timestamp is an ISO-like string", async () => {
+    const result = await performResidencyHandshake();
     assert.ok(typeof result.timestamp === "string");
     assert.ok(result.timestamp.length > 0);
     // Basic ISO-8601 shape: starts with year
     assert.match(result.timestamp, /^\d{4}-/);
   });
 
-  test("in CI/CLOUD mode: found=false, mountPath=null, saltPath=null", () => {
-    const result = performResidencyHandshake();
+  test("in CI/CLOUD mode: found=false, mountPath=null, saltPath=null", async () => {
+    const result = await performResidencyHandshake();
     if (result.state === "CLOUD") {
       assert.equal(result.found, false);
       assert.equal(result.mountPath, null);
@@ -658,8 +658,8 @@ describe("performResidencyHandshake()", () => {
     }
   });
 
-  test("in FULLY_RESIDENT mode: found=true, mountPath and saltPath are strings", () => {
-    const result = performResidencyHandshake();
+  test("in FULLY_RESIDENT mode: found=true, mountPath and saltPath are strings", async () => {
+    const result = await performResidencyHandshake();
     if (result.state === "FULLY_RESIDENT") {
       assert.equal(result.found, true);
       assert.ok(typeof result.mountPath === "string");
@@ -667,24 +667,24 @@ describe("performResidencyHandshake()", () => {
     }
   });
 
-  test("in NODE-02_PHYSICAL mode: found=true", () => {
-    const result = performResidencyHandshake();
+  test("in NODE-02_PHYSICAL mode: found=true", async () => {
+    const result = await performResidencyHandshake();
     if (result.state === "NODE-02_PHYSICAL") {
       assert.equal(result.found, true);
     }
   });
 
   test("returns a new timestamp on each call", async () => {
-    const r1 = performResidencyHandshake();
+    const r1 = await performResidencyHandshake();
     await new Promise((res) => setTimeout(res, 5));
-    const r2 = performResidencyHandshake();
+    const r2 = await performResidencyHandshake();
     // Timestamps should be different strings (millisecond resolution)
     // Both must be valid strings regardless
     assert.ok(typeof r1.timestamp === "string");
     assert.ok(typeof r2.timestamp === "string");
   });
 
-  test("returns FULLY_RESIDENT and takes the `if (found) return found` path (mocked fs)", () => {
+  test("returns FULLY_RESIDENT and takes the `if (found) return found` path (mocked fs)", async () => {
     // Covers the `if (found) return found` truthy branch inside performResidencyHandshake().
     // In CI there is no physical USB, so we mock the filesystem: pretend /mnt contains a
     // single subdirectory with the sovereign primary salt file.
@@ -709,7 +709,7 @@ describe("performResidencyHandshake()", () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, "platform", { value: "linux", configurable: true });
     try {
-      const result = performResidencyHandshake();
+      const result = await performResidencyHandshake();
       assert.equal(result.state, "FULLY_RESIDENT");
       assert.equal(result.found, true);
       assert.equal(result.mountPath, path.join("/mnt", fakeMount));
@@ -728,15 +728,15 @@ describe("performResidencyHandshake()", () => {
 // ── isFullyResident() ─────────────────────────────────────────────────────────
 
 describe("isFullyResident()", () => {
-  test("returns a boolean", () => {
-    const result = isFullyResident();
+  test("returns a boolean", async () => {
+    const result = await isFullyResident();
     assert.equal(typeof result, "boolean");
   });
 
-  test("returns false in a CI environment (no USB salt present)", () => {
+  test("returns false in a CI environment (no USB salt present)", async () => {
     // In CI there is no physical USB — the result is expected to be false.
     // On a sovereign Node-02 machine with the salt present, this may be true.
-    const result = isFullyResident();
+    const result = await isFullyResident();
     assert.ok(result === true || result === false);
   });
 });

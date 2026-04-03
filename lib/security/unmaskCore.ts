@@ -44,10 +44,8 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import os from "os";
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 
@@ -159,7 +157,8 @@ export function validateSaltPath(saltPath: string): string | null {
  *
  * @internal - exported for unit testing only
  */
-export function enumerateVolumesDir(volumesRoot: string): string[] {
+export async function enumerateVolumesDir(volumesRoot: string): Promise<string[]> {
+  const { default: fs } = await import("node:fs");
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller validates volumesRoot
   return fs
     .readdirSync(volumesRoot)
@@ -171,7 +170,7 @@ export function enumerateVolumesDir(volumesRoot: string): string[] {
 }
 
 /** @internal - exported for unit testing only */
-export function getUsbMountCandidates(): string[] {
+export async function getUsbMountCandidates(): Promise<string[]> {
   if (process.platform === "win32") { // platform-specific: covered on Windows only
     const letters: string[] = [];
     for (let c = 68; c <= 90; c++) letters.push(String.fromCharCode(c) + ":\\");
@@ -179,7 +178,7 @@ export function getUsbMountCandidates(): string[] {
   }
   if (process.platform === "darwin") { // platform-specific: covered on macOS only
     try {
-      return enumerateVolumesDir("/Volumes");
+      return await enumerateVolumesDir("/Volumes");
     } catch { return []; }
   }
   // Linux: restrict to three conventional removable-media directories.
@@ -187,6 +186,8 @@ export function getUsbMountCandidates(): string[] {
   // sanitised with sanitisePathComponent() and later validated by
   // validateSaltPath() (which only permits the three known salt filenames)
   // before any fs.existsSync call — preventing access to sensitive system mounts.
+  const { default: os } = await import("node:os");
+  const { default: fs } = await import("node:fs");
   const rawUser = os.userInfo().username;
   const user    = sanitisePathComponent(rawUser);
   if (!user) return [];
@@ -199,7 +200,7 @@ export function getUsbMountCandidates(): string[] {
       if (!SAFE_BASE_RE.test(base)) continue;
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- base validated against SAFE_BASE_RE above
       if (fs.existsSync(base) && fs.statSync(base).isDirectory()) {
-        result.push(...enumerateMountChildren(base));
+        result.push(...(await enumerateMountChildren(base)));
       }
     } catch { /* skip inaccessible mount bases */ }
   }
@@ -214,7 +215,8 @@ export function getUsbMountCandidates(): string[] {
  *
  * @internal - exported for unit testing only
  */
-export function enumerateMountChildren(base: string): string[] {
+export async function enumerateMountChildren(base: string): Promise<string[]> {
+  const { default: fs } = await import("node:fs");
   const result: string[] = [];
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller validates base
   fs.readdirSync(base).forEach((c) => {
@@ -226,9 +228,10 @@ export function enumerateMountChildren(base: string): string[] {
 
 // ── Salt file reader (first 64 bytes as hex + full SHA-512) ──────────────────
 /** @internal - exported for unit testing only */
-export function readSaltData(saltPath: string): { previewHex: string | null; sha512: string | null } {
+export async function readSaltData(saltPath: string): Promise<{ previewHex: string | null; sha512: string | null }> {
   const safe = validateSaltPath(saltPath);
   if (!safe) return { previewHex: null, sha512: null };
+  const { default: fs } = await import("node:fs");
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path validated by validateSaltPath() above
     const buf = fs.readFileSync(safe);
@@ -247,17 +250,18 @@ export function readSaltData(saltPath: string): { previewHex: string | null; sha
  *
  * @internal - exported for unit testing only
  */
-export function scanMountsForSalt(
+export async function scanMountsForSalt(
   candidates: string[],
   timestamp: string,
-): HandshakeResult | null {
+): Promise<HandshakeResult | null> {
+  const { default: fs } = await import("node:fs");
   for (const mount of candidates) {
     try {
       // Priority 1: FULLY_RESIDENT — AveryOS-anchor-salt.aossalt
       const primaryPath = validateSaltPath(path.join(mount, SALT_FILENAME_PRIMARY));
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
       if (primaryPath && fs.existsSync(primaryPath)) {
-        const { previewHex, sha512 } = readSaltData(primaryPath);
+        const { previewHex, sha512 } = await readSaltData(primaryPath);
         return {
           state:         "FULLY_RESIDENT",
           found:         true,
@@ -276,7 +280,7 @@ export function scanMountsForSalt(
         const legPath = validateSaltPath(path.join(mount, legacyName));
         // eslint-disable-next-line security/detect-non-literal-fs-filename -- validated by validateSaltPath()
         if (legPath && fs.existsSync(legPath)) {
-          const { previewHex, sha512 } = readSaltData(legPath);
+          const { previewHex, sha512 } = await readSaltData(legPath);
           return {
             state:         "NODE-02_PHYSICAL",
             found:         true,
@@ -303,11 +307,11 @@ export function scanMountsForSalt(
  * Logic — when FULLY_RESIDENT is returned, the kernel is authorized to
  * activate all sovereign operations.
  */
-export function performResidencyHandshake(): HandshakeResult {
-  const candidates = getUsbMountCandidates();
+export async function performResidencyHandshake(): Promise<HandshakeResult> {
+  const candidates = await getUsbMountCandidates();
   const timestamp  = new Date().toISOString();
 
-  const found = scanMountsForSalt(candidates, timestamp);
+  const found = await scanMountsForSalt(candidates, timestamp);
   if (found) return found;
 
   return {
@@ -329,6 +333,6 @@ export function performResidencyHandshake(): HandshakeResult {
  * Convenience wrapper — returns true when the Node-02 physical USB salt is
  * present and the residency state is FULLY_RESIDENT.
  */
-export function isFullyResident(): boolean {
-  return performResidencyHandshake().state === "FULLY_RESIDENT";
+export async function isFullyResident(): Promise<boolean> {
+  return (await performResidencyHandshake()).state === "FULLY_RESIDENT";
 }

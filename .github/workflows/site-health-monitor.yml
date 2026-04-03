@@ -128,6 +128,37 @@ jobs:
           check_route "/api/v1/capsules"          "API v1 Capsules"
 
           echo ""
+          echo "=== Nobis-Avery Temporal Bridge — $(date -u) ==="
+          echo ""
+
+          # ── Nobis-Avery Cross-Domain Temporal Bridge (Phase 130.4 GATE 130.4.2 / 130.7 GATE 130.7.3) ──
+          # 6-hour automated verification of the 24.5-year temporal anchor (nobis.biz origin: 2001-10-10).
+          # Confirms the AveryOS ↔ Nobis.biz mutual trust bridge is live and the CNAME chain is intact.
+
+          check_domain() {
+            local url="$1"
+            local label="${2:-$url}"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              --retry 2 \
+              --retry-delay 3 \
+              -A "AveryOS-HealthMonitor/1.0" \
+              "$url")
+
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "308" ]; then
+              echo "✅ ${HTTP_CODE}  ${label}"
+            else
+              echo "❌ ${HTTP_CODE}  ${label}  → ${url}"
+              FAILED=$((FAILED + 1))
+              REPORT="${REPORT}| \`${label}\` | ${HTTP_CODE} | ❌ FAIL |\n"
+            fi
+          }
+
+          check_domain "https://nobis.biz"          "nobis.biz (root — 24.5yr temporal anchor)"
+          check_domain "https://verify.nobis.biz"   "verify.nobis.biz (CNAME → averyos.com)"
+
+          echo ""
           echo "=== Summary: ${FAILED} failure(s) ==="
 
           # Export results for next steps

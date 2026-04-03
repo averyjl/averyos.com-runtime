@@ -20,7 +20,7 @@ const Truthforce2026PublicPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("auditlog/Truthforce2026_Public.md");
+  const content = await loadMarkdownAsHtml("auditlog/Truthforce2026_Public.md");
   return {
     props: { content },
   };
