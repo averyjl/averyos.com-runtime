@@ -1,0 +1,2 @@
+445a446
+> 73bcef4f75f64f292e0573a625eb639ff2450f02096483079df03d7fa1ecb5337f732e8a4bc09d41e287df72c3eaa579f2b631c6e3ba1015dcfac6567ffdc611  ./9-5-2025_AveryOS_CopyrightBlock_v1.0.txt_base64payload.txt
