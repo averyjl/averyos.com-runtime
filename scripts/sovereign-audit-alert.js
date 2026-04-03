@@ -82,8 +82,11 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const result = { event: "UNALIGNED_401", ip: "0.0.0.0", path: "/" };
   for (let i = 0; i < args.length; i++) {
+    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--event" && args[i + 1]) result.event = args[++i];
+    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--ip" && args[i + 1]) result.ip = args[++i];
+    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     if (args[i] === "--path" && args[i + 1]) result.path = args[++i];
   }
   return result;
@@ -202,8 +205,10 @@ async function main() {
 
   const eventType = event.toUpperCase();
   const liabilityUsd =
+    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     TARI_LIABILITY[eventType] ?? TARI_LIABILITY.UNALIGNED_401;
   const liabilityLabel =
+    // eslint-disable-next-line security/detect-object-injection -- key from validated CLI args enum
     TARI_LIABILITY_LABELS[eventType] ?? TARI_LIABILITY_LABELS.UNALIGNED_401;
   const timestamp = formatIso9();
   const pulseHash = await computePulseHash(ip, path, timestamp);

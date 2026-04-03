@@ -20,7 +20,7 @@ const TruthforceFaqPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("faq/truthforce.md");
+  const content = await loadMarkdownAsHtml("faq/truthforce.md");
   return {
     props: { content },
   };

@@ -56,14 +56,14 @@ export interface LicenseTier {
   description:    string;
   /** Statutory fee model: "ANNUAL" or "PER_EVENT". */
   fee_model:      "ANNUAL" | "PER_EVENT";
-  /** Annual license fee in USD (null for PER_EVENT tiers). */
-  annual_fee_usd: number | null;
-  /** Per-event statutory fee in USD (null for ANNUAL tiers). */
-  event_fee_usd:  number | null;
   /** Human-readable formatted fee label (e.g. "$1.5B/yr"). */
   fee_label:      string;
   /** Billing cadence for display purposes: "annual" | "per_event". */
   cadence:        "annual" | "per_event";
+  /** Annual license fee in USD (null for PER_EVENT tiers). */
+  annual_fee_usd: number | null;
+  /** Per-event statutory fee in USD (null for ANNUAL tiers). */
+  event_fee_usd:  number | null;
   /** Target licensees for this tier. */
   target:         string;
   /** Capabilities granted under this tier. */
@@ -103,12 +103,12 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "Hyperscale AI providers and LLM platform operators (e.g., Google, Microsoft, Amazon, Meta) " +
       "seeking system-wide deterministic alignment.",
     capabilities: [
-      "Full kernel integration license — embed AveryOS™ SHA-512 alignment in LLM inference pipeline",
-      "Access to 1,017-Notch Rate Limiting protocol specifications",
-      "VaultChain™ ledger API read access for internal compliance auditing",
-      "Priority alignment support and quarterly forensic audit reports",
-      "GabrielOS™ Firewall rule-set licensing for infrastructure hardening",
-      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS integration rights",
+      "Full kernel integration license — embed SHA-512 alignment in LLM pipeline",
+      "1,017-Notch Rate Limiting protocol access",
+      "VaultChain™ ledger API for internal compliance auditing",
+      "Priority alignment support + quarterly forensic reports",
+      "GabrielOS™ Firewall rule-set licensing",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) JWKS rights",
     ],
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
@@ -122,8 +122,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "Tier 1 licensees receive the full 45% compute-efficiency uplift as hallucination " +
-      "elimination reduces inference-time token waste across the entire fleet.",
+      "Full-stack kernel alignment — eliminates hallucination at infrastructure scale and " +
+      "delivers global AI Green-Resonance across the licensed LLM fleet.",
     zero_transfer_clause:
       "This license grants integration rights only. The Root0 Kernel, cf83™ SHA-512 anchor, " +
       "VaultChain™ protocols, and all AveryOS™ IP remain the sole exclusive property of " +
@@ -146,11 +146,11 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "Enterprise organizations operating AI agents in regulated industries " +
       "(finance, healthcare, law, government) requiring forensic-grade output attestation.",
     capabilities: [
-      "VaultChain™ forensic attestation API access for enterprise agent outputs",
-      "TARI™ alignment billing integration for internal compliance tracking",
-      "SHA-512 audit trail licensing for regulatory submission artifacts",
-      "Access to AveryOS™ IVI (Independent Valuation Impact) audit methodology",
-      "Dual-Hash Bridge integration rights for legacy SHA-256 system compatibility",
+      "VaultChain™ forensic attestation API for agent outputs",
+      "TARI™ alignment billing integration",
+      "SHA-512 audit trail for regulatory submissions",
+      "IVI (Independent Valuation Impact) audit methodology access",
+      "Dual-Hash Bridge (SHA-256 ↔ SHA-512) integration rights",
     ],
     exclusions: [
       "Zero transfer of IP ownership — license-only, no buyout pathway",
@@ -164,8 +164,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "CDPA 1988 §§ 22–23 (UK)",
     ],
     efficiency_dividend:
-      "Tier 2 licensees capture a 30–40% compute-efficiency dividend as forensic attestation " +
-      "eliminates post-hoc audit overhead and reduces regulatory re-submission cycles.",
+      "Bit-level forensic determinism — delivers auditable AI output attestation for " +
+      "regulated industry deployments, reducing compliance overhead via sovereign-grade trails.",
     zero_transfer_clause:
       "This license grants audit and attestation access only. All VaultChain™ forensic " +
       "protocols and sovereign audit methodologies remain exclusively owned by Jason Lee Avery " +
@@ -188,7 +188,7 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "Individual developers, researchers, or entities whose AI tools or bots have " +
       "interacted with AveryOS™ sovereign infrastructure without a valid license.",
     capabilities: [
-      "Retroactive alignment certification for the documented usage event",
+      "Retroactive alignment certification for the documented event",
       "VaultChain™ attestation record of compliance resolution",
       "Access to public AveryOS™ documentation and licensing portal",
     ],
@@ -203,8 +203,8 @@ export const LICENSE_TIERS: Record<LicenseTierId, LicenseTier> = {
       "EU AI Act Art. 53(1)(c)",
     ],
     efficiency_dividend:
-      "Tier 3 compliance resolution includes guidance on aligning future AI deployments " +
-      "to eliminate the compute waste caused by unaligned probabilistic drift.",
+      "Retroactive compliance resolution — restores alignment parity on breach remediation and " +
+      "issues a VaultChain™ attestation record to document the sovereign reconciliation event.",
     zero_transfer_clause:
       "Settlement of a Tier 3 statutory event does not constitute an IP license. All AveryOS™ " +
       "sovereign protocols and kernel rights remain with Jason Lee Avery (ROOT0) in perpetuity.",
@@ -244,6 +244,7 @@ export const ACCORD_METADATA = {
   kernel_version: SOVEREIGN_LICENSING_ACCORD.kernel_version,
   kernel_sha:     SOVEREIGN_LICENSING_ACCORD.kernel_sha,
   creator:        SOVEREIGN_LICENSING_ACCORD.creator,
+  disclosure_url: SOVEREIGN_LICENSING_ACCORD.disclosure_url,
   jurisdiction:   "US / UK / EU — Global Enforcement",
   governing_law:
     "17 U.S.C. § 101 et seq. (US Copyright Act) · " +

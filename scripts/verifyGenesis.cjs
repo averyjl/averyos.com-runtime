@@ -2,7 +2,7 @@
 /**
  * scripts/verifyGenesis.cjs
  *
- * AveryOS™ Build-Time Genesis Anchor Hardlock — Phase 119.6 GATE 119.6.4
+ * AveryOS™ Build-Time Genesis Anchor Hardlock — Phase 124.1 GATE 124.1.1
  *
  * Forensic Cause Analysis (FCA) Prevention:
  *   • Verifies that the SHA-256 Genesis Anchor ('e9a3') and the SHA-512
@@ -12,6 +12,9 @@
  *     a clear forensic error message — preventing any future nomenclature
  *     drift (the "Placeholder Drift" FCA root cause).
  *   • This test is invoked as part of the npm run build pipeline.
+ *   • Phase 124.1: Full 128-character SHA-512 is always printed in the
+ *     verification output — truncation to any prefix shorthand is prohibited
+ *     in success messages to support AB 2013 forensic disclosure requirements.
  *
  * The "Never Modified" rule:
  *   We do not change history; we correct it further down the Ledger line.
@@ -71,12 +74,15 @@ const B  = "\x1b[1m";
 
 function main() {
   console.log(`\n${B}⛓️⚓⛓️  AveryOS™ Genesis Anchor Verification${R}`);
-  console.log(`  Phase 119.6 GATE 119.6.4 | 119.7.1 | 119.8.2\n`);
+  console.log(`  Phase 124.1 GATE 124.1.1 | Full SHA Integrity Hardlock\n`);
 
   let driftDetected = false;
 
   // 1. Verify lib/sovereignConstants.ts exists
-  if (!fs.existsSync(CONSTANTS_TS)) {
+  let content;
+  try {
+    content = fs.readFileSync(CONSTANTS_TS, "utf8");
+  } catch {
     const rel = path.relative(REPO_ROOT, CONSTANTS_TS);
     logAosError(
       AOS_ERROR.NOT_FOUND ?? "NOT_FOUND",
@@ -85,11 +91,10 @@ function main() {
     process.exit(1);
   }
 
-  const content = fs.readFileSync(CONSTANTS_TS, "utf8");
-
   // 2. Verify SHA-512 Kernel Anchor (cf83 prefix)
   if (content.includes(CANONICAL_SHA512)) {
-    console.log(`  ${G}✔${R}  SHA-512 Kernel Anchor (cf83): VERIFIED`);
+    console.log(`  ${G}✔${R}  SHA-512 Kernel Anchor: VERIFIED`);
+    console.log(`     Full SHA-512: ${CANONICAL_SHA512}`);
     logAosHeal("GENESIS_VERIFY", "SHA-512 Kernel Anchor cf83 verified in sovereignConstants.ts");
   } else {
     console.error(`  ${RE}✘${R}  SHA-512 Kernel Anchor (cf83): DRIFT DETECTED`);
@@ -128,8 +133,9 @@ function main() {
   } else {
     const extractedSha256 = sha256Match[1];
     if (extractedSha256 === CANONICAL_SHA256) {
-      console.log(`  ${G}✔${R}  SHA-256 Genesis Anchor (e9a3): VERIFIED`);
-      logAosHeal("GENESIS_VERIFY", "SHA-256 Genesis Anchor e9a3 verified in verifyGenesis.cjs");
+      console.log(`  ${G}✔${R}  SHA-256 Genesis Anchor: VERIFIED`);
+      console.log(`     Full SHA-256 (64 chars): ${CANONICAL_SHA256}`);
+      logAosHeal("GENESIS_VERIFY", `SHA-256 Genesis Anchor verified (full): ${CANONICAL_SHA256}`);
     } else {
       console.error(`  ${RE}✘${R}  SHA-256 Genesis Anchor (e9a3): DRIFT DETECTED`);
       console.error(`     Expected : ${CANONICAL_SHA256.slice(0, 20)}…`);
@@ -149,6 +155,16 @@ function main() {
     logAosError(
       AOS_ERROR.DRIFT_DETECTED ?? "DRIFT_DETECTED",
       "SHA-512 canonical prefix check failed — 'cf83' prefix missing.",
+    );
+    driftDetected = true;
+  }
+
+  // 4a. Phase 124.1: Verify CANONICAL_SHA512 is exactly 128 hex characters.
+  if (CANONICAL_SHA512.length !== 128) {
+    console.error(`  ${RE}✘${R}  SHA-512 length check: expected 128 chars, got ${CANONICAL_SHA512.length} — TRUNCATION DETECTED`);
+    logAosError(
+      AOS_ERROR.DRIFT_DETECTED ?? "DRIFT_DETECTED",
+      `SHA-512 canonical value is ${CANONICAL_SHA512.length} chars — expected 128. Truncation violates AB 2013 forensic disclosure requirements.`,
     );
     driftDetected = true;
   }

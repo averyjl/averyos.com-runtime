@@ -22,7 +22,6 @@ import {
   buildQaSuite,
   runTest,
   type QaTestResult,
-  type QaSuiteResult,
   type QaRunRecord,
 } from "../lib/qa/engine";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
@@ -43,7 +42,6 @@ import {
 import {
   runBenchmark,
   assertBenchmarkAvg,
-  assertBenchmarkP95,
   PERF_THRESHOLDS,
   type BenchmarkResult,
 } from "../lib/qa/performance";

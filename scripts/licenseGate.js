@@ -58,7 +58,7 @@ function notifyCreator(ip, reason, env) {
   });
 }
 
-export default {
+const licenseGateWorker = {
   /**
    * Main Cloudflare Worker fetch handler for the AveryOS LicenseGate.
    *
@@ -198,3 +198,5 @@ export default {
     return Response.json({ error: "Not Found" }, { status: 404 });
   },
 };
+
+export default licenseGateWorker;

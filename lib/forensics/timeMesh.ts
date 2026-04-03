@@ -21,6 +21,43 @@
 
 import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 import { formatIso9 }                 from "../timePrecision";
+import {
+  getSovereignTime,
+  type SovereignTimeResult,
+} from "../time/mesh";
+
+// ── NTP Steward re-exports — GATE 117.2.1 ────────────────────────────────────
+
+/**
+ * TimeMeshResult is the consensus time result used by the NTP Steward.
+ * Aliased from SovereignTimeResult for semantic clarity.
+ */
+export type TimeMeshResult = SovereignTimeResult;
+
+/** Outlier pruning threshold for the Active-12 pool (50 µs). */
+export const PRUNE_THRESHOLD_US = 50;
+
+/** Active Pool sync interval: every 30 minutes. */
+export const ACTIVE_POLL_INTERVAL_MS = 30 * 60 * 1_000;
+
+/** Audit Pool sync interval: every 12 hours. */
+export const AUDIT_POLL_INTERVAL_MS = 12 * 60 * 60 * 1_000;
+
+/**
+ * Fetch the Active-12 pool time consensus.
+ * Returns a SovereignTimeResult anchored to the current kernel SHA.
+ */
+export async function getActivePoolTime(): Promise<TimeMeshResult> {
+  return getSovereignTime();
+}
+
+/**
+ * Fetch the Audit-100 pool time consensus.
+ * Returns a SovereignTimeResult anchored to the current kernel SHA.
+ */
+export async function getAuditPoolTime(): Promise<TimeMeshResult> {
+  return getSovereignTime();
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

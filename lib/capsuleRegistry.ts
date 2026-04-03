@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 
 export type CapsuleRegistryItem = {
@@ -25,19 +24,20 @@ const registryPath = path.join(
   "index.json"
 );
 
-export const loadCapsuleRegistry = (): CapsuleRegistry | null => {
+export const loadCapsuleRegistry = async (): Promise<CapsuleRegistry | null> => {
+  const { default: fs } = await import("node:fs");
+  let raw: string;
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const raw = fs.readFileSync(registryPath, "utf-8");
-    return JSON.parse(raw) as CapsuleRegistry;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw err;
+    raw = fs.readFileSync(registryPath, "utf-8");
+  } catch {
+    return null;
   }
+  return JSON.parse(raw) as CapsuleRegistry;
 };
 
-export const listRegistryCapsules = (): CapsuleRegistryItem[] => {
-  const registry = loadCapsuleRegistry();
+export const listRegistryCapsules = async (): Promise<CapsuleRegistryItem[]> => {
+  const registry = await loadCapsuleRegistry();
   if (!registry || !Array.isArray(registry.capsules)) {
     return [];
   }

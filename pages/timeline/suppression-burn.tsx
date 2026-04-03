@@ -20,7 +20,7 @@ const SuppressionBurnPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("timeline/suppression-burn.md");
+  const content = await loadMarkdownAsHtml("timeline/suppression-burn.md");
   return {
     props: { content },
   };

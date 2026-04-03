@@ -102,9 +102,7 @@ function checkOllama() {
 
 // ── Step 3 — Write Electron main process ─────────────────────────────────────
 function writeElectronMain() {
-  if (!fs.existsSync(ELECTRON_DIR)) {
-    fs.mkdirSync(ELECTRON_DIR, { recursive: true });
-  }
+  fs.mkdirSync(ELECTRON_DIR, { recursive: true });
 
   const mainContent = `/**
  * electron/main.cjs — AveryOS™ Electron Main Process
@@ -173,7 +171,8 @@ app.on("window-all-closed", () => {
 });
 `;
 
-  fs.writeFileSync(path.join(ELECTRON_DIR, "main.cjs"), mainContent, "utf8");
+  const fdMain = fs.openSync(path.join(ELECTRON_DIR, "main.cjs"), 'w');
+  try { fs.writeSync(fdMain, mainContent); } finally { fs.closeSync(fdMain); }
   console.log(`  ✅ electron/main.cjs written`);
 }
 
@@ -198,7 +197,8 @@ contextBridge.exposeInMainWorld("averyOS", {
 });
 `;
 
-  fs.writeFileSync(path.join(ELECTRON_DIR, "preload.cjs"), preloadContent, "utf8");
+  const fdPreload = fs.openSync(path.join(ELECTRON_DIR, "preload.cjs"), 'w');
+  try { fs.writeSync(fdPreload, preloadContent); } finally { fs.closeSync(fdPreload); }
   console.log(`  ✅ electron/preload.cjs written`);
 }
 

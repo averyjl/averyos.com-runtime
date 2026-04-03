@@ -6,6 +6,10 @@
 
 ## Public API
 
+### `beginAlmSession` *(function)*
+
+### `endAlmSession` *(function)*
+
 ### `createAlmTrace` *(function)*
 
 ### `traceVaultChainBlock` *(function)*
@@ -13,6 +17,8 @@
 ### `traceSovereignConstant` *(function)*
 
 ### `traceToLogLine` *(function)*
+
+### `AlmAstSession` *(interface)*
 
 ### `AlmForensicTrace` *(interface)*
 

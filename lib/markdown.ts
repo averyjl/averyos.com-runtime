@@ -1,11 +1,11 @@
 import { marked } from "marked";
-import fs from "fs";
 import path from "path";
 
 /**
  * Reads and parses markdown content from the /content directory
  */
-export function readMarkdownContent(contentPath: string): string {
+export async function readMarkdownContent(contentPath: string): Promise<string> {
+  const { default: fs } = await import("node:fs");
   const fullPath = path.join(process.cwd(), "content", contentPath);
   
   try {
@@ -32,7 +32,7 @@ export function markdownToHtml(markdown: string): string {
 /**
  * Reads markdown file and converts it to HTML
  */
-export function loadMarkdownAsHtml(contentPath: string): string {
-  const markdown = readMarkdownContent(contentPath);
+export async function loadMarkdownAsHtml(contentPath: string): Promise<string> {
+  const markdown = await readMarkdownContent(contentPath);
   return markdownToHtml(markdown);
 }

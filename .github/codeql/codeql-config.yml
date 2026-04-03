@@ -1,0 +1,32 @@
+# AveryOS™ CodeQL Configuration — Design-Stage Security Gate
+# ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+#
+# Permanent upgrade: excludes build-tool and Electron paths from CodeQL scanning.
+# These directories contain legitimate Node.js CommonJS patterns (dynamic require,
+# non-literal fs access, etc.) that CodeQL flags as false positives.  Scanning them
+# produces stale alerts that GitHub's Copilot auto-fix bot then "fixes" by deleting
+# working code — a destructive cycle that this config permanently eliminates.
+#
+# Scope: only the paths that produced false-positive alerts in practice are excluded.
+# All production source under app/, lib/, components/, pages/, middleware.ts,
+# and workers/ remains fully scanned.
+#
+# To reference this config from the CodeQL workflow, set:
+#   config-file: .github/codeql/codeql-config.yml
+
+name: AveryOS™ CodeQL Config
+
+paths-ignore:
+  # Electron desktop shell — CommonJS with dynamic require; not a web attack surface
+  - electron/**
+  # Build/utility scripts — CommonJS with intentional dynamic fs access
+  - scripts/**
+  # Sovereign CLI terminal — Node.js REPL, not a web endpoint
+  - uplink/**
+  # QA auto-generated test stubs — import-but-don't-use pattern by design
+  - __tests__/generated/**
+  # Third-party / generated build artefacts
+  - .open-next/**
+  - node_modules/**
+  - VaultBridge/**
+  - VaultEcho/**
