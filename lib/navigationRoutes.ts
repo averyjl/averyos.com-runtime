@@ -80,8 +80,8 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/evidence-vault",            label: "Evidence Vault",          icon: "🗄️", isAdmin: true },
   { path: "/sigtrace",                  label: "Signature Trace",         icon: "🔐", isAdmin: true },
   { path: "/vaultchain-explorer",       label: "VaultChain™ Explorer",    icon: "🔍", isAdmin: true },
-  { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
+  { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
   { path: "/licensing/agentic",         label: "Agentic Settlement",    icon: "🤖" },
 ];

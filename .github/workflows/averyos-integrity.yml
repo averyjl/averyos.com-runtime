@@ -71,6 +71,10 @@ jobs:
           BUILD_VERSION="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
 
           # Write capsule file
+          # NOTE: The anchor value below is intentionally hardcoded in YAML.
+          # GitHub Actions runner scripts cannot import TypeScript modules, so
+          # this value must be duplicated here. The canonical source of truth is
+          # KERNEL_SHA in lib/sovereignConstants.ts — keep both in sync.
           cat > build_handshake_v2026.aoscap << EOF
           {
             "capsule_type": "BUILD_HANDSHAKE",
