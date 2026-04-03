@@ -2,8 +2,9 @@
  * Centralized navigation route definitions for AveryOS™
  * Used across NavBar, Sidebar, and Drawer components.
  *
- * Admin routes (adminRoutes) are gated behind VAULTAUTH_TOKEN verification.
- * Only render the Sovereign Admin tab after a successful token check.
+ * CreatorLock routes (isAdmin: true) are gated behind VAULTAUTH_TOKEN
+ * verification. Only render the CreatorLock tab after a successful
+ * VaultGate handshake — these routes are never visible to the public.
  *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
@@ -12,7 +13,7 @@ export type NavigationRoute = {
   path: string;
   label: string;
   icon: string;
-  /** When true the route is only rendered in the Navbar after VaultGate handshake success */
+  /** When true the route is only rendered after a successful VaultGate handshake (CreatorLock) */
   isAdmin?: boolean;
 };
 
@@ -37,7 +38,6 @@ export const navigationRoutes: NavigationRoute[] = [
   // ── Vault & forensics ───────────────────────────────────────────────────────
   { path: "/ledger", label: "Witness Ledger", icon: "⛓️" },
   { path: "/vault/vaultchain-status", label: "VaultChain™ Status", icon: "⚓" },
-  { path: "/evidence-vault", label: "Evidence Vault", icon: "🗄️" },
   // ── Capsules & tools ────────────────────────────────────────────────────────
   { path: "/capsules", label: "Capsule Market", icon: "💊" },
   { path: "/capsule-store", label: "Capsule Store", icon: "🏪" },
@@ -46,7 +46,6 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/certificate", label: "Certificate", icon: "📄" },
   { path: "/embedbuilder", label: "Embed Builder", icon: "🔧" },
   { path: "/diff", label: "Capsule Diff", icon: "📊" },
-  { path: "/sigtrace", label: "Signature Trace", icon: "🔐" },
   // ── Reference ──────────────────────────────────────────────────────────────
   { path: "/lawcodex", label: "LawCodex", icon: "⛓️" },
   { path: "/latent-anchor", label: "AI Anchor Feed", icon: "⛓️" },
@@ -58,10 +57,10 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/terms", label: "Terms", icon: "📃" },
   { path: "/witness/register", label: "Register", icon: "📝" },
   { path: "/health", label: "Health", icon: "💚" },
-  // ── Admin (VaultGate-protected) ─────────────────────────────────────────────
-  // PERMANENT UPGRADE: Add new admin pages here — NavBar, Sidebar, Drawer, and
+  // ── CreatorLock (VaultGate-protected) ──────────────────────────────────────
+  // PERMANENT UPGRADE: Add new private pages here — NavBar, Sidebar, Drawer, and
   // the /admin dashboard all pick them up automatically from this list.
-  { path: "/admin", label: "Admin", icon: "🛡️", isAdmin: true },
+  { path: "/admin", label: "CreatorLock", icon: "🔒", isAdmin: true },
   { path: "/admin/sovereign",       label: "Sovereign Dashboard",  icon: "⛓️", isAdmin: true },
   { path: "/vault-gate", label: "Vault Gate", icon: "🔑", isAdmin: true },
   { path: "/audit-stream", label: "Audit Stream", icon: "📡", isAdmin: true },
@@ -72,11 +71,16 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/monetization",        label: "Stripe Revenue",        icon: "💰", isAdmin: true },
   { path: "/admin/evidence",            label: "R2 Evidence Monitor",   icon: "🗄️", isAdmin: true },
   { path: "/admin/docs",               label: "Sovereign API Docs",     icon: "📖", isAdmin: true },
-  { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪" },
+  { path: "/admin/qa",                  label: "QA Engine",              icon: "🧪", isAdmin: true },
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚", isAdmin: true },
   { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹", isAdmin: true },
   { path: "/admin/resonance",           label: "Resonance Dashboard",     icon: "📡", isAdmin: true },
   { path: "/admin/family-chain",        label: "Family Chain Registry",   icon: "⛓️", isAdmin: true },
+  // Private tools — hidden from public nav, accessible only via CreatorLock tab
+  { path: "/evidence-vault",            label: "Evidence Vault",          icon: "🗄️", isAdmin: true },
+  { path: "/sigtrace",                  label: "Signature Trace",         icon: "🔐", isAdmin: true },
+  { path: "/tari-revenue",              label: "TARI™ Revenue",           icon: "💹", isAdmin: true },
+  { path: "/vaultchain-explorer",       label: "VaultChain™ Explorer",    icon: "🔍", isAdmin: true },
   { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },
@@ -84,15 +88,16 @@ export const navigationRoutes: NavigationRoute[] = [
 ];
 
 /**
- * Sovereign Admin routes — rendered ONLY after successful VAULTAUTH_TOKEN
- * verification. Consolidates all secure admin-only pages under one tab.
+ * CreatorLock routes — rendered ONLY after successful VAULTAUTH_TOKEN
+ * verification. Consolidates all private/password-protected pages under
+ * the CreatorLock tab so they never appear in the public navigation.
  *
  * Usage in components:
  *   const isAdmin = sessionStorage.getItem('VAULTAUTH_TOKEN') === expectedToken;
- *   if (isAdmin) { render adminRoutes under the "Sovereign Admin" tab }
+ *   if (isAdmin) { render adminRoutes under the "CreatorLock" tab }
  */
 export const adminRoutes: NavigationRoute[] = [
-  { path: "/admin", label: "Admin", icon: "🛡️" },
+  { path: "/admin", label: "CreatorLock", icon: "🔒" },
   { path: "/admin/sovereign",           label: "Sovereign Dashboard",  icon: "⛓️" },
   { path: "/vault-gate", label: "Vault Gate", icon: "🔑" },
   { path: "/audit-stream", label: "Audit Stream", icon: "📡" },
@@ -108,4 +113,7 @@ export const adminRoutes: NavigationRoute[] = [
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚" },
   { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹" },
   { path: "/admin/resonance",           label: "Resonance Dashboard",     icon: "📡" },
+  { path: "/evidence-vault",            label: "Evidence Vault",          icon: "🗄️" },
+  { path: "/sigtrace",                  label: "Signature Trace",         icon: "🔐" },
+  { path: "/vaultchain-explorer",       label: "VaultChain™ Explorer",    icon: "🔍" },
 ];
