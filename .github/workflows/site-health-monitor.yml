@@ -139,15 +139,19 @@ jobs:
             local url="$1"
             local label="${2:-$url}"
 
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}"               --max-time 15               --retry 2               --retry-delay 3               -A "AveryOS-HealthMonitor/1.0"               "$url")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              --retry 2 \
+              --retry-delay 3 \
+              -A "AveryOS-HealthMonitor/1.0" \
+              "$url")
 
             if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "308" ]; then
               echo "✅ ${HTTP_CODE}  ${label}"
             else
               echo "❌ ${HTTP_CODE}  ${label}  → ${url}"
               FAILED=$((FAILED + 1))
-              REPORT="${REPORT}| \ | ${HTTP_CODE} | ❌ FAIL |
-"
+              REPORT="${REPORT}| \`${label}\` | ${HTTP_CODE} | ❌ FAIL |\n"
             fi
           }
 
