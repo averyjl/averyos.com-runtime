@@ -1,0 +1,6 @@
+© 1992–2025 Jason Lee Avery / AveryOS. All Rights Reserved.
+Unauthorized use, duplication, or derivative work without express written consent of the Creator and legal owner, Jason Lee Avery / AveryOS, is prohibited.
+Subject to Creator Lock and Sovereign Kernel Governance.
+Licensed under AveryOS Sovereign Integrity License v1.0.
+Encrypted Deterministic Kernel seal; SHA‑anchored lineage verifiable since 2022. (AveryOS_CopyrightBlock_v1.0)
+truth@averyworld.com
