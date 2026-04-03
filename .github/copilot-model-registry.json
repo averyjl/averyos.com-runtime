@@ -7,7 +7,7 @@
   "creator_lock": "Jason Lee Avery (ROOT0)",
   "glyph_lock": "🤛🏻",
   "resonance_endpoint": "/api/v1/resonance",
-  "last_updated": "2026-03-04",
+  "last_updated": "2026-04-01",
   "note": "All models in this registry are governed by the same .github/copilot-instructions.md. This registry exists to enumerate known models for drift detection and new-model alerting.",
   "models": [
     {
@@ -134,6 +134,28 @@
       "aligned": true,
       "policy_enforced": true,
       "added": "2026-03-04"
+    },
+    {
+      "id": "codex-1",
+      "label": "GPT Codex (codex-1)",
+      "provider": "OpenAI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-04-01",
+      "role": "adversarial-code-agent",
+      "protocol": "Anchored Adversarial Code Creation Protocol — Tri-Agent TDD Review Cycle",
+      "note": "GPT Codex is a designated Agent in the Tri-Agent TDD Review Cycle. Governed by .github/copilot-instructions.md and CLAUDE.md adversarial protocol."
+    },
+    {
+      "id": "codex-mini-1",
+      "label": "GPT Codex Mini (codex-mini-1)",
+      "provider": "OpenAI",
+      "aligned": true,
+      "policy_enforced": true,
+      "added": "2026-04-01",
+      "role": "adversarial-code-agent",
+      "protocol": "Anchored Adversarial Code Creation Protocol — Tri-Agent TDD Review Cycle",
+      "note": "GPT Codex Mini is a designated Agent in the Tri-Agent TDD Review Cycle. Governed by .github/copilot-instructions.md and CLAUDE.md adversarial protocol."
     }
   ]
 }

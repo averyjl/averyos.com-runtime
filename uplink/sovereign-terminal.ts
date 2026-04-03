@@ -90,6 +90,7 @@ function hmacSign(salt: string, message: string): string {
 /** Read the hardware salt from the USB path. Returns null if unavailable. */
 function readHardwareSalt(): string | null {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- SALT_PATH is a validated hardware path constant
     const key = fs.readFileSync(SALT_PATH, "utf8").trim();
     if (!key) {
       console.warn("[uplink] ⚠️  Salt file is empty:", SALT_PATH);

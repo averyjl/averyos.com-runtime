@@ -31,11 +31,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultEchoRespon
 
     // Check if hash matches any known capsule
     const normalizedHash = hash.trim().toLowerCase();
-    const capsuleIds = listCapsuleIds();
+    const capsuleIds = await listCapsuleIds();
     let matchedCapsule: string | null = null;
 
     for (const id of capsuleIds) {
-      const manifest = loadCapsuleManifest(id);
+      const manifest = await loadCapsuleManifest(id);
       if (manifest && manifest.sha.toLowerCase() === normalizedHash) {
         matchedCapsule = id;
         break;
@@ -64,7 +64,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultEchoRespon
 
   // If capsuleId is provided, check if it exists
   if (capsuleId && typeof capsuleId === "string") {
-    const manifest = loadCapsuleManifest(capsuleId);
+    const manifest = await loadCapsuleManifest(capsuleId);
     
     if (manifest) {
       return res.status(200).json({
@@ -84,7 +84,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<VaultEchoRespon
   }
 
   // Default response - system status
-  const capsuleCount = listCapsuleIds().length;
+  const capsuleCount = (await listCapsuleIds()).length;
   return res.status(200).json({
     status: "active",
     message: `VaultEcho integrity telemetry is active. Monitoring ${capsuleCount} capsule(s).`,

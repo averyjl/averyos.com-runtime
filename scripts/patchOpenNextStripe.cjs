@@ -18,15 +18,16 @@ const workerdJs = path.join(
   "../node_modules/@opennextjs/cloudflare/dist/cli/build/utils/workerd.js"
 );
 
-if (!fs.existsSync(workerdJs)) {
+let content;
+try {
+  content = fs.readFileSync(workerdJs, "utf8");
+} catch {
   console.warn("⚠️  patchOpenNextStripe: workerd.js not found, skipping patch");
   process.exit(0);
 }
 
 const OLD = `const hasTopLevelBuildCondition = Object.keys(conditionMap).some((key) => key === condition && typeof conditionMap[key] === "string");`;
 const NEW = `const hasTopLevelBuildCondition = Object.keys(conditionMap).some((key) => key === condition);`;
-
-let content = fs.readFileSync(workerdJs, "utf8");
 
 if (content.includes(NEW)) {
   console.log("✅ @opennextjs/cloudflare workerd.js already patched (stripe fix)");
@@ -41,5 +42,6 @@ if (!content.includes(OLD)) {
 }
 
 content = content.replace(OLD, NEW);
-fs.writeFileSync(workerdJs, content, "utf8");
+const fdWorkerd = fs.openSync(workerdJs, 'w');
+try { fs.writeSync(fdWorkerd, content); } finally { fs.closeSync(fdWorkerd); }
 console.log("✅ Patched @opennextjs/cloudflare workerd.js (stripe nested workerd condition fix)");

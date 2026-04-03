@@ -148,7 +148,7 @@ const CapsulePage: NextPage<CapsulePageProps> = ({ capsule }) => {
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const ids = listCapsuleIds();
+  const ids = await listCapsuleIds();
   return {
     paths: ids.map((capsule) => ({ params: { capsule } })),
     fallback: "blocking",
@@ -160,7 +160,7 @@ export const getStaticProps: GetStaticProps<CapsulePageProps> = async (context) 
   if (!capsuleId) {
     return { notFound: true };
   }
-  const capsule = loadCapsuleManifest(capsuleId);
+  const capsule = await loadCapsuleManifest(capsuleId);
   if (!capsule) {
     return { notFound: true };
   }

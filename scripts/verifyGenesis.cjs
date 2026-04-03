@@ -79,7 +79,10 @@ function main() {
   let driftDetected = false;
 
   // 1. Verify lib/sovereignConstants.ts exists
-  if (!fs.existsSync(CONSTANTS_TS)) {
+  let content;
+  try {
+    content = fs.readFileSync(CONSTANTS_TS, "utf8");
+  } catch {
     const rel = path.relative(REPO_ROOT, CONSTANTS_TS);
     logAosError(
       AOS_ERROR.NOT_FOUND ?? "NOT_FOUND",
@@ -87,8 +90,6 @@ function main() {
     );
     process.exit(1);
   }
-
-  const content = fs.readFileSync(CONSTANTS_TS, "utf8");
 
   // 2. Verify SHA-512 Kernel Anchor (cf83 prefix)
   if (content.includes(CANONICAL_SHA512)) {
