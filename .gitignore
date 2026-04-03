@@ -118,6 +118,8 @@ clock_gate*.json
 # Local sovereign node config (PC / phone / anchor salt)
 .sovereign-nodes.json
 .anchor-salt
+/scripts/.anchor-salt*
+.anchor-*
 .averyos-anchor-*
 .averyos-
 .averyos_private*
@@ -218,3 +220,7 @@ AVERYOS_PRIVATE_KEY_B64.txt
 
 # Auto-detected key/token file — added by sovereign-leak-guard
 AVERYOS_PUBLIC_KEY_B64.txt
+
+# HARDWARE RESIDENCY
+.aid.bak
+.aid*
