@@ -20,7 +20,7 @@ const ResonanceLogPage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("capsule/resonance-log.md");
+  const content = await loadMarkdownAsHtml("capsule/resonance-log.md");
   return {
     props: { content },
   };

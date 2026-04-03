@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 
 export type CapsuleManifest = {
@@ -50,11 +49,12 @@ const normalizeManifest = (raw: CapsuleManifest): CapsuleManifest => {
   };
 };
 
-export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null => {
+export const loadCapsuleManifest = async (capsuleId: string): Promise<CapsuleManifest | null> => {
   if (!capsuleId || !isSafeCapsuleId(capsuleId)) {
     return null;
   }
 
+  const { default: fs } = await import("node:fs");
   const candidatePath = path.resolve(manifestDir, `${capsuleId}.json`);
 
   let manifestPath: string;
@@ -82,7 +82,8 @@ export const loadCapsuleManifest = (capsuleId: string): CapsuleManifest | null =
   return normalizeManifest(JSON.parse(raw) as CapsuleManifest);
 };
 
-export const listCapsuleIds = (): string[] => {
+export const listCapsuleIds = async (): Promise<string[]> => {
+  const { default: fs } = await import("node:fs");
   let files: string[];
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename

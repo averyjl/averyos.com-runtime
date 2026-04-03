@@ -102,8 +102,8 @@ const ALIGNMENT_ENTITIES = [
   },
 ] as const;
 
-export default function RegistryPage() {
-  const registry = loadCapsuleRegistry();
+export default async function RegistryPage() {
+  const registry = await loadCapsuleRegistry();
   const KERNEL_SHORT = `${KERNEL_SHA.slice(0, 8)}…${KERNEL_SHA.slice(-4)}`;
 
   // Build category breakdown from registry

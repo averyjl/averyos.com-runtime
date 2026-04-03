@@ -1,8 +1,8 @@
 name = "averyoscom-runtime"
 account_id = "374875d33ef47a741a129bd5e716abff"
-compatibility_date = "2026-02-05"
+compatibility_date = "2026-03-30"
 main = ".open-next/worker.js"
-compatibility_flags = ["nodejs_compat_v2"]
+compatibility_flags = ["nodejs_compat"]
 
 # ── Build configuration ────────────────────────────────────────────────────────
 # Tells Cloudflare Workers CI and local `wrangler dev` the correct build command.
