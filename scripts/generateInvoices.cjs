@@ -97,6 +97,14 @@ const BASE_BSU_CENTS       = 1_000_000;   // $10,000 in cents
 const PER_REQUEST_CENTS    = 1;           // $0.01 in cents
 const TOP_N                = 10;
 const CAPSULE_ID_META      = 'AveryOS_TARI_v1.1';
+// Sovereign kernel anchor hint — first 23 hex chars of KERNEL_SHA.
+// Derived from process.env.KERNEL_SHA when available; falls back to the
+// canonical constant so the hint never drifts from the active anchor.
+const CANONICAL_KERNEL_SHA = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+const KERNEL_SHA_VALUE     = (process.env.KERNEL_SHA && typeof process.env.KERNEL_SHA === 'string')
+  ? process.env.KERNEL_SHA
+  : CANONICAL_KERNEL_SHA;
+const KERNEL_SHA_HINT      = KERNEL_SHA_VALUE.slice(0, 23);
 // Only process orgs whose total liability meets or exceeds this threshold.
 // Orgs below the threshold are logged but skipped.
 const TARI_THRESHOLD_CENTS = 1_000_000;   // $10,000 in cents
@@ -134,15 +142,15 @@ const FORENSIC_EVENT_TYPES = new Set(['DER_HIGH_VALUE', 'DER_SETTLEMENT', 'HN_WA
  * @returns {Array<{org_id: string, request_count: number, ip?: string}>}
  */
 function loadLogs() {
-  if (!fs.existsSync(LOG_PATH)) {
-    logAosHeal(AOS_ERROR.NOT_FOUND, `Log file not found at ${LOG_PATH} — returning empty set.`);
-    return [];
-  }
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(LOG_PATH, 'utf8'));
   } catch (err) {
-    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse log file at ${LOG_PATH}: ${err.message}`, err);
+    if (err.code === 'ENOENT') {
+      logAosHeal(AOS_ERROR.NOT_FOUND, `Log file not found at ${LOG_PATH} — returning empty set.`);
+    } else {
+      logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse log file at ${LOG_PATH}: ${err.message}`, err);
+    }
     return [];
   }
   if (!Array.isArray(raw)) {
@@ -228,15 +236,15 @@ function mergeOrgMaps(asnOrgMap, fileOrgMap) {
  * @returns {Array<{asn?: string, ip_address?: string, path?: string, ray_id?: string}>}
  */
 function loadAnchorAuditLogs() {
-  if (!fs.existsSync(ANCHOR_AUDIT_LOG_PATH)) {
-    logAosHeal(AOS_ERROR.NOT_FOUND, `anchor_audit_logs file not found at ${ANCHOR_AUDIT_LOG_PATH} — returning empty set.`);
-    return [];
-  }
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(ANCHOR_AUDIT_LOG_PATH, 'utf8'));
   } catch (err) {
-    logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse anchor_audit_logs file at ${ANCHOR_AUDIT_LOG_PATH}: ${err.message}`, err);
+    if (err.code === 'ENOENT') {
+      logAosHeal(AOS_ERROR.NOT_FOUND, `anchor_audit_logs file not found at ${ANCHOR_AUDIT_LOG_PATH} — returning empty set.`);
+    } else {
+      logAosError(AOS_ERROR.INVALID_JSON, `Failed to parse anchor_audit_logs file at ${ANCHOR_AUDIT_LOG_PATH}: ${err.message}`, err);
+    }
     return [];
   }
   // wrangler d1 execute --json wraps results in { results: [...] }
@@ -1081,12 +1089,15 @@ async function runDollarVerification(stripe, triggerSource) {
       success_url: `${SITE_URL}/licensing?session_id={CHECKOUT_SESSION_ID}&verify=1`,
       cancel_url:  `${SITE_URL}/licensing`,
       metadata: {
-        settlement_status: 'Settlement Requested',
-        capsule_id:        'AveryOS_TARI_VerifyDollar_v1',
-        kernel_version:    'v3.6.2',
-        test_mode:         isTestKey ? '1' : '0',
-        rail_verification: '1',
-        trigger_source:    triggerSource ?? 'auto_threshold_breach',
+        settlement_status:  'Settlement Requested',
+        capsule_id:         'AveryOS_TARI_VerifyDollar_v1',
+        kernel_version:     'v3.6.2',
+        test_mode:          isTestKey ? '1' : '0',
+        rail_verification:  '1',
+        trigger_source:     triggerSource ?? 'auto_threshold_breach',
+        handshake_label:    'AveryOS Live Truth Handshake',
+        handshake_ts:       new Date().toISOString(),
+        handshake_sha_hint: KERNEL_SHA_HINT,
       },
     });
     logAosHeal('VERIFY_DOLLAR_OK', `$1.00 rail verification session created: ${session.id}`);
@@ -1168,6 +1179,9 @@ async function main() {
       console.log(`   URL        : ${session.url ?? '(no URL — check Stripe dashboard)'}`);
       console.log(`   Status     : ${session.status}`);
       console.log("   Metadata   : settlement_status='Settlement Requested'");
+      console.log("   Metadata   : handshake_label='AveryOS Live Truth Handshake'");
+      console.log(`   Metadata   : handshake_ts='${session.metadata?.handshake_ts ?? ''}'`);
+      console.log(`   Metadata   : handshake_sha_hint='${KERNEL_SHA_HINT}'`);
     } catch (err) {
       logAosError(AOS_ERROR.STRIPE_ERROR, `$1.00 verification failed: ${err.message}`, err);
       process.exit(1);

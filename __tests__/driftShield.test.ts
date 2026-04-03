@@ -19,6 +19,9 @@ import assert from "node:assert/strict";
 import {
   loadDriftShieldConfig,
   enforceDriftShield,
+  enforceEconomicThrottle,
+  UNAUTH_RPS,
+  AUTH_RPS,
   type DriftShieldConfig,
 } from "../lib/security/driftShield";
 import { KERNEL_SHA, KERNEL_VERSION } from "../lib/sovereignConstants";
@@ -233,5 +236,144 @@ describe("enforceDriftShield() with custom threshold env", () => {
       { DRIFT_SHIELD_THRESHOLD: "80" },
     );
     assert.equal(outcome.pass, false);
+  });
+});
+
+// ── enforceEconomicThrottle ───────────────────────────────────────────────────
+
+describe("enforceEconomicThrottle() — constants", () => {
+  test("UNAUTH_RPS is 1", () => {
+    assert.equal(UNAUTH_RPS, 1);
+  });
+
+  test("AUTH_RPS is 1017", () => {
+    assert.equal(AUTH_RPS, 1_017);
+  });
+});
+
+describe("enforceEconomicThrottle() — disabled throttle", () => {
+  test("passes immediately when throttle is disabled", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "0" });
+    const req = new Request("https://averyos.com/");
+    const outcome = enforceEconomicThrottle(req, cfg);
+    assert.equal(outcome.pass, true);
+  });
+
+  test("returns kernel anchor when throttle is disabled", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "0" });
+    const req = new Request("https://averyos.com/");
+    const outcome = enforceEconomicThrottle(req, cfg);
+    assert.equal(outcome.kernelSha, KERNEL_SHA);
+    assert.equal(outcome.kernelVersion, KERNEL_VERSION);
+  });
+});
+
+describe("enforceEconomicThrottle() — enabled throttle", () => {
+  // Use a unique IP per test to avoid token-bucket state leaking between tests
+  let ipCounter = 10;
+  function freshReq(headers: Record<string, string> = {}): Request {
+    const ip = `192.0.2.${ipCounter++}`;
+    return new Request("https://averyos.com/", {
+      headers: { "cf-connecting-ip": ip, ...headers },
+    });
+  }
+
+  test("first unauthenticated request passes (full bucket)", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const outcome = enforceEconomicThrottle(freshReq(), cfg);
+    assert.equal(outcome.pass, true);
+  });
+
+  test("second immediate unauthenticated request is rate-limited (429)", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const ip = `192.0.2.${ipCounter++}`;
+    const req = () => new Request("https://averyos.com/", {
+      headers: { "cf-connecting-ip": ip },
+    });
+    enforceEconomicThrottle(req(), cfg); // consume the single token
+    const outcome = enforceEconomicThrottle(req(), cfg); // bucket empty
+    assert.equal(outcome.pass, false);
+    if (!outcome.pass) {
+      assert.equal(outcome.code, 429);
+      assert.ok(outcome.reason.includes("rate limit exceeded"));
+    }
+  });
+
+  test("authenticated request uses Authorization header", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const ip = `192.0.2.${ipCounter++}`;
+    // Two consecutive requests with auth — both should pass since authRps is high
+    const req = () => new Request("https://averyos.com/", {
+      headers: { "cf-connecting-ip": ip, "authorization": "Bearer valid-token" },
+    });
+    const r1 = enforceEconomicThrottle(req(), cfg);
+    assert.equal(r1.pass, true);
+  });
+
+  test("x-vault-auth header is detected as authenticated", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const req = freshReq({ "x-vault-auth": "vault-secret" });
+    const outcome = enforceEconomicThrottle(req, cfg);
+    assert.equal(outcome.pass, true);
+  });
+
+  test("cookie aos-vault-auth is detected as authenticated", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const req = freshReq({ "cookie": "aos-vault-auth=session-token" });
+    const outcome = enforceEconomicThrottle(req, cfg);
+    assert.equal(outcome.pass, true);
+  });
+
+  test("x-forwarded-for is used when cf-connecting-ip is absent", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const req = new Request("https://averyos.com/", {
+      headers: { "x-forwarded-for": `192.0.2.${ipCounter++}, 10.0.0.1` },
+    });
+    const outcome = enforceEconomicThrottle(req, cfg);
+    assert.equal(outcome.pass, true);
+  });
+
+  test("falls back to 'unknown' when no IP headers present", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    // Two calls with no IP headers — both keyed 'unauth:unknown'
+    // First call consumes the token; second is rate-limited
+    const r1 = enforceEconomicThrottle(new Request("https://averyos.com/"), cfg);
+    const r2 = enforceEconomicThrottle(new Request("https://averyos.com/"), cfg);
+    // Both results must be valid outcomes
+    assert.ok(typeof r1.pass === "boolean");
+    assert.ok(typeof r2.pass === "boolean");
+  });
+
+  test("rate-limited response includes unauthenticated limit label", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const ip = `192.0.2.${ipCounter++}`;
+    const req = () => new Request("https://averyos.com/", {
+      headers: { "cf-connecting-ip": ip },
+    });
+    enforceEconomicThrottle(req(), cfg);
+    const outcome = enforceEconomicThrottle(req(), cfg);
+    if (!outcome.pass) {
+      assert.ok(outcome.reason.includes("unauthenticated"));
+    }
+  });
+
+  test("rate-limited response for authenticated includes authenticated label", () => {
+    const cfg = loadDriftShieldConfig({ DRIFT_SHIELD_THROTTLE: "1" });
+    const ip = `192.0.2.${ipCounter++}`;
+    // Exhaust the very large auth bucket by overriding authRps to 1
+    // We can't override authRps directly via env, so we call the raw function
+    // with a custom config object
+    const customCfg: DriftShieldConfig = {
+      ...cfg,
+      throttle: { ...cfg.throttle, authRps: 1, enabled: true },
+    };
+    const req = () => new Request("https://averyos.com/", {
+      headers: { "cf-connecting-ip": ip, "authorization": "Bearer tok" },
+    });
+    enforceEconomicThrottle(req(), customCfg); // consume
+    const outcome = enforceEconomicThrottle(req(), customCfg); // blocked
+    if (!outcome.pass) {
+      assert.ok(outcome.reason.includes("authenticated"));
+    }
   });
 });

@@ -76,6 +76,7 @@ export const navigationRoutes: NavigationRoute[] = [
   { path: "/admin/health-status",       label: "Health Status",           icon: "💚", isAdmin: true },
   { path: "/admin/valuation",           label: "IVI Valuation",           icon: "💹", isAdmin: true },
   { path: "/admin/resonance",           label: "Resonance Dashboard",     icon: "📡", isAdmin: true },
+  { path: "/admin/family-chain",        label: "Family Chain Registry",   icon: "⛓️", isAdmin: true },
   { path: "/miracle-health-habits",     label: "Miracle Health Habits™",  icon: "📖" },
   // Public compliance tools
   { path: "/alignment-check",           label: "Alignment Checker",     icon: "🔍" },

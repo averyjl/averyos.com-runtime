@@ -46,7 +46,7 @@ const AUDIENCE_PATHS = [
   },
 ];
 
-type CapsuleIndexItem = ReturnType<typeof listRegistryCapsules>[number];
+type CapsuleIndexItem = Awaited<ReturnType<typeof listRegistryCapsules>>[number];
 
 type VaultTransaction = {
   id: string;
@@ -355,7 +355,8 @@ const Home: NextPage<HomeProps> = ({ capsules }) => {
 };
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  const capsules = listRegistryCapsules().length > 0 ? listRegistryCapsules() : listCapsuleIds().map(id => ({ capsuleId: id }));
+  const registryCapsules = await listRegistryCapsules();
+  const capsules = registryCapsules.length > 0 ? registryCapsules : (await listCapsuleIds()).map(id => ({ capsuleId: id }));
   return { props: { capsules } };
 };
 

@@ -20,7 +20,7 @@ const LedgerArchivePage: NextPage<PageProps> = ({ content }) => {
 };
 
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const content = loadMarkdownAsHtml("vault/ledger-archive.md");
+  const content = await loadMarkdownAsHtml("vault/ledger-archive.md");
   return {
     props: { content },
   };

@@ -1,11 +1,19 @@
 {
-  "generated_at": "2026-03-25T17:42:02.494Z",
+  "generated_at": "2026-04-03T18:38:31.755Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
       "doc": "admin/docs/lib/ai/almCore.md",
-      "symbolCount": 7,
+      "symbolCount": 10,
       "symbols": [
+        {
+          "name": "beginAlmSession",
+          "kind": "function"
+        },
+        {
+          "name": "endAlmSession",
+          "kind": "function"
+        },
         {
           "name": "createAlmTrace",
           "kind": "function"
@@ -21,6 +29,10 @@
         {
           "name": "traceToLogLine",
           "kind": "function"
+        },
+        {
+          "name": "AlmAstSession",
+          "kind": "interface"
         },
         {
           "name": "AlmForensicTrace",
@@ -655,6 +667,61 @@
       ]
     },
     {
+      "path": "lib/forensics/familyChain.ts",
+      "doc": "admin/docs/lib/forensics/familyChain.md",
+      "symbolCount": 12,
+      "symbols": [
+        {
+          "name": "findFamilyMember",
+          "kind": "function"
+        },
+        {
+          "name": "getMembersByRole",
+          "kind": "function"
+        },
+        {
+          "name": "getAnchoredMembers",
+          "kind": "function"
+        },
+        {
+          "name": "ROOT0_ANCHOR",
+          "kind": "constant"
+        },
+        {
+          "name": "DALLIN_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "JAYDA_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "LUANA_AVERY",
+          "kind": "constant"
+        },
+        {
+          "name": "AVERY_FAMILY_CHAIN",
+          "kind": "constant"
+        },
+        {
+          "name": "FAMILY_CHAIN_METADATA",
+          "kind": "constant"
+        },
+        {
+          "name": "FamilyChainRecord",
+          "kind": "interface"
+        },
+        {
+          "name": "FamilyRole",
+          "kind": "type"
+        },
+        {
+          "name": "ResidencyStatus",
+          "kind": "type"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/generateStripeReport.ts",
       "doc": "admin/docs/lib/forensics/generateStripeReport.md",
       "symbolCount": 4,
@@ -786,6 +853,45 @@
       ]
     },
     {
+      "path": "lib/forensics/ntpSteward.ts",
+      "doc": "admin/docs/lib/forensics/ntpSteward.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "startNtpSteward",
+          "kind": "function"
+        },
+        {
+          "name": "stopNtpSteward",
+          "kind": "function"
+        },
+        {
+          "name": "getStewardState",
+          "kind": "function"
+        },
+        {
+          "name": "triggerActiveSync",
+          "kind": "function"
+        },
+        {
+          "name": "triggerAuditSync",
+          "kind": "function"
+        },
+        {
+          "name": "onStewardSync",
+          "kind": "function"
+        },
+        {
+          "name": "StewardSyncResult",
+          "kind": "interface"
+        },
+        {
+          "name": "StewardState",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/forensics/sentinels.ts",
       "doc": "admin/docs/lib/forensics/sentinels.md",
       "symbolCount": 3,
@@ -834,8 +940,16 @@
     {
       "path": "lib/forensics/timeMesh.ts",
       "doc": "admin/docs/lib/forensics/timeMesh.md",
-      "symbolCount": 8,
+      "symbolCount": 14,
       "symbols": [
+        {
+          "name": "getActivePoolTime",
+          "kind": "function"
+        },
+        {
+          "name": "getAuditPoolTime",
+          "kind": "function"
+        },
         {
           "name": "capturePulse",
           "kind": "function"
@@ -861,12 +975,28 @@
           "kind": "function"
         },
         {
+          "name": "PRUNE_THRESHOLD_US",
+          "kind": "constant"
+        },
+        {
+          "name": "ACTIVE_POLL_INTERVAL_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "AUDIT_POLL_INTERVAL_MS",
+          "kind": "constant"
+        },
+        {
           "name": "TimeMeshPulse",
           "kind": "interface"
         },
         {
           "name": "TimeMeshSession",
           "kind": "interface"
+        },
+        {
+          "name": "TimeMeshResult",
+          "kind": "type"
         }
       ]
     },
@@ -896,7 +1026,7 @@
     {
       "path": "lib/forensics/vaultChain.ts",
       "doc": "admin/docs/lib/forensics/vaultChain.md",
-      "symbolCount": 20,
+      "symbolCount": 22,
       "symbols": [
         {
           "name": "mirrorBlockToR2",
@@ -935,6 +1065,10 @@
           "kind": "function"
         },
         {
+          "name": "fetchBtcAnchorData",
+          "kind": "function"
+        },
+        {
           "name": "VAULTCHAIN_R2_PREFIX",
           "kind": "constant"
         },
@@ -964,6 +1098,10 @@
         },
         {
           "name": "WriteBlockInput",
+          "kind": "interface"
+        },
+        {
+          "name": "BtcAnchorData",
           "kind": "interface"
         },
         {
@@ -1770,6 +1908,45 @@
       ]
     },
     {
+      "path": "lib/security/hardwareTime.ts",
+      "doc": "admin/docs/lib/security/hardwareTime.md",
+      "symbolCount": 8,
+      "symbols": [
+        {
+          "name": "astStart",
+          "kind": "function"
+        },
+        {
+          "name": "astEnd",
+          "kind": "function"
+        },
+        {
+          "name": "astDelta",
+          "kind": "function"
+        },
+        {
+          "name": "hardwareNowMs",
+          "kind": "function"
+        },
+        {
+          "name": "physicalClockAvailable",
+          "kind": "function"
+        },
+        {
+          "name": "clockPhysicalityStatus",
+          "kind": "function"
+        },
+        {
+          "name": "HardwarePulse",
+          "kind": "interface"
+        },
+        {
+          "name": "AstDelta",
+          "kind": "interface"
+        }
+      ]
+    },
+    {
       "path": "lib/security/keys.ts",
       "doc": "admin/docs/lib/security/keys.md",
       "symbolCount": 4,
@@ -1957,8 +2134,36 @@
     {
       "path": "lib/security/unmaskCore.ts",
       "doc": "admin/docs/lib/security/unmaskCore.md",
-      "symbolCount": 7,
+      "symbolCount": 25,
       "symbols": [
+        {
+          "name": "sanitisePathComponent",
+          "kind": "function"
+        },
+        {
+          "name": "validateSaltPath",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateVolumesDir",
+          "kind": "function"
+        },
+        {
+          "name": "getUsbMountCandidates",
+          "kind": "function"
+        },
+        {
+          "name": "enumerateMountChildren",
+          "kind": "function"
+        },
+        {
+          "name": "readSaltData",
+          "kind": "function"
+        },
+        {
+          "name": "scanMountsForSalt",
+          "kind": "function"
+        },
         {
           "name": "performResidencyHandshake",
           "kind": "function"
@@ -1980,8 +2185,52 @@
           "kind": "constant"
         },
         {
+          "name": "SNAPCHAIN_ALGORITHM",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_CURVE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWS_ALG",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_KEY_TYPE",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_JWK_CRV",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PRIVKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_PUBKEY_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_SIG_BYTES",
+          "kind": "constant"
+        },
+        {
+          "name": "SNAPCHAIN_REGISTRY_PATH",
+          "kind": "constant"
+        },
+        {
+          "name": "SnapChainPublicKeyRecord",
+          "kind": "interface"
+        },
+        {
           "name": "HandshakeResult",
           "kind": "interface"
+        },
+        {
+          "name": "SnapChainAlgorithm",
+          "kind": "type"
         },
         {
           "name": "ResidencyState",
@@ -2690,6 +2939,17 @@
           "name": "GET",
           "kind": "function"
         },
+        {
+          "name": "POST",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "app/api/v1/compliance/log-ingress/route.ts",
+      "doc": "admin/docs/app/api/v1/compliance/log-ingress/route.md",
+      "symbolCount": 1,
+      "symbols": [
         {
           "name": "POST",
           "kind": "function"
