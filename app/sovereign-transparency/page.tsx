@@ -50,7 +50,6 @@ export const metadata: Metadata = {
 const DOMAIN              = "averyos.com";
 const DID_ROOT            = `did:web:${DOMAIN}`;
 const GATE                = "GATE 117.8.1";
-const HASH_DISPLAY_LENGTH = 32;
 
 // ── Verification documents served from /.well-known/ ─────────────────────────
 
@@ -239,9 +238,14 @@ export default function SovereignTransparencyPage() {
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
                 DID Subject
               </div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#4ade80" }}>
+              <Link
+                href="/.well-known/did.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#4ade80", textDecoration: "none", borderBottom: "1px dashed rgba(74,222,128,0.5)" }}
+              >
                 {DID_ROOT}
-              </div>
+              </Link>
             </div>
 
             {/* Kernel SHA-512 */}
@@ -249,9 +253,12 @@ export default function SovereignTransparencyPage() {
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
                 SHA-512 Kernel Anchor
               </div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff" }}>
-                {KERNEL_SHA.slice(0, HASH_DISPLAY_LENGTH)}…
-              </div>
+              <Link
+                href="/the-proof"
+                style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff", textDecoration: "none", borderBottom: "1px dashed rgba(120,148,255,0.4)" }}
+              >
+                {KERNEL_SHA}
+              </Link>
             </div>
 
             {/* SHA-256 Bridge */}
@@ -260,7 +267,7 @@ export default function SovereignTransparencyPage() {
                 SHA-256 Bridge Anchor
               </div>
               <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff" }}>
-                {KERNEL_SHA256_BRIDGE.slice(0, HASH_DISPLAY_LENGTH)}…
+                {KERNEL_SHA256_BRIDGE}
               </div>
             </div>
 

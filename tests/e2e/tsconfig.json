@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "strict": false
+  },
+  "include": [
+    "./**/*.ts",
+    "../playwright.config.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

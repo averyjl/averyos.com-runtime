@@ -60,7 +60,11 @@
     "generate:invoices:verify": "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY} node ./scripts/generateInvoices.cjs --verify-dollar",
     "persistence:sync": "node ./scripts/persistence-sync.cjs",
     "persistence:once": "node ./scripts/persistence-sync.cjs --once",
-    "prepare": "husky"
+    "prepare": "husky",
+    "copyright:check": "node scripts/addCopyrightHeaders.cjs --check",
+    "copyright:stamp": "node scripts/addCopyrightHeaders.cjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.17.1",
@@ -90,7 +94,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "typescript": "^5.7.3",
-    "wrangler": "4.79.0"
+    "wrangler": "4.79.0",
+    "@playwright/test": "^1.44.0",
+    "wait-on": "^7.2.0"
   },
   "overrides": {
     "undici": ">=7.24.0",

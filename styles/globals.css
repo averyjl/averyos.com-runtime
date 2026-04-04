@@ -1,3 +1,12 @@
+/*
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
 :root {
   color-scheme: dark;
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -845,6 +854,114 @@ a {
 .navbar-link-icon {
   font-size: 1.1rem;
 }
+
+
+/* ── Nav Group Dropdowns ────────────────────────────────────────────────────── */
+
+.nav-group {
+  position: relative;
+  display: inline-flex;
+}
+
+.nav-group-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(238, 244, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-group-trigger:hover {
+  background: rgba(120, 148, 255, 0.12);
+  color: rgba(120, 148, 255, 0.95);
+}
+
+.nav-group-chevron {
+  font-size: 0.65rem;
+  opacity: 0.65;
+  margin-left: 0.1rem;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  background: rgba(0, 6, 18, 0.97);
+  border: 1px solid rgba(120, 148, 255, 0.25);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 148, 255, 0.08);
+  backdrop-filter: blur(16px);
+  z-index: 200;
+  padding: 0.4rem;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 7px;
+  text-decoration: none;
+  color: rgba(238, 244, 255, 0.75);
+  font-size: 0.875rem;
+  font-weight: 400;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-dropdown-item:hover {
+  background: rgba(120, 148, 255, 0.12);
+  color: rgba(120, 148, 255, 0.95);
+}
+
+.nav-dropdown-item-active {
+  background: rgba(120, 148, 255, 0.18);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nav-dropdown-icon {
+  font-size: 1rem;
+  width: 1.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Mobile: stack groups vertically, no hover-open */
+@media (max-width: 768px) {
+  .nav-dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-left: 2px solid rgba(120, 148, 255, 0.2);
+    border-radius: 0;
+    background: transparent;
+    padding: 0 0 0 0.75rem;
+    margin-top: 0.25rem;
+    animation: none;
+  }
+  .nav-group-trigger {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.5rem;
+  }
+}
+
 
 /* Sidebar Navigation */
 .sidebar-toggle {

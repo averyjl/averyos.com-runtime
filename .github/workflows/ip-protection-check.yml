@@ -282,6 +282,16 @@ jobs:
           fi
           echo "✅ Constitution intact — SHA-256: $ACTUAL_SHA256"
 
+      # ── 10. Copyright header check ───────────────────────────────────────
+      - name: ©️ Verify all source files have AveryOS™ copyright header
+        run: |
+          node scripts/addCopyrightHeaders.cjs --check || {
+            echo ""
+            echo "⛓️⚓⛓️ COPYRIGHT HEADER VIOLATION"
+            echo "Run: node scripts/addCopyrightHeaders.cjs  to stamp all files."
+            exit 1
+          }
+
       - name: ✅ IP Protection Scan Complete
         run: |
           echo ""
