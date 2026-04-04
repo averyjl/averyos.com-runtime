@@ -135,7 +135,9 @@ function discoverLocalCapsules() {
         try {
           const parsed = JSON.parse(content);
           capsuleId = parsed.capsule_id ?? parsed.id ?? capsuleId;
-        } catch (_parseErr) { /* not JSON — use filename as capsule ID */ }
+        } catch (_parseErr) {
+          logAosError('node02-cfa-sync', `Non-JSON capsule content in ${f} — using filename as capsule ID`, _parseErr);
+        }
         return { filePath, capsuleId, sha512, content };
       } catch (err) {
         logAosError('node02-cfa-sync', `Failed to read capsule ${f}`, err);
