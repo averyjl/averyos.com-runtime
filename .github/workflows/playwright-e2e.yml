@@ -1,0 +1,93 @@
+name: 🎭 AveryOS™ Playwright E2E Tests
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main", "copilot/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  playwright-e2e:
+    name: E2E — AveryOS™ Site Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: 🏗️ Build Next.js
+        run: npm run build
+        env:
+          STRIPE_SECRET_KEY: "sk_test_placeholder"
+          NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+          SITE_URL: "http://localhost:3000"
+
+      # FIX: Start server and wait-on in a single step to avoid process lifecycle issues.
+      # Running them in separate steps caused the background process to become inaccessible
+      # (the `next start &` PID was still alive but the port wasn't reachable by wait-on in
+      # the next step due to GitHub Actions process group isolation).
+      - name: 🚀 Start server & wait for readiness
+        run: |
+          npx next start -H 0.0.0.0 -p 3000 &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+          npx wait-on http://localhost:3000 --timeout 60000 --interval 500
+        env:
+          STRIPE_SECRET_KEY: "sk_test_placeholder"
+          NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+          SITE_URL: "http://localhost:3000"
+
+      - name: 🎭 Run Playwright E2E tests
+        run: npx playwright test --project="Desktop Chrome" --reporter=html,github
+        env:
+          PLAYWRIGHT_BASE_URL: "http://localhost:3000"
+          CI: "true"
+
+      - name: 📊 Upload Playwright report
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: tests/e2e/playwright-report/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: ✅ E2E Gate Complete
+        if: success()
+        run: |
+          echo "⛓️⚓⛓️ AveryOS™ E2E Quality Gate — ALL TESTS PASSED"
+          echo "Kernel: cf83e135...927da3e (v3.6.2) — INTACT"
+          echo "🤛🏻"
+
+      - name: ⚠️ FCA — E2E failure auto-heal report
+        if: failure()
+        run: |
+          echo "⚠️ PLAYWRIGHT FCA REPORT"
+          echo "========================"
+          echo "One or more UI tests failed. Performing FCA:"
+          echo "1. Server PID was: $SERVER_PID"
+          echo "2. Check playwright-report artifact for screenshots and traces"
+          echo "3. FCA: All test failures must be resolved in code before merge"
+          echo ""
+          echo "Auto-heal: Do NOT merge PR with failing E2E tests."

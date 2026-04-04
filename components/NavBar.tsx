@@ -1,31 +1,94 @@
-// ⛓️⚓⛓️ TRI_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000% | TESTS: PASSING
-/**
- * NavBar.tsx — AveryOS™ Sovereign Navigation
- *
- * GATE 130.9 — Categorized dropdown nav: 30+ flat links → 5 grouped dropdowns.
- * Dramatically reduces vertical space used by navigation on all screen sizes.
- *
- * Categories: Knowledge | Licensing | Trust | Tools | Site
- * Admin: Only shown after VaultGate handshake verification.
- *
- * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
- */
 "use client";
+/**
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { navigationRoutes, NAV_CATEGORIES, adminRoutes } from "../lib/navigationRoutes";
+import { navGroups, adminNavGroup, type NavGroup } from "../lib/navigationRoutes";
 import AnchorBadge from "./AnchorBadge";
 
-const NavBar = () => {
-  const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const navRef = useRef<HTMLDivElement>(null);
+// ── NavDropdown ────────────────────────────────────────────────────────────────
 
-  // Check VaultGate handshake — only show admin routes when authenticated
+function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  const isGroupActive = group.routes.some((r) =>
+    r.path === "/" ? pathname === "/" : pathname.startsWith(r.path)
+  );
+
+  return (
+    <div
+      ref={ref}
+      className="nav-group"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        className={`navbar-link nav-group-trigger${isGroupActive ? " navbar-link-active" : ""}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        <span className="navbar-link-icon">{group.icon}</span>
+        <span className="navbar-link-text">{group.label}</span>
+        <span className="nav-group-chevron">{open ? "▴" : "▾"}</span>
+      </button>
+
+      {open && (
+        <div className="nav-dropdown" role="menu">
+          {group.routes.map((route) => {
+            const isActive =
+              route.path === "/" ? pathname === "/" : pathname.startsWith(route.path);
+            return (
+              <Link
+                key={route.path}
+                href={route.path}
+                className={`nav-dropdown-item${isActive ? " nav-dropdown-item-active" : ""}`}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+              >
+                <span className="nav-dropdown-icon">{route.icon}</span>
+                <span>{route.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── NavBar ─────────────────────────────────────────────────────────────────────
+
+const NavBar = () => {
+  const pathname = usePathname() ?? "";
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     const token = sessionStorage.getItem("VAULTAUTH_TOKEN");
     if (!token) { setIsAdmin(false); return; }
@@ -34,188 +97,35 @@ const NavBar = () => {
       headers: { "x-vault-auth": token },
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: { status?: string }) => {
         setIsAdmin(data?.status === "LOCKED" || data?.status === "AUTHENTICATED");
       })
       .catch(() => setIsAdmin(false));
   }, []);
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        setOpenCategory(null);
-        setMobileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  // Close dropdowns on route change
-  useEffect(() => {
-    setOpenCategory(null);
-    setMobileOpen(false);
-  }, [pathname]);
-
-  const publicRoutes = navigationRoutes.filter((r) => !r.isAdmin);
-
   return (
-    <nav className="navbar" ref={navRef}>
+    <nav className="navbar" aria-label="Main navigation">
       <div className="navbar-container">
         <Link href="/" className="navbar-brand">
           <span className="navbar-brand-icon">⚓</span>
           <span className="navbar-brand-text">AveryOS™</span>
         </Link>
 
-        {/* Desktop categorized nav */}
-        <div className="navbar-links navbar-links-desktop">
-          {NAV_CATEGORIES.map((cat) => {
-            const catRoutes = publicRoutes.filter((r) => r.category === cat.key);
-            const isCatActive = catRoutes.some((r) =>
-              r.path === "/" ? pathname === "/" : pathname?.startsWith(r.path)
-            );
-            const isOpen = openCategory === cat.key;
+        <div className="navbar-links">
+          {navGroups.map((group) => (
+            <NavDropdown key={group.label} group={group} pathname={pathname} />
+          ))}
 
-            return (
-              <div key={cat.key} className="navbar-dropdown-group">
-                <button
-                  className={`navbar-link navbar-dropdown-trigger${isCatActive ? " navbar-link-active" : ""}`}
-                  onClick={() => setOpenCategory(isOpen ? null : cat.key)}
-                  aria-expanded={isOpen}
-                  aria-haspopup="true"
-                  aria-label={`${cat.label} navigation`}
-                >
-                  <span className="navbar-link-icon">{cat.icon}</span>
-                  <span className="navbar-link-text">{cat.label}</span>
-                  <span style={{ fontSize: "0.6rem", marginLeft: "0.25rem", opacity: 0.7 }}>
-                    {isOpen ? "▲" : "▼"}
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="navbar-dropdown-menu" role="menu">
-                    {catRoutes.map((route) => {
-                      const isActive =
-                        route.path === "/"
-                          ? pathname === "/"
-                          : (pathname?.startsWith(route.path) ?? false);
-                      return (
-                        <Link
-                          key={route.path}
-                          href={route.path}
-                          className={`navbar-dropdown-item${isActive ? " navbar-dropdown-item-active" : ""}`}
-                          role="menuitem"
-                        >
-                          <span>{route.icon}</span>
-                          <span>{route.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Admin dropdown — only after VaultGate handshake */}
+          {/* CreatorLock dropdown — only rendered after VaultGate handshake success */}
           {isAdmin && (
-            <div className="navbar-dropdown-group">
-              <button
-                className={`navbar-link navbar-dropdown-trigger${pathname?.startsWith("/admin") ? " navbar-link-active" : ""}`}
-                onClick={() => setOpenCategory(openCategory === "admin" ? null : "admin")}
-                aria-expanded={openCategory === "admin"}
-                aria-haspopup="true"
-                aria-label="Admin navigation"
-              >
-                <span className="navbar-link-icon">🛡️</span>
-                <span className="navbar-link-text">Admin</span>
-                <span style={{ fontSize: "0.6rem", marginLeft: "0.25rem", opacity: 0.7 }}>
-                  {openCategory === "admin" ? "▲" : "▼"}
-                </span>
-              </button>
-              {openCategory === "admin" && (
-                <div className="navbar-dropdown-menu" role="menu">
-                  {adminRoutes.map((route) => {
-                    const isActive = pathname?.startsWith(route.path) ?? false;
-                    return (
-                      <Link
-                        key={route.path}
-                        href={route.path}
-                        className={`navbar-dropdown-item${isActive ? " navbar-dropdown-item-active" : ""}`}
-                        role="menuitem"
-                      >
-                        <span>{route.icon}</span>
-                        <span>{route.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <NavDropdown group={adminNavGroup} pathname={pathname} />
           )}
         </div>
 
-        {/* Right: AnchorBadge + mobile hamburger */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginLeft: "auto" }}>
+        <div style={{ marginLeft: "auto", paddingLeft: "1rem", display: "flex", alignItems: "center" }}>
           <AnchorBadge />
-          {/* Mobile hamburger */}
-          <button
-            className="navbar-mobile-toggle"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle navigation menu"
-            aria-expanded={mobileOpen}
-          >
-            <span style={{ fontSize: "1.4rem", lineHeight: 1 }}>{mobileOpen ? "✕" : "☰"}</span>
-          </button>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="navbar-mobile-menu">
-          {NAV_CATEGORIES.map((cat) => {
-            const catRoutes = publicRoutes.filter((r) => r.category === cat.key);
-            return (
-              <div key={cat.key} className="navbar-mobile-section">
-                <div className="navbar-mobile-section-header">
-                  {cat.icon} {cat.label}
-                </div>
-                {catRoutes.map((route) => {
-                  const isActive =
-                    route.path === "/"
-                      ? pathname === "/"
-                      : (pathname?.startsWith(route.path) ?? false);
-                  return (
-                    <Link
-                      key={route.path}
-                      href={route.path}
-                      className={`navbar-mobile-item${isActive ? " navbar-mobile-item-active" : ""}`}
-                    >
-                      <span>{route.icon}</span>
-                      <span>{route.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })}
-          {isAdmin && (
-            <div className="navbar-mobile-section">
-              <div className="navbar-mobile-section-header">🛡️ Admin</div>
-              {adminRoutes.map((route) => (
-                <Link
-                  key={route.path}
-                  href={route.path}
-                  className={`navbar-mobile-item${pathname?.startsWith(route.path) ? " navbar-mobile-item-active" : ""}`}
-                >
-                  <span>{route.icon}</span>
-                  <span>{route.label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </nav>
   );
 };

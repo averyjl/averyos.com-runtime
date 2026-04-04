@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 /**
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
+/**
  * scripts/node02-cfa-sync.cjs
  *
  * AveryOS™ Node-02 CFA (Forensic Cause Analysis) Data Sync
@@ -42,12 +51,34 @@ const { logAosError, logAosHeal } = require('./sovereignErrorLogger.cjs');
 
 const ROOT            = path.resolve(__dirname, '..');
 const AOSCAP_DIR      = path.join(ROOT, 'capsules');
-const D1_API_BASE     = process.env.D1_API_BASE ?? 'https://averyos.com/api/v1/capsules';
+
+// ── SSRF Guard: D1_API_BASE must be an https://averyos.com path — never user-arbitrary ──
+const D1_API_BASE_RAW = process.env.D1_API_BASE ?? 'https://averyos.com/api/v1/capsules';
+const D1_API_BASE_ALLOWED_ORIGIN = 'https://averyos.com';
+let D1_API_BASE;
+try {
+  const parsedUrl = new URL(D1_API_BASE_RAW);
+  if (parsedUrl.origin !== D1_API_BASE_ALLOWED_ORIGIN) {
+    console.error(`❌ SSRF Guard: D1_API_BASE origin must be ${D1_API_BASE_ALLOWED_ORIGIN}`);
+    console.error(`   Got origin: ${parsedUrl.origin}`);
+    process.exit(1);
+  }
+  D1_API_BASE = parsedUrl.href;
+} catch (urlErr) {
+  console.error(`❌ SSRF Guard: D1_API_BASE is not a valid URL: ${D1_API_BASE_RAW}`);
+  process.exit(1);
+}
+
 const VAULT_PASSPHRASE = process.env.VAULT_PASSPHRASE ?? '';
 const DRY_RUN         = process.argv.includes('--dry-run');
 const DIRECTION       = (() => {
   const idx = process.argv.indexOf('--direction');
-  return idx >= 0 ? process.argv[idx + 1] : 'both';
+  const val = idx >= 0 ? process.argv[idx + 1] : 'both';
+  if (!['up', 'down', 'both'].includes(val)) {
+    console.error(`❌ Invalid --direction value: ${val}. Must be up, down, or both.`);
+    process.exit(1);
+  }
+  return val;
 })();
 
 const KERNEL_SHA = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';

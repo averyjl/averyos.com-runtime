@@ -1,3 +1,12 @@
+/**
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
 // ⛓️⚓⛓️ TRI_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000% | TESTS: PASSING
 /**
  * lib/ai/almRouter.ts
@@ -94,7 +103,23 @@ async function resolveNode02Host(): Promise<string> {
       });
       if (records.length > 0) {
         const { name, port } = records[0];
-        return `http://${name}:${port}`;
+        // SSRF guard: SRV record must resolve to an explicitly-allowed host
+        // (ALM only runs on Node-02 — a known local or sovereign subdomain)
+        const ALLOWED_SRV_HOSTS = new Set([
+          "localhost",
+          "127.0.0.1",
+          "node-02.averyos.com",
+          "alm.averyos.com",
+        ]);
+        const isAllowedLocal =
+          ALLOWED_SRV_HOSTS.has(name) ||
+          name.startsWith("192.168.") ||
+          name.startsWith("10.") ||
+          name.endsWith(".local");
+        if (isAllowedLocal) {
+          return `http://${name}:${port}`;
+        }
+        // Non-allowlisted SRV target — reject to prevent SSRF
       }
     } catch {
       // SRV record not found or DNS unavailable — use fallback

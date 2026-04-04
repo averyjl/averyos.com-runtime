@@ -192,7 +192,7 @@ test.describe("Style Consistency — NavBar across pages", () => {
           firstNavbarHTML = html;
         } else {
           // Structure should be consistent (same dropdowns exist)
-          const triggers = await page.locator(".navbar-dropdown-trigger").count();
+          const triggers = await page.locator(".nav-group-trigger").count();
           expect(triggers).toBeGreaterThanOrEqual(5);
         }
       }
