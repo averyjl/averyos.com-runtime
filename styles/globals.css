@@ -882,7 +882,7 @@ a {
 
 .nav-group-trigger:hover {
   background: rgba(120, 148, 255, 0.12);
-  color: rgba(120, 148, 255, 0.95);
+  color: rgb(160, 180, 255);
 }
 
 .nav-group-chevron {
@@ -927,12 +927,12 @@ a {
 
 .nav-dropdown-item:hover {
   background: rgba(120, 148, 255, 0.12);
-  color: rgba(120, 148, 255, 0.95);
+  color: rgb(160, 180, 255);
 }
 
 .nav-dropdown-item-active {
   background: rgba(120, 148, 255, 0.18);
-  color: #ffffff;
+  color: rgb(255, 255, 255);
   font-weight: 600;
 }
 

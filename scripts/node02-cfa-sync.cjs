@@ -41,10 +41,10 @@
 
 'use strict';
 
-const fs      = require('fs');
-const path    = require('path');
-const crypto  = require('crypto');
-const https   = require('https');
+const fs      = require('node:fs');
+const path    = require('node:path');
+const crypto  = require('node:crypto');
+const https   = require('node:https');
 const { logAosError, logAosHeal } = require('./sovereignErrorLogger.cjs');
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -65,7 +65,10 @@ try {
   }
   D1_API_BASE = parsedUrl.href;
 } catch (urlErr) {
+  const errorMessage = urlErr instanceof Error ? urlErr.message : String(urlErr);
   console.error(`❌ SSRF Guard: D1_API_BASE is not a valid URL: ${D1_API_BASE_RAW}`);
+  console.error(`   Error: ${errorMessage}`);
+  logAosError('node02-cfa-sync', `Invalid D1_API_BASE URL: ${D1_API_BASE_RAW}`, urlErr);
   process.exit(1);
 }
 

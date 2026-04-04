@@ -188,7 +188,7 @@ test.describe("Style Consistency — NavBar across pages", () => {
       const navbar = page.locator("nav.navbar");
       if (await navbar.count() > 0) {
         const html = await navbar.innerHTML();
-        if (!firstNavbarHTML) {
+        if (firstNavbarHTML === "") {
           firstNavbarHTML = html;
         } else {
           // Structure should be consistent (same dropdowns exist)

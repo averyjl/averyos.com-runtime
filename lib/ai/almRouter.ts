@@ -91,7 +91,7 @@ export interface AlmNodeStatus {
 async function resolveNode02Host(): Promise<string> {
   if (typeof process !== "undefined" && process.versions?.node) {
     try {
-      const dnsModule = await import("dns");
+      const dnsModule = await import("node:dns");
       // Use the callback-based resolveSrv since dns.promises may not expose it
       // in all Node.js versions without type complications
       type SrvRecord = { name: string; port: number; priority: number; weight: number };

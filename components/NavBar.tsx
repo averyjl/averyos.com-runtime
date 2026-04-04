@@ -17,7 +17,12 @@ import AnchorBadge from "./AnchorBadge";
 
 // ── NavDropdown ────────────────────────────────────────────────────────────────
 
-function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
+interface NavDropdownProps {
+  readonly group: NavGroup;
+  readonly pathname: string;
+}
+
+function NavDropdown({ group, pathname }: NavDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
