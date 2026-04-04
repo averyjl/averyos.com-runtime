@@ -38,7 +38,7 @@ function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string })
   }, []);
 
   const isGroupActive = group.routes.some((r) =>
-    r.path === "/" ? pathname === "/" : (pathname?.startsWith(r.path) ?? false)
+    r.path === "/" ? pathname === "/" : pathname.startsWith(r.path)
   );
 
   return (
@@ -63,7 +63,7 @@ function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string })
         <div className="nav-dropdown" role="menu">
           {group.routes.map((route) => {
             const isActive =
-              route.path === "/" ? pathname === "/" : (pathname?.startsWith(route.path) ?? false);
+              route.path === "/" ? pathname === "/" : pathname.startsWith(route.path);
             return (
               <Link
                 key={route.path}
@@ -86,7 +86,7 @@ function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string })
 // ── NavBar ─────────────────────────────────────────────────────────────────────
 
 const NavBar = () => {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ const NavBar = () => {
       headers: { "x-vault-auth": token },
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: { status?: string }) => {
         setIsAdmin(data?.status === "LOCKED" || data?.status === "AUTHENTICATED");
       })
       .catch(() => setIsAdmin(false));
@@ -113,35 +113,12 @@ const NavBar = () => {
 
         <div className="navbar-links">
           {navGroups.map((group) => (
-            <NavDropdown key={group.label} group={group} pathname={pathname ?? ""} />
+            <NavDropdown key={group.label} group={group} pathname={pathname} />
           ))}
 
-          {/* CreatorLock Tab — only rendered after VaultGate handshake success */}
+          {/* CreatorLock dropdown — only rendered after VaultGate handshake success */}
           {isAdmin && (
-            <div className="navbar-admin-group">
-              <Link
-                href="/admin"
-                className={`navbar-link${pathname?.startsWith("/admin") ? " navbar-link-active" : ""}`}
-              >
-                <span className="navbar-link-icon">🔒</span>
-                <span className="navbar-link-text">CreatorLock</span>
-              </Link>
-              <div className="navbar-admin-dropdown">
-                {adminRoutes.map((route) => {
-                  const isActive = pathname?.startsWith(route.path) ?? false;
-                  return (
-                    <Link
-                      key={route.path}
-                      href={route.path}
-                      className={`navbar-link${isActive ? " navbar-link-active" : ""}`}
-                    >
-                      <span className="navbar-link-icon">{route.icon}</span>
-                      <span className="navbar-link-text">{route.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            <NavDropdown group={adminNavGroup} pathname={pathname} />
           )}
         </div>
 
