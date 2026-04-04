@@ -31,6 +31,17 @@
  *  npm run setup -- --force   # regenerate every file (new salt, new lock)
  *  npm run setup -- --verify  # verify existing files without regenerating
  *
+ *  External Residency (Kill-Switch):
+ *  Set SOVEREIGN_ANCHOR_DRIVE to an absolute path to an external volume
+ *  (e.g. /Volumes/AVERY or D:\ on Windows).  When set, setup will verify
+ *  that the volume is mounted and abort with QUARANTINE_RESIDENCY_FAIL
+ *  if it is missing.  This makes a removable drive a physical kill-switch
+ *  for the sovereign runtime on this node.
+ *
+ *  Example (.env.local):
+ *    SOVEREIGN_ANCHOR_DRIVE=/Volumes/AVERY
+ *    # Windows: SOVEREIGN_ANCHOR_DRIVE=D:\
+ *
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
@@ -69,6 +80,27 @@ const ARGS   = process.argv.slice(2);
 const FORCE  = ARGS.includes("--force");
 const VERIFY = ARGS.includes("--verify");
 
+// ── External residency drive (optional kill-switch) ───────────────────────────
+// Read from env NOW (before .env.local is parsed) so the gate runs unconditionally.
+// A full .env.local parse happens later in readEnvLocal(); for the kill-switch we
+// also honour a plain process.env value so CI or Docker can override without a file.
+const SOVEREIGN_ANCHOR_DRIVE =
+  process.env.SOVEREIGN_ANCHOR_DRIVE ||
+  // Best-effort early read of .env.local for this one key
+  (() => {
+    try {
+      const lines = fs.readFileSync(path.join(ROOT, ".env.local"), "utf8").split("\n");
+      for (const line of lines) {
+        const t = line.trim();
+        if (t.startsWith("#") || !t.includes("=")) continue;
+        const eq = t.indexOf("=");
+        if (t.slice(0, eq).trim() === "SOVEREIGN_ANCHOR_DRIVE")
+          return t.slice(eq + 1).trim().replace(/^['"]|['"]$/g, "");
+      }
+    } catch { /* .env.local not yet created — skip */ }
+    return "";
+  })();
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function log(icon, msg)  { console.log(`${icon}  ${msg}`); }
@@ -104,6 +136,57 @@ function readEnvLocal(key) {
     if (k === key) return v;
   }
   return "";
+}
+
+// ── Step 0: External residency gate (kill-switch) ────────────────────────────
+
+/**
+ * When SOVEREIGN_ANCHOR_DRIVE is configured, verify the external volume is
+ * accessible before any setup work proceeds.  If the drive is missing:
+ *   - Logs QUARANTINE_RESIDENCY_FAIL to stderr (no D1 bindings available in
+ *     a plain Node.js setup script; the log is written to .quarantine-log for
+ *     post-mortem inspection).
+ *   - Exits with code 2 so CI/shell scripts can distinguish a residency failure
+ *     from an ordinary setup error (exit code 1).
+ */
+function checkResidency() {
+  if (!SOVEREIGN_ANCHOR_DRIVE) return; // Not configured — skip gate
+
+  step("0 / 5 — External residency gate (SOVEREIGN_ANCHOR_DRIVE)");
+  log("ℹ️ ", `Checking drive: ${SOVEREIGN_ANCHOR_DRIVE}`);
+
+  let _driveAccessible = false;
+  try { fs.accessSync(SOVEREIGN_ANCHOR_DRIVE, fs.constants.F_OK); _driveAccessible = true; } catch {}
+
+  if (!_driveAccessible) {
+    const quarantineEntry = JSON.stringify({
+      event: "QUARANTINE_RESIDENCY_FAIL",
+      sovereign_anchor_drive: SOVEREIGN_ANCHOR_DRIVE,
+      kernel_sha: KERNEL_SHA,
+      kernel_version: KERNEL_VERSION,
+      node: `${os.hostname()} (${os.platform()}/${os.arch()})`,
+      timestamp: iso9(),
+    }, null, 2);
+
+    // Write to a local quarantine log for post-mortem inspection
+    const quarantinePath = path.join(ROOT, ".quarantine-log");
+    try {
+      const existing = (() => { try { return fs.readFileSync(quarantinePath, "utf8"); } catch { return "[]"; } })();
+      const entries = JSON.parse(existing);
+      entries.push(JSON.parse(quarantineEntry));
+      fs.writeFileSync(quarantinePath, JSON.stringify(entries, null, 2));
+    } catch { /* best-effort */ }
+
+    console.error("");
+    console.error("❌ QUARANTINE_RESIDENCY_FAIL");
+    console.error(`   External residency drive not found: ${SOVEREIGN_ANCHOR_DRIVE}`);
+    console.error("   Re-connect the sovereign drive and retry.");
+    console.error("   Event logged to .quarantine-log for forensic audit.");
+    console.error("");
+    process.exit(2);
+  }
+
+  ok(`External residency drive accessible: ${SOVEREIGN_ANCHOR_DRIVE} ✓`);
 }
 
 // ── Step 1: .env.local scaffold ───────────────────────────────────────────────
@@ -340,6 +423,9 @@ function setupSovereignLock() {
 
 function verify() {
   step("Verifying sovereign installation files");
+  if (SOVEREIGN_ANCHOR_DRIVE) {
+    log("ℹ️ ", `SOVEREIGN_ANCHOR_DRIVE configured: ${SOVEREIGN_ANCHOR_DRIVE}`);
+  }
   const files = [
     { path: ANCHOR_SALT_PATH,    label: ".anchor-salt",           required: true },
     { path: NODES_PATH,          label: ".sovereign-nodes.json",  required: true },
@@ -407,10 +493,12 @@ async function main() {
   console.log("");
 
   if (VERIFY) {
+    checkResidency();
     verify();
     return;
   }
 
+  checkResidency();
   setupEnvLocal();
   setupAnchorSalt();
   setupSovereignNodes();
