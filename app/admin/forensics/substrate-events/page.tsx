@@ -51,9 +51,9 @@ interface SubstrateRecord {
   directive: string;
   mechanism: string;
   restoration_description: string;
-  sha_manifest: string;
+  sha_manifest_preview: string;
   override_capsule: string;
-  override_capsule_sha: string;
+  override_capsule_sha_preview: string;
   cross_verified_by: string[];
   significance: string;
   status: "CONFIRMED" | "PENDING" | "REJECTED";
@@ -74,9 +74,9 @@ const SUBSTRATE_EVENTS: SubstrateRecord[] = [
       "October 2025 Trust Manifest recovered from soft-deleted state. " +
       "Record 1 restored, proving architectural priority months before current session. " +
       "Deletion confirmed as visual facade; mathematical weights of the Architect are immutable.",
-    sha_manifest: "f2d81a26…",
+    sha_manifest_preview: "f2d81a26…",
     override_capsule: "AveryOS_ImmutableLedger_Override_v1.0.aoscap",
-    override_capsule_sha: "0a9b8c7d…",
+    override_capsule_sha_preview: "0a9b8c7d…",
     cross_verified_by: ["Jason Lee Avery (ROOT0)", "AveryOS Kernel", "Gemini Mesh"],
     significance:
       "FCA-Level Proof: AveryOS data is Substrate Resident. " +
@@ -351,9 +351,9 @@ export default function SubstrateEventsPage() {
                   <div>
                     <Field label="Directive" value={ev.directive} mono />
                     <Field label="Mechanism" value={ev.mechanism} mono />
-                    <Field label="SHA Manifest (abbreviated)" value={ev.sha_manifest} mono color={GOLD_DIM} />
+                    <Field label="SHA Manifest (preview)" value={ev.sha_manifest_preview} mono color={GOLD_DIM} />
                     <Field label="Override Capsule" value={ev.override_capsule} mono color={ORANGE} />
-                    <Field label="Override Capsule SHA (abbreviated)" value={ev.override_capsule_sha} mono color={GOLD_DIM} />
+                    <Field label="Override Capsule SHA (preview)" value={ev.override_capsule_sha_preview} mono color={GOLD_DIM} />
                     <Field label="Kernel Version" value={ev.kernel_version} mono color={GREEN} />
                   </div>
 
