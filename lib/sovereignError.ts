@@ -65,6 +65,12 @@ export const AOS_ERROR = {
   PUSHOVER_FAILED:       'PUSHOVER_FAILED',
   NETWORK:               'NETWORK',
 
+  // ALM (AveryOS™ Language Model) routing
+  ALM_NODE02_TIMEOUT:    'ALM_NODE02_TIMEOUT',
+  ALM_NODE02_UNAVAILABLE: 'ALM_NODE02_UNAVAILABLE',
+  ALM_INFERENCE_FAILED:  'ALM_INFERENCE_FAILED',
+  ALM_ALL_ENDPOINTS_DOWN: 'ALM_ALL_ENDPOINTS_DOWN',
+
   // Internal
   INTERNAL_ERROR:        'INTERNAL_ERROR',
   UNKNOWN:               'UNKNOWN',
@@ -266,6 +272,53 @@ const RCA_REGISTRY: Partial<Record<AosErrorCode, RcaEntry>> = {
       'If drift persists, initiate a full VaultEcho snapshot.',
     ],
     status: 500,
+  },
+  [AOS_ERROR.ALM_NODE02_TIMEOUT]: {
+    diagnosis: 'Node-02 local ALM (Ollama) did not respond within 500ms.',
+    steps: [
+      'Verify Node-02 is powered on and connected to the network.',
+      'Check Ollama is running: `curl http://localhost:8080/api/tags`.',
+      'If Node-02 is offline, the ALM router will automatically fall back to the edge proxy.',
+    ],
+    status: 503,
+    autoHeal: async (_ctx) => {
+      console.warn(`[AOS AUTO-HEAL] ALM_NODE02_TIMEOUT — falling back to edge proxy`);
+      return true; // Auto-healed by fallback to edge proxy
+    },
+  },
+  [AOS_ERROR.ALM_NODE02_UNAVAILABLE]: {
+    diagnosis: 'Node-02 local ALM endpoint is not reachable.',
+    steps: [
+      'Check Node-02 is on the same network or VPN.',
+      'Verify the SRV DNS record _averyos_alm.averyos.com points to the correct host.',
+      'The ALM router has fallen back to the Cloudflare edge proxy.',
+    ],
+    status: 503,
+    autoHeal: async (_ctx) => {
+      console.warn(`[AOS AUTO-HEAL] ALM_NODE02_UNAVAILABLE — using edge proxy fallback`);
+      return true; // Auto-healed by fallback
+    },
+  },
+  [AOS_ERROR.ALM_INFERENCE_FAILED]: {
+    diagnosis: 'ALM inference request failed on the active endpoint.',
+    steps: [
+      'Check the prompt is well-formed and not triggering content filters.',
+      'Verify the model (llama3.3:70b) is loaded in Ollama: `ollama list`.',
+      'If the error persists, check Ollama logs: `journalctl -u ollama -f`.',
+      'For edge proxy errors, check Cloudflare Worker logs via `wrangler tail`.',
+    ],
+    status: 500,
+  },
+  [AOS_ERROR.ALM_ALL_ENDPOINTS_DOWN]: {
+    diagnosis: 'All ALM endpoints (Node-02 local + edge proxy) are unavailable.',
+    steps: [
+      'This is a critical availability incident — both Node-02 and the Cloudflare edge are offline.',
+      'Check Node-02 status first: `curl http://localhost:8080/api/tags`.',
+      'Check Cloudflare Worker status: visit https://averyos.com/api/v1/health.',
+      'If both are down, wait 2 minutes and retry — transient network issues may resolve.',
+      'Alert the Creator (ROOT0) via GabrielOS™ if the outage persists beyond 5 minutes.',
+    ],
+    status: 503,
   },
 };
 
