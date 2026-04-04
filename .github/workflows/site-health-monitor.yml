@@ -127,8 +127,26 @@ jobs:
           check_route "/api/v1/health"            "API v1 Health"
           check_route "/api/v1/capsules"          "API v1 Capsules"
 
+          # ── GATE 130.9.3 — Node-02 ALM Residency Pulse ───────────────────
+          # Checks if Node-02 local ALM (Ollama) is reachable.
+          # This is a soft check — Node-02 may be offline; it does NOT fail the
+          # build. It is logged for observability only.
+          echo "=== Node-02 Residency Pulse — $(date -u) ==="
+          if [ -n "$VAULT_PASSPHRASE" ]; then
+            NODE02_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 3 \
+              "http://localhost:8080/api/tags" 2>/dev/null || echo "000")
+            if [ "$NODE02_STATUS" = "200" ]; then
+              echo "✅ Node-02 ALM: ONLINE (Ollama responding)"
+              REPORT="${REPORT}| Node-02 ALM (Ollama) | ${NODE02_STATUS} | ✅ Online |\n"
+            else
+              echo "ℹ️ Node-02 ALM: OFFLINE (expected when not on local network)"
+              REPORT="${REPORT}| Node-02 ALM (Ollama) | ${NODE02_STATUS} | ℹ️ Offline (expected) |\n"
+            fi
+          else
+            echo "ℹ️ Node-02 Residency Pulse: Skipped (VAULT_PASSPHRASE not set)"
+          fi
           echo ""
-          echo "=== Nobis-Avery Temporal Bridge — $(date -u) ==="
           echo ""
 
           # ── Nobis-Avery Cross-Domain Temporal Bridge (Phase 130.4 GATE 130.4.2 / 130.7 GATE 130.7.3) ──

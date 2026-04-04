@@ -1,4 +1,13 @@
 /**
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
+/**
  * AveryOS™ Sovereign Error Logger — Script Edition (CommonJS)
  *
  * Provides RCA (Root Cause Analysis) + actionable error logging for
@@ -40,6 +49,10 @@ const AOS_ERROR = {
   STRIPE_ERROR:         'STRIPE_ERROR',
   EXTERNAL_API_ERROR:   'EXTERNAL_API_ERROR',
   BTC_ANCHOR_FAILED:    'BTC_ANCHOR_FAILED',
+  ALM_NODE02_TIMEOUT:   'ALM_NODE02_TIMEOUT',
+  ALM_NODE02_UNAVAILABLE: 'ALM_NODE02_UNAVAILABLE',
+  ALM_INFERENCE_FAILED: 'ALM_INFERENCE_FAILED',
+  ALM_ALL_ENDPOINTS_DOWN: 'ALM_ALL_ENDPOINTS_DOWN',
   INTERNAL_ERROR:       'INTERNAL_ERROR',
   DRIFT_DETECTED:       'DRIFT_DETECTED',
 };
@@ -124,6 +137,41 @@ const RCA = {
     steps: [
       'Verify the current KERNEL_SHA in lib/sovereignConstants.ts matches VaultBridge/GoldenLockArtifact.lock.json.',
       'Re-deploy from the canonical branch.',
+    ],
+  },
+  [AOS_ERROR.ALM_NODE02_TIMEOUT]: {
+    diagnosis: 'Node-02 local ALM (Ollama) did not respond within 500ms.',
+    steps: [
+      'Verify Node-02 is powered on and connected to the network.',
+      'Check Ollama is running: `curl http://localhost:8080/api/tags`.',
+      'The ALM router will automatically fall back to the edge proxy.',
+    ],
+  },
+  [AOS_ERROR.ALM_NODE02_UNAVAILABLE]: {
+    diagnosis: 'Node-02 local ALM endpoint is not reachable.',
+    steps: [
+      'Check Node-02 is on the same network or VPN.',
+      'Verify the SRV DNS record _averyos_alm.averyos.com points to the correct host.',
+      'The ALM router has fallen back to the Cloudflare edge proxy.',
+    ],
+  },
+  [AOS_ERROR.ALM_INFERENCE_FAILED]: {
+    diagnosis: 'ALM inference request failed on the active endpoint.',
+    steps: [
+      'Check the prompt is well-formed and not triggering content filters.',
+      'Verify the model (llama3.3:70b) is loaded in Ollama: `ollama list`.',
+      'If the error persists, check Ollama logs: `journalctl -u ollama -f`.',
+      'For edge proxy errors, check Cloudflare Worker logs via `wrangler tail`.',
+    ],
+  },
+  [AOS_ERROR.ALM_ALL_ENDPOINTS_DOWN]: {
+    diagnosis: 'All ALM endpoints (Node-02 local + edge proxy) are unavailable.',
+    steps: [
+      'This is a critical availability incident — both Node-02 and the Cloudflare edge are offline.',
+      'Check Node-02 status first: `curl http://localhost:8080/api/tags`.',
+      'Check Cloudflare Worker status: visit https://averyos.com/api/v1/health.',
+      'If both are down, wait 2 minutes and retry — transient network issues may resolve.',
+      'Alert the Creator (ROOT0) via GabrielOS™ if the outage persists beyond 5 minutes.',
     ],
   },
 };

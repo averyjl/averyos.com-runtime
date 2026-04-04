@@ -50,7 +50,6 @@ export const metadata: Metadata = {
 const DOMAIN              = "averyos.com";
 const DID_ROOT            = `did:web:${DOMAIN}`;
 const GATE                = "GATE 117.8.1";
-const HASH_DISPLAY_LENGTH = 32;
 
 // ── Verification documents served from /.well-known/ ─────────────────────────
 
@@ -234,33 +233,45 @@ export default function SovereignTransparencyPage() {
           </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0.75rem" }}>
-            {/* DID Root */}
+            {/* DID Root — links to /.well-known/did.json */}
             <div style={{ padding: "0.75rem 1rem", borderRadius: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(74,222,128,0.25)" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
                 DID Subject
               </div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#4ade80" }}>
+              <Link
+                href="/.well-known/did.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", color: "#4ade80", textDecoration: "none", borderBottom: "1px dotted rgba(74,222,128,0.5)" }}
+                title="View the full W3C DID Core document for averyos.com"
+              >
                 {DID_ROOT}
-              </div>
+              </Link>
             </div>
 
-            {/* Kernel SHA-512 */}
+            {/* Kernel SHA-512 — full hash, links to /the-proof */}
             <div style={{ padding: "0.75rem 1rem", borderRadius: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(120,148,255,0.25)" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
                 SHA-512 Kernel Anchor
               </div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff" }}>
-                {KERNEL_SHA.slice(0, HASH_DISPLAY_LENGTH)}…
-              </div>
+              <Link
+                href="/the-proof"
+                style={{ textDecoration: "none" }}
+                title="View the full Sovereign Proof disclosure"
+              >
+                <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.65rem", wordBreak: "break-all", color: "#7894ff", borderBottom: "1px dotted rgba(120,148,255,0.4)", lineHeight: "1.5" }}>
+                  {KERNEL_SHA}
+                </div>
+              </Link>
             </div>
 
-            {/* SHA-256 Bridge */}
+            {/* SHA-256 Bridge — full hash */}
             <div style={{ padding: "0.75rem 1rem", borderRadius: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(120,148,255,0.25)" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(238,244,255,0.5)", marginBottom: "0.3rem" }}>
                 SHA-256 Bridge Anchor
               </div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff" }}>
-                {KERNEL_SHA256_BRIDGE.slice(0, HASH_DISPLAY_LENGTH)}…
+              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.7rem", wordBreak: "break-all", color: "#7894ff", lineHeight: "1.5" }}>
+                {KERNEL_SHA256_BRIDGE}
               </div>
             </div>
 

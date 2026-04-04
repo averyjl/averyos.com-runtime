@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-04-04T04:03:20.821Z",
   "kernel_version": "v3.6.2",
-  "total_modules": 89,
+  "total_modules": 90,
   "covered": [
     "BadgeGenerator.ts",
     "CapsuleSigner.ts",
