@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-02T03:04:42.345Z",
+  "generated_at": "2026-04-04T04:03:20.821Z",
   "kernel_version": "v3.6.2",
   "total_modules": 89,
   "covered": [
@@ -28,12 +28,14 @@
     "forensics/alertEngine.ts",
     "forensics/cadenceCorrelation.ts",
     "forensics/correlationEngine.ts",
+    "forensics/familyChain.ts",
     "forensics/generateStripeReport.ts",
     "forensics/globalVault.ts",
     "forensics/ingestionProof.ts",
     "forensics/inventionTracker.ts",
     "forensics/merkle.ts",
     "forensics/networkAudit.ts",
+    "forensics/ntpSteward.ts",
     "forensics/sentinels.ts",
     "forensics/threatEngine.ts",
     "forensics/timeMesh.ts",
@@ -62,6 +64,7 @@
     "sanitizeHtml.ts",
     "security/bioAnchor.ts",
     "security/driftShield.ts",
+    "security/hardwareTime.ts",
     "security/keys.ts",
     "security/pathSanitizer.ts",
     "security/pinningCore.ts",
@@ -90,67 +93,7 @@
     "timePrecision.ts",
     "vaultCookieConfig.ts"
   ],
-  "uncovered": [
-    {
-      "path": "forensics/familyChain.ts",
-      "exports": [
-        "function:findFamilyMember",
-        "function:getMembersByRole",
-        "function:getAnchoredMembers",
-        "const:ROOT0_ANCHOR",
-        "const:DALLIN_AVERY",
-        "const:JAYDA_AVERY",
-        "const:LUANA_AVERY",
-        "const:AVERY_FAMILY_CHAIN",
-        "const:FAMILY_CHAIN_METADATA",
-        "type:FamilyRole",
-        "type:ResidencyStatus",
-        "type:FamilyChainRecord"
-      ]
-    },
-    {
-      "path": "forensics/ntpSteward.ts",
-      "exports": [
-        "function:startNtpSteward",
-        "function:stopNtpSteward",
-        "function:getStewardState",
-        "function:triggerActiveSync",
-        "function:triggerAuditSync",
-        "function:onStewardSync",
-        "type:StewardSyncResult",
-        "type:StewardState"
-      ]
-    },
-    {
-      "path": "security/hardwareTime.ts",
-      "exports": [
-        "function:astStart",
-        "function:astEnd",
-        "function:astDelta",
-        "function:hardwareNowMs",
-        "function:physicalClockAvailable",
-        "function:clockPhysicalityStatus",
-        "type:HardwarePulse",
-        "type:AstDelta"
-      ]
-    }
-  ],
-  "skeletons": [
-    {
-      "source": "forensics/familyChain.ts",
-      "output": "familyChain.gen.test.ts",
-      "sha512": "1b133b4e078445110d1df0eb07801100…"
-    },
-    {
-      "source": "forensics/ntpSteward.ts",
-      "output": "ntpSteward.gen.test.ts",
-      "sha512": "8886847f5e4351793fd4113faeb9689f…"
-    },
-    {
-      "source": "security/hardwareTime.ts",
-      "output": "hardwareTime.gen.test.ts",
-      "sha512": "bb9904d584a24507f926676cb50831c6…"
-    }
-  ],
-  "suite_sha512": "51c4a1a207f33083099f2fce23ca51545905d0bbff7aefc69fa6b999166458e767180143f8c406f2b58a1b82e0f08ebc5df98ba06d7d99ee6e839edc573a82a9"
+  "uncovered": [],
+  "skeletons": [],
+  "suite_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
 }
