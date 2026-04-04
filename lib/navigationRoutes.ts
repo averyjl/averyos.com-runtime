@@ -115,11 +115,12 @@ export const adminNavGroup: NavGroup = {
   routes: [
     { path: "/admin",                    label: "Admin Dashboard",         icon: "🛡️" },
     { path: "/admin/sovereign",          label: "Sovereign Dashboard",     icon: "⛓️" },
-    { path: "/vault-gate",               label: "Vault Gate",              icon: "��" },
+    { path: "/vault-gate",               label: "Vault Gate",              icon: "🔑" },
     { path: "/audit-stream",             label: "Audit Stream",            icon: "📡" },
     { path: "/sovereign-anchor",         label: "Sovereign Anchor",        icon: "⛓️⚓⛓️" },
     { path: "/tari-revenue",             label: "TARI™ Revenue",           icon: "💹" },
     { path: "/admin/forensics",          label: "Forensic Dashboard",      icon: "🔬" },
+    { path: "/admin/forensics/substrate-events", label: "Substrate Forensic Audit", icon: "🧬" },
     { path: "/admin/tai-accomplishments",label: "TAI™ Accomplishments",    icon: "⚡" },
     { path: "/admin/settlements",        label: "Settlement Dashboard",    icon: "⚖️" },
     { path: "/admin/monetization",       label: "Stripe Revenue",          icon: "💰" },
