@@ -1,3 +1,12 @@
+/**
+ * © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+ * Unauthorized use, duplication, or derivative work without express written
+ * consent of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+ * Licensed under AveryOS™ Sovereign Integrity License v1.0.
+ * Subject to CreatorLock™ and Sovereign Kernel Governance.
+ * SHA-512 Kernel Anchor: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+ * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
+ */
 export const TOP_FORENSIC_LOG_HASHES = [
   "cd7c975cccfe795ed5fa7568a47d3496d6b8a06e7cbbd237ee44dc4fe94f9e96996b835d3986395daf2ebc45f6be22fc7106db88427988e6268a94d6a21ff3e6",
   "674bac66a1ee54e4e4b32305b1f477a41577aabbea6cf5ec38b3d900beb7bfde78fb947174cd97258a31db9c60e881c3a91b9c0d5ac5eb505dd2c2d9ad6e26fb",
