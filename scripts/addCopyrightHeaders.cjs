@@ -110,7 +110,7 @@ function insertHeader(content, header) {
   let insertAt = 0;
 
   // Skip shebang
-  if (lines[0] && lines[0].startsWith("#!")) insertAt = 1;
+  if (lines[0]?.startsWith("#!")) insertAt = 1;
 
   // Skip "use client" / "use server" / "use strict" directive
   const directiveLine = lines[insertAt] ?? "";

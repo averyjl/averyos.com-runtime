@@ -52,25 +52,10 @@ const { logAosError, logAosHeal } = require('./sovereignErrorLogger.cjs');
 const ROOT            = path.resolve(__dirname, '..');
 const AOSCAP_DIR      = path.join(ROOT, 'capsules');
 
-// ── SSRF Guard: D1_API_BASE must be an https://averyos.com path — never user-arbitrary ──
-const D1_API_BASE_RAW = process.env.D1_API_BASE ?? 'https://averyos.com/api/v1/capsules';
-const D1_API_BASE_ALLOWED_ORIGIN = 'https://averyos.com';
-let D1_API_BASE;
-try {
-  const parsedUrl = new URL(D1_API_BASE_RAW);
-  if (parsedUrl.origin !== D1_API_BASE_ALLOWED_ORIGIN) {
-    console.error(`❌ SSRF Guard: D1_API_BASE origin must be ${D1_API_BASE_ALLOWED_ORIGIN}`);
-    console.error(`   Got origin: ${parsedUrl.origin}`);
-    process.exit(1);
-  }
-  D1_API_BASE = parsedUrl.href;
-} catch (urlErr) {
-  const errorMessage = urlErr instanceof Error ? urlErr.message : String(urlErr);
-  console.error(`❌ SSRF Guard: D1_API_BASE is not a valid URL: ${D1_API_BASE_RAW}`);
-  console.error(`   Error: ${errorMessage}`);
-  logAosError('node02-cfa-sync', `Invalid D1_API_BASE URL: ${D1_API_BASE_RAW}`, urlErr);
-  process.exit(1);
-}
+// ── D1 API Base URL — fully hardcoded (SSRF-safe, CodeQL-clean) ───────────────
+// No user or env-controlled data flows into this URL — prevents CodeQL SSRF
+// taint tracking from process.env to https.request().
+const D1_API_BASE = 'https://averyos.com/api/v1/capsules';
 
 const VAULT_PASSPHRASE = process.env.VAULT_PASSPHRASE ?? '';
 const DRY_RUN         = process.argv.includes('--dry-run');
@@ -150,7 +135,7 @@ function discoverLocalCapsules() {
         try {
           const parsed = JSON.parse(content);
           capsuleId = parsed.capsule_id ?? parsed.id ?? capsuleId;
-        } catch { /* not JSON — use filename */ }
+        } catch (_parseErr) { /* not JSON — use filename as capsule ID */ }
         return { filePath, capsuleId, sha512, content };
       } catch (err) {
         logAosError('node02-cfa-sync', `Failed to read capsule ${f}`, err);

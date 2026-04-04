@@ -188,12 +188,12 @@ test.describe("Style Consistency — NavBar across pages", () => {
       const navbar = page.locator("nav.navbar");
       if (await navbar.count() > 0) {
         const html = await navbar.innerHTML();
-        if (firstNavbarHTML === "") {
-          firstNavbarHTML = html;
-        } else {
+        if (firstNavbarHTML !== "") {
           // Structure should be consistent (same dropdowns exist)
           const triggers = await page.locator(".nav-group-trigger").count();
           expect(triggers).toBeGreaterThanOrEqual(5);
+        } else {
+          firstNavbarHTML = html;
         }
       }
     }

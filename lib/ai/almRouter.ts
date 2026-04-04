@@ -78,15 +78,31 @@ export interface AlmNodeStatus {
   model?: string;
 }
 
+// ── SSRF-safe host configurations ────────────────────────────────────────────
+// All ALM fetch() calls use only URLs from this hardcoded set.
+// DNS SRV data is used ONLY to select which entry to use — never to build URLs.
+// This prevents CodeQL SSRF: no network-derived data enters fetch() URLs.
+const ALM_SAFE_HOST_MAP: ReadonlyMap<string, string> = new Map([
+  ["localhost",               ALM_LOCAL_FALLBACK_HOST],
+  ["127.0.0.1",               "http://127.0.0.1:8080"],
+  ["node-02.averyos.com",     "http://node-02.averyos.com:8080"],
+  ["alm.averyos.com",         "https://alm.averyos.com"],
+]);
+
 // ── SRV Discovery ─────────────────────────────────────────────────────────────
 
 /**
  * Attempt to resolve Node-02 host via SRV DNS lookup.
  *
+ * Returns ONLY values from ALM_SAFE_HOST_MAP or ALM_LOCAL_FALLBACK_HOST —
+ * DNS-derived data is NEVER placed directly into the returned URL string.
+ * This ensures CodeQL cannot trace tainted data into fetch() URLs (SSRF guard).
+ *
  * Falls back to ALM_LOCAL_FALLBACK_HOST when:
  *   - Running on Cloudflare Workers (no dns.resolveSrv)
  *   - SRV record does not exist in DNS yet
  *   - DNS resolution times out
+ *   - SRV target is not in ALM_SAFE_HOST_MAP
  */
 async function resolveNode02Host(): Promise<string> {
   if (typeof process !== "undefined" && process.versions?.node) {
@@ -102,23 +118,17 @@ async function resolveNode02Host(): Promise<string> {
         });
       });
       if (records.length > 0) {
-        const { name, port } = records[0];
-        // SSRF guard: SRV record must resolve to an explicitly-allowed host
-        // (ALM only runs on Node-02 — a known local or sovereign subdomain)
-        const ALLOWED_SRV_HOSTS = new Set([
-          "localhost",
-          "127.0.0.1",
-          "node-02.averyos.com",
-          "alm.averyos.com",
-        ]);
-        const isAllowedLocal =
-          ALLOWED_SRV_HOSTS.has(name) ||
+        const { name } = records[0];
+        // SSRF guard: map DNS hostname to a pre-approved hardcoded URL only.
+        // Private network hosts (RFC1918 / .local) fall back to the fixed fallback.
+        // DNS-derived `name` and `port` are NEVER interpolated into the URL.
+        const safeUrl = ALM_SAFE_HOST_MAP.get(name);
+        if (safeUrl) return safeUrl;
+        const isPrivateNetwork =
           name.startsWith("192.168.") ||
           name.startsWith("10.") ||
           name.endsWith(".local");
-        if (isAllowedLocal) {
-          return `http://${name}:${port}`;
-        }
+        if (isPrivateNetwork) return ALM_LOCAL_FALLBACK_HOST;
         // Non-allowlisted SRV target — reject to prevent SSRF
       }
     } catch {
