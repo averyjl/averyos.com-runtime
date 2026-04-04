@@ -35,9 +35,6 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../sovereignConstants";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
-/** SRV DNS record for local Node-02 ALM residency discovery */
-const ALM_SRV_HOSTNAME = "_averyos_alm.averyos.com";
-
 /** Default local Node-02 ALM endpoint (Ollama REST API) */
 const ALM_LOCAL_FALLBACK_HOST = "http://localhost:8080";
 
@@ -78,84 +75,24 @@ export interface AlmNodeStatus {
   model?: string;
 }
 
-// ── SSRF-safe host configurations ────────────────────────────────────────────
-// All ALM fetch() calls use only URLs from this hardcoded set.
-// DNS SRV data is used ONLY to select which entry to use — never to build URLs.
-// This prevents CodeQL SSRF: no network-derived data enters fetch() URLs.
-const ALM_SAFE_HOST_MAP: ReadonlyMap<string, string> = new Map([
-  ["localhost",               ALM_LOCAL_FALLBACK_HOST],
-  ["127.0.0.1",               "http://127.0.0.1:8080"],
-  ["node-02.averyos.com",     "http://node-02.averyos.com:8080"],
-  ["alm.averyos.com",         "https://alm.averyos.com"],
-]);
-
-// ── SRV Discovery ─────────────────────────────────────────────────────────────
-
-/**
- * Attempt to resolve Node-02 host via SRV DNS lookup.
- *
- * Returns ONLY values from ALM_SAFE_HOST_MAP or ALM_LOCAL_FALLBACK_HOST —
- * DNS-derived data is NEVER placed directly into the returned URL string.
- * This ensures CodeQL cannot trace tainted data into fetch() URLs (SSRF guard).
- *
- * Falls back to ALM_LOCAL_FALLBACK_HOST when:
- *   - Running on Cloudflare Workers (no dns.resolveSrv)
- *   - SRV record does not exist in DNS yet
- *   - DNS resolution times out
- *   - SRV target is not in ALM_SAFE_HOST_MAP
- */
-async function resolveNode02Host(): Promise<string> {
-  if (typeof process !== "undefined" && process.versions?.node) {
-    try {
-      const dnsModule = await import("node:dns");
-      // Use the callback-based resolveSrv since dns.promises may not expose it
-      // in all Node.js versions without type complications
-      type SrvRecord = { name: string; port: number; priority: number; weight: number };
-      const records = await new Promise<SrvRecord[]>((resolve, reject) => {
-        dnsModule.resolveSrv(ALM_SRV_HOSTNAME, (err, addrs) => {
-          if (err) reject(err);
-          else resolve(addrs as SrvRecord[]);
-        });
-      });
-      if (records.length > 0) {
-        const { name } = records[0];
-        // SSRF guard: map DNS hostname to a pre-approved hardcoded URL only.
-        // Private network hosts (RFC1918 / .local) fall back to the fixed fallback.
-        // DNS-derived `name` and `port` are NEVER interpolated into the URL.
-        const safeUrl = ALM_SAFE_HOST_MAP.get(name);
-        if (safeUrl) return safeUrl;
-        const isPrivateNetwork =
-          name.startsWith("192.168.") ||
-          name.startsWith("10.") ||
-          name.endsWith(".local");
-        if (isPrivateNetwork) return ALM_LOCAL_FALLBACK_HOST;
-        // Non-allowlisted SRV target — reject to prevent SSRF
-      }
-    } catch {
-      // SRV record not found or DNS unavailable — use fallback
-    }
-  }
-  return ALM_LOCAL_FALLBACK_HOST;
-}
-
 // ── Node-02 Health Check ─────────────────────────────────────────────────────
 
 /**
  * Check if Node-02 Ollama is available within ALM_NODE02_TIMEOUT_MS.
  *
+ * Always connects to ALM_LOCAL_FALLBACK_HOST (hardcoded constant) — no
+ * user-supplied or network-derived data is ever interpolated into the URL.
  * Hits the Ollama /api/tags endpoint and checks for the llama3.3 model.
  */
 export async function checkNode02Status(): Promise<AlmNodeStatus> {
   const startMs = Date.now();
-  let host = ALM_LOCAL_FALLBACK_HOST;
 
   try {
-    host = await resolveNode02Host();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ALM_NODE02_TIMEOUT_MS);
 
     try {
-      const res = await fetch(`${host}/api/tags`, { signal: controller.signal });
+      const res = await fetch(ALM_LOCAL_FALLBACK_HOST + "/api/tags", { signal: controller.signal });
       clearTimeout(timer);
 
       if (res.ok) {
@@ -163,7 +100,7 @@ export async function checkNode02Status(): Promise<AlmNodeStatus> {
         const modelAvailable = data.models?.some((m) => m.name.startsWith("llama3.3")) ?? false;
         return {
           available: true,
-          host,
+          host: ALM_LOCAL_FALLBACK_HOST,
           latencyMs: Date.now() - startMs,
           model: modelAvailable ? ALM_MODEL : undefined,
         };
@@ -172,10 +109,10 @@ export async function checkNode02Status(): Promise<AlmNodeStatus> {
       clearTimeout(timer);
     }
   } catch {
-    // SRV resolution or fetch setup failed
+    // fetch setup failed
   }
 
-  return { available: false, host, latencyMs: Date.now() - startMs };
+  return { available: false, host: ALM_LOCAL_FALLBACK_HOST, latencyMs: Date.now() - startMs };
 }
 
 // ── ALM Inference Router ──────────────────────────────────────────────────────
@@ -215,7 +152,7 @@ export async function almRoute(
       const controller = new AbortController();
       const inferTimer = setTimeout(() => controller.abort(), 30_000);
 
-      const res = await fetch(`${node02.host}/api/generate`, {
+      const res = await fetch(ALM_LOCAL_FALLBACK_HOST + "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
