@@ -50,8 +50,6 @@ function NavDropdown({ group, pathname }: NavDropdownProps) {
     <div
       ref={ref}
       className="nav-group"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
     >
       <button
         className={`navbar-link nav-group-trigger${isGroupActive ? " navbar-link-active" : ""}`}
