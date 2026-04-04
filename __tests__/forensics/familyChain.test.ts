@@ -44,13 +44,14 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 /** Assert that a string looks like an ISO-8601 timestamp (UTC). */
 function assertIso8601(value: string, label: string): void {
-  // Use Date parsing + string checks instead of regex to permanently avoid
-  // ReDoS vectors and security scanner false-positives (no regex = no risk).
+  // No regex — immune to ReDoS. Use Date parsing + structural string checks
+  // to enforce strict ISO-8601 UTC format without any quantifier patterns.
   const parsed = new Date(value);
-  assert.ok(
-    !isNaN(parsed.getTime()) && value.endsWith("Z"),
-    `${label} is not ISO-8601: ${value}`,
-  );
+  assert.ok(!isNaN(parsed.getTime()), `${label} must be a parseable date: ${value}`);
+  assert.ok(value.endsWith("Z"),      `${label} must be UTC (end with Z): ${value}`);
+  // Minimum ISO-8601 UTC form: "YYYY-MM-DDTHH:mm:ssZ" = 20 chars
+  assert.ok(value.length >= 20,       `${label} must meet minimum ISO-8601 length (20 chars): ${value}`);
+  assert.equal(value[10], "T",        `${label} must have T separator at position 10: ${value}`);
 }
 
 /** Assert a FamilyChainRecord has the minimum required shape. */
