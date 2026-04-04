@@ -151,7 +151,8 @@ describe("astDelta()", () => {
     const start = astStart();
     const end   = astEnd();
     const delta = astDelta(start, end);
-    assert.match(delta.display, /^\d+\.\d{9}s$/, `display format mismatch: "${delta.display}"`);
+    // Bounded quantifier {1,20} prevents ReDoS on the whole-seconds portion.
+    assert.match(delta.display, /^\d{1,20}\.\d{9}s$/, `display format mismatch: "${delta.display}"`);
   });
 
   test("delta from same pulse (start === end) produces 0ns", () => {
@@ -193,7 +194,8 @@ describe("astDelta()", () => {
     const end   = astEnd();
     const delta = astDelta(start, end);
     const wholeSeconds = Number(delta.ns / 1_000_000_000n);
-    const match = delta.display.match(/^(\d+)\./);
+    // Bounded quantifier {1,20} prevents ReDoS on the captured whole-seconds group.
+    const match = delta.display.match(/^(\d{1,20})\./);
     assert.ok(match, "display must start with a whole number");
     assert.equal(Number(match![1]), wholeSeconds, "display whole-seconds must match delta.ns / 1e9");
   });

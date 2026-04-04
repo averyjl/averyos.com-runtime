@@ -44,9 +44,10 @@ import { KERNEL_SHA, KERNEL_VERSION } from "../../lib/sovereignConstants";
 
 /** Assert that a string looks like an ISO-8601 timestamp (UTC). */
 function assertIso8601(value: string, label: string): void {
+  // Bounded quantifier {1,9} prevents ReDoS on the optional fractional-seconds group.
   assert.match(
     value,
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/,
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/,
     `${label} is not ISO-8601: ${value}`,
   );
 }
