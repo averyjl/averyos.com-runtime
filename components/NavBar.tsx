@@ -50,9 +50,6 @@ function NavDropdown({ group, pathname }: NavDropdownProps) {
     <div
       ref={ref}
       className="nav-group"
-      role="group"
-      aria-label={group.label}
-      tabIndex={-1}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
