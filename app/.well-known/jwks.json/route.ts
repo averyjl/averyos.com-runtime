@@ -47,8 +47,13 @@ async function cryptoKeyToJwk(key: CryptoKey): Promise<JsonWebKey | null> {
 // ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: Request): Promise<Response> {
-  const { env } = await getCloudflareContext({ async: true });
-  const cfEnv   = env as unknown as Record<string, string | undefined>;
+  let cfEnv: Record<string, string | undefined> = {};
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    cfEnv = env as unknown as Record<string, string | undefined>;
+  } catch {
+    // Not running in a Cloudflare Worker context (e.g. local next start) — proceed with empty env
+  }
 
   // ── Resolve key pair via the sovereign key loader ─────────────────────────
   // GATE 111.6.1 — pass all triple-part keys so JWKS shows ACTIVE with split-key protocol
@@ -132,7 +137,7 @@ export async function GET(request: Request): Promise<Response> {
       // JWKS documents may be cached; 1-hour max-age is standard
       "Cache-Control":               "public, max-age=3600",
       "X-AveryOS-Kernel":            KERNEL_VERSION,
-      "X-AveryOS-Sovereign-Anchor":  "⛓️⚓⛓️",
+      "X-AveryOS-Sovereign-Anchor":  "ROOT0-ANCHORED",
       "X-JWKS-Issuer":               baseUrl,
       "Access-Control-Allow-Origin": "*",
     },

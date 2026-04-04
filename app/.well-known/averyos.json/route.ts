@@ -114,8 +114,13 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   // ── Resolve Cloudflare env ───────────────────────────────────────────────
-  const { env } = await getCloudflareContext({ async: true });
-  const cfEnv   = env as unknown as Record<string, string | undefined>;
+  let cfEnv: Record<string, string | undefined> = {};
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    cfEnv = env as unknown as Record<string, string | undefined>;
+  } catch {
+    // Not running in a Cloudflare Worker context (e.g. local next start) — proceed with empty env
+  }
 
   // ── Build VAULTCHAIN_LIVE_URL ────────────────────────────────────────────
   const vaultchainLiveUrl = buildVaultchainLiveUrl(
@@ -200,8 +205,8 @@ export async function GET(request: Request): Promise<Response> {
     headers: {
       "Content-Type":  "application/json",
       "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
-      "X-Kernel-SHA":  KERNEL_SHA.slice(0, 16) + "…",
-      "X-AOS-Anchor":  "⛓️⚓⛓️",
+      "X-Kernel-SHA":  KERNEL_SHA.slice(0, 16) + "...",
+      "X-AOS-Anchor":  "ROOT0-ANCHORED",
     },
   });
 }

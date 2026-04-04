@@ -89,7 +89,10 @@ test.describe("Console Error Guard — No JavaScript errors on key pages", () =>
             !text.includes("ERR_CONNECTION_REFUSED") &&
             !text.includes("net::ERR") &&
             !text.includes("favicon") &&
-            !text.includes("Failed to fetch")
+            !text.includes("Failed to fetch") &&
+            // CORS preflight rejections from external resources (e.g. Google Fonts)
+            // triggered by the x-test-agent header added by playwright.config.ts
+            !text.includes("CORS policy")
           ) {
             consoleErrors.push(text);
           }

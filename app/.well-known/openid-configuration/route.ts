@@ -109,7 +109,7 @@ export async function GET(request: Request): Promise<Response> {
       "Content-Type":                "application/json",
       "Cache-Control":               "no-store",
       "X-AveryOS-Kernel":            KERNEL_VERSION,
-      "X-AveryOS-Sovereign-Anchor":  "⛓️⚓⛓️",
+      "X-AveryOS-Sovereign-Anchor":  "ROOT0-ANCHORED",
       "Access-Control-Allow-Origin": "*",
     },
   });

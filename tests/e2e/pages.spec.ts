@@ -127,7 +127,7 @@ test.describe("Sovereign Transparency — /sovereign-transparency", () => {
   test("DID Subject is a clickable link to /.well-known/did.json", async ({ page }) => {
     await page.goto("/sovereign-transparency");
 
-    const didLink = page.locator("a[href='/.well-known/did.json']");
+    const didLink = page.locator("a[href='/.well-known/did.json']", { hasText: "did:web:averyos.com" });
     await expect(didLink).toBeVisible({ timeout: 5000 });
     await expect(didLink).toContainText("did:web:averyos.com");
   });
