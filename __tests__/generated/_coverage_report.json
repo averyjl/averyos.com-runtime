@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-04T03:56:40.725Z",
+  "generated_at": "2026-04-04T04:03:20.821Z",
   "kernel_version": "v3.6.2",
   "total_modules": 90,
   "covered": [
@@ -93,26 +93,7 @@
     "timePrecision.ts",
     "vaultCookieConfig.ts"
   ],
-  "uncovered": [
-    {
-      "path": "ai/almRouter.ts",
-      "exports": [
-        "function:checkNode02Status",
-        "function:almRoute",
-        "const:ALM_NODE02_TIMEOUT_MS",
-        "const:ALM_MODEL",
-        "type:AlmInferenceRequest",
-        "type:AlmInferenceResponse",
-        "type:AlmNodeStatus"
-      ]
-    }
-  ],
-  "skeletons": [
-    {
-      "source": "ai/almRouter.ts",
-      "output": "almRouter.gen.test.ts",
-      "sha512": "080132fd6c618b765d85627142ef36cb…"
-    }
-  ],
-  "suite_sha512": "2be588cff0e67911d876b50aa1524e4341828dd7b02756b945e2cd4cd702f77662ff069227ec67ad7bce52fedd3809c862c73e354f843ea0c1088d1c25978105"
+  "uncovered": [],
+  "skeletons": [],
+  "suite_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
 }
