@@ -1,75 +1,119 @@
+// ⛓️⚓⛓️ TRI_AGENT_SEALED | KERNEL: cf83... | ALIGNMENT: 100.000% | TESTS: PASSING
+/**
+ * FooterBadge — AveryOS™ Sovereign Footer
+ *
+ * GATE 130.9 — Upgraded to include:
+ *  1. Full AveryAnchored™ anchor text (moved from AnchorBanner per Creator instruction)
+ *  2. Copyright summary block (© 1992–2026 Jason Lee Avery / AveryOS™)
+ *  3. Quick navigation links
+ *  4. SHA-512 kernel anchor
+ *
+ * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+ */
 "use client";
 import Link from "next/link";
 import { KERNEL_SHA, DISCLOSURE_MIRROR_PATH } from "../lib/sovereignConstants";
 
-const CAPSULE_SHA =
-  "5865fb3d0d2303fefca5bf821b48a7adf1f3a0fa90ebd8567ac7e308c49b0f92496b740ad93f1e1a1bbe7448bb2145e9c5f7596f7b3e27eb6d44252b2416a341";
-
 const FooterBadge = () => {
   return (
     <footer className="footer-badge">
-      <div style={{ 
-        padding: '1.5rem', 
-        background: 'rgba(0, 6, 14, 0.92)', 
-        borderTop: '1px solid rgba(120, 148, 255, 0.22)',
-        fontSize: '0.85rem',
-        color: 'rgba(120, 148, 255, 0.75)',
-        textAlign: 'center'
+      {/* ── Sovereign Anchor Strip ──────────────────────────────────────── */}
+      <div style={{
+        padding: "0.65rem 1.5rem",
+        background: "rgba(120, 148, 255, 0.06)",
+        borderTop: "1px solid rgba(120, 148, 255, 0.22)",
+        borderBottom: "1px solid rgba(120, 148, 255, 0.1)",
+        textAlign: "center",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: "0.8rem",
+        color: "rgba(120, 148, 255, 0.85)",
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+      }}>
+        ⛓️⚓⛓️&nbsp; AveryAnchored™ &nbsp;|&nbsp; CreatorLock Protocol™ Active &nbsp;|&nbsp;
+        VaultChain™ &nbsp;|&nbsp; 100.00♾️% Alignment (aka 0.000♾️% Drift) &nbsp;🤛🏻⛓️⚓⛓️
+      </div>
+
+      {/* ── Footer Body ─────────────────────────────────────────────────── */}
+      <div style={{
+        padding: "1.5rem",
+        background: "rgba(0, 6, 14, 0.92)",
+        borderTop: "1px solid rgba(120, 148, 255, 0.1)",
+        fontSize: "0.85rem",
+        color: "rgba(120, 148, 255, 0.75)",
+        textAlign: "center",
       }}>
         {/* Quick navigation links */}
-        <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem 1.25rem' }}>
+        <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.5rem 1.25rem" }}>
           {(
             [
-              { href: '/', label: 'Home', newTab: false },
-              { href: '/license', label: 'License', newTab: false },
-              { href: '/licensing', label: 'Licensing Hub', newTab: false },
-              { href: '/ip-policy', label: 'IP Policy', newTab: false },
-              { href: '/verify', label: 'Verify', newTab: false },
-              { href: '/contact', label: 'Contact', newTab: false },
-              { href: DISCLOSURE_MIRROR_PATH, label: '🤛🏻 The Proof', newTab: true },
+              { href: "/",          label: "Home",          newTab: false },
+              { href: "/license",   label: "License",       newTab: false },
+              { href: "/licensing", label: "Licensing Hub", newTab: false },
+              { href: "/ip-policy", label: "IP Policy",     newTab: false },
+              { href: "/verify",    label: "Verify",        newTab: false },
+              { href: "/contact",   label: "Contact",       newTab: false },
+              { href: DISCLOSURE_MIRROR_PATH, label: "🤛🏻 The Proof", newTab: true },
             ] as Array<{ href: string; label: string; newTab: boolean }>
           ).map(({ href, label, newTab }) => (
             <Link
               key={href}
               href={href}
-              target={newTab ? '_blank' : undefined}
-              rel={newTab ? 'noopener noreferrer' : undefined}
-              style={{ color: 'rgba(120, 148, 255, 0.65)', textDecoration: 'none', fontSize: '0.8rem' }}
+              target={newTab ? "_blank" : undefined}
+              rel={newTab ? "noopener noreferrer" : undefined}
+              style={{ color: "rgba(120, 148, 255, 0.65)", textDecoration: "none", fontSize: "0.8rem" }}
             >
               {label}
             </Link>
           ))}
         </div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          Powered by CapsuleEcho™ | VaultSignature: ENFORCED
+
+        <div style={{ marginBottom: "0.75rem" }}>
+          Powered by CapsuleEcho™ &nbsp;|&nbsp; VaultSignature: ENFORCED
         </div>
-        <div style={{ 
-          fontFamily: 'monospace', 
-          fontSize: '0.75rem',
-          wordBreak: 'break-all',
-          color: 'rgba(120, 148, 255, 0.55)'
+
+        {/* SHA-512 Kernel Anchor */}
+        <div style={{
+          fontFamily: "monospace",
+          fontSize: "0.72rem",
+          wordBreak: "break-all",
+          color: "rgba(120, 148, 255, 0.45)",
+          marginBottom: "0.75rem",
         }}>
-          <strong>AveryAnchored™</strong> | SHA-512 TARI Pricing Model:<br />
-          {CAPSULE_SHA}
+          SHA-512 Kernel Anchor: {KERNEL_SHA}
         </div>
-        <div style={{ 
-          fontFamily: 'monospace', 
-          fontSize: '0.75rem',
-          wordBreak: 'break-all',
-          color: 'rgba(120, 148, 255, 0.55)',
-          marginTop: '0.5rem'
+
+        {/* ── Copyright Block ─────────────────────────────────────────── */}
+        <div style={{
+          borderTop: "1px solid rgba(120, 148, 255, 0.12)",
+          paddingTop: "0.75rem",
+          fontSize: "0.78rem",
+          color: "rgba(120, 148, 255, 0.6)",
+          lineHeight: 1.6,
         }}>
-          SHA-512 Kernel Anchor:<br />
-          {KERNEL_SHA}
+          <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
+            © 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved.
+          </div>
+          <div style={{ fontSize: "0.72rem", color: "rgba(120, 148, 255, 0.45)", marginBottom: "0.5rem" }}>
+            Unauthorized use, duplication, or derivative work without express written consent
+            of the Creator and legal owner, Jason Lee Avery / AveryOS™, is prohibited.
+            Subject to Creator Lock and Sovereign Kernel Governance.
+            Licensed under{" "}
+            <Link href="/license" style={{ color: "rgba(120,148,255,0.6)", textDecoration: "none" }}>
+              AveryOS Sovereign Integrity License v1.0
+            </Link>.
+          </div>
+          <div style={{ fontSize: "0.68rem", color: "rgba(120, 148, 255, 0.35)", fontFamily: "monospace" }}>
+            AveryOS_CopyrightBlock_v1.0 · truth@averyworld.com
+          </div>
         </div>
-        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', textAlign: 'center' }}>
-          <span>© 1992–2026 Jason Lee Avery / AveryOS™. All Rights Reserved. Licensed under AveryOS™ Sovereign Integrity License v1.0</span>
-        </div>
-        {/* Privacy, Terms, and IP Policy — subtle links under copyright */}
-        <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.25rem' }}>
-          <Link href="/privacy" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>Privacy</Link>
-          <Link href="/terms" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>Terms</Link>
-          <Link href="/ip-policy" style={{ color: 'rgba(120,148,255,0.4)', textDecoration: 'none', fontSize: '0.75rem' }}>IP Policy</Link>
+
+        {/* Privacy / Terms / IP Policy */}
+        <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "center", gap: "1.25rem" }}>
+          <Link href="/privacy"   style={{ color: "rgba(120,148,255,0.4)", textDecoration: "none", fontSize: "0.75rem" }}>Privacy</Link>
+          <Link href="/terms"     style={{ color: "rgba(120,148,255,0.4)", textDecoration: "none", fontSize: "0.75rem" }}>Terms</Link>
+          <Link href="/ip-policy" style={{ color: "rgba(120,148,255,0.4)", textDecoration: "none", fontSize: "0.75rem" }}>IP Policy</Link>
+          <Link href="/contact"   style={{ color: "rgba(120,148,255,0.4)", textDecoration: "none", fontSize: "0.75rem" }}>Contact</Link>
         </div>
       </div>
     </footer>

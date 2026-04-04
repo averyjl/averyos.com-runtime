@@ -846,7 +846,157 @@ a {
   font-size: 1.1rem;
 }
 
-/* Sidebar Navigation */
+/* ── NavBar Dropdown Menus (GATE 130.9 — Categorized Nav) ───────────────── */
+.navbar-links-desktop {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.navbar-dropdown-group {
+  position: relative;
+}
+
+.navbar-dropdown-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.navbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: linear-gradient(135deg, rgba(0, 6, 20, 0.98), rgba(0, 4, 14, 0.99));
+  border: 1px solid rgba(120, 148, 255, 0.3);
+  border-radius: 10px;
+  padding: 0.4rem 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 148, 255, 0.1);
+  backdrop-filter: blur(16px);
+  z-index: 200;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: rgba(238, 244, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.navbar-dropdown-item:hover {
+  background: rgba(120, 148, 255, 0.12);
+  color: rgba(120, 148, 255, 0.95);
+}
+
+.navbar-dropdown-item-active {
+  background: rgba(120, 148, 255, 0.18);
+  color: #ffffff;
+  font-weight: 700;
+  border-left: 3px solid rgba(120, 148, 255, 0.8);
+}
+
+/* Mobile nav toggle */
+.navbar-mobile-toggle {
+  display: none;
+  background: none;
+  border: 1px solid rgba(120, 148, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  color: rgba(238, 244, 255, 0.85);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.navbar-mobile-toggle:hover {
+  background: rgba(120, 148, 255, 0.1);
+  border-color: rgba(120, 148, 255, 0.55);
+}
+
+/* Mobile menu panel */
+.navbar-mobile-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(0, 6, 20, 0.99), rgba(0, 4, 14, 0.99));
+  border-top: 1px solid rgba(120, 148, 255, 0.18);
+  border-bottom: 1px solid rgba(120, 148, 255, 0.18);
+  padding: 1rem;
+  z-index: 200;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.navbar-mobile-section {
+  margin-bottom: 1rem;
+}
+
+.navbar-mobile-section-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(120, 148, 255, 0.55);
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.navbar-mobile-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: rgba(238, 244, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.navbar-mobile-item:hover {
+  background: rgba(120, 148, 255, 0.1);
+  color: rgba(120, 148, 255, 0.9);
+}
+
+.navbar-mobile-item-active {
+  background: rgba(120, 148, 255, 0.15);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Responsive: show mobile toggle, hide desktop nav on small screens */
+@media (max-width: 768px) {
+  .navbar-links-desktop {
+    display: none;
+  }
+
+  .navbar-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navbar-mobile-menu {
+    display: block;
+    position: fixed;
+    top: 60px;
+  }
+}
+
+
 .sidebar-toggle {
   position: fixed;
   left: 0;
