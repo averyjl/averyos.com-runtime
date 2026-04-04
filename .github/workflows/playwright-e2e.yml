@@ -44,15 +44,17 @@ jobs:
           NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
           SITE_URL: "http://localhost:3000"
 
-      # FIX: Start server and wait-on in a single step to avoid process lifecycle issues.
+      # Start server and wait-on in a single step to avoid process lifecycle issues.
       # Running them in separate steps caused the background process to become inaccessible
       # (the `next start &` PID was still alive but the port wasn't reachable by wait-on in
       # the next step due to GitHub Actions process group isolation).
+      # Uses 127.0.0.1 (not localhost) to avoid IPv6/IPv4 ambiguity on Ubuntu 24+ runners
+      # where `localhost` resolves to ::1 but the server only listens on 0.0.0.0 (IPv4).
       - name: 🚀 Start server & wait for readiness
         run: |
           npx next start -H 0.0.0.0 -p 3000 &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
-          npx wait-on http://localhost:3000 --timeout 60000 --interval 500
+          npx wait-on http://127.0.0.1:3000 --timeout 90000 --interval 1000
         env:
           STRIPE_SECRET_KEY: "sk_test_placeholder"
           NEXT_PUBLIC_SITE_URL: "http://localhost:3000"

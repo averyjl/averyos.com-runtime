@@ -15,7 +15,7 @@ name: 🧪🧐 AveryOS™ Sovereign QA Engine
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "copilot/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
