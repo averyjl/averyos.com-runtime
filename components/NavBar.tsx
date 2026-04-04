@@ -116,8 +116,32 @@ const NavBar = () => {
             <NavDropdown key={group.label} group={group} pathname={pathname ?? ""} />
           ))}
 
+          {/* CreatorLock Tab — only rendered after VaultGate handshake success */}
           {isAdmin && (
-            <NavDropdown group={adminNavGroup} pathname={pathname ?? ""} />
+            <div className="navbar-admin-group">
+              <Link
+                href="/admin"
+                className={`navbar-link${pathname?.startsWith("/admin") ? " navbar-link-active" : ""}`}
+              >
+                <span className="navbar-link-icon">🔒</span>
+                <span className="navbar-link-text">CreatorLock</span>
+              </Link>
+              <div className="navbar-admin-dropdown">
+                {adminRoutes.map((route) => {
+                  const isActive = pathname?.startsWith(route.path) ?? false;
+                  return (
+                    <Link
+                      key={route.path}
+                      href={route.path}
+                      className={`navbar-link${isActive ? " navbar-link-active" : ""}`}
+                    >
+                      <span className="navbar-link-icon">{route.icon}</span>
+                      <span className="navbar-link-text">{route.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 

@@ -10,17 +10,38 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { navigationRoutes } from "../lib/navigationRoutes";
 
 /**
  * Mobile drawer navigation
  * Slides in from the left on mobile devices
+ *
+ * CreatorLock (admin) routes are hidden until VaultGate handshake succeeds —
+ * mirrors the same auth check used in NavBar.
  */
 const Drawer = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check VaultGate handshake — only show CreatorLock routes when authenticated
+  useEffect(() => {
+    const token = sessionStorage.getItem("VAULTAUTH_TOKEN");
+    if (!token) { setIsAdmin(false); return; }
+
+    fetch("/api/gatekeeper/handshake-check", {
+      headers: { "x-vault-auth": token },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setIsAdmin(data?.status === "LOCKED" || data?.status === "AUTHENTICATED");
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
 
   const closeDrawer = () => setIsOpen(false);
+
+  const visibleRoutes = navigationRoutes.filter((r) => isAdmin || !r.isAdmin);
 
   return (
     <>
@@ -53,7 +74,7 @@ const Drawer = () => {
           </button>
         </div>
         <nav className="drawer-nav">
-          {navigationRoutes.map((route) => (
+          {visibleRoutes.map((route) => (
             <Link
               key={route.path}
               href={route.path}
