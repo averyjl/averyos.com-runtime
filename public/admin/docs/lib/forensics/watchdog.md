@@ -16,6 +16,8 @@
 
 ### `getUsiLog` *(function)*
 
+ISO timestamp when the response was received (Step B). */   responseReceivedAt: string;   /** ISO timestamp when the echo was confirmed (Step C). */   echoConfirmedAt:    string;   /** Cloudflare Ray ID (null for non-Cloudflare endpoints). */   cfRay:              string | null;   /** Physicality status of the handshake endpoint. */   physicalityStatus:  "PHYSICAL_TRUTH" | "LATENT_ARTIFACT" | "LATENT_RESONANCE"; }  /**A USI violation record — raised when a module fails to respond within thesilence window.  Each violation carries the canonical $10,000 penalty./ export interface UsiViolation {   /** Unique violation identifier: `USI-<moduleId>-<timestamp>`. */   id:             string;   /** The module that failed to respond.
+
 ### `watchdogPulse` *(function)*
 
 ### `kernelAnchorPulse` *(function)*

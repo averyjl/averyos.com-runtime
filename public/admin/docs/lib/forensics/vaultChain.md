@@ -10,6 +10,8 @@
 
 ### `ensureVaultChainTable` *(function)*
 
+A standard forensic event record. */ export interface VaultChainRecord extends VaultChainBlockBase {   type:        "RECORD";   /** Arbitrary event label (e.g. 'BOT_HIT', 'TARI_INVOICE'). */   event:       string;   /** Serialised JSON payload of the event. */   payload:     string; }  /** A correction block that supersedes a prior record. */ export interface VaultChainCorrection extends VaultChainBlockBase {   type:              "CORRECTION";   /** ID of the original RECORD block being corrected. */   corrects_id:       number;   /** SHA-512 hash of the original block being corrected. */   corrects_sha512:   string;   /** Human-readable reason for the correction. */   reason:            string;   /** Corrected event payload (serialised JSON).
+
 ### `appendRecord` *(function)*
 
 ### `appendCorrection` *(function)*

@@ -16,6 +16,8 @@
 
 ### `runTest` *(function)*
 
+Full QA run record — persisted to D1 `qa_audit_log` and VaultChain. */ export interface QaRunRecord {   /** Unique run identifier (UUID v4 or deterministic from timestamp). */   runId:         string;   /** What triggered the run: "ci", "manual", "scheduled", "ai_generator". */   trigger:       string;   /** Derived overall status. */   status:        QaRunStatus;   /** Total tests across all suites. */   totalTests:    number;   /** Passing tests. */   passedTests:   number;   /** Failing tests. */   failedTests:   number;   /** SHA-512 fingerprint of the serialised result for tamper-evidence. */   sha512:        string;   /** Kernel SHA-512 anchor. */   kernelSha:     string;   /** Kernel version.
+
 ### `QaTestResult` *(interface)*
 
 ### `QaSuiteResult` *(interface)*

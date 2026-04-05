@@ -8,6 +8,8 @@
 
 ### `generateIngestionProof` *(function)*
 
+Cloudflare RayID
+
 ### `IngestionProofInput` *(interface)*
 
 ### `IngestionProofCertificate` *(interface)*

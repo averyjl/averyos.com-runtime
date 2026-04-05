@@ -8,8 +8,6 @@
 
 ### `autolearnThreatPattern` *(function)*
 
-Client IP address */   ip:            string;   /** Inter-request cadence in milliseconds (0 = unknown) */   cadenceMs:     number;   /** Cloudflare WAF total score (0 = no signal) */   wafScore:      number;   /** Request pathname */   path:          string;   /** Cloudflare RayID (optional) */   rayId?:        string;   /** Autonomous System Number (optional) */   asn?:          string;   /** User-Agent string (optional) */   userAgent?:    string; }  export interface AutolearnResult {   /** Whether the threshold was met and a threat was inserted/updated */   learned:       boolean;   /** Human-readable trigger reason
-
 ### `CADENCE_THRESHOLD_MS` *(constant)*
 
 ### `WAF_AUTOLEARN_THRESHOLD` *(constant)*

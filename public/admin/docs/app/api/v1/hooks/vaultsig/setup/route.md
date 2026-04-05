@@ -8,8 +8,6 @@
 
 ### `GET` *(function)*
 
-GET /api/v1/hooks/vaultsig/setupVaultSig™ GitHub App — Post-Installation Setup HandlerAveryOS™ Phase 111.6 / GATE 111.6.2This URL is shown to users immediately after they install the VaultSigGitHub App (the "Setup URL" in App settings).  It can be used to guidethe user through any additional configuration required.Currently:  • Logs the setup visit to D1 for sovereign audit trail.  • Returns a JSON setup manifest with the required next-steps (or    redirects browsers to the admin dashboard).⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
-
 ---
 
 *⛓️⚓⛓️ AveryOS™ Sovereign Integrity License v1.0 — All implementations are proprietary.*

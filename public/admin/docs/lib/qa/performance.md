@@ -8,8 +8,6 @@
 
 ### `runBenchmark` *(function)*
 
-lib/qa/performance.tsAveryOS™ Sovereign Performance QA Utilities — Phase 112 / GATE 112.3Pure micro-benchmark utilities for timing synchronous and asynchronousfunctions.  Results feed directly into the QA Engine's `QaTestResult`via `runTest()`.All functions are dependency-free and run identically in:  - Cloudflare Workers  - Node.js ≥ 20 (unit tests)  - Next.js API routes⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻/  // ── Types ─────────────────────────────────────────────────────────────────────  /** Summary of a micro-benchmark run.
-
 ### `assertBenchmarkAvg` *(function)*
 
 ### `assertBenchmarkP95` *(function)*

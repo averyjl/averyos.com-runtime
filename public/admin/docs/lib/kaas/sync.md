@@ -8,6 +8,8 @@
 
 ### `sealKaasRow` *(function)*
 
+SHA-512 evidence seal computed from the row fields. */   evidenceSha:    string;   /** Human-readable valuation display string.
+
 ### `syncKaasLedger` *(function)*
 
 ### `KaasValuationRow` *(interface)*
