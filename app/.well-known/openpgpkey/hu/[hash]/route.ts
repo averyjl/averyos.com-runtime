@@ -85,7 +85,7 @@ export async function GET(
     return aosErrorResponse(
       AOS_ERROR.INVALID_FIELD,
       "WKD hash must be a 32-character Z-Base-32 string (SHA-1 of lowercase email local-part).",
-      { status: 400 },
+      400,
     );
   }
 
@@ -109,7 +109,7 @@ export async function GET(
     return aosErrorResponse(
       AOS_ERROR.DB_UNAVAILABLE,
       "Key directory not configured.",
-      { status: 503 },
+      503,
     );
   }
 
@@ -122,7 +122,7 @@ export async function GET(
     return aosErrorResponse(
       AOS_ERROR.INTERNAL_ERROR,
       "Key lookup failed.",
-      { status: 500 },
+      500,
     );
   }
 
