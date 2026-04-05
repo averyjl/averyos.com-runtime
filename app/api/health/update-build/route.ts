@@ -8,14 +8,8 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-
-interface D1Database {
-  prepare(query: string): {
-    bind(...args: unknown[]): { run(): Promise<{ success: boolean }> };
-    first(): Promise<unknown>;
-  };
-  exec(query: string): Promise<unknown>;
-}
+import { aosErrorResponse, AOS_ERROR } from '../../../../lib/sovereignError';
+import type { D1Database } from '../../../../lib/cloudflareTypes';
 
 interface CloudflareEnv {
   DB: D1Database;
@@ -35,7 +29,7 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('Authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     if (!cfEnv.GITHUB_PAT || !token || token !== cfEnv.GITHUB_PAT) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'Unauthorized');
     }
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
@@ -45,7 +39,7 @@ export async function POST(request: Request) {
         ? body.build_version.trim().slice(0, 64)
         : null;
     if (!build_version) {
-      return Response.json({ error: 'build_version is required' }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'build_version is required');
     }
 
     const kernel_resonance_hash =
@@ -53,13 +47,10 @@ export async function POST(request: Request) {
         ? body.kernel_resonance_hash.trim()
         : null;
     if (!kernel_resonance_hash) {
-      return Response.json({ error: 'kernel_resonance_hash is required' }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'kernel_resonance_hash is required');
     }
     if (!SHA512_REGEX.test(kernel_resonance_hash)) {
-      return Response.json(
-        { error: 'kernel_resonance_hash must be a valid 128-character SHA-512 hex string' },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'kernel_resonance_hash must be a valid 128-character SHA-512 hex string');
     }
 
     const build_timestamp_ms =
@@ -67,10 +58,7 @@ export async function POST(request: Request) {
         ? body.build_timestamp_ms.trim()
         : null;
     if (!build_timestamp_ms) {
-      return Response.json(
-        { error: 'build_timestamp_ms must be a 9-digit numeric string' },
-        { status: 400 }
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'build_timestamp_ms must be a 9-digit numeric string');
     }
 
     const updated_at = new Date().toISOString();
@@ -139,6 +127,6 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('⚠️  update-build error:', message);
-    return Response.json({ error: 'Handshake Drift', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DRIFT_DETECTED, `Handshake Drift: ${message}`);
   }
 }

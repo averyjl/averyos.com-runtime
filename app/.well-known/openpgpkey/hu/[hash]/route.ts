@@ -41,13 +41,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
+import type { KVNamespace } from "../../../../../lib/cloudflareTypes";
 
-// ── Minimal KV binding type ───────────────────────────────────────────────────
-
-interface KVNamespace {
-  get(key: string, options: { type: "arrayBuffer" }): Promise<ArrayBuffer | null>;
-  get(key: string): Promise<string | null>;
-}
+// ── Route-specific env shape ──────────────────────────────────────────────────
 
 interface CloudflareEnv {
   AVERY_KV?: KVNamespace;

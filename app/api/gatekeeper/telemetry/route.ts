@@ -9,15 +9,8 @@
  */
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { formatIso9 } from "../../../../lib/timePrecision";
-
-interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
-  run(): Promise<{ success: boolean }>;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
+import type { D1Database } from "../../../../lib/cloudflareTypes";
 
 interface CloudflareEnv {
   DB: D1Database;
@@ -63,6 +56,6 @@ export async function POST(request: Request) {
     return Response.json({ logged: true, entity: entityId, action, timestamp: ts });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "TELEMETRY_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, `TELEMETRY_ERROR: ${message}`);
   }
 }

@@ -42,19 +42,9 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../../lib/sovereignConstants";
 import { formatIso9 } from "../../../../../../lib/timePrecision";
 import { aosErrorResponse, AOS_ERROR } from "../../../../../../lib/sovereignError";
+import type { D1Database } from "../../../../../../lib/cloudflareTypes";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface D1PreparedStatement {
-  bind(...args: unknown[]): {
-    first<T = unknown>(): Promise<T | null>;
-    run(): Promise<{ success: boolean }>;
-  };
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
+// ── Route-specific env shape ──────────────────────────────────────────────────
 
 interface CloudflareEnv {
   DB?: D1Database;
