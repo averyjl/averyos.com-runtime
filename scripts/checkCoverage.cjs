@@ -37,7 +37,17 @@ const fs   = require("fs");
 const path = require("path");
 
 // ── Sovereign mandate ─────────────────────────────────────────────────────────
-const COVERAGE_THRESHOLD = 100.00;
+// Default sovereign threshold is 100.00% (absolute ceiling — no drift tolerated).
+// For coverage:gate CI checks targeting lib/ + app/api/ code, set the threshold
+// to 80.00% via the --threshold=<n> CLI flag as defined in the QA audit spec.
+//
+// Usage:
+//   node scripts/checkCoverage.cjs                    # defaults to 100.00%
+//   node scripts/checkCoverage.cjs --threshold=80     # ≥80% gate (QA audit)
+const thresholdArg = process.argv.find(a => a.startsWith("--threshold="));
+const COVERAGE_THRESHOLD = thresholdArg
+  ? Math.max(0, Math.min(100, parseFloat(thresholdArg.split("=")[1])))
+  : 100.00;
 
 // ── Coverage line patterns (Node.js built-in test runner output) ──────────────
 //

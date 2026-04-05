@@ -8,6 +8,7 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 
 interface D1Database {
   prepare(query: string): {
@@ -57,27 +58,24 @@ export async function POST(request: Request) {
     cfEnv = env as unknown as CloudflareEnv;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: 'CONTEXT_ERROR', detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, `CONTEXT_ERROR: ${message}`);
   }
 
   const expectedToken = cfEnv.AVERYOS_ANCHOR_TOKEN;
   if (expectedToken && auth !== `Bearer ${expectedToken}`) {
-    return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'UNAUTHORIZED');
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: 'MALFORMED_JSON' }, { status: 400 });
+    return aosErrorResponse(AOS_ERROR.INVALID_JSON, 'MALFORMED_JSON');
   }
 
   const payload = body as Partial<SealPayload>;
   if (!payload.artifact_hash || !payload.hardware_signature) {
-    return Response.json(
-      { error: 'MISSING_FIELDS', detail: 'artifact_hash and hardware_signature are required' },
-      { status: 400 }
-    );
+    return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'artifact_hash and hardware_signature are required');
   }
 
   // Find the pending build by artifact hash
@@ -86,10 +84,7 @@ export async function POST(request: Request) {
   ).bind(payload.artifact_hash).first()) as SovereignBuildRow | null;
 
   if (!row) {
-    return Response.json(
-      { error: 'BUILD_NOT_FOUND', detail: 'No pending build found for this artifact_hash' },
-      { status: 404 }
-    );
+    return aosErrorResponse(AOS_ERROR.NOT_FOUND, 'No pending build found for this artifact_hash');
   }
 
   // Fetch Bitcoin height concurrently with the seal update

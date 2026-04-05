@@ -10,6 +10,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { TOP_FORENSIC_LOG_HASHES } from "../../../../lib/forensicHashes";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   all<T = unknown>(): Promise<{ results: T[] }>;
@@ -66,6 +67,6 @@ export async function GET() {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "AUDIT_LOG_FETCH_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.DB_QUERY_FAILED, `AUDIT_LOG_FETCH_ERROR: ${message}`);
   }
 }

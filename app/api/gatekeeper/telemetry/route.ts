@@ -9,6 +9,7 @@
  */
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
@@ -63,6 +64,6 @@ export async function POST(request: Request) {
     return Response.json({ logged: true, entity: entityId, action, timestamp: ts });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "TELEMETRY_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, `TELEMETRY_ERROR: ${message}`);
   }
 }

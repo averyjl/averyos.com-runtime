@@ -8,6 +8,7 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import { KERNEL_SHA, KERNEL_VERSION } from '../../../../../lib/sovereignConstants';
+import { aosErrorResponse, AOS_ERROR } from '../../../../../lib/sovereignError';
 
 /**
  * GET /api/v1/tari/calculate-fee
@@ -143,14 +144,7 @@ export async function GET(request: Request) {
   if (tierParam !== null) {
     baseTier = parseInt(tierParam, 10);
     if (![0, 1, 2, 5, 8, 10].includes(baseTier)) {
-      return Response.json(
-        {
-          error:  'INVALID_TIER',
-          detail: 'tier must be one of: 0, 1, 2, 5, 8, 10',
-          valid_tiers: [0, 1, 2, 5, 8, 10],
-        },
-        { status: 400 },
-      );
+      return aosErrorResponse(AOS_ERROR.INVALID_FIELD, 'tier must be one of: 0, 1, 2, 5, 8, 10');
     }
   } else {
     baseTier = tierFromPath(pathParam);

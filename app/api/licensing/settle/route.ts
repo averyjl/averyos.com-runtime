@@ -11,6 +11,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { KERNEL_SHA } from "../../../../lib/sovereignConstants";
 import { settleRetroactiveLiability, type D1Database } from "../../../../lib/retroactiveLedger";
 import { formatIso9 } from "../../../../lib/timePrecision";
+import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
 
 interface CloudflareEnv {
   DB: D1Database;
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     const kernelHash = typeof body.kernel_hash === "string" ? body.kernel_hash.trim() : "";
 
     if (!entityId) {
-      return Response.json({ error: "entity_id is required" }, { status: 400 });
+      return aosErrorResponse(AOS_ERROR.MISSING_FIELD, 'entity_id is required');
     }
 
     const hasKernelAnchor =
@@ -115,11 +116,11 @@ export async function POST(request: Request) {
     const providedToken = bearer || settlementToken;
 
     if (cfEnv.GITHUB_PAT && !providedToken) {
-      return Response.json({ error: "HARDWARE_SIGNATURE_REQUIRED" }, { status: 401 });
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'HARDWARE_SIGNATURE_REQUIRED');
     }
 
     if (cfEnv.GITHUB_PAT && providedToken !== cfEnv.GITHUB_PAT) {
-      return Response.json({ error: "UNAUTHORIZED_ADMIN_TOKEN" }, { status: 401 });
+      return aosErrorResponse(AOS_ERROR.INVALID_AUTH, 'UNAUTHORIZED_ADMIN_TOKEN');
     }
 
     const result = await settleRetroactiveLiability(cfEnv.DB, entityId);
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "SETTLEMENT_ERROR", detail: message }, { status: 500 });
+    return aosErrorResponse(AOS_ERROR.INTERNAL_ERROR, `SETTLEMENT_ERROR: ${message}`);
   }
 }
 
