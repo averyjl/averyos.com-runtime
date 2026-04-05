@@ -8,7 +8,7 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import type { NextPage } from "next";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
@@ -77,6 +77,17 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
   },
 ];
 
+// ── Status badge styles — extracted to avoid nested ternary (maintainability) ─
+const STATUS_BADGE_STYLES: Record<VaultTransaction["status"], React.CSSProperties> = {
+  verified: { background: "rgba(74,222,128,0.2)",  color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)"  },
+  pending:  { background: "rgba(251,191,36,0.2)",  color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)"  },
+  failed:   { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" },
+};
+
+function getStatusBadgeStyle(status: VaultTransaction["status"]): React.CSSProperties {
+  return STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.failed;
+}
+
 const VaultchainStatusPage: NextPage = () => {
   const [auditData, setAuditData] = useState<VaultAuditData | null>(null);
   const [transactions, setTransactions] = useState<VaultTransaction[]>(LIVE_TRANSACTIONS);
@@ -107,6 +118,13 @@ const VaultchainStatusPage: NextPage = () => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // ── Chain status label — extracted to avoid nested ternary (maintainability) ─
+  const chainStatus: string = loading
+    ? "SYNCING"
+    : auditData?.status === "active"
+      ? "ACTIVE"
+      : "LIVE";
 
   return (
     <>
@@ -154,7 +172,7 @@ const VaultchainStatusPage: NextPage = () => {
             <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Chain Status</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4ade80" }}>
-                {loading ? "SYNCING" : auditData?.status === "active" ? "ACTIVE" : "LIVE"}
+                {chainStatus}
               </div>
             </div>
           </div>
@@ -239,9 +257,7 @@ const VaultchainStatusPage: NextPage = () => {
                       padding: "0.25rem 0.625rem",
                       borderRadius: "4px",
                       letterSpacing: "0.05em",
-                      ...(tx.status === "verified" ? { background: "rgba(74,222,128,0.2)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)" } :
-                          tx.status === "pending" ? { background: "rgba(251,191,36,0.2)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)" } :
-                          { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" })
+                      ...getStatusBadgeStyle(tx.status),
                     }}>
                       {tx.status}
                     </span>

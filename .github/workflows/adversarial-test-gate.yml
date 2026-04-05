@@ -24,19 +24,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "copilot/**" ]
-    paths:
-      - 'lib/**'
-      - 'app/**'
-      - 'pages/**'
-      - 'components/**'
-      - 'scripts/**'
-      - '__tests__/**'
-      - 'middleware.ts'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
-    branches: [ "main" ]
     paths:
       - 'lib/**'
       - 'app/**'
