@@ -176,6 +176,13 @@ VaultBridge/sovereign_ai_registry.json
 vault_storage/
 vault_storage/averyos_boot_map_v1.*
 vault/
+# ── Negation exceptions — legitimate application code inside vault/ subdirs ──
+# These re-allow tracked app routes / pages / content whose parent directory
+# happens to be named "vault". The root-level /vault/ folder remains private.
+!app/api/v1/vault/
+!pages/vault/
+!content/vault/
+!public/admin/docs/app/api/v1/vault/
 
 # Per-AI private sovereign instruction files (managed by syncSovereignAIInstructions.cjs)
 # These hold detailed operational content beyond the public instruction files.
