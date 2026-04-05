@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-04-05T09:06:23.425Z",
+  "generated_at": "2026-04-05T19:31:20.465Z",
   "kernel_version": "v3.6.2",
-  "total_modules": 90,
+  "total_modules": 91,
   "covered": [
     "BadgeGenerator.ts",
     "CapsuleSigner.ts",
@@ -94,7 +94,24 @@
     "timePrecision.ts",
     "vaultCookieConfig.ts"
   ],
-  "uncovered": [],
-  "skeletons": [],
-  "suite_sha512": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+  "uncovered": [
+    {
+      "path": "cloudflareTypes.ts",
+      "exports": [
+        "type:D1BoundStatement",
+        "type:D1PreparedStatement",
+        "type:D1Database",
+        "type:KVNamespace",
+        "type:BaseCfEnv"
+      ]
+    }
+  ],
+  "skeletons": [
+    {
+      "source": "cloudflareTypes.ts",
+      "output": "cloudflareTypes.gen.test.ts",
+      "sha512": "3f7167fcc3fe778509e09198c272ec59…"
+    }
+  ],
+  "suite_sha512": "11b18c686598b4feaf370e3ea8c7c2d6cf7641c1f2da1e406f7e902d72f401c81677b8e7d8970605929c4f992d52734ef77fb24f617677ac27ef2072e4b69c92"
 }
