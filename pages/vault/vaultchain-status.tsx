@@ -8,11 +8,13 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import type { NextPage } from "next";
+import type { CSSProperties } from "react";
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import AnchorBanner from "../../components/AnchorBanner";
+import { formatIso9 } from "../../lib/timePrecision";
 
 type VaultTransaction = {
   id: string;
@@ -38,7 +40,7 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
     id: "tx-live-001",
     capsuleId: "root0-genesis-kernel",
     sha512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
-    timestamp: new Date().toISOString(),
+    timestamp: formatIso9(new Date()),
     status: "verified",
     leadDistance: 0,
   },
@@ -46,7 +48,7 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
     id: "tx-live-002",
     capsuleId: "averyos-sovereign-manifest",
     sha512: "f8262358accd4985778431ddc3f57a8221230ecbead2a9776c79481800457ab5b42b00295ca14ee5db9d27245034eced9ac946d3b97824725c0f75d3c3c6490e",
-    timestamp: new Date(Date.now() - 60000).toISOString(),
+    timestamp: formatIso9(new Date(Date.now() - 60000)),
     status: "verified",
     leadDistance: 1,
   },
@@ -54,7 +56,7 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
     id: "tx-live-003",
     capsuleId: "creatorlock-protocol-v1",
     sha512: "a3f5d2e1b7c94086f2e3d4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4",
-    timestamp: new Date(Date.now() - 120000).toISOString(),
+    timestamp: formatIso9(new Date(Date.now() - 120000)),
     status: "verified",
     leadDistance: 2,
   },
@@ -62,7 +64,7 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
     id: "tx-live-004",
     capsuleId: "vaultchain-anchor-seal",
     sha512: "b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1",
-    timestamp: new Date(Date.now() - 180000).toISOString(),
+    timestamp: formatIso9(new Date(Date.now() - 180000)),
     status: "verified",
     leadDistance: 3,
   },
@@ -70,11 +72,24 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
     id: "tx-live-005",
     capsuleId: "truthhub-drift-monitor",
     sha512: "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
-    timestamp: new Date(Date.now() - 240000).toISOString(),
+    timestamp: formatIso9(new Date(Date.now() - 240000)),
     status: "verified",
     leadDistance: 4,
   },
 ];
+
+// ── Status badge styles — extracted to avoid nested ternary (maintainability) ─
+// ── Status badge styles — explicit switch avoids object-injection lint/CodeQL ─
+function getStatusBadgeStyle(status: VaultTransaction["status"]): CSSProperties {
+  switch (status) {
+    case "verified":
+      return { background: "rgba(74,222,128,0.2)",  color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)"  };
+    case "pending":
+      return { background: "rgba(251,191,36,0.2)",  color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)"  };
+    default:
+      return { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" };
+  }
+}
 
 const VaultchainStatusPage: NextPage = () => {
   const [auditData, setAuditData] = useState<VaultAuditData | null>(null);
@@ -106,6 +121,16 @@ const VaultchainStatusPage: NextPage = () => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // ── Chain status label — if/else to satisfy SonarQube no-nested-ternary rule ─
+  let chainStatus: string;
+  if (loading) {
+    chainStatus = "SYNCING";
+  } else if (auditData?.status === "active") {
+    chainStatus = "ACTIVE";
+  } else {
+    chainStatus = "LIVE";
+  }
 
   return (
     <>
@@ -153,7 +178,7 @@ const VaultchainStatusPage: NextPage = () => {
             <div style={{ background: "rgba(15,25,50,0.6)", border: "1px solid rgba(74,111,255,0.3)", borderRadius: "8px", padding: "0.75rem 1.25rem" }}>
               <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(238,244,255,0.6)" }}>Chain Status</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4ade80" }}>
-                {loading ? "SYNCING" : auditData?.status === "active" ? "ACTIVE" : "LIVE"}
+                {chainStatus}
               </div>
             </div>
           </div>
@@ -238,9 +263,7 @@ const VaultchainStatusPage: NextPage = () => {
                       padding: "0.25rem 0.625rem",
                       borderRadius: "4px",
                       letterSpacing: "0.05em",
-                      ...(tx.status === "verified" ? { background: "rgba(74,222,128,0.2)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)" } :
-                          tx.status === "pending" ? { background: "rgba(251,191,36,0.2)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)" } :
-                          { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" })
+                      ...getStatusBadgeStyle(tx.status),
                     }}>
                       {tx.status}
                     </span>

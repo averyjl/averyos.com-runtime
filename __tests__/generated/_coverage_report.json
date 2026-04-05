@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-04T04:03:20.821Z",
+  "generated_at": "2026-04-05T02:46:34.725Z",
   "kernel_version": "v3.6.2",
   "total_modules": 90,
   "covered": [
@@ -7,6 +7,7 @@
     "CapsuleSigner.ts",
     "CertificateGenerator.ts",
     "ai/almCore.ts",
+    "ai/almRouter.ts",
     "ai/geminiClient.ts",
     "ai/meshDiscovery.ts",
     "ai/router.ts",

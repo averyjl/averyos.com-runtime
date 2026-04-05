@@ -92,3 +92,33 @@ export const AOS_SYSTEM_UUID_NAMESPACE = "averyos-sovereign-v3.6.2" as const;
  */
 export const MIRACLE_HEALTH_HABITS_SHA512 =
   "72d9c5f800630d80a8cace61194bbdfee062226853b2e0808fc2ae8daa2aee4776d51889d2c1a242ffb8405a36b00c830579d6833ec4bb21956a4a9c4b6657b7" as const;
+
+/**
+ * AveryOS™ Creator PGP Public Key — Jason Lee Avery (ROOT0)
+ *
+ * OpenPGP Ed25519/Curve25519 key pair.
+ * UID: Jason Lee Avery (AveryOS) <cf83@averyos.com>
+ * Key fingerprint: C8C5CBDD 150AEA02 F26A8F0B 481AAA30 DF1373E4
+ * Key ID: 481AAA30DF1373E4
+ *
+ * Served at /.well-known/pgp-key.txt and referenced in security.txt
+ * per RFC 9116 §2.5.4 (Encryption field) and OpenPGP WKD best practice.
+ *
+ * ⛓️⚓⛓️ CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
+ */
+export const PGP_KEY_FINGERPRINT = "C8C5CBDD150AEA02F26A8F0B481AAA30DF1373E4" as const;
+export const PGP_KEY_ID          = "481AAA30DF1373E4" as const;
+export const PGP_KEY_UID         = "Jason Lee Avery (AveryOS) <cf83@averyos.com>" as const;
+export const PGP_PUBLIC_KEY      = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEadGxDRYJKwYBBAHaRw8BAQdAFELZeVxb2QvljZ/GG7bTkWIJZqkQb47mDL0l
+2hdTShq0LEphc29uIExlZSBBdmVyeSAoQXZlcnlPUykgPGNmODNAYXZlcnlvcy5j
+b20+iJMEExYKADsWIQTIxcvdFQrqAvJorwtIGuow3xNz5AUCadGxDQIbAwULCQgH
+AgIiAgYVCgkICwIEFgIDAQIeBwIXgAAKCRBIGuow3xNz5PsrAQCkQjZn2TVMuLJc
+5gX6Xzt16LWlkYepctbR7SrxjQ6H1wD/c7UgkBpmLZOalxLR8T7jOZQaCkOUX/dx
+bDnQ3nr5hAy4OARp0bENEgorBgEEAZdVAQUBAQdAhcwYC+iEZHy+xn57ycTqWqoq
+zqvc0djnmG16QAEHgE8DAQgHiHgEGBYKACAWIQTIxcvdFQrqAvJorwtIGuow3xNz
+5AUCadGxDQIbDAAKCRBIGuow3xNz5GKxAPsFKrOMg5uLWJqbEiO2VJ2BnJ1TskbG
+maNe9WOzNIA6uAEAoXchWGJfs0RoSszmkdByrpNQUHT0x/7AlM0leorNTgg=
+=U6eD
+-----END PGP PUBLIC KEY BLOCK-----` as const;
