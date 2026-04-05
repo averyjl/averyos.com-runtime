@@ -29,6 +29,7 @@ import { join } from "path";
 import { createHash } from "crypto";
 import { marked } from "marked";
 import katex from "katex";
+import Link from "next/link";
 import type { Metadata } from "next";
 import AnchorBanner from "../../components/AnchorBanner";
 import { sanitizeHtml } from "../../lib/sanitizeHtml";
@@ -184,6 +185,12 @@ export default function WhitepaperPage() {
         <span style={{ wordBreak: "break-all" }}>
           Root0: {KERNEL_SHA.slice(0, 12)}…{KERNEL_SHA.slice(-8)}
         </span>
+        <Link
+          href="/whitepaper/versions"
+          style={{ color: "rgba(122, 170, 255, 0.85)", textDecoration: "none", marginLeft: "auto" }}
+        >
+          📋 All Versions &amp; Version History →
+        </Link>
       </div>
 
 
