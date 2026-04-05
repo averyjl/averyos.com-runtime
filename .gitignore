@@ -175,6 +175,7 @@ VaultBridge/encrypt_startup_prompt_to_vaultchain.json
 VaultBridge/sovereign_ai_registry.json
 vault_storage/
 vault_storage/averyos_boot_map_v1.*
+vault/
 
 # Per-AI private sovereign instruction files (managed by syncSovereignAIInstructions.cjs)
 # These hold detailed operational content beyond the public instruction files.
