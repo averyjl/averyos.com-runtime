@@ -18,6 +18,16 @@
  * -------
  * A server-side CI gate that provides FIVE layers of protection beyond .gitignore:
  *
+ *   Layer 0 — Gitignore Pattern Integrity Check (Design-Stage Guard):
+ *     Validates .gitignore patterns themselves for dangerous unanchored directory
+ *     patterns that could accidentally match tracked source code paths at any depth.
+ *     An unanchored `foo/` pattern matches EVERY directory named `foo/` anywhere
+ *     in the tree (e.g. `app/api/v1/foo/`, `pages/foo/`, `content/foo/`).
+ *     This layer catches the design defect before it triggers false positives
+ *     in Layer 1 — preventing CI failures caused by overly-broad .gitignore rules.
+ *     Recommendation: use root-anchored `/foo/` to protect only the top-level
+ *     runtime directory without accidentally excluding source code.
+ *
  *   Layer 1 — Git-Tree Pattern Guard:
  *     Reads ALL patterns from .gitignore at runtime (dynamic — stays current as
  *     .gitignore grows) and checks `git ls-files` output against every pattern.
@@ -145,6 +155,74 @@ const MAX_CONTENT_SCAN_BYTES = 2 * 1024 * 1024;
 
 // Maximum file size for HAR scanning (20 MB — HAR captures can be large).
 const MAX_HAR_SCAN_BYTES = 20 * 1024 * 1024;
+
+// ── Layer 0: Gitignore pattern integrity check ────────────────────────────────
+
+/**
+ * Layer 0 — Gitignore Pattern Integrity Check (Design-Stage Guard)
+ *
+ * Detects "dangerous unanchored directory patterns" in .gitignore: patterns of
+ * the form `foo/` (no leading `/`, no inner path separator) that match the
+ * directory name at ANY depth in the tree. When such a pattern accidentally
+ * matches tracked source code paths (e.g. `app/api/v1/foo/`, `pages/foo/`)
+ * it causes Layer 1 false positives and CI failures.
+ *
+ * This guard catches the defect at design time — before a new file is added
+ * under a matching subdirectory — so the CI never fails due to an overly-broad
+ * .gitignore rule.
+ *
+ * A pattern is flagged when ALL of the following are true:
+ *   1. It is not negated (does not start with `!`).
+ *   2. It does not start with `/` (unanchored — matches at any depth).
+ *   3. It ends with `/` (directory-only pattern).
+ *   4. It contains no `/` except the trailing one (single-component name).
+ *   5. At least one currently-tracked file exists inside a SUBDIRECTORY named
+ *      that component that is NOT at the repo root (i.e. there is at least one
+ *      `/component-name/` segment beyond the first path component).
+ *
+ * @param {{ pattern: string, negate: boolean }[]} rules  Parsed .gitignore rules.
+ * @param {string[]} trackedFiles  Relative POSIX paths from `git ls-files`.
+ * @returns {{ pattern: string, exampleFile: string }[]}  Flagged patterns.
+ */
+function checkGitignorePatternIntegrity(rules, trackedFiles) {
+  const flagged = [];
+
+  // Pre-build a map from directory-segment name → example file for O(1) lookups.
+  // For each tracked file, extract every NON-ROOT directory component that
+  // appears inside (not as) the first path segment.
+  // e.g. "app/api/v1/vault/auth/route.ts" → segments: {"api", "v1", "vault", "auth"}
+  // (first segment "app" is the root component — excluded deliberately so that a
+  //  pattern like `app/` matches only the root-level `app/` directory as intended.)
+  /** @type {Map<string, string>} segment → first example file path */
+  const nonRootSegments = new Map();
+  for (const f of trackedFiles) {
+    const parts = f.split('/');
+    // Skip index 0 (root component) and last (filename). Inner directory segments.
+    for (let i = 1; i < parts.length - 1; i++) {
+      if (parts[i] && !nonRootSegments.has(parts[i])) {
+        nonRootSegments.set(parts[i], f);
+      }
+    }
+  }
+
+  for (const { pattern, negate } of rules) {
+    // Only check non-negated, unanchored, single-component directory patterns.
+    if (negate) continue;
+    if (pattern.startsWith('/')) continue;          // root-anchored — safe
+    if (!pattern.endsWith('/')) continue;           // not a directory pattern
+    const inner = pattern.slice(0, -1);             // strip trailing slash
+    if (inner.includes('/')) continue;              // multi-component — has own anchor
+    if (!inner) continue;                           // degenerate empty pattern
+
+    // O(1) lookup: does this component name appear at non-root depth?
+    const exampleFile = nonRootSegments.get(inner);
+    if (exampleFile) {
+      flagged.push({ pattern, exampleFile });
+    }
+  }
+
+  return flagged;
+}
 
 // ── Gitignore parser ──────────────────────────────────────────────────────────
 
@@ -640,6 +718,7 @@ function main() {
   }
   const ignoreRuleCount  = rules.filter(r => !r.negate).length;
   const negationRuleCount = rules.filter(r => r.negate).length;
+  console.log(`[Layer 0] Validating .gitignore patterns for dangerous unanchored directory rules`);
   console.log(`[Layer 1] Loaded ${rules.length} rule(s) from .gitignore ` +
     `(${ignoreRuleCount} ignore, ${negationRuleCount} negation/allow)`);
 
@@ -654,6 +733,9 @@ function main() {
   console.log(`[Layer 3] Scanning all files for key/token filenames with key material`);
   console.log(`[Layer 4] Scanning tracked .har files for embedded key/credential patterns`);
   console.log(`[Layer 5] Scanning tracked files for private sovereign MIME extensions\n`);
+
+  // ── Layer 0: Gitignore pattern integrity ─────────────────────────────────
+  const patternIntegrityViolations = checkGitignorePatternIntegrity(rules, trackedFiles);
 
   // ── Layer 1: Pattern violations ──────────────────────────────────────────
   const patternViolations = checkTreeAgainstRules(trackedFiles, rules);
@@ -703,9 +785,24 @@ function main() {
     console.log(`✅ [Layer 5] Sovereign MIME type guard passed — no private AOS extension files tracked.`);
   }
 
-  const totalViolations = patternViolations.length + contentViolations.length + harViolations.length + mimeViolations.length;
+  const totalViolations = patternIntegrityViolations.length + patternViolations.length + contentViolations.length + harViolations.length + mimeViolations.length;
 
-  // ── Report ────────────────────────────────────────────────────────────────
+  // ── Report — Layer 0 ─────────────────────────────────────────────────────
+  if (patternIntegrityViolations.length > 0) {
+    console.error(`\n❌ [Layer 0] ${patternIntegrityViolations.length} dangerous unanchored .gitignore directory pattern(s) found:\n`);
+    for (const { pattern, exampleFile } of patternIntegrityViolations) {
+      const anchored = `/${pattern}`;
+      console.error(`  ⛔  Pattern: "${pattern}"`);
+      console.error(`       This unanchored pattern matches source code paths like: ${exampleFile}`);
+      console.error(`       Upgrade: use "${anchored}" to protect only the root-level directory.`);
+    }
+    console.error('\n  Remediation:');
+    console.error('    In .gitignore, change `foo/` → `/foo/` (add a leading slash).');
+    console.error('    This root-anchors the pattern so it only excludes the top-level');
+    console.error('    runtime directory without accidentally matching source code at deeper paths.\n');
+  }
+
+  // ── Report — Layer 1 ─────────────────────────────────────────────────────
   if (patternViolations.length > 0) {
     console.error(`\n❌ [Layer 1] ${patternViolations.length} file(s) are tracked in git but match .gitignore patterns:\n`);
     for (const { file, pattern } of patternViolations) {
@@ -757,6 +854,7 @@ function main() {
   }
 
   if (totalViolations === 0) {
+    console.log('✅ [Layer 0] Gitignore pattern integrity passed — no dangerous unanchored directory patterns.');
     console.log('✅ [Layer 1] Git-tree pattern guard passed — no .gitignore-d files are tracked.');
     console.log(`✅ [Layer 2] Content guard passed — no secret patterns found in ${trackedFiles.length} tracked files.`);
     console.log(`✅ [Layer 3] Key/token auto-guard passed — ${autoAdded.length} file(s) auto-added to .gitignore.`);
@@ -770,6 +868,7 @@ function main() {
   // ── Failure ───────────────────────────────────────────────────────────────
   logAosError(AOS_ERROR.INVALID_FIELD,
     `sovereign-leak-guard: ${totalViolations} violation(s) — ` +
+    `${patternIntegrityViolations.length} gitignore pattern integrity, ` +
     `${patternViolations.length} tree pattern(s), ${contentViolations.length} content secret(s), ${harViolations.length} HAR credential(s), ${mimeViolations.length} sovereign MIME file(s).`);
 
   console.error(`\n⛓️⚓⛓️  Sovereign Leak Guard FAILED — ${totalViolations} violation(s) detected.`);
