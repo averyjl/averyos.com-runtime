@@ -265,11 +265,11 @@ describe("getStatutoryOrigin() — adversarial jurisdiction edge cases", () => {
   });
 
   test("returns 'UNKNOWN' for T1 (Tor exit nodes)", () => {
-    const result = getStatutoryOrigin(makeRequest("T1") as never);
     // T1 is the Cloudflare code for Tor exit nodes — not in any known jurisdiction
-    assert.ok(
-      result === "UNKNOWN" || result === "US" || result === "EU" || result === "JP" || result === "UK",
-      `getStatutoryOrigin('T1') must return a valid StatutoryJurisdiction, got: ${result}`,
+    assert.equal(
+      getStatutoryOrigin(makeRequest("T1") as never),
+      "UNKNOWN" as StatutoryJurisdiction,
+      "T1 (Tor exit nodes) must map to UNKNOWN jurisdiction",
     );
   });
 });

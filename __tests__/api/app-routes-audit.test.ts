@@ -279,7 +279,7 @@ describe("App-Router API Routes — Cloudflare binding safety", () => {
 
 describe("App-Router API Routes — no hard-coded sovereign constants", () => {
   // The actual KERNEL_SHA value — importing from sovereignConstants to stay DRY
-  const KERNEL_SHA_FRAGMENT = "cf83e1357eefb8bdf154285";
+  const KERNEL_SHA_FRAGMENT = "cf83e1357eefb8bdf1542850";
 
   test("routes that use KERNEL_SHA at runtime import from sovereignConstants", () => {
     const violations: string[] = [];
