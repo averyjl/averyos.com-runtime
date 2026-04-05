@@ -30,7 +30,7 @@
  * ⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
  */
 
-import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH } from "../../../lib/sovereignConstants";
+import { KERNEL_SHA, KERNEL_VERSION, DISCLOSURE_MIRROR_PATH, PGP_KEY_FINGERPRINT, PGP_KEY_ID, PGP_KEY_UID } from "../../../lib/sovereignConstants";
 import { NODE_01_ID, NODE_02_ID } from "../../../lib/sovereignNodes";
 
 export const dynamic = "force-dynamic";
@@ -80,12 +80,25 @@ export async function GET(request: Request): Promise<Response> {
           "x-averyos-kernel-sha":  KERNEL_SHA,
         },
       },
+      // ── PGP Verification Method — GATE 131.1 ────────────────────────────────
+      // Creator OpenPGP Ed25519/Curve25519 key for email encryption, signed
+      // disclosures, and sovereign content authentication.
+      // Served at: https://averyos.com/.well-known/pgp-key.txt
+      {
+        id:           `${did}#pgp-${PGP_KEY_ID.toLowerCase()}`,
+        type:         "OpenPgpVerificationKey2021",
+        controller:   did,
+        publicKeyArmored: `${baseUrl}/.well-known/pgp-key.txt`,
+        "x-averyos-pgp-fingerprint": PGP_KEY_FINGERPRINT,
+        "x-averyos-pgp-key-id":      PGP_KEY_ID,
+        "x-averyos-pgp-uid":         PGP_KEY_UID,
+      },
     ],
 
     // ── Capability Invocation & Delegation ────────────────────────────────────
     capabilityInvocation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
     capabilityDelegation: [`${did}#sovereign-key-${KERNEL_VERSION}`],
-    assertionMethod:      [`${did}#sovereign-key-${KERNEL_VERSION}`, `${did}#genesis-bridge-sha256`],
+    assertionMethod:      [`${did}#sovereign-key-${KERNEL_VERSION}`, `${did}#genesis-bridge-sha256`, `${did}#pgp-${PGP_KEY_ID.toLowerCase()}`],
     authentication:       [`${did}#sovereign-key-${KERNEL_VERSION}`],
 
     // ── Service Endpoints ─────────────────────────────────────────────────────
