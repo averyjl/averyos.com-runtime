@@ -8,8 +8,6 @@
 
 ### `GET` *(function)*
 
-GET /api/v1/hooks/vaultsig/successVaultSig™ GitHub App — OAuth Installation Success HandlerAveryOS™ Phase 111.6 / GATE 111.6.2Handles the redirect from GitHub after a user successfully installs orauthorizes the VaultSig GitHub App.  GitHub appends `code` and`installation_id` query parameters to this URL.This endpoint:  1. Logs the successful installation to D1.  2. Redirects the user to the AveryOS™ Sovereign Dashboard.⛓️⚓⛓️  CreatorLock: Jason Lee Avery (ROOT0) 🤛🏻
-
 ---
 
 *⛓️⚓⛓️ AveryOS™ Sovereign Integrity License v1.0 — All implementations are proprietary.*

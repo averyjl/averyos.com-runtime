@@ -10,8 +10,6 @@
 
 ### `buildEvidencePacket` *(function)*
 
-Input parameters for building an International Evidence Packet. */ export interface EvidencePacketInput {   /** Cloudflare RayID for the triggering request. */   ray_id: string;   /** Client ASN (e.g. "8075"). */   asn: string;   /** Client IP address. */   ip_address: string;   /** ISO-3166 country code of the client (e.g. "FR"). */   country_code: string;   /** organization name (if known). */   org_name?: string | null;   /** Detected ingestion intent label (e.g. "LEGAL_SCAN", "DER_PROBE").
-
 ### `formatEvidenceNotice` *(function)*
 
 ### `JURISDICTION_STATUTES` *(constant)*

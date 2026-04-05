@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-04T03:00:28.381Z",
+  "generated_at": "2026-04-05T00:32:00.489Z",
   "modules": [
     {
       "path": "lib/ai/almCore.ts",
@@ -45,6 +45,41 @@
         {
           "name": "AlmSourceType",
           "kind": "type"
+        }
+      ]
+    },
+    {
+      "path": "lib/ai/almRouter.ts",
+      "doc": "admin/docs/lib/ai/almRouter.md",
+      "symbolCount": 7,
+      "symbols": [
+        {
+          "name": "checkNode02Status",
+          "kind": "function"
+        },
+        {
+          "name": "almRoute",
+          "kind": "function"
+        },
+        {
+          "name": "ALM_NODE02_TIMEOUT_MS",
+          "kind": "constant"
+        },
+        {
+          "name": "ALM_MODEL",
+          "kind": "constant"
+        },
+        {
+          "name": "AlmInferenceRequest",
+          "kind": "interface"
+        },
+        {
+          "name": "AlmInferenceResponse",
+          "kind": "interface"
+        },
+        {
+          "name": "AlmNodeStatus",
+          "kind": "interface"
         }
       ]
     },
@@ -1467,8 +1502,16 @@
     {
       "path": "lib/navigationRoutes.ts",
       "doc": "admin/docs/lib/navigationRoutes.md",
-      "symbolCount": 3,
+      "symbolCount": 6,
       "symbols": [
+        {
+          "name": "navGroups",
+          "kind": "constant"
+        },
+        {
+          "name": "adminNavGroup",
+          "kind": "constant"
+        },
         {
           "name": "navigationRoutes",
           "kind": "constant"
@@ -1479,6 +1522,10 @@
         },
         {
           "name": "NavigationRoute",
+          "kind": "type"
+        },
+        {
+          "name": "NavGroup",
           "kind": "type"
         }
       ]

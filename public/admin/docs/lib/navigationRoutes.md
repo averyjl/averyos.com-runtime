@@ -6,11 +6,17 @@
 
 ## Public API
 
+### `navGroups` *(constant)*
+
+### `adminNavGroup` *(constant)*
+
 ### `navigationRoutes` *(constant)*
 
 ### `adminRoutes` *(constant)*
 
 ### `NavigationRoute` *(type)*
+
+### `NavGroup` *(type)*
 
 ---
 
