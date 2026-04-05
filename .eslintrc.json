@@ -22,6 +22,7 @@
     "security/detect-no-csrf-before-method-override": "warn",
     "security/detect-possible-timing-attacks": "warn",
     "security/detect-non-literal-fs-filename": "off",
+    "no-nested-ternary": "warn",
     "@typescript-eslint/no-unused-vars": ["warn", {
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_",

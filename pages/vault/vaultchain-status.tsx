@@ -120,12 +120,15 @@ const VaultchainStatusPage: NextPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ── Chain status label — extracted to avoid nested ternary (maintainability) ─
-  const chainStatus: string = loading
-    ? "SYNCING"
-    : auditData?.status === "active"
-      ? "ACTIVE"
-      : "LIVE";
+  // ── Chain status label — if/else to satisfy SonarQube no-nested-ternary rule ─
+  let chainStatus: string;
+  if (loading) {
+    chainStatus = "SYNCING";
+  } else if (auditData?.status === "active") {
+    chainStatus = "ACTIVE";
+  } else {
+    chainStatus = "LIVE";
+  }
 
   return (
     <>
