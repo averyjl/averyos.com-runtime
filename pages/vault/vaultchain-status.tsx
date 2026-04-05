@@ -8,7 +8,8 @@
  * (AveryOS_CopyrightBlock_v1.0) truth@averyworld.com
  */
 import type { NextPage } from "next";
-import React, { useState, useEffect } from "react";
+import type { CSSProperties } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
@@ -78,13 +79,13 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
 ];
 
 // ── Status badge styles — extracted to avoid nested ternary (maintainability) ─
-const STATUS_BADGE_STYLES: Record<VaultTransaction["status"], React.CSSProperties> = {
+const STATUS_BADGE_STYLES: Record<VaultTransaction["status"], CSSProperties> = {
   verified: { background: "rgba(74,222,128,0.2)",  color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)"  },
   pending:  { background: "rgba(251,191,36,0.2)",  color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)"  },
   failed:   { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" },
 };
 
-function getStatusBadgeStyle(status: VaultTransaction["status"]): React.CSSProperties {
+function getStatusBadgeStyle(status: VaultTransaction["status"]): CSSProperties {
   return STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.failed;
 }
 
