@@ -50,6 +50,52 @@ jobs:
         with:
           fetch-depth: 0  # Required for SonarCloud blame data
 
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Generate LCOV coverage for lib/ modules (unit-tested) so SonarCloud
+      # has real coverage data for the code that IS unit-tested.
+      # app/, pages/, workers/ are excluded from coverage in sonar-project.properties
+      # because they are integration/E2E tested, not unit-tested.
+      - name: Generate LCOV coverage report
+        run: |
+          mkdir -p coverage
+          node --loader ./__tests__/loader.mjs \
+               --experimental-strip-types \
+               --experimental-test-coverage \
+               --test-reporter=spec \
+               --test-reporter-destination=stdout \
+               --test-reporter=lcov \
+               --test-reporter-destination=coverage/lcov.info \
+               --test \
+               __tests__/tariUniversal.test.ts \
+               __tests__/sovereignKeys.test.ts \
+               __tests__/timeMesh.test.ts \
+               __tests__/wafLogic.test.ts \
+               __tests__/driftShield.test.ts \
+               __tests__/sovereignError.test.ts \
+               __tests__/timePrecision.test.ts \
+               __tests__/qaEngine.test.ts \
+               __tests__/clearTextStorage.test.ts \
+               __tests__/vaultsigWebhook.test.ts \
+               __tests__/protocol.test.ts \
+               __tests__/agentSummary.test.ts \
+               __tests__/coreManifest.test.ts \
+               __tests__/pathSanitizer.test.ts \
+               __tests__/sovereignGuard.test.ts \
+               __tests__/sovereignFetch.test.ts \
+               __tests__/unmaskCore.test.ts \
+               __tests__/meshDiscovery.test.ts || true
+        env:
+          NODE_OPTIONS: "--no-warnings"
+        continue-on-error: true  # Coverage failure does not block Sonar analysis
+
       - name: Analyze with SonarCloud
         # Uses sonar-project.properties for projectKey and organization
         # (averyjl_averyos-com-runtime / averyjl)
