@@ -39,8 +39,8 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { KERNEL_SHA, KERNEL_VERSION } from "../../../../lib/sovereignConstants";
-import { aosErrorResponse, AOS_ERROR } from "../../../../lib/sovereignError";
+import { KERNEL_SHA, KERNEL_VERSION } from "../../../../../lib/sovereignConstants";
+import { aosErrorResponse, AOS_ERROR } from "../../../../../lib/sovereignError";
 
 // ── Minimal KV binding type ───────────────────────────────────────────────────
 
