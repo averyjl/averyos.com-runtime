@@ -79,14 +79,16 @@ const LIVE_TRANSACTIONS: VaultTransaction[] = [
 ];
 
 // ── Status badge styles — extracted to avoid nested ternary (maintainability) ─
-const STATUS_BADGE_STYLES: Record<VaultTransaction["status"], CSSProperties> = {
-  verified: { background: "rgba(74,222,128,0.2)",  color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)"  },
-  pending:  { background: "rgba(251,191,36,0.2)",  color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)"  },
-  failed:   { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" },
-};
-
+// ── Status badge styles — explicit switch avoids object-injection lint/CodeQL ─
 function getStatusBadgeStyle(status: VaultTransaction["status"]): CSSProperties {
-  return STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.failed;
+  switch (status) {
+    case "verified":
+      return { background: "rgba(74,222,128,0.2)",  color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)"  };
+    case "pending":
+      return { background: "rgba(251,191,36,0.2)",  color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)"  };
+    default:
+      return { background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)" };
+  }
 }
 
 const VaultchainStatusPage: NextPage = () => {
